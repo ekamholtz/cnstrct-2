@@ -31,8 +31,37 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           .maybeSingle()
           .then(({ data, error }) => {
             console.log("Profile data:", data, "Error:", error);
-            setHasCompletedProfile(data?.has_completed_profile ?? false);
-            setLoading(false);
+            
+            if (error) {
+              console.error("Error fetching profile:", error);
+              setLoading(false);
+              return;
+            }
+
+            // If no profile exists, create one
+            if (!data) {
+              console.log("No profile found, creating one...");
+              supabase
+                .from('profiles')
+                .insert([
+                  {
+                    id: session.user.id,
+                    full_name: session.user.user_metadata.full_name,
+                    role: session.user.user_metadata.role,
+                    has_completed_profile: false
+                  }
+                ])
+                .then(({ error: insertError }) => {
+                  if (insertError) {
+                    console.error("Error creating profile:", insertError);
+                  }
+                  setHasCompletedProfile(false);
+                  setLoading(false);
+                });
+            } else {
+              setHasCompletedProfile(data.has_completed_profile);
+              setLoading(false);
+            }
           });
       } else {
         setLoading(false);
