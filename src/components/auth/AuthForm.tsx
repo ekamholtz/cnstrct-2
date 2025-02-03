@@ -43,37 +43,23 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
   const handleRegister = async (values: RegisterFormData) => {
     setLoading(true);
     try {
-      console.log("Starting user registration...");
+      console.log("Starting user registration with role:", selectedRole);
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
           data: {
             full_name: values.fullName,
+            role: selectedRole, // Include role in metadata
           },
         },
       });
 
-      if (signUpError) throw signUpError;
-      console.log("User created successfully:", signUpData);
-
-      // Only proceed with profile update if we have a user
-      if (signUpData.user) {
-        console.log("Updating profile for user:", signUpData.user.id);
-        const { error: updateError } = await supabase
-          .from("profiles")
-          .update({
-            full_name: values.fullName,
-            role: selectedRole,
-          })
-          .eq("id", signUpData.user.id);
-
-        if (updateError) {
-          console.error("Profile update error:", updateError);
-          throw updateError;
-        }
-        console.log("Profile updated successfully");
+      if (signUpError) {
+        console.error("Signup error:", signUpError);
+        throw signUpError;
       }
+      console.log("User created successfully:", signUpData);
 
       toast({
         title: "Registration successful!",
