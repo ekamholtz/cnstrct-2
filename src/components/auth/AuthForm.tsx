@@ -41,25 +41,44 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
   };
 
   const handleRegister = async (values: RegisterFormData) => {
+    if (!selectedRole) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a role before registering",
+      });
+      return;
+    }
+
     setLoading(true);
     try {
-      console.log("Starting user registration with role:", selectedRole);
+      console.log("Starting registration with data:", {
+        email: values.email,
+        role: selectedRole,
+        fullName: values.fullName,
+      });
+
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
           data: {
             full_name: values.fullName,
-            role: selectedRole, // Include role in metadata
+            role: selectedRole,
           },
         },
       });
 
       if (signUpError) {
-        console.error("Signup error:", signUpError);
+        console.error("Detailed signup error:", {
+          error: signUpError,
+          message: signUpError.message,
+          details: signUpError.cause,
+        });
         throw signUpError;
       }
-      console.log("User created successfully:", signUpData);
+
+      console.log("Signup successful:", signUpData);
 
       toast({
         title: "Registration successful!",
@@ -68,11 +87,16 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
 
       navigate("/");
     } catch (error: any) {
-      console.error("Registration error:", error);
+      console.error("Registration error details:", {
+        error,
+        message: error.message,
+        cause: error.cause,
+      });
+      
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message,
+        title: "Registration failed",
+        description: error.message || "An unexpected error occurred during registration",
       });
     } finally {
       setLoading(false);
