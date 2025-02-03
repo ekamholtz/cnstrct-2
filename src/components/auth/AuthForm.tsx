@@ -29,8 +29,6 @@ const registerSchema = z
     email: z.string().email("Invalid email address"),
     password: z.string().min(6, "Password must be at least 6 characters"),
     confirmPassword: z.string(),
-    bankAccountNumber: z.string().optional(),
-    bankRoutingNumber: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -55,8 +53,6 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       email: "",
       password: "",
       confirmPassword: "",
-      bankAccountNumber: "",
-      bankRoutingNumber: "",
     },
   });
 
@@ -91,10 +87,6 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
           .update({
             full_name: values.fullName,
             role: selectedRole,
-            ...(selectedRole === "general_contractor" && {
-              bank_account_number: values.bankAccountNumber,
-              bank_routing_number: values.bankRoutingNumber,
-            }),
           })
           .eq("id", (await supabase.auth.getUser()).data.user?.id);
 
@@ -202,68 +194,24 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
           />
 
           {!isLogin && (
-            <>
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-white">Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="password"
-                        placeholder="••••••••"
-                        {...field}
-                        className="bg-white"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {selectedRole === "general_contractor" && (
-                <>
-                  <FormField
-                    control={form.control}
-                    name="bankAccountNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-white">Bank Account Number</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="Enter your bank account number"
-                            {...field}
-                            className="bg-white"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="bankRoutingNumber"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel className="text-white">Bank Routing Number</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            placeholder="Enter your bank routing number"
-                            {...field}
-                            className="bg-white"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </>
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-white">Confirm Password</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      {...field}
+                      className="bg-white"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
               )}
-            </>
+            />
           )}
 
           <Button
