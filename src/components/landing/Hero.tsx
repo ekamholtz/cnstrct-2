@@ -52,7 +52,7 @@ export const Hero = () => {
                 onClick={() => handleRegister("client")}
               >
                 <House className="mr-2 h-5 w-5" />
-                Register as Client
+                Register as Homeowner
               </Button>
             </div>
           )}
