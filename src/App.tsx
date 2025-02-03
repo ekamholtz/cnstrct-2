@@ -20,14 +20,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     // Check auth status
     supabase.auth.getSession().then(({ data: { session } }) => {
+      console.log("Current session:", session);
       setSession(session);
       if (session) {
         // Check profile completion status
         supabase
           .from('profiles')
           .select('has_completed_profile')
-          .single()
-          .then(({ data }) => {
+          .eq('id', session.user.id)
+          .maybeSingle()
+          .then(({ data, error }) => {
+            console.log("Profile data:", data, "Error:", error);
             setHasCompletedProfile(data?.has_completed_profile ?? false);
             setLoading(false);
           });
@@ -37,6 +40,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Auth state changed:", session);
       setSession(session);
     });
 

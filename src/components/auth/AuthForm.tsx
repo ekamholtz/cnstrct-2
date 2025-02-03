@@ -30,10 +30,13 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       if (error) throw error;
 
       // Check profile completion status after successful login
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('has_completed_profile')
-        .single();
+        .eq('id', (await supabase.auth.getUser()).data.user?.id)
+        .maybeSingle();
+
+      console.log("Login profile check:", profile, profileError);
 
       if (profile && !profile.has_completed_profile) {
         navigate("/profile-completion");
