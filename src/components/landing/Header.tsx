@@ -38,6 +38,12 @@ export const Header = () => {
     }
   };
 
+  const navItems = user ? [
+    { label: "Home", path: "/dashboard" },
+    { label: "Projects", path: "/dashboard" },
+    { label: "Profile", path: "/profile" },
+  ] : [];
+
   return (
     <header className="fixed top-0 left-0 right-0 bg-white z-50 shadow-sm">
       <div className="container mx-auto px-4">
@@ -52,12 +58,15 @@ export const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            <a href="/" className="text-cnstrct-navy hover:text-cnstrct-orange transition-colors">
-              Home
-            </a>
-            <a href="#" className="text-cnstrct-navy hover:text-cnstrct-orange transition-colors">
-              About
-            </a>
+            {navItems.map((item) => (
+              <a
+                key={item.label}
+                href={item.path}
+                className="text-cnstrct-navy hover:text-cnstrct-orange transition-colors"
+              >
+                {item.label}
+              </a>
+            ))}
             {user ? (
               <Button onClick={handleLogout} variant="outline">
                 Sign Out
@@ -90,12 +99,15 @@ export const Header = () => {
         {isMenuOpen && (
           <nav className="md:hidden py-4 border-t">
             <div className="flex flex-col space-y-4">
-              <a href="/" className="text-cnstrct-navy hover:text-cnstrct-orange transition-colors">
-                Home
-              </a>
-              <a href="#" className="text-cnstrct-navy hover:text-cnstrct-orange transition-colors">
-                About
-              </a>
+              {navItems.map((item) => (
+                <a
+                  key={item.label}
+                  href={item.path}
+                  className="text-cnstrct-navy hover:text-cnstrct-orange transition-colors"
+                >
+                  {item.label}
+                </a>
+              ))}
               {user ? (
                 <Button onClick={handleLogout} variant="outline" className="w-full">
                   Sign Out
@@ -129,4 +141,4 @@ export const Header = () => {
       </div>
     </header>
   );
-};
+}

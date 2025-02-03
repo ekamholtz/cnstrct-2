@@ -60,6 +60,44 @@ export type Database = {
         }
         Relationships: []
       }
+      projects: {
+        Row: {
+          address: string
+          contractor_id: string
+          created_at: string
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address: string
+          contractor_id: string
+          created_at?: string
+          id?: string
+          name: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string
+          contractor_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "projects_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
