@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       console.log("Current session:", session);
       setSession(session);
       if (session) {
-        // Check profile completion status
+        // Check profile completion status using the correct query syntax
         supabase
           .from('profiles')
           .select('has_completed_profile')
