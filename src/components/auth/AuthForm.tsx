@@ -43,7 +43,8 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
   const handleRegister = async (values: RegisterFormData) => {
     setLoading(true);
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      console.log("Starting user registration...");
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
@@ -54,16 +55,25 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       });
 
       if (signUpError) throw signUpError;
+      console.log("User created successfully:", signUpData);
 
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update({
-          full_name: values.fullName,
-          role: selectedRole,
-        })
-        .eq("id", (await supabase.auth.getUser()).data.user?.id);
+      // Only proceed with profile update if we have a user
+      if (signUpData.user) {
+        console.log("Updating profile for user:", signUpData.user.id);
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update({
+            full_name: values.fullName,
+            role: selectedRole,
+          })
+          .eq("id", signUpData.user.id);
 
-      if (updateError) throw updateError;
+        if (updateError) {
+          console.error("Profile update error:", updateError);
+          throw updateError;
+        }
+        console.log("Profile updated successfully");
+      }
 
       toast({
         title: "Registration successful!",
@@ -72,6 +82,7 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
 
       navigate("/");
     } catch (error: any) {
+      console.error("Registration error:", error);
       toast({
         variant: "destructive",
         title: "Error",
