@@ -48,8 +48,7 @@ export const Hero = () => {
               </Button>
               <Button
                 size="lg"
-                variant="outline"
-                className="text-white border-white hover:bg-white/10"
+                className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
                 onClick={() => handleRegister("client")}
               >
                 <DollarSign className="mr-2 h-5 w-5" />
