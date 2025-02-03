@@ -70,10 +70,9 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       });
 
       if (signUpError) {
-        console.error("Detailed signup error:", {
+        console.error("Signup error:", {
           error: signUpError,
           message: signUpError.message,
-          details: signUpError.cause,
         });
         throw signUpError;
       }
@@ -87,10 +86,9 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
 
       navigate("/");
     } catch (error: any) {
-      console.error("Registration error details:", {
+      console.error("Registration error:", {
         error,
         message: error.message,
-        cause: error.cause,
       });
       
       toast({
