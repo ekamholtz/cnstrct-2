@@ -28,7 +28,18 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       });
 
       if (error) throw error;
-      navigate("/");
+
+      // Check profile completion status after successful login
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('has_completed_profile')
+        .single();
+
+      if (profile && !profile.has_completed_profile) {
+        navigate("/profile-completion");
+      } else {
+        navigate("/");
+      }
     } catch (error: any) {
       toast({
         variant: "destructive",
@@ -79,12 +90,14 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
 
       console.log("Signup successful:", signUpData);
 
+      // After successful registration, redirect to profile completion
+      navigate("/profile-completion");
+
       toast({
         title: "Registration successful!",
-        description: "Please check your email to verify your account.",
+        description: "Please complete your profile information.",
       });
 
-      navigate("/");
     } catch (error: any) {
       console.error("Registration error:", {
         error,
