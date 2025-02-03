@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Building, DollarSign } from "lucide-react";
+import { Building, House } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,7 +51,7 @@ export const Hero = () => {
                 className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
                 onClick={() => handleRegister("client")}
               >
-                <DollarSign className="mr-2 h-5 w-5" />
+                <House className="mr-2 h-5 w-5" />
                 Register as Client
               </Button>
             </div>
