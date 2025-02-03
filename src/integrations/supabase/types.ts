@@ -11,34 +11,52 @@ export type Database = {
     Tables: {
       profiles: {
         Row: {
+          address: string | null
           bank_account_number: string | null
           bank_routing_number: string | null
+          company_address: string | null
           company_name: string | null
           created_at: string
           full_name: string | null
+          has_completed_profile: boolean | null
           id: string
+          license_number: string | null
+          phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string
+          website: string | null
         }
         Insert: {
+          address?: string | null
           bank_account_number?: string | null
           bank_routing_number?: string | null
+          company_address?: string | null
           company_name?: string | null
           created_at?: string
           full_name?: string | null
+          has_completed_profile?: boolean | null
           id: string
+          license_number?: string | null
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
+          website?: string | null
         }
         Update: {
+          address?: string | null
           bank_account_number?: string | null
           bank_routing_number?: string | null
+          company_address?: string | null
           company_name?: string | null
           created_at?: string
           full_name?: string | null
+          has_completed_profile?: boolean | null
           id?: string
+          license_number?: string | null
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
+          website?: string | null
         }
         Relationships: []
       }
