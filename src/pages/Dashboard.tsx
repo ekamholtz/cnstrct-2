@@ -26,12 +26,27 @@ export default function Dashboard() {
         return;
       }
 
-      console.log("Fetching projects for contractor ID:", user.id);
+      console.log("Current user ID:", user.id);
       
+      // First, get the profile to ensure we have the correct ID
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
+      }
+
+      console.log("Fetching projects for profile ID:", profile.id);
+      
+      // Then fetch projects using the profile ID
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
-        .eq('contractor_id', user.id);
+        .eq('contractor_id', profile.id);
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);
