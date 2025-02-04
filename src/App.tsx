@@ -20,55 +20,56 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
 
   useEffect(() => {
-    // Check auth status
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log("Current session:", session);
-      setSession(session);
-      if (session) {
-        // Check profile completion status
-        supabase
-          .from('profiles')
-          .select('has_completed_profile')
-          .eq('id', session.user.id)
-          .maybeSingle()
-          .then(({ data, error }) => {
-            console.log("Profile data:", data, "Error:", error);
-            
-            if (error) {
-              console.error("Error fetching profile:", error);
-              setLoading(false);
-              return;
-            }
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("Current session:", session);
+        setSession(session);
 
-            // If no profile exists, create one
-            if (!data) {
-              console.log("No profile found, creating one...");
-              supabase
-                .from('profiles')
-                .insert([
-                  {
-                    id: session.user.id,
-                    full_name: session.user.user_metadata.full_name,
-                    role: session.user.user_metadata.role,
-                    has_completed_profile: false
-                  }
-                ])
-                .then(({ error: insertError }) => {
-                  if (insertError) {
-                    console.error("Error creating profile:", insertError);
-                  }
-                  setHasCompletedProfile(false);
-                  setLoading(false);
-                });
-            } else {
-              setHasCompletedProfile(data.has_completed_profile);
-              setLoading(false);
+        if (session) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('has_completed_profile')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          console.log("Profile data:", data, "Error:", error);
+
+          if (error) {
+            console.error("Error fetching profile:", error);
+            setLoading(false);
+            return;
+          }
+
+          if (!data) {
+            console.log("No profile found, creating one...");
+            const { error: insertError } = await supabase
+              .from('profiles')
+              .insert([
+                {
+                  id: session.user.id,
+                  full_name: session.user.user_metadata.full_name,
+                  role: session.user.user_metadata.role,
+                  has_completed_profile: false
+                }
+              ]);
+
+            if (insertError) {
+              console.error("Error creating profile:", insertError);
             }
-          });
-      } else {
+            setHasCompletedProfile(false);
+          } else {
+            setHasCompletedProfile(data.has_completed_profile);
+          }
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error("Error in checkSession:", error);
         setLoading(false);
       }
-    });
+    };
+
+    checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log("Auth state changed:", session);
