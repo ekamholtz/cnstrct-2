@@ -39,7 +39,7 @@ interface DashboardStat {
 export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -104,14 +104,14 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold text-gray-900">General Contractor Dashboard</h1>
             <p className="text-gray-600">Manage your projects and track progress</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600 hover:bg-blue-700">
                 <Plus className="mr-2 h-4 w-4" />
                 New Project
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[600px]">
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>
                 <DialogDescription>
@@ -120,7 +120,7 @@ export default function Dashboard() {
               </DialogHeader>
               <ProjectCreationForm 
                 onSuccess={() => {
-                  setIsDialogOpen(false);
+                  setOpen(false);
                   fetchProjects();
                 }}
               />
