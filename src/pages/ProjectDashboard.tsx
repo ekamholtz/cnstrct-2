@@ -24,41 +24,58 @@ interface Project {
 }
 
 export default function ProjectDashboard() {
-  const { projectId } = useParams();
+  const { projectId } = useParams<{ projectId: string }>();
   const { toast } = useToast();
+  
+  console.log("Current projectId:", projectId); // Debug log
   
   // Fetch project details
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
+      if (!projectId) throw new Error('Project ID is required');
+      
+      console.log("Fetching project with ID:", projectId); // Debug log
       const { data, error } = await supabase
         .from('projects')
         .select('*')
         .eq('id', projectId)
         .maybeSingle();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching project:", error); // Debug log
+        throw error;
+      }
       return data as Project;
     },
+    enabled: !!projectId,
   });
 
   // Fetch milestones
   const { data: milestones, isLoading: milestonesLoading, refetch: refetchMilestones } = useQuery({
     queryKey: ['milestones', projectId],
     queryFn: async () => {
+      if (!projectId) throw new Error('Project ID is required');
+      
+      console.log("Fetching milestones for project:", projectId); // Debug log
       const { data, error } = await supabase
         .from('milestones')
         .select('*')
         .eq('project_id', projectId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching milestones:", error); // Debug log
+        throw error;
+      }
       return data as Milestone[];
     },
+    enabled: !!projectId,
   });
 
   const handleMarkComplete = async (milestoneId: string) => {
     try {
+      console.log("Marking milestone complete:", milestoneId); // Debug log
       const { error } = await supabase
         .from('milestones')
         .update({ status: 'completed' })
@@ -147,10 +164,10 @@ export default function ProjectDashboard() {
         <div className="mb-8">
           <div className="flex justify-between items-start mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">{project.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900">{project?.name}</h1>
               <div className="flex items-center mt-2 text-gray-600">
                 <Building2 className="h-4 w-4 mr-2" />
-                <p>{project.address}</p>
+                <p>{project?.address}</p>
               </div>
             </div>
             <Button onClick={() => toast({
@@ -168,8 +185,8 @@ export default function ProjectDashboard() {
               <CardTitle>Project Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
-                {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+              <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${getStatusColor(project?.status || '')}`}>
+                {project?.status?.charAt(0).toUpperCase() + project?.status?.slice(1)}
               </div>
             </CardContent>
           </Card>
