@@ -29,8 +29,10 @@ import { format } from "date-fns";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PaymentFormData, PaymentModalProps } from "./types";
 import { paymentSchema } from "./schemas";
+import { useState } from "react";
 
 export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
+  const [open, setOpen] = useState(false);
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
@@ -38,8 +40,14 @@ export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
     },
   });
 
+  const handleSubmit = async (data: PaymentFormData) => {
+    await onSubmit(data);
+    setOpen(false);
+    form.reset();
+  };
+
   return (
-    <AlertDialog>
+    <AlertDialog open={open} onOpenChange={setOpen}>
       <AlertDialogTrigger asChild>
         <Button
           variant="outline"
@@ -57,7 +65,7 @@ export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="payment_method"
