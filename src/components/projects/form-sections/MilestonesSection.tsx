@@ -17,17 +17,21 @@ export function MilestonesSection({ form }: MilestonesSectionProps) {
     name: "milestones",
   });
 
-  // Calculate total and update contract value whenever milestone amounts change
+  // Watch all milestone amounts for changes
+  const milestoneAmounts = fields.map((_, index) => 
+    form.watch(`milestones.${index}.amount`)
+  );
+
+  // Calculate total and update contract value whenever any milestone amount changes
   useEffect(() => {
-    const total = fields.reduce((sum, field, index) => {
-      const amount = form.getValues(`milestones.${index}.amount`);
-      return sum + (Number(amount) || 0);
-    }, 0);
+    const total = milestoneAmounts.reduce((sum, amount) => 
+      sum + (Number(amount) || 0), 0
+    );
     
     form.setValue("totalContractValue", total.toString(), {
       shouldValidate: true
     });
-  }, [fields, form]);
+  }, [milestoneAmounts, form]);
 
   return (
     <div className="space-y-4">
