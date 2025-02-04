@@ -24,36 +24,41 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
     const updateMilestoneStatuses = async () => {
       if (!milestones?.length) return;
 
-      // Create a new array with updated statuses while preserving order
-      const updatedMilestones = milestones.map((milestone, index) => {
-        // Find the first non-completed milestone
-        const firstNonCompletedIndex = milestones.findIndex(m => m.status !== 'completed');
+      // Find the first non-completed milestone's index
+      const firstNonCompletedIndex = milestones.findIndex(m => m.status !== 'completed');
+      
+      // If all milestones are completed or no milestones found, return
+      if (firstNonCompletedIndex === -1) return;
+
+      // Create updates array for milestones that need status changes
+      const updates = milestones.map((milestone, index) => {
+        // Keep completed milestones as is
+        if (milestone.status === 'completed') return null;
+
+        // Set the first non-completed milestone to in_progress
+        const newStatus = index === firstNonCompletedIndex ? 'in_progress' : 'pending';
         
-        // If this milestone is completed, keep its status
-        if (milestone.status === 'completed') return milestone;
-        
-        // If this is the first non-completed milestone, set to in_progress
-        if (index === firstNonCompletedIndex) {
-          return { ...milestone, status: 'in_progress' as const };
+        // Only create an update if the status is different
+        if (milestone.status !== newStatus) {
+          return {
+            id: milestone.id,
+            status: newStatus
+          };
         }
-        
-        // All subsequent milestones should be pending
-        return { ...milestone, status: 'pending' as const };
-      });
+        return null;
+      }).filter(Boolean); // Remove null entries
 
-      // Update any milestones whose status has changed
-      for (const milestone of updatedMilestones) {
-        const original = milestones.find(m => m.id === milestone.id);
-        if (original && original.status !== milestone.status) {
-          console.log(`Updating milestone ${milestone.id} status to ${milestone.status}`);
-          const { error } = await supabase
-            .from('milestones')
-            .update({ status: milestone.status })
-            .eq('id', milestone.id);
+      // Perform updates if needed
+      for (const update of updates) {
+        if (!update) continue;
+        console.log(`Updating milestone ${update.id} status to ${update.status}`);
+        const { error } = await supabase
+          .from('milestones')
+          .update({ status: update.status })
+          .eq('id', update.id);
 
-          if (error) {
-            console.error('Error updating milestone status:', error);
-          }
+        if (error) {
+          console.error('Error updating milestone status:', error);
         }
       }
     };
@@ -110,7 +115,6 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
     );
   }
 
-  // Display milestones in their original order
   return (
     <div className="space-y-4">
       {milestones.map((milestone) => (
