@@ -5,9 +5,10 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { MapPin } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export function ClientProjectsList() {
-  const { data: projects, isLoading } = useQuery({
+  const { data: projects, isLoading, error } = useQuery({
     queryKey: ['client-projects'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -20,11 +21,16 @@ export function ClientProjectsList() {
         .from('clients')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (clientError) {
         console.error('Error fetching client:', clientError);
         throw clientError;
+      }
+
+      if (!clientData) {
+        console.log('No client record found for user:', user.id);
+        return null;
       }
 
       console.log('Found client:', clientData);
@@ -74,9 +80,29 @@ export function ClientProjectsList() {
     );
   }
 
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>
+          Failed to load projects. Please try again later.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  if (!projects) {
+    return (
+      <Alert>
+        <AlertDescription>
+          No client profile found. Please contact support for assistance.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {projects?.map((project) => (
+      {projects.map((project) => (
         <Link key={project.id} to={`/project/${project.id}`}>
           <Card className="hover:shadow-lg transition-shadow duration-200">
             <CardHeader className="pb-2">
@@ -108,7 +134,7 @@ export function ClientProjectsList() {
           </Card>
         </Link>
       ))}
-      {(!projects || projects.length === 0) && (
+      {projects.length === 0 && (
         <div className="col-span-full text-center py-8 text-gray-500">
           No projects found.
         </div>
