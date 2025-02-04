@@ -21,6 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { PaymentModal } from "@/components/project/invoice/PaymentModal";
+import { StatusBadge } from "@/components/project/invoice/StatusBadge";
+import { PaymentFormData } from "@/components/project/invoice/types";
 
 interface Invoice {
   id: string;
@@ -44,7 +47,7 @@ export default function InvoiceDashboard() {
 
   const fetchInvoices = async () => {
     try {
-      console.log("Fetching invoices...");
+      console.log("Fetching invoices for dashboard...");
       const { data, error } = await supabase
         .from('invoices')
         .select(`
@@ -59,7 +62,7 @@ export default function InvoiceDashboard() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log("Invoices fetched:", data);
+      console.log("Invoices fetched for dashboard:", data);
       setInvoices(data || []);
     } catch (error) {
       console.error('Error fetching invoices:', error);
@@ -87,7 +90,7 @@ export default function InvoiceDashboard() {
           table: 'invoices'
         },
         (payload) => {
-          console.log('Real-time update received:', payload);
+          console.log('Real-time update received in dashboard:', payload);
           fetchInvoices();
         }
       )
@@ -98,17 +101,47 @@ export default function InvoiceDashboard() {
     };
   }, []);
 
+  const handleMarkAsPaid = async (invoiceId: string, data: PaymentFormData) => {
+    try {
+      console.log('Marking invoice as paid in dashboard:', {
+        invoiceId,
+        payment_method: data.payment_method,
+        payment_date: data.payment_date
+      });
+
+      const { error } = await supabase
+        .from('invoices')
+        .update({
+          status: 'paid',
+          payment_method: data.payment_method,
+          payment_date: data.payment_date.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', invoiceId)
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Invoice has been marked as paid",
+      });
+      
+      await fetchInvoices();
+    } catch (error) {
+      console.error('Error marking invoice as paid in dashboard:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to mark invoice as paid. Please try again.",
+      });
+    }
+  };
+
   const filteredInvoices = invoices.filter(invoice => {
     if (statusFilter === "all") return true;
     return invoice.status === statusFilter;
   });
-
-  const handleMarkAsPaid = async (invoiceId: string) => {
-    toast({
-      title: "Coming Soon",
-      description: "Payment processing will be available soon!",
-    });
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -194,37 +227,16 @@ export default function InvoiceDashboard() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            invoice.status === 'paid'
-                              ? 'bg-green-100 text-green-800'
-                              : invoice.status === 'cancelled'
-                              ? 'bg-red-100 text-red-800'
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}
-                        >
-                          {invoice.status === 'paid' && (
-                            <CheckCircle className="h-3 w-3 mr-1" />
-                          )}
-                          {invoice.status === 'paid' ? 'Paid' : 
-                           invoice.status === 'cancelled' ? 'Cancelled' : 
-                           'Pending Payment'}
-                        </span>
-                      </div>
+                      <StatusBadge status={invoice.status} />
                     </TableCell>
                     <TableCell>
                       {format(new Date(invoice.created_at), 'MMM d, yyyy')}
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleMarkAsPaid(invoice.id)}
-                        disabled={invoice.status === 'paid' || invoice.status === 'cancelled'}
-                      >
-                        Mark as Paid
-                      </Button>
+                      <PaymentModal
+                        invoice={invoice}
+                        onSubmit={(data) => handleMarkAsPaid(invoice.id, data)}
+                      />
                     </TableCell>
                   </TableRow>
                 ))
