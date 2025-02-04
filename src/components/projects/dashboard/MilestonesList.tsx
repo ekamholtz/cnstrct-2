@@ -24,33 +24,31 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
     const updateMilestoneStatuses = async () => {
       if (!milestones?.length) return;
 
-      // Find the first non-completed milestone's index
-      const firstNonCompletedIndex = milestones.findIndex(m => m.status !== 'completed');
-      
-      // If all milestones are completed or no milestones found, return
-      if (firstNonCompletedIndex === -1) return;
-
       // Create updates array for milestones that need status changes
-      const updates = milestones.map((milestone, index) => {
-        // Keep completed milestones as is
-        if (milestone.status === 'completed') return null;
+      const updates = milestones.reduce((acc, milestone, index) => {
+        // If milestone is already completed, skip it
+        if (milestone.status === 'completed') return acc;
 
-        // Set the first non-completed milestone to in_progress
+        // Find the index of the first non-completed milestone
+        const firstNonCompletedIndex = milestones.findIndex(m => m.status !== 'completed');
+        
+        // If this is the first non-completed milestone, mark it as in_progress
+        // Otherwise, mark it as pending
         const newStatus = index === firstNonCompletedIndex ? 'in_progress' as const : 'pending' as const;
         
-        // Only create an update if the status is different
+        // Only create an update if the status needs to change
         if (milestone.status !== newStatus) {
-          return {
+          acc.push({
             id: milestone.id,
             status: newStatus
-          };
+          });
         }
-        return null;
-      }).filter(Boolean); // Remove null entries
+
+        return acc;
+      }, [] as { id: string; status: 'pending' | 'in_progress' | 'completed' }[]);
 
       // Perform updates if needed
       for (const update of updates) {
-        if (!update) continue;
         console.log(`Updating milestone ${update.id} status to ${update.status}`);
         const { error } = await supabase
           .from('milestones')
