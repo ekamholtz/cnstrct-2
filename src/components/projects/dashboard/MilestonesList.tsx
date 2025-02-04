@@ -24,6 +24,7 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
     const updateMilestoneStatuses = async () => {
       if (!milestones?.length) return;
 
+      // Create a new array with updated statuses while preserving order
       const updatedMilestones = milestones.map((milestone, index) => {
         // Find the first non-completed milestone
         const firstNonCompletedIndex = milestones.findIndex(m => m.status !== 'completed');
@@ -109,6 +110,7 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
     );
   }
 
+  // Display milestones in their original order
   return (
     <div className="space-y-4">
       {milestones.map((milestone) => (
