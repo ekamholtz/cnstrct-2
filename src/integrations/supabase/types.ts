@@ -9,6 +9,39 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      clients: {
+        Row: {
+          address: string
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone_number: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone_number?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone_number?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           amount: number
@@ -154,6 +187,7 @@ export type Database = {
       projects: {
         Row: {
           address: string
+          client_id: string | null
           contractor_id: string
           created_at: string
           id: string
@@ -163,6 +197,7 @@ export type Database = {
         }
         Insert: {
           address: string
+          client_id?: string | null
           contractor_id: string
           created_at?: string
           id?: string
@@ -172,6 +207,7 @@ export type Database = {
         }
         Update: {
           address?: string
+          client_id?: string | null
           contractor_id?: string
           created_at?: string
           id?: string
@@ -180,6 +216,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "projects_contractor_id_fkey"
             columns: ["contractor_id"]

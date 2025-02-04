@@ -41,14 +41,46 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
 
       console.log("Creating project for contractor:", user.id);
 
-      // Create project
+      // Check if client exists or create new client
+      const { data: existingClient, error: clientLookupError } = await supabase
+        .from("clients")
+        .select("id")
+        .eq("email", data.clientEmail)
+        .maybeSingle();
+
+      if (clientLookupError) throw clientLookupError;
+
+      let clientId;
+      if (!existingClient) {
+        // Create new client
+        const { data: newClient, error: createClientError } = await supabase
+          .from("clients")
+          .insert({
+            name: data.clientName,
+            email: data.clientEmail,
+            address: data.clientAddress,
+            phone_number: data.clientPhone || null,
+          })
+          .select()
+          .single();
+
+        if (createClientError) throw createClientError;
+        clientId = newClient.id;
+        console.log("Created new client:", newClient);
+      } else {
+        clientId = existingClient.id;
+        console.log("Using existing client:", existingClient);
+      }
+
+      // Create project with client reference
       const { data: project, error: projectError } = await supabase
         .from("projects")
         .insert({
           name: data.projectName,
           address: data.clientAddress,
           status: "active",
-          contractor_id: user.id
+          contractor_id: user.id,
+          client_id: clientId
         })
         .select()
         .single();
