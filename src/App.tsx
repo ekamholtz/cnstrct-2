@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ProfileCompletion from "./pages/ProfileCompletion";
 import Dashboard from "./pages/Dashboard";
+import ClientDashboard from "./pages/ClientDashboard";
 import ProjectDashboard from "./pages/ProjectDashboard";
 import InvoiceDashboard from "./pages/InvoiceDashboard";
 
@@ -19,6 +20,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -30,7 +32,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         if (session) {
           const { data, error } = await supabase
             .from('profiles')
-            .select('has_completed_profile')
+            .select('has_completed_profile, role')
             .eq('id', session.user.id)
             .maybeSingle();
 
@@ -59,8 +61,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
               console.error("Error creating profile:", insertError);
             }
             setHasCompletedProfile(false);
+            setUserRole(session.user.user_metadata.role);
           } else {
             setHasCompletedProfile(data.has_completed_profile);
+            setUserRole(data.role);
           }
         }
         setLoading(false);
@@ -81,16 +85,22 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   if (loading) {
-    return null; // Or a loading spinner
+    return null;
   }
 
   if (!session) {
     return <Navigate to="/auth" replace />;
   }
 
-  // If profile is not completed and user is not already on profile completion page
   if (!hasCompletedProfile && window.location.pathname !== '/profile-completion') {
     return <Navigate to="/profile-completion" replace />;
+  }
+
+  // Redirect based on user role
+  if (hasCompletedProfile && window.location.pathname === '/') {
+    return userRole === 'homeowner' ? 
+      <Navigate to="/client-dashboard" replace /> : 
+      <Navigate to="/dashboard" replace />;
   }
 
   return <>{children}</>;
@@ -117,6 +127,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/client-dashboard"
+            element={
+              <ProtectedRoute>
+                <ClientDashboard />
               </ProtectedRoute>
             }
           />
