@@ -29,15 +29,17 @@ export function DashboardHeader({ onProjectCreated }: DashboardHeaderProps) {
             New Project
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
-          <DialogHeader>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-6">
+          <DialogHeader className="mb-4">
             <DialogTitle>Create New Project</DialogTitle>
             <DialogDescription>
               Fill in the project details below to create a new project.
             </DialogDescription>
           </DialogHeader>
-          <ScrollArea className="h-[calc(90vh-120px)] pr-4">
-            <ProjectCreationForm onSuccess={onProjectCreated} />
+          <ScrollArea className="h-[calc(90vh-180px)] pr-6">
+            <div className="pb-6">
+              <ProjectCreationForm onSuccess={onProjectCreated} />
+            </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>
