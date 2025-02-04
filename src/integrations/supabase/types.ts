@@ -147,7 +147,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      milestone_status: "pending" | "completed"
+      milestone_status: "pending" | "in_progress" | "completed"
       project_status: "draft" | "active" | "completed" | "cancelled"
       user_role: "general_contractor" | "homeowner"
     }

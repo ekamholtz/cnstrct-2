@@ -23,11 +23,7 @@ export const Hero = () => {
   }, []);
 
   const handleRegister = (type: "contractor" | "client") => {
-    if (user) {
-      navigate("/dashboard");
-    } else {
-      navigate("/auth");
-    }
+    navigate("/auth");
   };
 
   return (
@@ -40,16 +36,16 @@ export const Hero = () => {
           <p className="text-lg md:text-xl text-gray-200 mb-8">
             Simplify financial management with digitized workflows, invoicing, and real-time payments.
           </p>
-          <div className="flex flex-col md:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
-              onClick={() => handleRegister("contractor")}
-            >
-              <Building className="mr-2 h-5 w-5" />
-              {user ? "Create New Project" : "Register as General Contractor"}
-            </Button>
-            {!user && (
+          {!user && (
+            <div className="flex flex-col md:flex-row gap-4 justify-center">
+              <Button
+                size="lg"
+                className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
+                onClick={() => handleRegister("contractor")}
+              >
+                <Building className="mr-2 h-5 w-5" />
+                Register as General Contractor
+              </Button>
               <Button
                 size="lg"
                 className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
@@ -58,8 +54,8 @@ export const Hero = () => {
                 <House className="mr-2 h-5 w-5" />
                 Register as Homeowner
               </Button>
-            )}
-          </div>
+            </div>
+          )}
           {!user && (
             <p className="mt-6 text-sm text-gray-300">
               First time receiving an invoice? Register after your initial payment.
