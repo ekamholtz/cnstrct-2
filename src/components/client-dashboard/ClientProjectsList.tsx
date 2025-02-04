@@ -17,7 +17,8 @@ export function ClientProjectsList() {
       console.log('Fetching projects for user:', user.id);
 
       // First get the client record for this user
-      const { data: clientData, error: clientError } = await supabase
+      let clientData;
+      const { data: initialClientData, error: clientError } = await supabase
         .from('clients')
         .select('id, email')
         .eq('user_id', user.id)
@@ -28,7 +29,7 @@ export function ClientProjectsList() {
         throw clientError;
       }
 
-      if (!clientData) {
+      if (!initialClientData) {
         console.log('No client record found for user:', user.id);
         
         // Try to find client by email as fallback
@@ -60,6 +61,8 @@ export function ClientProjectsList() {
         if (updateError) {
           console.error('Error updating client user_id:', updateError);
         }
+      } else {
+        clientData = initialClientData;
       }
 
       console.log('Found client:', clientData);
