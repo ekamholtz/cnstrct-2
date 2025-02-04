@@ -17,9 +17,9 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import ProjectCreationForm from "@/components/projects/ProjectCreationForm";
+import { useNavigate } from "react-router-dom";
 
 interface Project {
   id: string;
@@ -41,6 +41,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProjects();
@@ -48,12 +49,14 @@ export default function Dashboard() {
 
   const fetchProjects = async () => {
     try {
+      console.log("Fetching projects...");
       const { data, error } = await supabase
         .from('projects')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log("Projects fetched:", data);
       setProjects(data || []);
     } catch (error) {
       console.error('Error fetching projects:', error);
@@ -65,6 +68,12 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleProjectCreationSuccess = () => {
+    console.log("Project created successfully, closing dialog and refreshing projects");
+    setIsDialogOpen(false);
+    fetchProjects();
   };
 
   const stats: DashboardStat[] = [
@@ -94,12 +103,8 @@ export default function Dashboard() {
     }
   ];
 
-  const handleOpenChange = (open: boolean) => {
-    setIsDialogOpen(open);
-    // If dialog is being closed, refresh projects
-    if (!open) {
-      fetchProjects();
-    }
+  const handleProjectClick = (projectId: string) => {
+    navigate(`/project/${projectId}`);
   };
 
   return (
@@ -112,13 +117,14 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold text-gray-900">General Contractor Dashboard</h1>
             <p className="text-gray-600">Manage your projects and track progress</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="mr-2 h-4 w-4" />
-                New Project
-              </Button>
-            </DialogTrigger>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Button 
+              onClick={() => setIsDialogOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Project
+            </Button>
             <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create New Project</DialogTitle>
@@ -126,12 +132,7 @@ export default function Dashboard() {
                   Fill in the project details below to create a new project.
                 </DialogDescription>
               </DialogHeader>
-              <ProjectCreationForm 
-                onSuccess={() => {
-                  setIsDialogOpen(false);
-                  fetchProjects();
-                }}
-              />
+              <ProjectCreationForm onSuccess={handleProjectCreationSuccess} />
             </DialogContent>
           </Dialog>
         </div>
@@ -166,7 +167,11 @@ export default function Dashboard() {
               </div>
             ) : projects.length > 0 ? (
               projects.map((project) => (
-                <div key={project.id} className="p-6 hover:bg-gray-50">
+                <div 
+                  key={project.id} 
+                  className="p-6 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => handleProjectClick(project.id)}
+                >
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-medium text-gray-900">{project.name}</h3>
