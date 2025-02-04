@@ -14,30 +14,34 @@ export default function Dashboard() {
 
   const fetchProjects = async () => {
     try {
-      console.log("Fetching projects for current user...");
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       
+      if (userError) {
+        console.error('Error getting user:', userError);
+        throw userError;
+      }
+
       if (!user) {
         console.error("No user found");
         return;
       }
 
-      console.log("Current user ID:", user.id);
-      const { data, error } = await supabase
+      console.log("Fetching projects for contractor ID:", user.id);
+      
+      const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
-        .eq('contractor_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('contractor_id', user.id);
 
-      if (error) {
-        console.error('Error fetching projects:', error);
-        throw error;
+      if (projectsError) {
+        console.error('Error fetching projects:', projectsError);
+        throw projectsError;
       }
       
-      console.log("Projects fetched:", data);
-      setProjects(data || []);
+      console.log("Projects fetched:", projectsData);
+      setProjects(projectsData || []);
     } catch (error) {
-      console.error('Error fetching projects:', error);
+      console.error('Error in fetchProjects:', error);
       toast({
         variant: "destructive",
         title: "Error",

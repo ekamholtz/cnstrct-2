@@ -12,14 +12,26 @@ interface ProjectsListProps {
 export function ProjectsList({ projects, loading }: ProjectsListProps) {
   // Query to fetch milestones for all projects
   const { data: milestones } = useQuery({
-    queryKey: ['all-projects-milestones'],
+    queryKey: ['all-projects-milestones', projects.map(p => p.id)],
     queryFn: async () => {
+      if (projects.length === 0) return [];
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
+      console.log("Fetching milestones for projects:", projects.map(p => p.id));
+      
       const { data, error } = await supabase
         .from('milestones')
         .select('*')
         .in('project_id', projects.map(p => p.id));
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching milestones:', error);
+        throw error;
+      }
+      
+      console.log("Fetched milestones:", data);
       return data;
     },
     enabled: projects.length > 0,
