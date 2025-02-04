@@ -25,13 +25,20 @@ export function ProjectCard({ project }: ProjectCardProps) {
         .select('*')
         .eq('project_id', project.id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching milestones:', error);
+        throw error;
+      }
+      console.log('Fetched milestones:', data);
       return data;
     }
   });
 
   const calculateCompletion = () => {
-    if (!milestones || milestones.length === 0) return 0;
+    if (!milestones || milestones.length === 0) {
+      console.log('No milestones found for project:', project.id);
+      return 0;
+    }
 
     const totalAmount = milestones.reduce((sum, milestone) => 
       sum + (milestone.amount || 0), 0);
@@ -39,6 +46,13 @@ export function ProjectCard({ project }: ProjectCardProps) {
     const completedAmount = milestones
       .filter(milestone => milestone.status === 'completed')
       .reduce((sum, milestone) => sum + (milestone.amount || 0), 0);
+
+    console.log('Project completion calculation:', {
+      projectId: project.id,
+      totalAmount,
+      completedAmount,
+      percentage: totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0
+    });
 
     return totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0;
   };
