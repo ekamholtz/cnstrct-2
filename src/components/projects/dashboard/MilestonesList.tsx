@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffect } from "react";
 
 interface Milestone {
   id: string;
@@ -18,6 +19,46 @@ interface MilestonesListProps {
 
 export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesListProps) {
   const { toast } = useToast();
+
+  useEffect(() => {
+    const updateMilestoneStatuses = async () => {
+      if (!milestones?.length) return;
+
+      const updatedMilestones = milestones.map((milestone, index) => {
+        // Find the first non-completed milestone
+        const firstNonCompletedIndex = milestones.findIndex(m => m.status !== 'completed');
+        
+        // If this milestone is completed, keep its status
+        if (milestone.status === 'completed') return milestone;
+        
+        // If this is the first non-completed milestone, set to in_progress
+        if (index === firstNonCompletedIndex) {
+          return { ...milestone, status: 'in_progress' as const };
+        }
+        
+        // All subsequent milestones should be pending
+        return { ...milestone, status: 'pending' as const };
+      });
+
+      // Update any milestones whose status has changed
+      for (const milestone of updatedMilestones) {
+        const original = milestones.find(m => m.id === milestone.id);
+        if (original && original.status !== milestone.status) {
+          console.log(`Updating milestone ${milestone.id} status to ${milestone.status}`);
+          const { error } = await supabase
+            .from('milestones')
+            .update({ status: milestone.status })
+            .eq('id', milestone.id);
+
+          if (error) {
+            console.error('Error updating milestone status:', error);
+          }
+        }
+      }
+    };
+
+    updateMilestoneStatuses();
+  }, [milestones]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
