@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import ProfileCompletion from "./pages/ProfileCompletion";
 import Dashboard from "./pages/Dashboard";
 import ProjectDashboard from "./pages/ProjectDashboard";
+import InvoiceDashboard from "./pages/InvoiceDashboard";
 
 const queryClient = new QueryClient();
 
@@ -116,6 +117,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/invoices"
+            element={
+              <ProtectedRoute>
+                <InvoiceDashboard />
               </ProtectedRoute>
             }
           />

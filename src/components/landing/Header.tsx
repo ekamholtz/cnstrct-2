@@ -41,6 +41,7 @@ export const Header = () => {
   const navItems = user ? [
     { label: "Home", path: "/dashboard" },
     { label: "Projects", path: "/dashboard" },
+    { label: "Invoices", path: "/invoices" },
     { label: "Profile", path: "/profile" },
   ] : [];
 
