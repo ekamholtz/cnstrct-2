@@ -1,5 +1,8 @@
 import { Project } from "@/types/project";
 import { Link } from "react-router-dom";
+import { Progress } from "@/components/ui/progress";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -7,6 +10,48 @@ interface ProjectsListProps {
 }
 
 export function ProjectsList({ projects, loading }: ProjectsListProps) {
+  // Query to fetch milestones for all projects
+  const { data: milestones } = useQuery({
+    queryKey: ['all-projects-milestones'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('milestones')
+        .select('*')
+        .in('project_id', projects.map(p => p.id));
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: projects.length > 0,
+  });
+
+  const calculateCompletion = (projectId: string) => {
+    if (!milestones) return 0;
+    
+    const projectMilestones = milestones.filter(m => m.project_id === projectId);
+    
+    if (projectMilestones.length === 0) {
+      console.log('No milestones found for project:', projectId);
+      return 0;
+    }
+
+    const totalAmount = projectMilestones.reduce((sum, milestone) => 
+      sum + (milestone.amount || 0), 0);
+    
+    const completedAmount = projectMilestones
+      .filter(milestone => milestone.status === 'completed')
+      .reduce((sum, milestone) => sum + (milestone.amount || 0), 0);
+
+    console.log('Project completion calculation:', {
+      projectId,
+      totalAmount,
+      completedAmount,
+      percentage: totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0
+    });
+
+    return totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -29,7 +74,7 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
               className="block"
             >
               <div className="p-6 hover:bg-gray-50 transition-colors duration-200">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-sm font-medium text-gray-900">{project.name}</h3>
                     <p className="text-sm text-gray-500">{project.address}</p>
@@ -41,6 +86,13 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
                   }`}>
                     {project.status}
                   </span>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Progress</span>
+                    <span className="text-sm font-medium">{calculateCompletion(project.id)}% Complete</span>
+                  </div>
+                  <Progress value={calculateCompletion(project.id)} className="h-2" />
                 </div>
               </div>
             </Link>
