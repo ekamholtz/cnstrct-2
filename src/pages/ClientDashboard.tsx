@@ -1,6 +1,7 @@
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { ClientDashboardHeader } from "@/components/client-dashboard/ClientDashboardHeader";
 import { ClientProjectsList } from "@/components/client-dashboard/ClientProjectsList";
+import { ClientInvoiceSummary } from "@/components/client-dashboard/ClientInvoiceSummary";
 
 export default function ClientDashboard() {
   return (
@@ -10,6 +11,10 @@ export default function ClientDashboard() {
         <section>
           <h2 className="text-xl font-semibold mb-4">Your Projects</h2>
           <ClientProjectsList />
+        </section>
+        <section>
+          <h2 className="text-xl font-semibold mb-4">Recent Invoices</h2>
+          <ClientInvoiceSummary />
         </section>
       </div>
     </ClientDashboardLayout>
