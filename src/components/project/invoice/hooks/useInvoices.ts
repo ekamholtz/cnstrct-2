@@ -27,7 +27,7 @@ export function useInvoices(projectId: string) {
             )
           )
         `)
-        .eq('milestone.project_id', projectId)
+        .eq('milestone.project.id', projectId)
         .order('created_at', { ascending: true });
 
       if (error) {

@@ -29,7 +29,7 @@ export function InvoiceTable({ invoices, onMarkAsPaid }: InvoiceTableProps) {
           {invoices?.map((invoice) => (
             <TableRow key={invoice.id}>
               <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-              <TableCell>{invoice.milestone.name}</TableCell>
+              <TableCell>{invoice.milestone?.name || 'N/A'}</TableCell>
               <TableCell>${invoice.amount.toLocaleString()}</TableCell>
               <TableCell>
                 <StatusBadge status={invoice.status} />
