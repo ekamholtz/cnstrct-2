@@ -19,7 +19,7 @@ export function ClientProjectsList() {
       // First get the client record for this user
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
-        .select('id')
+        .select('id, email')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -30,7 +30,36 @@ export function ClientProjectsList() {
 
       if (!clientData) {
         console.log('No client record found for user:', user.id);
-        return [];
+        
+        // Try to find client by email as fallback
+        const { data: emailClientData, error: emailClientError } = await supabase
+          .from('clients')
+          .select('id, email')
+          .eq('email', user.email?.toLowerCase())
+          .maybeSingle();
+
+        if (emailClientError) {
+          console.error('Error fetching client by email:', emailClientError);
+          throw emailClientError;
+        }
+
+        if (!emailClientData) {
+          console.log('No client record found by email for user:', user.email);
+          return [];
+        }
+
+        console.log('Found client by email:', emailClientData);
+        clientData = emailClientData;
+
+        // Update the client record with the user_id
+        const { error: updateError } = await supabase
+          .from('clients')
+          .update({ user_id: user.id })
+          .eq('id', emailClientData.id);
+
+        if (updateError) {
+          console.error('Error updating client user_id:', updateError);
+        }
       }
 
       console.log('Found client:', clientData);
