@@ -1,6 +1,7 @@
 import { DollarSign } from "lucide-react";
-import { InvoiceTable } from "./InvoiceTable";
-import { useInvoices } from "./useInvoices";
+import { InvoiceTable } from "./invoice/InvoiceTable";
+import { useInvoices } from "./invoice/useInvoices";
+import { PaymentFormData } from "./invoice/types";
 
 interface ProjectInvoicesProps {
   projectId: string;
@@ -17,6 +18,10 @@ export function ProjectInvoices({ projectId }: ProjectInvoicesProps) {
     );
   }
 
+  const handleMarkAsPaid = async (invoiceId: string, data: PaymentFormData) => {
+    await markAsPaid({ invoiceId, ...data });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -31,7 +36,7 @@ export function ProjectInvoices({ projectId }: ProjectInvoicesProps) {
 
       <InvoiceTable 
         invoices={invoices || []} 
-        onMarkAsPaid={markAsPaid}
+        onMarkAsPaid={handleMarkAsPaid}
       />
     </div>
   );
