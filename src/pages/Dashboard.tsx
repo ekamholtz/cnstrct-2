@@ -11,6 +11,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import ProjectCreationForm from "@/components/projects/ProjectCreationForm";
 
 interface Project {
   id: string;
@@ -30,6 +39,7 @@ interface DashboardStat {
 export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -94,16 +104,28 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold text-gray-900">General Contractor Dashboard</h1>
             <p className="text-gray-600">Manage your projects and track progress</p>
           </div>
-          <Button 
-            onClick={() => toast({
-              title: "Coming Soon",
-              description: "Project creation will be available soon!",
-            })}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New Project
-          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-blue-600 hover:bg-blue-700">
+                <Plus className="mr-2 h-4 w-4" />
+                New Project
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Project</DialogTitle>
+                <DialogDescription>
+                  Fill in the project details below to create a new project.
+                </DialogDescription>
+              </DialogHeader>
+              <ProjectCreationForm 
+                onSuccess={() => {
+                  setIsDialogOpen(false);
+                  fetchProjects();
+                }}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Stats Overview */}
