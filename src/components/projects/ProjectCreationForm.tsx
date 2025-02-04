@@ -15,6 +15,7 @@ import { useProjectCreation } from "@/hooks/useProjectCreation";
 export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { createProject } = useProjectCreation(onSuccess);
+  const dialogCloseRef = useRef<HTMLButtonElement>(null);
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
@@ -35,12 +36,8 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
     const success = await createProject(data);
     setIsSubmitting(false);
     
-    if (success) {
-      // Trigger dialog close
-      const closeButton = document.querySelector('[data-dialog-close]') as HTMLButtonElement;
-      if (closeButton) {
-        closeButton.click();
-      }
+    if (success && dialogCloseRef.current) {
+      dialogCloseRef.current.click();
     }
   };
 
@@ -56,7 +53,7 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
           <Save className="h-4 w-4 mr-2" />
           Create Project
         </Button>
-        <DialogClose className="hidden" />
+        <DialogClose ref={dialogCloseRef} className="hidden" />
       </form>
     </Form>
   );
