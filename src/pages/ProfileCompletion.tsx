@@ -23,6 +23,19 @@ export default function ProfileCompletion() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const form = useForm<ProfileCompletionFormData>({
+    resolver: zodResolver(profileCompletionSchema),
+    defaultValues: {
+      company_name: "",
+      company_address: "",
+      license_number: "",
+      phone_number: "",
+      website: "",
+      full_name: "",
+      address: "",
+    },
+  });
+
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
