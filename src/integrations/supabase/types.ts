@@ -108,7 +108,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
-          status: string
+          status: Database["public"]["Enums"]["project_status"]
           updated_at: string
         }
         Insert: {
@@ -117,7 +117,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
-          status: string
+          status: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
         Update: {
@@ -126,7 +126,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
-          status?: string
+          status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
         Relationships: [
@@ -148,6 +148,7 @@ export type Database = {
     }
     Enums: {
       milestone_status: "pending" | "in_progress" | "completed"
+      project_status: "draft" | "active" | "completed" | "cancelled"
       user_role: "general_contractor" | "homeowner"
     }
     CompositeTypes: {

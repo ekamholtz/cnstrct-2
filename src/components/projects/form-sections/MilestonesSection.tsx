@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import { UseFormReturn, useFieldArray } from "react-hook-form";
 import { ProjectFormValues } from "../types";
+import { useEffect } from "react";
 
 interface MilestonesSectionProps {
   form: UseFormReturn<ProjectFormValues>;
@@ -16,20 +17,21 @@ export function MilestonesSection({ form }: MilestonesSectionProps) {
     name: "milestones",
   });
 
+  // Calculate total and update contract value whenever milestone amounts change
+  useEffect(() => {
+    const total = fields.reduce((sum, field, index) => {
+      const amount = form.getValues(`milestones.${index}.amount`);
+      return sum + (Number(amount) || 0);
+    }, 0);
+    
+    form.setValue("totalContractValue", total.toString(), {
+      shouldValidate: true
+    });
+  }, [fields, form]);
+
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Milestones</h3>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => append({ name: "", description: "", amount: "" })}
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Milestone
-        </Button>
-      </div>
+      <h3 className="text-lg font-semibold">Milestones</h3>
       
       <div className="space-y-4">
         {fields.map((field, index) => (
@@ -103,6 +105,16 @@ export function MilestonesSection({ form }: MilestonesSectionProps) {
           </div>
         ))}
       </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        className="w-full"
+        onClick={() => append({ name: "", description: "", amount: "" })}
+      >
+        <Plus className="h-4 w-4 mr-2" />
+        Add Milestone
+      </Button>
     </div>
   );
 }
