@@ -23,8 +23,10 @@ export function ContractValueSection({ form }: ContractValueSectionProps) {
                 <DollarSign className="absolute left-3 top-2.5 h-5 w-5 text-gray-500" />
                 <Input
                   type="number"
-                  readOnly
+                  min="0"
+                  step="0.01"
                   className="pl-10"
+                  placeholder="Enter total contract value"
                   {...field}
                 />
               </div>

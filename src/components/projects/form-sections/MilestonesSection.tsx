@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Plus, Trash2 } from "lucide-react";
 import { UseFormReturn, useFieldArray } from "react-hook-form";
 import { ProjectFormValues } from "../types";
-import { useEffect } from "react";
 
 interface MilestonesSectionProps {
   form: UseFormReturn<ProjectFormValues>;
@@ -16,22 +15,6 @@ export function MilestonesSection({ form }: MilestonesSectionProps) {
     control: form.control,
     name: "milestones",
   });
-
-  // Watch all milestone amounts for changes
-  const milestoneAmounts = fields.map((_, index) => 
-    form.watch(`milestones.${index}.amount`)
-  );
-
-  // Calculate total and update contract value whenever any milestone amount changes
-  useEffect(() => {
-    const total = milestoneAmounts.reduce((sum, amount) => 
-      sum + (Number(amount) || 0), 0
-    );
-    
-    form.setValue("totalContractValue", total.toString(), {
-      shouldValidate: true
-    });
-  }, [milestoneAmounts, form]);
 
   return (
     <div className="space-y-4">
