@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import ProjectCreationForm from "@/components/projects/ProjectCreationForm";
 
 interface DashboardHeaderProps {
@@ -28,14 +29,16 @@ export function DashboardHeader({ onProjectCreated }: DashboardHeaderProps) {
             New Project
           </Button>
         </DialogTrigger>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Create New Project</DialogTitle>
             <DialogDescription>
               Fill in the project details below to create a new project.
             </DialogDescription>
           </DialogHeader>
-          <ProjectCreationForm onSuccess={onProjectCreated} />
+          <ScrollArea className="h-[calc(90vh-120px)] pr-4">
+            <ProjectCreationForm onSuccess={onProjectCreated} />
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>
