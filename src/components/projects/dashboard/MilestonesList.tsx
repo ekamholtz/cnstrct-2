@@ -10,6 +10,7 @@ interface Milestone {
   description: string | null;
   amount: number | null;
   status: 'pending' | 'in_progress' | 'completed';
+  created_at: string;
 }
 
 interface MilestonesListProps {
@@ -24,13 +25,18 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
     const updateMilestoneStatuses = async () => {
       if (!milestones?.length) return;
 
+      // Sort milestones by created_at to ensure consistent ordering
+      const sortedMilestones = [...milestones].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
       // Create updates array for milestones that need status changes
-      const updates = milestones.reduce((acc, milestone, index) => {
+      const updates = sortedMilestones.reduce((acc, milestone, index) => {
         // If milestone is already completed, skip it
         if (milestone.status === 'completed') return acc;
 
         // Find the index of the first non-completed milestone
-        const firstNonCompletedIndex = milestones.findIndex(m => m.status !== 'completed');
+        const firstNonCompletedIndex = sortedMilestones.findIndex(m => m.status !== 'completed');
         
         // If this is the first non-completed milestone, mark it as in_progress
         // Otherwise, mark it as pending
@@ -103,7 +109,12 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
     }
   };
 
-  if (!milestones?.length) {
+  // Sort milestones by created_at before rendering
+  const sortedMilestones = milestones?.slice().sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
+  if (!sortedMilestones?.length) {
     return (
       <Card>
         <CardContent className="p-6 text-center text-gray-600">
@@ -115,7 +126,7 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
 
   return (
     <div className="space-y-4">
-      {milestones.map((milestone) => (
+      {sortedMilestones.map((milestone) => (
         <Card key={milestone.id}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
