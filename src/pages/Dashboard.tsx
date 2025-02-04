@@ -94,6 +94,14 @@ export default function Dashboard() {
     }
   ];
 
+  const handleOpenChange = (open: boolean) => {
+    setIsDialogOpen(open);
+    // If dialog is being closed, refresh projects
+    if (!open) {
+      fetchProjects();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -104,7 +112,7 @@ export default function Dashboard() {
             <h1 className="text-2xl font-bold text-gray-900">General Contractor Dashboard</h1>
             <p className="text-gray-600">Manage your projects and track progress</p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <Dialog open={isDialogOpen} onOpenChange={handleOpenChange}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600 hover:bg-blue-700">
                 <Plus className="mr-2 h-4 w-4" />
