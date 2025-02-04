@@ -36,10 +36,10 @@ export function useInvoices(projectId: string) {
     },
   });
 
-  // Set up real-time subscription
+  // Set up real-time subscription for this specific project's invoices
   useEffect(() => {
     const channel = supabase
-      .channel('project-invoices')
+      .channel(`project-invoices-${projectId}`)
       .on(
         'postgres_changes',
         {
@@ -49,7 +49,7 @@ export function useInvoices(projectId: string) {
           filter: `milestone.project_id=eq.${projectId}`
         },
         (payload) => {
-          console.log('Real-time update received:', payload);
+          console.log('Real-time update received for project invoices:', payload);
           queryClient.invalidateQueries({ queryKey: ['project-invoices', projectId] });
         }
       )
@@ -81,7 +81,7 @@ export function useInvoices(projectId: string) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['project-invoices', projectId] });
       toast({
         title: "Success",
         description: "Invoice has been marked as paid",
