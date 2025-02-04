@@ -1,4 +1,5 @@
 import { Project } from "@/types/project";
+import { Link } from "react-router-dom";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -22,21 +23,27 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
       <div className="divide-y divide-gray-200">
         {projects.length > 0 ? (
           projects.map((project) => (
-            <div key={project.id} className="p-6 hover:bg-gray-50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900">{project.name}</h3>
-                  <p className="text-sm text-gray-500">{project.address}</p>
+            <Link 
+              key={project.id} 
+              to={`/project/${project.id}`}
+              className="block"
+            >
+              <div className="p-6 hover:bg-gray-50 transition-colors duration-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-medium text-gray-900">{project.name}</h3>
+                    <p className="text-sm text-gray-500">{project.address}</p>
+                  </div>
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    project.status === 'active' 
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {project.status}
+                  </span>
                 </div>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  project.status === 'active' 
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
-                }`}>
-                  {project.status}
-                </span>
               </div>
-            </div>
+            </Link>
           ))
         ) : (
           <div className="text-center p-8 text-gray-500">
