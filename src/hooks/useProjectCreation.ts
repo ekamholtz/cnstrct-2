@@ -15,20 +15,32 @@ export const useProjectCreation = (onSuccess?: () => void) => {
 
       console.log("Creating project for contractor:", session.user.id);
 
-      // Check if client exists or create new client
-      const { data: existingClient, error: clientLookupError } = await supabase
+      // First, look for existing client with exact email match
+      const { data: exactClient, error: exactClientError } = await supabase
         .from("clients")
-        .select("id")
+        .select("*")
         .eq("email", data.clientEmail)
         .maybeSingle();
 
-      if (clientLookupError) {
-        console.error("Error looking up client:", clientLookupError);
-        throw clientLookupError;
-      }
+      console.log("Exact client search result:", exactClient, "Error:", exactClientError);
+
+      // If no exact match, try case-insensitive search
+      const { data: caseInsensitiveClient, error: caseInsensitiveError } = !exactClient ? await supabase
+        .from("clients")
+        .select("*")
+        .ilike("email", data.clientEmail)
+        .maybeSingle() : { data: null, error: null };
+
+      console.log("Case-insensitive client search result:", caseInsensitiveClient, "Error:", caseInsensitiveError);
 
       let clientId;
-      if (!existingClient) {
+      if (exactClient) {
+        clientId = exactClient.id;
+        console.log("Using existing client with exact match:", exactClient);
+      } else if (caseInsensitiveClient) {
+        clientId = caseInsensitiveClient.id;
+        console.log("Using existing client with case-insensitive match:", caseInsensitiveClient);
+      } else {
         // Create new client
         const { data: newClient, error: createClientError } = await supabase
           .from("clients")
@@ -47,9 +59,6 @@ export const useProjectCreation = (onSuccess?: () => void) => {
         }
         clientId = newClient.id;
         console.log("Created new client:", newClient);
-      } else {
-        clientId = existingClient.id;
-        console.log("Using existing client:", existingClient);
       }
 
       // Create project with client reference
@@ -70,7 +79,7 @@ export const useProjectCreation = (onSuccess?: () => void) => {
         throw projectError;
       }
 
-      console.log("Project created:", project);
+      console.log("Project created successfully:", project);
 
       // Create milestones
       const milestonesData = data.milestones.map(milestone => ({
@@ -100,7 +109,7 @@ export const useProjectCreation = (onSuccess?: () => void) => {
       onSuccess?.();
       return true;
     } catch (error) {
-      console.error("Error creating project:", error);
+      console.error("Error in project creation flow:", error);
       toast({
         variant: "destructive",
         title: "Error",
