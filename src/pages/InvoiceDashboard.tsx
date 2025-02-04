@@ -26,7 +26,7 @@ interface Invoice {
   id: string;
   invoice_number: string;
   amount: number;
-  status: "pending_payment" | "paid";
+  status: "pending_payment" | "paid" | "cancelled";
   created_at: string;
   milestone: {
     name: string;
@@ -139,6 +139,7 @@ export default function InvoiceDashboard() {
               <SelectItem value="all">All Invoices</SelectItem>
               <SelectItem value="pending_payment">Pending Payment</SelectItem>
               <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -198,13 +199,17 @@ export default function InvoiceDashboard() {
                           className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             invoice.status === 'paid'
                               ? 'bg-green-100 text-green-800'
+                              : invoice.status === 'cancelled'
+                              ? 'bg-red-100 text-red-800'
                               : 'bg-yellow-100 text-yellow-800'
                           }`}
                         >
                           {invoice.status === 'paid' && (
                             <CheckCircle className="h-3 w-3 mr-1" />
                           )}
-                          {invoice.status === 'paid' ? 'Paid' : 'Pending Payment'}
+                          {invoice.status === 'paid' ? 'Paid' : 
+                           invoice.status === 'cancelled' ? 'Cancelled' : 
+                           'Pending Payment'}
                         </span>
                       </div>
                     </TableCell>
@@ -216,7 +221,7 @@ export default function InvoiceDashboard() {
                         variant="outline"
                         size="sm"
                         onClick={() => handleMarkAsPaid(invoice.id)}
-                        disabled={invoice.status === 'paid'}
+                        disabled={invoice.status === 'paid' || invoice.status === 'cancelled'}
                       >
                         Mark as Paid
                       </Button>
