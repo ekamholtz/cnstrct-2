@@ -1,15 +1,48 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Building2, Edit } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
+import { EditProjectForm } from "./edit/EditProjectForm";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProjectHeaderProps {
   name: string;
   address: string;
+  projectId: string;
 }
 
-export function ProjectHeader({ name, address }: ProjectHeaderProps) {
-  const { toast } = useToast();
+export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) {
+  const [showEditForm, setShowEditForm] = useState(false);
+
+  // Fetch project data including milestones
+  const { data: projectData, refetch } = useQuery({
+    queryKey: ['project-edit', projectId],
+    queryFn: async () => {
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select(`
+          id,
+          name,
+          address,
+          milestones (
+            id,
+            name,
+            description,
+            amount
+          )
+        `)
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) throw projectError;
+      return project;
+    },
+  });
+
+  const handleEditSuccess = () => {
+    refetch();
+  };
 
   return (
     <div className="mb-8">
@@ -30,14 +63,21 @@ export function ProjectHeader({ name, address }: ProjectHeaderProps) {
             <p>{address}</p>
           </div>
         </div>
-        <Button onClick={() => toast({
-          title: "Coming Soon",
-          description: "Project editing will be available soon!",
-        })}>
+        <Button onClick={() => setShowEditForm(true)}>
           <Edit className="mr-2 h-4 w-4" />
           Edit Project Details
         </Button>
       </div>
+
+      {projectData && (
+        <EditProjectForm
+          projectId={projectId}
+          initialData={projectData}
+          open={showEditForm}
+          onClose={() => setShowEditForm(false)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
     </div>
   );
 }

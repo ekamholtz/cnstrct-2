@@ -103,7 +103,11 @@ export default function ProjectDashboard() {
     <div className="min-h-screen bg-gray-50">
       <Header />
       <main className="container mx-auto px-4 py-8 mt-16">
-        <ProjectHeader name={project.name} address={project.address} />
+        <ProjectHeader 
+          name={project.name} 
+          address={project.address} 
+          projectId={project.id}
+        />
         <div className="mb-8">
           <ProjectStatus status={project.status} completionPercentage={completionPercentage} />
         </div>
