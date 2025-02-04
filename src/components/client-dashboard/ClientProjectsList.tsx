@@ -13,8 +13,23 @@ export function ClientProjectsList() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      console.log('Fetching projects for client:', user.id);
+      console.log('Fetching projects for user:', user.id);
 
+      // First get the client id for this user
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (clientError) {
+        console.error('Error fetching client:', clientError);
+        throw clientError;
+      }
+
+      console.log('Found client:', clientData);
+
+      // Then get the projects for this client
       const { data, error } = await supabase
         .from('projects')
         .select(`
@@ -26,7 +41,7 @@ export function ClientProjectsList() {
             status
           )
         `)
-        .eq('client_id', user.id);
+        .eq('client_id', clientData.id);
 
       if (error) {
         console.error('Error fetching client projects:', error);
