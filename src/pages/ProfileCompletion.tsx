@@ -48,23 +48,12 @@ export default function ProfileCompletion() {
     checkSession();
   }, [navigate]);
 
-  const form = useForm<ProfileCompletionFormData>({
-    resolver: zodResolver(profileCompletionSchema),
-    defaultValues: {
-      company_name: "",
-      company_address: "",
-      license_number: "",
-      phone_number: "",
-      website: "",
-      full_name: "",
-      address: "",
-    },
-  });
-
   const onSubmit = async (data: ProfileCompletionFormData) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return;
+
+      console.log("Updating profile with data:", data);
 
       const { error } = await supabase
         .from("profiles")
@@ -76,18 +65,21 @@ export default function ProfileCompletion() {
 
       if (error) throw error;
 
+      console.log("Profile updated successfully");
+
       toast({
         title: "Profile completed successfully!",
         description: "You will now be redirected to the dashboard.",
       });
 
-      navigate("/");
-    } catch (error) {
+      // Redirect to the dashboard
+      navigate("/dashboard");
+    } catch (error: any) {
       console.error("Error updating profile:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: error.message || "Failed to update profile. Please try again.",
       });
     }
   };
