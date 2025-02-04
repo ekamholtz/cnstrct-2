@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Building2, Edit } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Milestone {
@@ -128,6 +129,31 @@ export default function ProjectDashboard() {
     );
   }
 
+  const calculateCompletion = () => {
+    if (!milestones || milestones.length === 0) {
+      console.log('No milestones found for project:', projectId);
+      return 0;
+    }
+
+    const totalAmount = milestones.reduce((sum, milestone) => 
+      sum + (milestone.amount || 0), 0);
+    
+    const completedAmount = milestones
+      .filter(milestone => milestone.status === 'completed')
+      .reduce((sum, milestone) => sum + (milestone.amount || 0), 0);
+
+    console.log('Project completion calculation:', {
+      projectId,
+      totalAmount,
+      completedAmount,
+      percentage: totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0
+    });
+
+    return totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0;
+  };
+
+  const completionPercentage = calculateCompletion();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -168,8 +194,14 @@ export default function ProjectDashboard() {
               <CardTitle>Project Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
-                {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${getStatusColor(project.status)}`}>
+                    {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+                  </div>
+                  <span className="text-sm font-medium">{completionPercentage}% Complete</span>
+                </div>
+                <Progress value={completionPercentage} className="h-2" />
               </div>
             </CardContent>
           </Card>
