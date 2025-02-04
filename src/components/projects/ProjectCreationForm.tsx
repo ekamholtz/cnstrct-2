@@ -48,7 +48,10 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
         .eq("email", data.clientEmail)
         .maybeSingle();
 
-      if (clientLookupError) throw clientLookupError;
+      if (clientLookupError) {
+        console.error("Error looking up client:", clientLookupError);
+        throw clientLookupError;
+      }
 
       let clientId;
       if (!existingClient) {
@@ -64,7 +67,10 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
           .select()
           .single();
 
-        if (createClientError) throw createClientError;
+        if (createClientError) {
+          console.error("Error creating client:", createClientError);
+          throw createClientError;
+        }
         clientId = newClient.id;
         console.log("Created new client:", newClient);
       } else {
@@ -85,7 +91,10 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
         .select()
         .single();
 
-      if (projectError) throw projectError;
+      if (projectError) {
+        console.error("Error creating project:", projectError);
+        throw projectError;
+      }
 
       console.log("Project created:", project);
 
@@ -102,7 +111,10 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
         .from("milestones")
         .insert(milestonesData);
 
-      if (milestonesError) throw milestonesError;
+      if (milestonesError) {
+        console.error("Error creating milestones:", milestonesError);
+        throw milestonesError;
+      }
 
       console.log("Milestones created for project:", project.id);
 
