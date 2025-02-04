@@ -40,7 +40,7 @@ export default function ProjectDashboard() {
     enabled: !!projectId,
   });
 
-  // Fetch milestones
+  // Fetch milestones with explicit ordering
   const { data: milestones, isLoading: milestonesLoading, refetch: refetchMilestones } = useQuery({
     queryKey: ['milestones', projectId],
     queryFn: async () => {
@@ -57,6 +57,7 @@ export default function ProjectDashboard() {
         console.error("Error fetching milestones:", error);
         throw error;
       }
+      console.log("Fetched milestones:", data);
       return data;
     },
     enabled: !!projectId,
