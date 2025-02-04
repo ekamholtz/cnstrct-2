@@ -16,7 +16,7 @@ export function ClientProjectsList() {
 
       console.log('Fetching projects for user:', user.id);
 
-      // First get the client id for this user
+      // First get the client record for this user
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('id')
@@ -30,13 +30,13 @@ export function ClientProjectsList() {
 
       if (!clientData) {
         console.log('No client record found for user:', user.id);
-        return null;
+        return [];
       }
 
       console.log('Found client:', clientData);
 
       // Then get the projects for this client
-      const { data, error } = await supabase
+      const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select(`
           *,
@@ -49,13 +49,13 @@ export function ClientProjectsList() {
         `)
         .eq('client_id', clientData.id);
 
-      if (error) {
-        console.error('Error fetching client projects:', error);
-        throw error;
+      if (projectsError) {
+        console.error('Error fetching client projects:', projectsError);
+        throw projectsError;
       }
       
-      console.log('Fetched client projects:', data);
-      return data;
+      console.log('Fetched client projects:', projectsData);
+      return projectsData || [];
     },
   });
 
@@ -90,11 +90,11 @@ export function ClientProjectsList() {
     );
   }
 
-  if (!projects) {
+  if (!projects || projects.length === 0) {
     return (
       <Alert>
         <AlertDescription>
-          No client profile found. Please contact support for assistance.
+          No projects found. When contractors create projects for you, they will appear here.
         </AlertDescription>
       </Alert>
     );
@@ -134,11 +134,6 @@ export function ClientProjectsList() {
           </Card>
         </Link>
       ))}
-      {projects.length === 0 && (
-        <div className="col-span-full text-center py-8 text-gray-500">
-          No projects found.
-        </div>
-      )}
     </div>
   );
 }
