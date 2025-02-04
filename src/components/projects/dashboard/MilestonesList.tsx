@@ -25,18 +25,13 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
     const updateMilestoneStatuses = async () => {
       if (!milestones?.length) return;
 
-      // Sort milestones by created_at to ensure consistent ordering
-      const sortedMilestones = [...milestones].sort((a, b) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-
       // Find the first pending milestone
-      const firstPendingIndex = sortedMilestones.findIndex(m => m.status === 'pending');
+      const firstPendingIndex = milestones.findIndex(m => m.status === 'pending');
 
       // If all milestones are completed or no pending milestones found, no updates needed
       if (firstPendingIndex === -1) return;
 
-      console.log("First pending milestone:", sortedMilestones[firstPendingIndex]);
+      console.log("First pending milestone:", milestones[firstPendingIndex]);
     };
 
     updateMilestoneStatuses();
@@ -79,12 +74,7 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
     }
   };
 
-  // Sort milestones by created_at before rendering (most recent first)
-  const sortedMilestones = milestones?.slice().sort((a, b) => 
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  );
-
-  if (!sortedMilestones?.length) {
+  if (!milestones?.length) {
     return (
       <Card>
         <CardContent className="p-6 text-center text-gray-600">
@@ -96,7 +86,7 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
 
   return (
     <div className="space-y-4">
-      {sortedMilestones.map((milestone) => (
+      {milestones.map((milestone) => (
         <Card key={milestone.id}>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
