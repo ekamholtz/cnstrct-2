@@ -53,7 +53,10 @@ export function ProjectInvoices({ projectId }: ProjectInvoicesProps) {
             <span>Payment Progress</span>
             <span>{paidInvoices} of {totalInvoices} invoices paid</span>
           </div>
-          <Progress value={progressPercentage} className="h-2" />
+          <Progress 
+            value={progressPercentage} 
+            className="h-2 [&>div]:bg-green-500" 
+          />
         </div>
       </div>
 
