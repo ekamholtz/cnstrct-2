@@ -11,14 +11,32 @@ export function useInvoices(projectId: string) {
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['project-invoices', projectId],
     queryFn: async () => {
-      console.log('Fetching invoices for project:', projectId);
+      console.log('Starting invoice fetch for project:', projectId);
+      
+      // First, verify the project exists
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('id', projectId)
+        .single();
+
+      if (projectError) {
+        console.error('Error verifying project:', projectError);
+        throw projectError;
+      }
+
+      console.log('Verified project exists:', project);
+
+      // Fetch invoices with milestone and project data
       const { data, error } = await supabase
         .from('invoices')
         .select(`
           *,
           milestone:milestone_id (
+            id,
             name,
             project:project_id (
+              id,
               name
             )
           )
@@ -31,14 +49,33 @@ export function useInvoices(projectId: string) {
         throw error;
       }
 
-      console.log('Fetched invoices for project:', projectId, 'Count:', data?.length, 'Data:', data);
+      // Log detailed information about the fetched invoices
+      console.log('Fetched invoices for project:', {
+        projectId,
+        invoiceCount: data?.length,
+        invoices: data?.map(inv => ({
+          id: inv.id,
+          invoice_number: inv.invoice_number,
+          milestone_id: inv.milestone_id,
+          milestone_name: inv.milestone?.name,
+          project_id: inv.milestone?.project?.id,
+          project_name: inv.milestone?.project?.name,
+        }))
+      });
+
+      // Verify all invoices are correctly linked to the project
+      const invalidInvoices = data?.filter(inv => inv.milestone?.project?.id !== projectId);
+      if (invalidInvoices?.length) {
+        console.warn('Found invoices with incorrect project association:', invalidInvoices);
+      }
+
       return data as Invoice[];
     },
   });
 
   // Set up real-time subscription for this specific project's invoices
   useEffect(() => {
-    console.log('Setting up real-time subscription for project:', projectId);
+    console.log('Setting up real-time subscription for project invoices:', projectId);
     const channel = supabase
       .channel(`project-invoices-${projectId}`)
       .on(
@@ -50,7 +87,11 @@ export function useInvoices(projectId: string) {
           filter: `milestone.project_id=eq.${projectId}`
         },
         (payload) => {
-          console.log('Real-time update received for project invoices:', payload);
+          console.log('Real-time update received for project invoices:', {
+            projectId,
+            event: payload.eventType,
+            data: payload.new
+          });
           queryClient.invalidateQueries({ queryKey: ['project-invoices', projectId] });
         }
       )
@@ -70,7 +111,12 @@ export function useInvoices(projectId: string) {
     }: { 
       invoiceId: string;
     } & PaymentFormData) => {
-      console.log('Marking invoice as paid:', invoiceId);
+      console.log('Marking invoice as paid:', {
+        invoiceId,
+        payment_method,
+        payment_date
+      });
+
       const { error } = await supabase
         .from('invoices')
         .update({
@@ -79,9 +125,13 @@ export function useInvoices(projectId: string) {
           payment_date: payment_date.toISOString(),
           updated_at: new Date().toISOString(),
         })
-        .eq('id', invoiceId);
+        .eq('id', invoiceId)
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error marking invoice as paid:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-invoices', projectId] });
@@ -91,7 +141,7 @@ export function useInvoices(projectId: string) {
       });
     },
     onError: (error) => {
-      console.error('Error marking invoice as paid:', error);
+      console.error('Error in markAsPaid mutation:', error);
       toast({
         variant: "destructive",
         title: "Error",
