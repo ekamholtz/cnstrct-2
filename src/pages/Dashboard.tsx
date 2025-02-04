@@ -14,13 +14,26 @@ export default function Dashboard() {
 
   const fetchProjects = async () => {
     try {
-      console.log("Fetching projects...");
+      console.log("Fetching projects for current user...");
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.error("No user found");
+        return;
+      }
+
+      console.log("Current user ID:", user.id);
       const { data, error } = await supabase
         .from('projects')
         .select('*')
+        .eq('contractor_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching projects:', error);
+        throw error;
+      }
+      
       console.log("Projects fetched:", data);
       setProjects(data || []);
     } catch (error) {
