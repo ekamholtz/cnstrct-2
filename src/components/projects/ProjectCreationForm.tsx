@@ -35,11 +35,13 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
     try {
       setIsSubmitting(true);
       
-      // Get the current user's ID
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No authenticated user found");
+      // Get the current user's profile ID which we'll use as contractor_id
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        throw new Error("No authenticated user found");
+      }
 
-      console.log("Creating project for contractor:", user.id);
+      console.log("Creating project for contractor:", session.user.id);
 
       // Check if client exists or create new client
       const { data: existingClient, error: clientLookupError } = await supabase
@@ -85,7 +87,7 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
           name: data.projectName,
           address: data.clientAddress,
           status: "active",
-          contractor_id: user.id,
+          contractor_id: session.user.id,
           client_id: clientId
         })
         .select()
