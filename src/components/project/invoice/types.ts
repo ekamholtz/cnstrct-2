@@ -6,6 +6,7 @@ export interface Invoice {
   created_at: string;
   milestone: {
     name: string;
+    project_id: string;
     project: {
       name: string;
     };

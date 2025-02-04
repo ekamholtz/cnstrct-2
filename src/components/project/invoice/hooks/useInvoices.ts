@@ -18,6 +18,7 @@ export function useInvoices(projectId: string) {
           *,
           milestone:milestone_id (
             name,
+            project_id,
             project:project_id (
               name
             )
