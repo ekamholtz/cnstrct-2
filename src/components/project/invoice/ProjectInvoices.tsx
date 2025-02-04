@@ -1,7 +1,7 @@
 import { DollarSign } from "lucide-react";
-import { InvoiceTable } from "./invoice/InvoiceTable";
-import { useInvoices } from "./invoice/useInvoices";
-import { PaymentFormData } from "./invoice/types";
+import { InvoiceTable } from "./InvoiceTable";
+import { useInvoices } from "./useInvoices";
+import { PaymentFormData } from "./types";
 
 interface ProjectInvoicesProps {
   projectId: string;
