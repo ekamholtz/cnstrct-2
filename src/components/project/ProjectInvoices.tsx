@@ -41,6 +41,7 @@ import {
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 
 interface Invoice {
   id: string;
@@ -107,6 +108,31 @@ export function ProjectInvoices({ projectId }: ProjectInvoicesProps) {
       return data as Invoice[];
     },
   });
+
+  // Set up real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('project-invoices')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'invoices',
+          filter: `milestone.project_id=eq.${projectId}`
+        },
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          // Invalidate and refetch the invoices query
+          queryClient.invalidateQueries({ queryKey: ['project-invoices', projectId] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [projectId, queryClient]);
 
   const markAsPaidMutation = useMutation({
     mutationFn: async ({ 
