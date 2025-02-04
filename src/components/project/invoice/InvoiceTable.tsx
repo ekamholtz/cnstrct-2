@@ -64,7 +64,15 @@ export function InvoiceTable({ invoices, onMarkAsPaid }: InvoiceTableProps) {
               <TableCell>
                 <PaymentModal
                   invoice={invoice}
-                  onSubmit={(data) => onMarkAsPaid(invoice.id, data)}
+                  onSubmit={(data) => {
+                    // Ensure data is complete before calling onMarkAsPaid
+                    if (data.payment_method && data.payment_date) {
+                      onMarkAsPaid(invoice.id, {
+                        payment_method: data.payment_method,
+                        payment_date: data.payment_date
+                      });
+                    }
+                  }}
                 />
               </TableCell>
             </TableRow>

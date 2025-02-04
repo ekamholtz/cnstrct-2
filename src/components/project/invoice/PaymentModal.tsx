@@ -54,6 +54,13 @@ export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
     },
   });
 
+  const handleSubmit = (data: PaymentFormData) => {
+    onSubmit({
+      payment_method: data.payment_method,
+      payment_date: data.payment_date
+    });
+  };
+
   return (
     <AlertDialog>
       <AlertDialogTrigger asChild>
@@ -73,7 +80,7 @@ export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="payment_method"
