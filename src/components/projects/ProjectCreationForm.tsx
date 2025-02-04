@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Form } from "@/components/ui/form";
 import { Save } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ProjectFormValues, projectSchema } from "./types";
 import { ClientInformationSection } from "./form-sections/ClientInformationSection";
 import { ProjectDetailsSection } from "./form-sections/ProjectDetailsSection";
