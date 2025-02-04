@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectStatus } from "@/components/project/ProjectStatus";
 import { MilestonesList } from "@/components/project/MilestonesList";
-import { ProjectInvoices } from "@/components/project/ProjectInvoices";
 import { markMilestoneComplete, calculateCompletion } from "@/utils/milestoneOperations";
 
 interface Project {
@@ -116,7 +115,6 @@ export default function ProjectDashboard() {
             milestones={milestones || []} 
             onMarkComplete={handleMarkComplete}
           />
-          <ProjectInvoices projectId={project.id} />
         </div>
       </main>
     </div>
