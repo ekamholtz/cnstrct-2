@@ -13,6 +13,8 @@ export function ClientProjectsList() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      console.log('Fetching projects for client:', user.id);
+
       const { data, error } = await supabase
         .from('projects')
         .select(`
@@ -26,7 +28,11 @@ export function ClientProjectsList() {
         `)
         .eq('client_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching client projects:', error);
+        throw error;
+      }
+      
       console.log('Fetched client projects:', data);
       return data;
     },
