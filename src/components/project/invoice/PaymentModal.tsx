@@ -25,26 +25,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
-import { Invoice } from "./types";
-
-const paymentSchema = z.object({
-  payment_method: z.enum(["cc", "check", "transfer", "cash"], {
-    required_error: "Please select a payment method",
-  }),
-  payment_date: z.date({
-    required_error: "Please select a payment date",
-  }),
-});
-
-type PaymentFormData = z.infer<typeof paymentSchema>;
-
-interface PaymentModalProps {
-  invoice: Invoice;
-  onSubmit: (data: PaymentFormData) => void;
-}
+import { zodResolver } from "@hookform/resolvers/zod";
+import { PaymentFormData, PaymentModalProps } from "./types";
+import { paymentSchema } from "./schemas";
 
 export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
   const form = useForm<PaymentFormData>({
@@ -53,13 +37,6 @@ export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
       payment_date: new Date(),
     },
   });
-
-  const handleSubmit = (data: PaymentFormData) => {
-    onSubmit({
-      payment_method: data.payment_method,
-      payment_date: data.payment_date
-    });
-  };
 
   return (
     <AlertDialog>
@@ -80,7 +57,7 @@ export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="payment_method"

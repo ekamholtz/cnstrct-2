@@ -7,14 +7,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatDistanceToNow } from "date-fns";
-import { CheckCircle } from "lucide-react";
 import { PaymentModal } from "./PaymentModal";
-import { Invoice } from "./types";
-
-interface InvoiceTableProps {
-  invoices: Invoice[];
-  onMarkAsPaid: (invoiceId: string, data: { payment_method: string; payment_date: Date }) => void;
-}
+import { StatusBadge } from "./StatusBadge";
+import { InvoiceTableProps } from "./types";
 
 export function InvoiceTable({ invoices, onMarkAsPaid }: InvoiceTableProps) {
   return (
@@ -37,26 +32,7 @@ export function InvoiceTable({ invoices, onMarkAsPaid }: InvoiceTableProps) {
               <TableCell>{invoice.milestone.name}</TableCell>
               <TableCell>${invoice.amount.toLocaleString()}</TableCell>
               <TableCell>
-                <div className="flex items-center">
-                  <span
-                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      invoice.status === 'paid'
-                        ? 'bg-green-100 text-green-800'
-                        : invoice.status === 'cancelled'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-yellow-100 text-yellow-800'
-                    }`}
-                  >
-                    {invoice.status === 'paid' && (
-                      <CheckCircle className="h-3 w-3 mr-1" />
-                    )}
-                    {invoice.status === 'paid'
-                      ? 'Paid'
-                      : invoice.status === 'cancelled'
-                      ? 'Cancelled'
-                      : 'Pending Payment'}
-                  </span>
-                </div>
+                <StatusBadge status={invoice.status} />
               </TableCell>
               <TableCell>
                 {formatDistanceToNow(new Date(invoice.created_at), { addSuffix: true })}
@@ -64,15 +40,7 @@ export function InvoiceTable({ invoices, onMarkAsPaid }: InvoiceTableProps) {
               <TableCell>
                 <PaymentModal
                   invoice={invoice}
-                  onSubmit={(data) => {
-                    // Ensure data is complete before calling onMarkAsPaid
-                    if (data.payment_method && data.payment_date) {
-                      onMarkAsPaid(invoice.id, {
-                        payment_method: data.payment_method,
-                        payment_date: data.payment_date
-                      });
-                    }
-                  }}
+                  onSubmit={(data) => onMarkAsPaid(invoice.id, data)}
                 />
               </TableCell>
             </TableRow>
