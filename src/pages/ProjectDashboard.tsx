@@ -51,7 +51,7 @@ export default function ProjectDashboard() {
         .from('milestones')
         .select('*')
         .eq('project_id', projectId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: true }); // Changed to ascending order
       
       if (error) {
         console.error("Error fetching milestones:", error);
