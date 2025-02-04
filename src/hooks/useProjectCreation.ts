@@ -19,36 +19,25 @@ export const useProjectCreation = (onSuccess?: () => void) => {
       const { data: exactClient, error: exactClientError } = await supabase
         .from("clients")
         .select("*")
-        .eq("email", data.clientEmail)
+        .eq("email", data.clientEmail.toLowerCase()) // Convert to lowercase for consistency
         .maybeSingle();
 
       console.log("Exact client search result:", exactClient, "Error:", exactClientError);
 
-      // If no exact match, try case-insensitive search
-      const { data: caseInsensitiveClient, error: caseInsensitiveError } = !exactClient ? await supabase
-        .from("clients")
-        .select("*")
-        .ilike("email", data.clientEmail)
-        .maybeSingle() : { data: null, error: null };
-
-      console.log("Case-insensitive client search result:", caseInsensitiveClient, "Error:", caseInsensitiveError);
-
       let clientId;
       if (exactClient) {
         clientId = exactClient.id;
-        console.log("Using existing client with exact match:", exactClient);
-      } else if (caseInsensitiveClient) {
-        clientId = caseInsensitiveClient.id;
-        console.log("Using existing client with case-insensitive match:", caseInsensitiveClient);
+        console.log("Using existing client:", exactClient);
       } else {
         // Create new client
         const { data: newClient, error: createClientError } = await supabase
           .from("clients")
           .insert({
             name: data.clientName,
-            email: data.clientEmail,
+            email: data.clientEmail.toLowerCase(), // Convert to lowercase for consistency
             address: data.clientAddress,
             phone_number: data.clientPhone || null,
+            user_id: null // This will be linked when the client signs up
           })
           .select()
           .single();
@@ -69,7 +58,7 @@ export const useProjectCreation = (onSuccess?: () => void) => {
           address: data.clientAddress,
           status: "active",
           contractor_id: session.user.id,
-          client_id: clientId
+          client_id: clientId // Ensure this is set correctly
         })
         .select()
         .single();
