@@ -67,19 +67,28 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
   const onSubmit = async (data: ProjectFormValues) => {
     try {
       setIsSubmitting(true);
+      
+      // Get the current user's ID
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No authenticated user found");
+
+      console.log("Creating project for contractor:", user.id);
 
       // Create project
       const { data: project, error: projectError } = await supabase
         .from("projects")
-        .insert([{
+        .insert({
           name: data.projectName,
           address: data.clientAddress,
           status: "active",
-        }])
+          contractor_id: user.id
+        })
         .select()
         .single();
 
       if (projectError) throw projectError;
+
+      console.log("Project created:", project);
 
       // Create milestones
       const milestonesData = data.milestones.map(milestone => ({
@@ -87,7 +96,7 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
         name: milestone.name,
         description: milestone.description,
         amount: Number(milestone.amount),
-        status: "pending",
+        status: "pending" as const // Explicitly type as milestone_status
       }));
 
       const { error: milestonesError } = await supabase
@@ -95,6 +104,8 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
         .insert(milestonesData);
 
       if (milestonesError) throw milestonesError;
+
+      console.log("Milestones created for project:", project.id);
 
       toast({
         title: "Success",
