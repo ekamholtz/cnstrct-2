@@ -31,7 +31,7 @@ export function useInvoices(projectId: string) {
         throw error;
       }
 
-      console.log('Fetched invoices for project:', projectId, data);
+      console.log('Fetched invoices for project:', projectId, 'Count:', data?.length, 'Data:', data);
       return data as Invoice[];
     },
   });
