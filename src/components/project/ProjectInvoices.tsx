@@ -17,6 +17,10 @@ export function ProjectInvoices({ projectId }: ProjectInvoicesProps) {
     );
   }
 
+  const handleMarkAsPaid = (invoiceId: string, data: { payment_method: string; payment_date: Date }) => {
+    return markAsPaid({ invoiceId, ...data });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
@@ -31,7 +35,7 @@ export function ProjectInvoices({ projectId }: ProjectInvoicesProps) {
 
       <InvoiceTable 
         invoices={invoices || []} 
-        onMarkAsPaid={(invoiceId, data) => markAsPaid({ invoiceId, ...data })}
+        onMarkAsPaid={handleMarkAsPaid}
       />
     </div>
   );
