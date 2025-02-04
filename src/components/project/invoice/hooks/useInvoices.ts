@@ -31,13 +31,14 @@ export function useInvoices(projectId: string) {
         throw error;
       }
 
-      console.log('Fetched invoices:', data);
+      console.log('Fetched invoices for project:', projectId, data);
       return data as Invoice[];
     },
   });
 
   // Set up real-time subscription for this specific project's invoices
   useEffect(() => {
+    console.log('Setting up real-time subscription for project:', projectId);
     const channel = supabase
       .channel(`project-invoices-${projectId}`)
       .on(
@@ -56,6 +57,7 @@ export function useInvoices(projectId: string) {
       .subscribe();
 
     return () => {
+      console.log('Cleaning up real-time subscription for project:', projectId);
       supabase.removeChannel(channel);
     };
   }, [projectId, queryClient]);
@@ -68,6 +70,7 @@ export function useInvoices(projectId: string) {
     }: { 
       invoiceId: string;
     } & PaymentFormData) => {
+      console.log('Marking invoice as paid:', invoiceId);
       const { error } = await supabase
         .from('invoices')
         .update({
