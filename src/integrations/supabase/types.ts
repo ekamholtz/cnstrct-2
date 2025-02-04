@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      milestones: {
+        Row: {
+          amount: number | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          project_id: string
+          status: Database["public"]["Enums"]["milestone_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          project_id: string
+          status?: Database["public"]["Enums"]["milestone_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          project_id?: string
+          status?: Database["public"]["Enums"]["milestone_status"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           address: string | null
@@ -106,6 +147,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      milestone_status: "pending" | "in_progress" | "completed"
       user_role: "general_contractor" | "homeowner"
     }
     CompositeTypes: {

@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface ProjectCardProps {
   project: {
@@ -34,21 +35,23 @@ export function ProjectCard({ project }: ProjectCardProps) {
   };
 
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <h3 className="font-semibold text-lg text-cnstrct-navy">{project.name}</h3>
-          <Badge className={`${getStatusColor(project.status)}`}>
-            {formatStatus(project.status)}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-start gap-2 text-gray-600">
-          <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
-          <p className="text-sm">{project.address}</p>
-        </div>
-      </CardContent>
-    </Card>
+    <Link to={`/project/${project.id}`}>
+      <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+        <CardHeader className="pb-2">
+          <div className="flex justify-between items-start">
+            <h3 className="font-semibold text-lg text-cnstrct-navy">{project.name}</h3>
+            <Badge className={`${getStatusColor(project.status)}`}>
+              {formatStatus(project.status)}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-start gap-2 text-gray-600">
+            <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
+            <p className="text-sm">{project.address}</p>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }

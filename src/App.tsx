@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import ProfileCompletion from "./pages/ProfileCompletion";
 import Dashboard from "./pages/Dashboard";
+import ProjectDashboard from "./pages/ProjectDashboard";
 
 const queryClient = new QueryClient();
 
@@ -114,6 +115,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/project/:projectId"
+            element={
+              <ProtectedRoute>
+                <ProjectDashboard />
               </ProtectedRoute>
             }
           />
