@@ -9,6 +9,56 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          invoice_number: string
+          milestone_id: string
+          payment_date: string | null
+          payment_gateway: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          status: Database["public"]["Enums"]["invoice_status"]
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          invoice_number: string
+          milestone_id: string
+          payment_date?: string | null
+          payment_gateway?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          invoice_number?: string
+          milestone_id?: string
+          payment_date?: string | null
+          payment_gateway?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          status?: Database["public"]["Enums"]["invoice_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       milestones: {
         Row: {
           amount: number | null
@@ -144,9 +194,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_invoice_number: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
+      invoice_status: "pending_payment" | "paid" | "cancelled"
       milestone_status: "pending" | "completed"
       project_status: "draft" | "active" | "completed" | "cancelled"
       user_role: "general_contractor" | "homeowner"

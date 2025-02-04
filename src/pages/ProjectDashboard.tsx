@@ -60,16 +60,39 @@ export default function ProjectDashboard() {
 
   const handleMarkComplete = async (milestoneId: string) => {
     try {
-      const { error } = await supabase
+      // Start a transaction by updating the milestone status
+      const { error: milestoneError } = await supabase
         .from('milestones')
         .update({ status: 'completed' })
         .eq('id', milestoneId);
 
-      if (error) throw error;
+      if (milestoneError) throw milestoneError;
+
+      // Get the milestone details for the invoice
+      const { data: milestone, error: fetchError } = await supabase
+        .from('milestones')
+        .select('*')
+        .eq('id', milestoneId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Generate invoice
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .insert({
+          milestone_id: milestoneId,
+          amount: milestone.amount,
+          invoice_number: await generateInvoiceNumber(),
+        })
+        .select()
+        .single();
+
+      if (invoiceError) throw invoiceError;
 
       toast({
         title: "Milestone Updated",
-        description: "The milestone has been marked as complete.",
+        description: `The milestone has been marked as complete and invoice #${invoice.invoice_number} has been generated.`,
       });
 
       refetchMilestones();
@@ -78,9 +101,17 @@ export default function ProjectDashboard() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update milestone status.",
+        description: "Failed to update milestone status and generate invoice.",
       });
     }
+  };
+
+  const generateInvoiceNumber = async () => {
+    const { data, error } = await supabase
+      .rpc('generate_invoice_number');
+    
+    if (error) throw error;
+    return data;
   };
 
   const getStatusColor = (status: string) => {
