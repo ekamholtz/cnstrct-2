@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { Header } from "@/components/landing/Header";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types/project";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatsOverview } from "@/components/dashboard/StatsOverview";
 import { ProjectsList } from "@/components/dashboard/ProjectsList";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
 
 export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -28,7 +28,6 @@ export default function Dashboard() {
 
       console.log("Current user ID:", user.id);
       
-      // First, get the profile to ensure we have the correct ID
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('id')
@@ -42,7 +41,6 @@ export default function Dashboard() {
 
       console.log("Fetching projects for profile ID:", profile.id);
       
-      // Then fetch projects using the profile ID
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
@@ -72,13 +70,10 @@ export default function Dashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Header />
-      <main className="container mx-auto px-4 py-8 mt-16">
-        <DashboardHeader onProjectCreated={fetchProjects} />
-        <StatsOverview projects={projects} />
-        <ProjectsList projects={projects} loading={loading} />
-      </main>
-    </div>
+    <DashboardLayout>
+      <DashboardHeader onProjectCreated={fetchProjects} />
+      <StatsOverview projects={projects} />
+      <ProjectsList projects={projects} loading={loading} />
+    </DashboardLayout>
   );
 }
