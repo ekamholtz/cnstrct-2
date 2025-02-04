@@ -27,10 +27,10 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
 
       // Sort milestones by created_at to ensure consistent ordering
       const sortedMilestones = [...milestones].sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
-      // Find the first non-completed milestone
+      // Find the first pending milestone
       const firstPendingIndex = sortedMilestones.findIndex(m => m.status === 'pending');
 
       // If all milestones are completed or no pending milestones found, no updates needed
@@ -79,9 +79,9 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
     }
   };
 
-  // Sort milestones by created_at before rendering
+  // Sort milestones by created_at before rendering (most recent first)
   const sortedMilestones = milestones?.slice().sort((a, b) => 
-    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
   if (!sortedMilestones?.length) {
