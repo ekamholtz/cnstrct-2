@@ -36,7 +36,7 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
         if (milestone.status === 'completed') return null;
 
         // Set the first non-completed milestone to in_progress
-        const newStatus = index === firstNonCompletedIndex ? 'in_progress' : 'pending';
+        const newStatus = index === firstNonCompletedIndex ? 'in_progress' as const : 'pending' as const;
         
         // Only create an update if the status is different
         if (milestone.status !== newStatus) {
@@ -84,7 +84,7 @@ export function MilestonesList({ milestones, onMilestoneComplete }: MilestonesLi
       console.log("Marking milestone complete:", milestoneId);
       const { error } = await supabase
         .from('milestones')
-        .update({ status: 'completed' })
+        .update({ status: 'completed' as const })
         .eq('id', milestoneId);
 
       if (error) throw error;
