@@ -11,6 +11,7 @@ import { ClientInformationSection } from "./form-sections/ClientInformationSecti
 import { ProjectDetailsSection } from "./form-sections/ProjectDetailsSection";
 import { MilestonesSection } from "./form-sections/MilestonesSection";
 import { ContractValueSection } from "./form-sections/ContractValueSection";
+import { DialogClose } from "@/components/ui/dialog";
 
 export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -79,6 +80,13 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
       });
 
       onSuccess?.();
+      
+      // Trigger dialog close
+      const closeButton = document.querySelector('[data-dialog-close]') as HTMLButtonElement;
+      if (closeButton) {
+        closeButton.click();
+      }
+      
     } catch (error) {
       console.error("Error creating project:", error);
       toast({
@@ -103,6 +111,7 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
           <Save className="h-4 w-4 mr-2" />
           Create Project
         </Button>
+        <DialogClose className="hidden" />
       </form>
     </Form>
   );
