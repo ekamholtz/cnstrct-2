@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Invoice } from "./types";
+import { Invoice, PaymentFormData } from "./types";
 
 export function useInvoices(projectId: string) {
   const { toast } = useToast();
@@ -65,10 +65,8 @@ export function useInvoices(projectId: string) {
       payment_method, 
       payment_date 
     }: { 
-      invoiceId: string; 
-      payment_method: string; 
-      payment_date: Date;
-    }) => {
+      invoiceId: string;
+    } & PaymentFormData) => {
       const { error } = await supabase
         .from('invoices')
         .update({

@@ -1,6 +1,7 @@
 import { DollarSign } from "lucide-react";
 import { InvoiceTable } from "./invoice/InvoiceTable";
 import { useInvoices } from "./invoice/useInvoices";
+import { PaymentFormData } from "./invoice/types";
 
 interface ProjectInvoicesProps {
   projectId: string;
@@ -17,8 +18,8 @@ export function ProjectInvoices({ projectId }: ProjectInvoicesProps) {
     );
   }
 
-  const handleMarkAsPaid = (invoiceId: string, data: { payment_method: string; payment_date: Date }) => {
-    return markAsPaid({ invoiceId, ...data });
+  const handleMarkAsPaid = async (invoiceId: string, data: PaymentFormData) => {
+    await markAsPaid({ invoiceId, ...data });
   };
 
   return (
