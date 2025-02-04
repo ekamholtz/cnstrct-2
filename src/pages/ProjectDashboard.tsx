@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectStatus } from "@/components/project/ProjectStatus";
 import { MilestonesList } from "@/components/project/MilestonesList";
+import { ProjectInvoices } from "@/components/project/ProjectInvoices";
 import { markMilestoneComplete, calculateCompletion } from "@/utils/milestoneOperations";
 
 interface Project {
@@ -106,10 +107,13 @@ export default function ProjectDashboard() {
         <div className="mb-8">
           <ProjectStatus status={project.status} completionPercentage={completionPercentage} />
         </div>
-        <MilestonesList 
-          milestones={milestones || []} 
-          onMarkComplete={handleMarkComplete}
-        />
+        <div className="space-y-8">
+          <MilestonesList 
+            milestones={milestones || []} 
+            onMarkComplete={handleMarkComplete}
+          />
+          <ProjectInvoices projectId={project.id} />
+        </div>
       </main>
     </div>
   );
