@@ -40,7 +40,7 @@ export default function ProjectDashboard() {
     enabled: !!projectId,
   });
 
-  // Fetch milestones with explicit ordering by created_at to maintain chronological order
+  // Fetch milestones with explicit ordering by id to maintain insertion order
   const { data: milestones, isLoading: milestonesLoading, refetch: refetchMilestones } = useQuery({
     queryKey: ['milestones', projectId],
     queryFn: async () => {
@@ -51,7 +51,7 @@ export default function ProjectDashboard() {
         .from('milestones')
         .select('*')
         .eq('project_id', projectId)
-        .order('created_at', { ascending: true }); // Changed to ascending order
+        .order('id', { ascending: true }); // Changed to order by id to maintain insertion order
       
       if (error) {
         console.error("Error fetching milestones:", error);
