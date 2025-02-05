@@ -13,12 +13,31 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { useQuery } from "@tanstack/react-query";
 
 export function MainNav() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+
+  // Fetch user role from profiles table
+  const { data: profile } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const handleLogout = async () => {
     try {
@@ -35,9 +54,12 @@ export function MainNav() {
     }
   };
 
+  // Determine dashboard route based on user role
+  const dashboardRoute = profile?.role === 'homeowner' ? '/client-dashboard' : '/dashboard';
+
   const navItems = [
-    { label: "Home", path: "/dashboard", icon: Home },
-    { label: "Projects", path: "/dashboard", icon: Grid },
+    { label: "Home", path: dashboardRoute, icon: Home },
+    { label: "Projects", path: dashboardRoute, icon: Grid },
     { label: "Invoices", path: "/invoices", icon: FileText },
     { label: "Profile", path: "/profile", icon: User },
     { label: "Help", path: "/help", icon: HelpCircle },
@@ -50,7 +72,7 @@ export function MainNav() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/dashboard" className="flex items-center">
+          <Link to={dashboardRoute} className="flex items-center">
             <img
               src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
               alt="CNSTRCT Logo"
