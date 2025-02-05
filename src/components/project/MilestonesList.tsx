@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -58,11 +57,11 @@ export function MilestonesList({ milestones, onMarkComplete }: MilestonesListPro
         .from('invoices')
         .select('status')
         .eq('milestone_id', milestoneId)
-        .single();
+        .maybeSingle();
 
       if (invoiceError) throw invoiceError;
 
-      if (invoice && invoice.status === 'paid') {
+      if (invoice?.status === 'paid') {
         toast({
           variant: "destructive",
           title: "Cannot Undo Completion",
@@ -204,4 +203,3 @@ export function MilestonesList({ milestones, onMarkComplete }: MilestonesListPro
     </div>
   );
 }
-
