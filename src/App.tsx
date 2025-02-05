@@ -15,6 +15,7 @@ import ClientDashboard from "./pages/ClientDashboard";
 import ClientProjectsPage from "./pages/ClientProjectsPage";
 import ProjectDashboard from "./pages/ProjectDashboard";
 import InvoiceDashboard from "./pages/InvoiceDashboard";
+import HomeownerProfile from "./pages/HomeownerProfile";
 
 const queryClient = new QueryClient();
 
@@ -160,6 +161,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ProjectDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <HomeownerProfile />
               </ProtectedRoute>
             }
           />
