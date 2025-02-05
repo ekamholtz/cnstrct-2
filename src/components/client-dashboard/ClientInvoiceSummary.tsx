@@ -16,12 +16,56 @@ export function ClientInvoiceSummary() {
 
       console.log('Starting invoice fetch for user:', user.id);
 
-      // Get all invoices for projects where the client is linked to the current user
-      const { data: invoices, error } = await supabase
+      // First, get the client details
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (clientError) {
+        console.error('Error finding client:', clientError);
+        throw clientError;
+      }
+
+      console.log('Found client:', clientData);
+
+      // Get all projects for this client with their milestones
+      const { data: projects, error: projectError } = await supabase
+        .from('projects')
+        .select(`
+          id,
+          name,
+          milestones (
+            id,
+            name
+          )
+        `)
+        .eq('client_id', clientData.id);
+
+      if (projectError) {
+        console.error('Error finding projects:', projectError);
+        throw projectError;
+      }
+
+      console.log('Projects with milestones:', projects);
+
+      // Get all milestone IDs
+      const milestoneIds = projects?.flatMap(p => p.milestones?.map(m => m.id)).filter(Boolean) || [];
+      console.log('Milestone IDs:', milestoneIds);
+
+      if (milestoneIds.length === 0) {
+        console.log('No milestones found for client projects');
+        return [];
+      }
+
+      // Query invoices for these milestones
+      const { data: invoices, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
           *,
           milestone:milestone_id (
+            id,
             name,
             project:project_id (
               id,
@@ -33,21 +77,31 @@ export function ClientInvoiceSummary() {
             )
           )
         `)
-        .eq('milestone.project.client.user_id', user.id);
+        .in('milestone_id', milestoneIds);
 
-      if (error) {
-        console.error('Error fetching invoices:', error);
-        throw error;
+      if (invoiceError) {
+        console.error('Error fetching invoices:', invoiceError);
+        throw invoiceError;
       }
 
-      console.log('Raw invoice query results:', invoices);
+      console.log('Found invoices:', invoices);
 
-      // Filter out any invalid data just in case
-      const validInvoices = invoices?.filter(inv => 
-        inv.milestone?.project?.client?.user_id === user.id
-      ) || [];
+      // Validate the relationships
+      const validInvoices = invoices?.filter(inv => {
+        const isValid = inv.milestone?.project?.client?.id === clientData.id;
+        if (!isValid) {
+          console.log('Invalid invoice relationship:', {
+            invoice: inv.invoice_number,
+            milestone: inv.milestone?.name,
+            projectName: inv.milestone?.project?.name,
+            clientId: inv.milestone?.project?.client?.id,
+            expectedClientId: clientData.id
+          });
+        }
+        return isValid;
+      }) || [];
 
-      console.log('Filtered valid invoices:', validInvoices);
+      console.log('Valid invoices after relationship check:', validInvoices);
       return validInvoices;
     },
   });
