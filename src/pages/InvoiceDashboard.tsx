@@ -8,6 +8,7 @@ import { useInvoiceDashboard } from "@/hooks/useInvoiceDashboard";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
 
 export default function InvoiceDashboard() {
   const {
@@ -48,6 +49,11 @@ export default function InvoiceDashboard() {
           </Button>
         </Link>
       </div>
+
+      <ClientPageHeader 
+        pageTitle="Invoices"
+        pageDescription="View and manage all your payment invoices"
+      />
 
       <InvoiceFilters
         statusFilter={statusFilter}
