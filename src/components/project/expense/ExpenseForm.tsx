@@ -33,7 +33,7 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
       name: "",
       payee: "",
       amount: "",
-      expense_date: new Date(),
+      expense_date: undefined,
       payment_type: undefined,
       notes: "",
     },

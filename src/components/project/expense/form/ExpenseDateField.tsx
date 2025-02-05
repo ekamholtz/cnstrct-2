@@ -45,10 +45,8 @@ export function ExpenseDateField({ form }: ExpenseDateFieldProps) {
               <Calendar
                 mode="single"
                 selected={field.value}
-                onSelect={(date) => {
-                  field.onChange(date);
-                  (document.activeElement as HTMLElement)?.blur();
-                }}
+                onSelect={field.onChange}
+                disabled={false}
                 initialFocus
               />
             </PopoverContent>
