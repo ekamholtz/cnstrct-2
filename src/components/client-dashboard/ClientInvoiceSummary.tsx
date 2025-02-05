@@ -48,7 +48,25 @@ export function ClientInvoiceSummary() {
         return [];
       }
 
-      // Get all invoices for these projects with all related data
+      // Get all milestones for these projects
+      const { data: milestones, error: milestoneError } = await supabase
+        .from('milestones')
+        .select('id')
+        .in('project_id', projects.map(p => p.id));
+
+      if (milestoneError) {
+        console.error('Error fetching milestones:', milestoneError);
+        throw milestoneError;
+      }
+
+      console.log('Found milestones:', milestones);
+
+      if (!milestones?.length) {
+        console.log('No milestones found for projects');
+        return [];
+      }
+
+      // Get all invoices for these milestones with all related data
       const { data: invoices, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
@@ -62,10 +80,7 @@ export function ClientInvoiceSummary() {
             )
           )
         `)
-        .in(
-          'milestone.project_id',
-          projects.map(p => p.id)
-        )
+        .in('milestone_id', milestones.map(m => m.id))
         .order('created_at', { ascending: false });
 
       if (invoiceError) {
