@@ -6,13 +6,19 @@ import { DollarSign, FileText } from "lucide-react";
 import { StatusBadge } from "@/components/project/invoice/StatusBadge";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { useToast } from "@/components/ui/use-toast";
 
 export function ClientInvoiceSummary() {
+  const { toast } = useToast();
+  
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['client-invoices'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      if (!user) {
+        console.error('No authenticated user found');
+        throw new Error('No user found');
+      }
 
       console.log('Starting invoice fetch for user:', user.id);
 
@@ -25,48 +31,17 @@ export function ClientInvoiceSummary() {
 
       if (clientError) {
         console.error('Error fetching client:', clientError);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch client information",
+        });
         throw clientError;
       }
 
       console.log('Found client:', client);
 
-      // Get all projects for this client
-      const { data: projects, error: projectError } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('client_id', client.id);
-
-      if (projectError) {
-        console.error('Error fetching projects:', projectError);
-        throw projectError;
-      }
-
-      console.log('Found projects:', projects);
-
-      if (!projects?.length) {
-        console.log('No projects found for client');
-        return [];
-      }
-
-      // Get all milestones for these projects
-      const { data: milestones, error: milestoneError } = await supabase
-        .from('milestones')
-        .select('id')
-        .in('project_id', projects.map(p => p.id));
-
-      if (milestoneError) {
-        console.error('Error fetching milestones:', milestoneError);
-        throw milestoneError;
-      }
-
-      console.log('Found milestones:', milestones);
-
-      if (!milestones?.length) {
-        console.log('No milestones found for projects');
-        return [];
-      }
-
-      // Get all invoices for these milestones with all related data
+      // Get all invoices for this client's projects in a single query
       const { data: invoices, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
@@ -76,15 +51,20 @@ export function ClientInvoiceSummary() {
             name,
             project:project_id (
               id,
-              name
+              name,
+              client_id
             )
           )
         `)
-        .in('milestone_id', milestones.map(m => m.id))
-        .order('created_at', { ascending: false });
+        .eq('milestone.project.client_id', client.id);
 
       if (invoiceError) {
         console.error('Error fetching invoices:', invoiceError);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to fetch invoices",
+        });
         throw invoiceError;
       }
 
