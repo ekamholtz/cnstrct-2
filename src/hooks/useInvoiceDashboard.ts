@@ -18,10 +18,12 @@ interface Invoice {
   };
 }
 
+type InvoiceStatus = "pending_payment" | "paid" | "cancelled" | "all";
+
 export const useInvoiceDashboard = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<InvoiceStatus>("all");
   const { toast } = useToast();
 
   const fetchInvoices = async () => {
