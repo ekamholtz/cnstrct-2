@@ -34,7 +34,7 @@ export function ClientInvoiceSummary() {
 
       console.log('Found client record:', clientData);
 
-      // Fetch invoices for projects where the client_id matches
+      // Fetch invoices using RLS policy
       const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
@@ -48,8 +48,7 @@ export function ClientInvoiceSummary() {
             )
           )
         `)
-        .eq('milestone.project.client_id', clientData.id)
-        .order('created_at', { ascending: false });
+        .eq('milestone.project.client_id', clientData.id);
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);
