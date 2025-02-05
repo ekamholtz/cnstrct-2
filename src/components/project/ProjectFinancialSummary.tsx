@@ -1,6 +1,6 @@
 
 import { Card } from "@/components/ui/card";
-import { BadgeDollarSign, Receipt, Wallet, Clock, Package } from "lucide-react";
+import { BadgeDollarSign, Receipt, Wallet, Clock, Package, TrendingUp } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -82,10 +82,14 @@ export function ProjectFinancialSummary({ projectId }: ProjectFinancialSummaryPr
   const totalPendingInvoices = pendingInvoices.reduce((sum, invoice) => sum + invoice.amount, 0);
   const totalUninvoicedAmount = incompleteMilestones.reduce((sum, milestone) => sum + (milestone.amount || 0), 0);
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const netProfit = totalPaidInvoices - totalExpenses;
+  
+  // Updated net profit calculation to include pending invoices
+  const netProfit = (totalPaidInvoices + totalPendingInvoices) - totalExpenses;
+  // New net cash flow calculation
+  const netCashFlow = totalPaidInvoices - totalExpenses;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
       <Card className="p-6 flex items-center space-x-4">
         <div className="bg-green-100 p-3 rounded-full">
           <BadgeDollarSign className="h-6 w-6 text-green-600" />
@@ -134,6 +138,18 @@ export function ProjectFinancialSummary({ projectId }: ProjectFinancialSummaryPr
           <p className="text-sm font-medium text-gray-500">Net Profit</p>
           <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
             ${netProfit.toLocaleString()}
+          </p>
+        </div>
+      </Card>
+
+      <Card className="p-6 flex items-center space-x-4">
+        <div className="bg-emerald-100 p-3 rounded-full">
+          <TrendingUp className="h-6 w-6 text-emerald-600" />
+        </div>
+        <div>
+          <p className="text-sm font-medium text-gray-500">Net Cash Flow</p>
+          <p className={`text-2xl font-bold ${netCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+            ${netCashFlow.toLocaleString()}
           </p>
         </div>
       </Card>
