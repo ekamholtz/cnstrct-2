@@ -34,7 +34,7 @@ export function ClientInvoiceSummary() {
 
       console.log('Found client record:', clientData);
 
-      // Direct query to get all invoices related to this client's projects
+      // Query invoices through the milestones and projects relationship
       const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
@@ -47,8 +47,7 @@ export function ClientInvoiceSummary() {
               client_id
             )
           )
-        `)
-        .eq('milestone.project.client_id', clientData.id);
+        `);
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);
