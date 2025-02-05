@@ -32,7 +32,7 @@ export function ClientProjectsList() {
         return [];
       }
 
-      // Now fetch only projects for this client
+      // Now fetch only projects for this client, ensuring client_id is not null
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -44,7 +44,8 @@ export function ClientProjectsList() {
             status
           )
         `)
-        .eq('client_id', clientData.id);
+        .eq('client_id', clientData.id)
+        .not('client_id', 'is', null); // Explicitly exclude projects with null client_id
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);
