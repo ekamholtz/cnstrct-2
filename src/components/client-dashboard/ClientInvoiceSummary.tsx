@@ -15,6 +15,33 @@ export function ClientInvoiceSummary() {
 
       console.log('Starting invoice fetch for user:', user.id);
 
+      // First, verify the client record exists
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (clientError) {
+        console.error('Error finding client record:', clientError);
+        throw clientError;
+      }
+
+      console.log('Found client record:', clientData);
+
+      // Then get all projects for this client
+      const { data: projects, error: projectsError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('client_id', clientData.id);
+
+      if (projectsError) {
+        console.error('Error finding projects:', projectsError);
+        throw projectsError;
+      }
+
+      console.log('Found projects:', projects);
+
       const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select(`

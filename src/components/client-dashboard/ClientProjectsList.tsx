@@ -13,6 +13,20 @@ export function ClientProjectsList() {
 
       console.log('Starting project fetch for user:', user.id);
 
+      // First, verify the client record exists
+      const { data: clientData, error: clientError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (clientError) {
+        console.error('Error finding client record:', clientError);
+        throw clientError;
+      }
+
+      console.log('Found client record:', clientData);
+
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
