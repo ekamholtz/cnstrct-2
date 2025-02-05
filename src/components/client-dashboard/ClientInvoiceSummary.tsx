@@ -25,7 +25,7 @@ export function ClientInvoiceSummary() {
       // First get the client id for this user
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id')
+        .select('id, name')  // Also select name for logging
         .eq('user_id', user.id)
         .single();
 
@@ -40,6 +40,19 @@ export function ClientInvoiceSummary() {
       }
 
       console.log('Found client:', client);
+
+      // First verify we can get projects for this client
+      const { data: projects, error: projectError } = await supabase
+        .from('projects')
+        .select('id, name, client_id')
+        .eq('client_id', client.id);
+
+      console.log('Projects found:', projects);
+
+      if (projectError) {
+        console.error('Error fetching projects:', projectError);
+        return [];
+      }
 
       // Get all invoices for this client's projects in a single query
       const { data: invoices, error: invoiceError } = await supabase
