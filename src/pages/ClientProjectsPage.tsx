@@ -4,6 +4,7 @@ import { ClientProjectsList } from "@/components/client-dashboard/ClientProjects
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
 
 export default function ClientProjectsPage() {
   return (
@@ -16,9 +17,12 @@ export default function ClientProjectsPage() {
           </Button>
         </Link>
       </div>
+      <ClientPageHeader 
+        pageTitle="Projects"
+        pageDescription="View and manage all your construction projects"
+      />
       <div className="space-y-8">
         <section>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Your Projects</h1>
           <ClientProjectsList />
         </section>
       </div>

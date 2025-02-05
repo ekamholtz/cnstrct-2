@@ -11,6 +11,7 @@ import { markMilestoneComplete, calculateCompletion } from "@/utils/milestoneOpe
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
 
 interface Project {
   id: string;
@@ -86,6 +87,10 @@ export default function ProjectDashboard() {
               </Button>
             </Link>
           </div>
+          <ClientPageHeader 
+            pageTitle="Project Details"
+            pageDescription="Loading project information..."
+          />
           <div className="flex justify-center items-center h-64">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
@@ -107,10 +112,10 @@ export default function ProjectDashboard() {
               </Button>
             </Link>
           </div>
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">Project Not Found</h2>
-            <p className="mt-2 text-gray-600">The project you're looking for doesn't exist or you don't have access to it.</p>
-          </div>
+          <ClientPageHeader 
+            pageTitle="Project Not Found"
+            pageDescription="The project you're looking for doesn't exist or you don't have access to it."
+          />
         </main>
       </div>
     );
@@ -130,6 +135,10 @@ export default function ProjectDashboard() {
             </Button>
           </Link>
         </div>
+        <ClientPageHeader 
+          pageTitle={`Project: ${project.name}`}
+          pageDescription="View project details and track progress"
+        />
         <ProjectHeader 
           name={project.name} 
           address={project.address} 
