@@ -16,18 +16,25 @@ export function ClientInvoiceSummary() {
 
       console.log('Starting invoice fetch for user:', user.id);
 
-      // First, get all projects for this client's user_id
+      // First get the client id for this user
+      const { data: client, error: clientError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (clientError) {
+        console.error('Error fetching client:', clientError);
+        throw clientError;
+      }
+
+      console.log('Found client:', client);
+
+      // Get all projects for this client
       const { data: projects, error: projectError } = await supabase
         .from('projects')
-        .select(`
-          id,
-          name,
-          client_id,
-          client:client_id (
-            user_id
-          )
-        `)
-        .eq('client.user_id', user.id);
+        .select('id')
+        .eq('client_id', client.id);
 
       if (projectError) {
         console.error('Error fetching projects:', projectError);
@@ -36,17 +43,18 @@ export function ClientInvoiceSummary() {
 
       console.log('Found projects:', projects);
 
-      if (!projects || projects.length === 0) {
-        console.log('No projects found for user');
+      if (!projects?.length) {
+        console.log('No projects found for client');
         return [];
       }
 
-      // Get all invoices for these projects with all related data in a single query
-      const { data: invoiceData, error: invoiceError } = await supabase
+      // Get all invoices for these projects with all related data
+      const { data: invoices, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
           *,
           milestone:milestone_id (
+            id,
             name,
             project:project_id (
               id,
@@ -65,8 +73,8 @@ export function ClientInvoiceSummary() {
         throw invoiceError;
       }
 
-      console.log('Found invoices:', invoiceData);
-      return invoiceData;
+      console.log('Found invoices:', invoices);
+      return invoices;
     },
   });
 
