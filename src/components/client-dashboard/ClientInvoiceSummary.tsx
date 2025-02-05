@@ -18,29 +18,21 @@ export function ClientInvoiceSummary() {
       // First, verify the client record exists
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
-        .select('id')
+        .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (clientError) {
         console.error('Error finding client record:', clientError);
         throw clientError;
       }
 
-      console.log('Found client record:', clientData);
-
-      // Then get all projects for this client
-      const { data: projects, error: projectsError } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('client_id', clientData.id);
-
-      if (projectsError) {
-        console.error('Error finding projects:', projectsError);
-        throw projectsError;
+      if (!clientData) {
+        console.log('No client record found for user:', user.id);
+        return [];
       }
 
-      console.log('Found projects:', projects);
+      console.log('Found client record:', clientData);
 
       const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
@@ -50,15 +42,11 @@ export function ClientInvoiceSummary() {
             name,
             project:project_id (
               id,
-              name,
-              clients!inner (
-                id,
-                user_id
-              )
+              name
             )
           )
         `)
-        .eq('milestone.project.clients.user_id', user.id);
+        .eq('milestone.project.client_id', clientData.id);
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);

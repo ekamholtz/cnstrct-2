@@ -16,13 +16,18 @@ export function ClientProjectsList() {
       // First, verify the client record exists
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
-        .select('id')
+        .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (clientError) {
         console.error('Error finding client record:', clientError);
         throw clientError;
+      }
+
+      if (!clientData) {
+        console.log('No client record found for user:', user.id);
+        return [];
       }
 
       console.log('Found client record:', clientData);
@@ -36,13 +41,9 @@ export function ClientProjectsList() {
             name,
             amount,
             status
-          ),
-          clients!inner (
-            id,
-            user_id
           )
         `)
-        .eq('clients.user_id', user.id);
+        .eq('client_id', clientData.id);
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);
