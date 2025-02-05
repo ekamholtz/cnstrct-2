@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -25,7 +24,7 @@ export function ClientInvoiceSummary() {
       // First get the client id for this user
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, name')  // Also select name for logging
+        .select('id, name')
         .eq('user_id', user.id)
         .single();
 
@@ -51,6 +50,19 @@ export function ClientInvoiceSummary() {
 
       if (projectError) {
         console.error('Error fetching projects:', projectError);
+        return [];
+      }
+
+      // Check for milestones
+      const { data: milestones, error: milestonesError } = await supabase
+        .from('milestones')
+        .select('id, name, project_id')
+        .in('project_id', projects.map(p => p.id));
+
+      console.log('Milestones found:', milestones);
+
+      if (milestonesError) {
+        console.error('Error fetching milestones:', milestonesError);
         return [];
       }
 
