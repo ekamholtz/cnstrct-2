@@ -53,9 +53,38 @@ export function ClientInvoiceSummary() {
         return [];
       }
 
-      const projectIds = projects.map(p => p.id);
+      // Let's get more detailed project info for debugging
+      const { data: projectDetails, error: projectDetailsError } = await supabase
+        .from('projects')
+        .select(`
+          id,
+          name,
+          milestones (
+            id,
+            name
+          )
+        `)
+        .in('id', projects.map(p => p.id));
 
-      // Now get invoices for these projects
+      if (projectDetailsError) {
+        console.error('Error fetching project details:', projectDetailsError);
+        throw projectDetailsError;
+      }
+
+      console.log('Project details with milestones:', projectDetails);
+
+      // Now try to get invoices directly by milestone IDs
+      const milestoneIds = projectDetails
+        ?.flatMap(p => p.milestones?.map(m => m.id))
+        .filter(Boolean) || [];
+
+      console.log('Milestone IDs to query:', milestoneIds);
+
+      if (!milestoneIds.length) {
+        console.log('No milestones found to query invoices');
+        return [];
+      }
+
       const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
@@ -69,7 +98,7 @@ export function ClientInvoiceSummary() {
             )
           )
         `)
-        .in('milestone.project_id', projectIds);
+        .in('milestone_id', milestoneIds);
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);
@@ -79,10 +108,19 @@ export function ClientInvoiceSummary() {
       // Log the full query results for debugging
       console.log('Raw invoice query results:', invoices);
 
-      // Verify invoice relationships
-      const validInvoices = invoices?.filter(inv => 
-        inv.milestone?.project?.client_id === clientData.id
-      ) || [];
+      // Double check the relationships
+      const validInvoices = invoices?.filter(inv => {
+        const isValid = inv.milestone?.project?.client_id === clientData.id;
+        if (!isValid) {
+          console.log('Invalid invoice found:', {
+            invoiceId: inv.id,
+            milestoneId: inv.milestone_id,
+            projectClientId: inv.milestone?.project?.client_id,
+            expectedClientId: clientData.id
+          });
+        }
+        return isValid;
+      }) || [];
 
       console.log('Filtered valid invoices:', validInvoices);
       return validInvoices;
