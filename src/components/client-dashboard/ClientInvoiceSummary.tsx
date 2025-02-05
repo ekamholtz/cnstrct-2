@@ -15,8 +15,7 @@ export function ClientInvoiceSummary() {
 
       console.log('Starting invoice fetch for user:', user.id);
 
-      // First try to get invoices through projects linked to user_id
-      const { data: userInvoices, error: userInvoicesError } = await supabase
+      const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
           *,
@@ -25,7 +24,8 @@ export function ClientInvoiceSummary() {
             project:project_id (
               id,
               name,
-              client:client_id (
+              client!inner (
+                id,
                 user_id
               )
             )
@@ -33,58 +33,13 @@ export function ClientInvoiceSummary() {
         `)
         .eq('milestone.project.client.user_id', user.id);
 
-      if (userInvoicesError) {
-        console.error('Error fetching invoices by user_id:', userInvoicesError);
-        throw userInvoicesError;
+      if (invoicesError) {
+        console.error('Error fetching invoices:', invoicesError);
+        throw invoicesError;
       }
 
-      if (userInvoices && userInvoices.length > 0) {
-        console.log('Found invoices through user_id:', userInvoices);
-        return userInvoices;
-      }
-
-      // If no invoices found, try looking up by email
-      console.log('No invoices found by user_id, trying email lookup:', user.email);
-      const { data: clientByEmail, error: clientError } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('email', user.email?.toLowerCase())
-        .maybeSingle();
-
-      if (clientError) {
-        console.error('Error fetching client by email:', clientError);
-        throw clientError;
-      }
-
-      if (!clientByEmail) {
-        console.log('No client found by email');
-        return [];
-      }
-
-      console.log('Found client by email:', clientByEmail);
-
-      // Get invoices for this client's projects
-      const { data: emailInvoices, error: emailInvoicesError } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          milestone:milestone_id (
-            name,
-            project:project_id (
-              id,
-              name
-            )
-          )
-        `)
-        .eq('milestone.project.client_id', clientByEmail.id);
-
-      if (emailInvoicesError) {
-        console.error('Error fetching invoices by client email:', emailInvoicesError);
-        throw emailInvoicesError;
-      }
-
-      console.log('Found invoices by email:', emailInvoices);
-      return emailInvoices || [];
+      console.log('Found invoices:', invoices);
+      return invoices || [];
     },
   });
 
