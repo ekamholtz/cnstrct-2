@@ -11,8 +11,8 @@ import { useToast } from "@/components/ui/use-toast";
 export function ClientInvoiceSummary() {
   const { toast } = useToast();
   
-  const { data: invoices, isLoading } = useQuery({
-    queryKey: ['client-invoices'],
+  const { data: invoiceData, isLoading } = useQuery({
+    queryKey: ['client-invoices-summary'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -56,7 +56,7 @@ export function ClientInvoiceSummary() {
 
       if (!projects?.length) {
         console.log('No projects found for client');
-        return [];
+        return { invoices: [], totalPending: 0 };
       }
 
       // Get milestones for these projects
@@ -75,12 +75,25 @@ export function ClientInvoiceSummary() {
 
       if (!milestones?.length) {
         console.log('No milestones found for projects');
-        return [];
+        return { invoices: [], totalPending: 0 };
       }
 
-      // Finally get all invoices through milestone relationship, limit to 3 pending ones
+      // Get all pending invoices for total calculation
       const milestoneIds = milestones.map(m => m.id);
-      const { data: invoices, error: invoiceError } = await supabase
+      const { data: allPendingInvoices, error: pendingError } = await supabase
+        .from('invoices')
+        .select('amount')
+        .in('milestone_id', milestoneIds)
+        .eq('status', 'pending_payment');
+
+      if (pendingError) throw pendingError;
+
+      // Calculate total pending amount from all invoices
+      const totalPending = allPendingInvoices?.reduce((sum, inv) => 
+        sum + Number(inv.amount), 0) || 0;
+
+      // Get only 3 pending invoices for display
+      const { data: displayInvoices, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
           id,
@@ -113,8 +126,11 @@ export function ClientInvoiceSummary() {
         throw invoiceError;
       }
 
-      console.log('Step 5: Final invoices result:', invoices);
-      return invoices || [];
+      console.log('Step 5: Final result:', { displayInvoices, totalPending });
+      return { 
+        invoices: displayInvoices || [],
+        totalPending
+      };
     },
   });
 
@@ -126,9 +142,7 @@ export function ClientInvoiceSummary() {
     );
   }
 
-  const totalPending = invoices
-    ?.filter(inv => inv.status === 'pending_payment')
-    .reduce((sum, inv) => sum + Number(inv.amount), 0) || 0;
+  const { invoices = [], totalPending = 0 } = invoiceData || {};
 
   return (
     <div className="space-y-4">
