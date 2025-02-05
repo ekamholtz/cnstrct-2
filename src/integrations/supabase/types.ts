@@ -247,6 +247,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      undo_milestone_completion: {
+        Args: {
+          milestone_id_param: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       invoice_status: "pending_payment" | "paid" | "cancelled"

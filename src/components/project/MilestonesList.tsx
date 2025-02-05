@@ -3,6 +3,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
+import { Undo } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Milestone {
   id: string;
@@ -18,6 +32,9 @@ interface MilestonesListProps {
 }
 
 export function MilestonesList({ milestones, onMarkComplete }: MilestonesListProps) {
+  const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
+  const { toast } = useToast();
+
   const { data: userRole } = useQuery({
     queryKey: ['userRole'],
     queryFn: async () => {
@@ -34,6 +51,36 @@ export function MilestonesList({ milestones, onMarkComplete }: MilestonesListPro
     }
   });
 
+  const handleUndoCompletion = async (milestoneId: string) => {
+    try {
+      const { data, error } = await supabase.rpc('undo_milestone_completion', {
+        milestone_id_param: milestoneId
+      });
+
+      if (error) throw error;
+
+      if (data) {
+        toast({
+          title: "Success",
+          description: "Milestone has been reverted to pending status",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to undo milestone completion. Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error('Error undoing milestone completion:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to undo milestone completion. Please try again.",
+      });
+    }
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
@@ -48,6 +95,7 @@ export function MilestonesList({ milestones, onMarkComplete }: MilestonesListPro
   };
 
   const isHomeowner = userRole === 'homeowner';
+  const isContractor = userRole === 'general_contractor';
 
   return (
     <div>
@@ -73,13 +121,53 @@ export function MilestonesList({ milestones, onMarkComplete }: MilestonesListPro
                     <span className={`px-2.5 py-0.5 rounded-full text-sm font-medium ${getStatusColor(milestone.status)}`}>
                       {milestone.status.charAt(0).toUpperCase() + milestone.status.slice(1)}
                     </span>
-                    {!isHomeowner && milestone.status !== 'completed' && (
-                      <Button
-                        onClick={() => onMarkComplete(milestone.id)}
-                        variant="outline"
-                      >
-                        Mark as Complete
-                      </Button>
+                    {!isHomeowner && (
+                      <div className="flex gap-2">
+                        {milestone.status !== 'completed' && (
+                          <Button
+                            onClick={() => onMarkComplete(milestone.id)}
+                            variant="outline"
+                          >
+                            Mark as Complete
+                          </Button>
+                        )}
+                        {isContractor && milestone.status === 'completed' && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="text-orange-600 hover:text-orange-700"
+                                onClick={() => setSelectedMilestoneId(milestone.id)}
+                              >
+                                <Undo className="h-4 w-4 mr-2" />
+                                Undo Completion
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Undo Milestone Completion</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to undo the completion of this milestone? 
+                                  This will delete any associated invoice and revert the milestone 
+                                  status to pending.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => {
+                                    if (selectedMilestoneId) {
+                                      handleUndoCompletion(selectedMilestoneId);
+                                    }
+                                  }}
+                                >
+                                  Confirm
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
