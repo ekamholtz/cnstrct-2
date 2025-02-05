@@ -5,9 +5,13 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ClientProjectCard } from "./ClientProjectCard";
 import { ClientProject } from "@/types/project-types";
 
-export function ClientProjectsList() {
+interface ClientProjectsListProps {
+  limit?: number;
+}
+
+export function ClientProjectsList({ limit }: ClientProjectsListProps) {
   const { data: projects, isLoading, error } = useQuery({
-    queryKey: ['client-projects'],
+    queryKey: ['client-projects', limit],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
@@ -33,7 +37,7 @@ export function ClientProjectsList() {
         return [];
       }
 
-      const { data: projects, error: projectsError } = await supabase
+      let query = supabase
         .from('projects')
         .select(`
           *,
@@ -47,6 +51,13 @@ export function ClientProjectsList() {
         .eq('client_id', clientData.id)
         .not('client_id', 'is', null)
         .order('created_at', { ascending: false });
+
+      // Apply limit if provided
+      if (limit) {
+        query = query.limit(limit);
+      }
+
+      const { data: projects, error: projectsError } = await query;
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);
