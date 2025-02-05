@@ -99,7 +99,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/profile-completion" replace />;
   }
 
-  // Redirect based on user role
   if (hasCompletedProfile && window.location.pathname === '/') {
     return userRole === 'homeowner' ? 
       <Navigate to="/client-dashboard" replace /> : 
@@ -111,10 +110,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+    <BrowserRouter>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route
@@ -192,8 +191,8 @@ const App = () => (
           <Route path="/landing" element={<Index />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+      </TooltipProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
