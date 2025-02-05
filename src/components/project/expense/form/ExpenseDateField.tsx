@@ -30,7 +30,7 @@ export function ExpenseDateField({ form }: ExpenseDateFieldProps) {
                     "w-full pl-3 text-left font-normal",
                     !field.value && "text-muted-foreground"
                   )}
-                  onClick={(e) => e.preventDefault()}
+                  type="button"
                 >
                   {field.value ? (
                     format(field.value, "PPP")
