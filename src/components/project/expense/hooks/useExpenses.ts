@@ -34,7 +34,7 @@ export function useExpenses(projectId: string) {
           name: data.name,
           payee: data.payee,
           amount: Number(data.amount),
-          expense_date: data.expense_date.toISOString(),
+          expense_date: data.expense_date,  // Now directly using the MM/DD/YYYY string
           payment_type: data.payment_type,
           notes: data.notes,
         });
