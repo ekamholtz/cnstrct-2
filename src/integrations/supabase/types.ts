@@ -135,15 +135,17 @@ export type Database = {
       }
       profiles: {
         Row: {
-          address: string | null
+          address: string
           bank_account_number: string | null
           bank_routing_number: string | null
+          bio: string | null
           company_address: string | null
           company_name: string | null
           created_at: string
-          full_name: string | null
+          full_name: string
           has_completed_profile: boolean | null
           id: string
+          join_date: string | null
           license_number: string | null
           phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
@@ -151,15 +153,17 @@ export type Database = {
           website: string | null
         }
         Insert: {
-          address?: string | null
+          address: string
           bank_account_number?: string | null
           bank_routing_number?: string | null
+          bio?: string | null
           company_address?: string | null
           company_name?: string | null
           created_at?: string
-          full_name?: string | null
+          full_name: string
           has_completed_profile?: boolean | null
           id: string
+          join_date?: string | null
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
@@ -167,15 +171,17 @@ export type Database = {
           website?: string | null
         }
         Update: {
-          address?: string | null
+          address?: string
           bank_account_number?: string | null
           bank_routing_number?: string | null
+          bio?: string | null
           company_address?: string | null
           company_name?: string | null
           created_at?: string
-          full_name?: string | null
+          full_name?: string
           has_completed_profile?: boolean | null
           id?: string
+          join_date?: string | null
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
