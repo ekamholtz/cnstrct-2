@@ -18,6 +18,7 @@ import { ExpensePayeeField } from "./form/ExpensePayeeField";
 import { ExpenseAmountField } from "./form/ExpenseAmountField";
 import { ExpenseDateField } from "./form/ExpenseDateField";
 import { ExpensePaymentTypeField } from "./form/ExpensePaymentTypeField";
+import { ExpenseTypeField } from "./form/ExpenseTypeField";
 import { ExpenseNotesField } from "./form/ExpenseNotesField";
 
 interface ExpenseFormProps {
@@ -35,6 +36,7 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
       amount: "",
       expense_date: undefined,
       payment_type: undefined,
+      expense_type: undefined,
       notes: "",
     },
   });
@@ -68,6 +70,7 @@ export function ExpenseForm({ onSubmit }: ExpenseFormProps) {
             <ExpenseAmountField form={form} />
             <ExpenseDateField form={form} />
             <ExpensePaymentTypeField form={form} />
+            <ExpenseTypeField form={form} />
             <ExpenseNotesField form={form} />
             
             <div className="flex justify-end space-x-2">

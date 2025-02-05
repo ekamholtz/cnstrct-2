@@ -47,11 +47,12 @@ export type Database = {
           amount: number
           created_at: string
           expense_date: string
+          expense_type: Database["public"]["Enums"]["expense_type"]
           id: string
           name: string
           notes: string | null
           payee: string
-          payment_type: Database["public"]["Enums"]["expense_payment_type"]
+          payment_type: Database["public"]["Enums"]["expense_payment_method"]
           project_id: string
           updated_at: string
         }
@@ -59,11 +60,12 @@ export type Database = {
           amount: number
           created_at?: string
           expense_date: string
+          expense_type?: Database["public"]["Enums"]["expense_type"]
           id?: string
           name: string
           notes?: string | null
           payee: string
-          payment_type: Database["public"]["Enums"]["expense_payment_type"]
+          payment_type: Database["public"]["Enums"]["expense_payment_method"]
           project_id: string
           updated_at?: string
         }
@@ -71,11 +73,12 @@ export type Database = {
           amount?: number
           created_at?: string
           expense_date?: string
+          expense_type?: Database["public"]["Enums"]["expense_type"]
           id?: string
           name?: string
           notes?: string | null
           payee?: string
-          payment_type?: Database["public"]["Enums"]["expense_payment_type"]
+          payment_type?: Database["public"]["Enums"]["expense_payment_method"]
           project_id?: string
           updated_at?: string
         }
@@ -302,7 +305,8 @@ export type Database = {
       }
     }
     Enums: {
-      expense_payment_type: "cc" | "check" | "transfer" | "cash"
+      expense_payment_method: "cc" | "check" | "transfer" | "cash"
+      expense_type: "labor" | "materials" | "subcontractor" | "other"
       invoice_status: "pending_payment" | "paid" | "cancelled"
       milestone_status: "pending" | "completed"
       project_status: "draft" | "active" | "completed" | "cancelled"

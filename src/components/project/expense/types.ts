@@ -11,6 +11,7 @@ export const expenseFormSchema = z.object({
     message: "Date must be in MM/DD/YYYY format",
   }),
   payment_type: z.enum(["cc", "check", "transfer", "cash"]),
+  expense_type: z.enum(["labor", "materials", "subcontractor", "other"]),
   notes: z.string().optional(),
 });
 
@@ -24,6 +25,7 @@ export interface Expense {
   amount: number;
   expense_date: string;
   payment_type: "cc" | "check" | "transfer" | "cash";
+  expense_type: "labor" | "materials" | "subcontractor" | "other";
   notes?: string;
   created_at: string;
 }
