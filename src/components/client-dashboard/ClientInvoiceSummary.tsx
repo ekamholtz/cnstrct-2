@@ -78,7 +78,7 @@ export function ClientInvoiceSummary() {
         return [];
       }
 
-      // Finally get all invoices through milestone relationship
+      // Finally get all invoices through milestone relationship, limit to 3 pending ones
       const milestoneIds = milestones.map(m => m.id);
       const { data: invoices, error: invoiceError } = await supabase
         .from('invoices')
@@ -98,7 +98,10 @@ export function ClientInvoiceSummary() {
             )
           )
         `)
-        .in('milestone_id', milestoneIds);
+        .in('milestone_id', milestoneIds)
+        .eq('status', 'pending_payment')
+        .order('created_at', { ascending: true })
+        .limit(3);
 
       if (invoiceError) {
         console.error('Step 5 Error - Failed to fetch invoices:', invoiceError);

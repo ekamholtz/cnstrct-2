@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +45,9 @@ export default function Dashboard() {
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
-        .eq('contractor_id', profile.id);
+        .eq('contractor_id', profile.id)
+        .order('created_at', { ascending: false })
+        .limit(3);
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);

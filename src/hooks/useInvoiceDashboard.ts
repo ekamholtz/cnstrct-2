@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -26,7 +27,7 @@ export const useInvoiceDashboard = () => {
   const fetchInvoices = async () => {
     try {
       console.log("Fetching invoices for dashboard...");
-      const { data, error } = await supabase
+      let query = supabase
         .from('invoices')
         .select(`
           *,
@@ -38,6 +39,12 @@ export const useInvoiceDashboard = () => {
           )
         `)
         .order('created_at', { ascending: false });
+
+      if (statusFilter !== "all") {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       console.log("Invoices fetched for dashboard:", data);
@@ -76,7 +83,7 @@ export const useInvoiceDashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [statusFilter]);
 
   const handleMarkAsPaid = async (invoiceId: string, data: PaymentFormData) => {
     try {

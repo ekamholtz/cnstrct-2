@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -32,7 +33,7 @@ export function ClientProjectsList() {
         return [];
       }
 
-      // Now fetch only projects for this client, ensuring client_id is not null
+      // Now fetch only the 3 most recent projects for this client
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -45,7 +46,9 @@ export function ClientProjectsList() {
           )
         `)
         .eq('client_id', clientData.id)
-        .not('client_id', 'is', null); // Explicitly exclude projects with null client_id
+        .not('client_id', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(3);
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);
