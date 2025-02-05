@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Building2, Edit } from "lucide-react";
@@ -14,6 +15,23 @@ interface ProjectHeaderProps {
 
 export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) {
   const [showEditForm, setShowEditForm] = useState(false);
+
+  // Fetch user role
+  const { data: userRole } = useQuery({
+    queryKey: ['userRole'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      return data?.role;
+    }
+  });
 
   // Fetch project data including milestones
   const { data: projectData, refetch } = useQuery({
@@ -44,6 +62,8 @@ export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) 
     refetch();
   };
 
+  const isGeneralContractor = userRole === 'general_contractor';
+
   return (
     <div className="mb-8">
       <div className="mb-8">
@@ -63,10 +83,12 @@ export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) 
             <p>{address}</p>
           </div>
         </div>
-        <Button onClick={() => setShowEditForm(true)}>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit Project Details
-        </Button>
+        {isGeneralContractor && (
+          <Button onClick={() => setShowEditForm(true)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Project Details
+          </Button>
+        )}
       </div>
 
       {projectData && (
