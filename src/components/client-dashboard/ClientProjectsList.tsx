@@ -13,7 +13,7 @@ export function ClientProjectsList() {
 
       console.log('Starting project fetch for user:', user.id);
 
-      // First, verify the client record exists
+      // First, verify the client record exists and log the result
       const { data: clientData, error: clientError } = await supabase
         .from('clients')
         .select('*')
@@ -25,13 +25,14 @@ export function ClientProjectsList() {
         throw clientError;
       }
 
+      console.log('Client data found:', clientData);
+
       if (!clientData) {
         console.log('No client record found for user:', user.id);
         return [];
       }
 
-      console.log('Found client record:', clientData);
-
+      // Now fetch projects with the client ID
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -50,7 +51,7 @@ export function ClientProjectsList() {
         throw projectsError;
       }
 
-      console.log('Found projects:', projects);
+      console.log('Projects found:', projects);
       return projects as ClientProject[];
     },
   });
@@ -68,6 +69,7 @@ export function ClientProjectsList() {
       <Alert variant="destructive">
         <AlertDescription>
           Failed to load projects. Please try again later.
+          {error instanceof Error ? ` Error: ${error.message}` : ''}
         </AlertDescription>
       </Alert>
     );
