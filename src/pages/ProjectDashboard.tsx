@@ -14,6 +14,7 @@ import { ArrowLeft } from "lucide-react";
 import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
 import { ProjectInvoices } from "@/components/project/invoice/ProjectInvoices";
 import { ProjectExpenses } from "@/components/project/expense/ProjectExpenses";
+import { ProjectFinancialSummary } from "@/components/project/ProjectFinancialSummary";
 
 interface Project {
   id: string;
@@ -146,6 +147,7 @@ export default function ProjectDashboard() {
           address={project.address} 
           projectId={project.id}
         />
+        <ProjectFinancialSummary projectId={project.id} />
         <div className="mb-8">
           <ProjectStatus status={project.status} completionPercentage={completionPercentage} />
         </div>
