@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
+import { ProjectInvoices } from "@/components/project/invoice/ProjectInvoices";
+import { ProjectExpenses } from "@/components/project/expense/ProjectExpenses";
 
 interface Project {
   id: string;
@@ -152,6 +154,10 @@ export default function ProjectDashboard() {
             milestones={milestones || []} 
             onMarkComplete={handleMarkComplete}
           />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+          <ProjectInvoices projectId={project.id} />
+          <ProjectExpenses projectId={project.id} />
         </div>
       </main>
     </div>

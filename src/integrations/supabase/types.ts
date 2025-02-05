@@ -42,6 +42,53 @@ export type Database = {
         }
         Relationships: []
       }
+      expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          expense_date: string
+          id: string
+          name: string
+          notes: string | null
+          payee: string
+          payment_type: Database["public"]["Enums"]["expense_payment_type"]
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          expense_date: string
+          id?: string
+          name: string
+          notes?: string | null
+          payee: string
+          payment_type: Database["public"]["Enums"]["expense_payment_type"]
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          expense_date?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          payee?: string
+          payment_type?: Database["public"]["Enums"]["expense_payment_type"]
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount: number
@@ -255,6 +302,7 @@ export type Database = {
       }
     }
     Enums: {
+      expense_payment_type: "cc" | "check" | "transfer" | "cash"
       invoice_status: "pending_payment" | "paid" | "cancelled"
       milestone_status: "pending" | "completed"
       project_status: "draft" | "active" | "completed" | "cancelled"
