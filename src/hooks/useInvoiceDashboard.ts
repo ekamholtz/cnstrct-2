@@ -18,7 +18,7 @@ interface Invoice {
   };
 }
 
-type InvoiceStatus = "pending_payment" | "paid" | "cancelled" | "all";
+export type InvoiceStatus = "pending_payment" | "paid" | "cancelled" | "all";
 
 export const useInvoiceDashboard = () => {
   const [invoices, setInvoices] = useState<Invoice[]>([]);

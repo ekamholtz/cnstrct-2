@@ -1,3 +1,4 @@
+
 import {
   Select,
   SelectContent,
@@ -6,9 +7,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type InvoiceStatus = "pending_payment" | "paid" | "cancelled" | "all";
+
 interface InvoiceFiltersProps {
-  statusFilter: string;
-  onStatusFilterChange: (value: string) => void;
+  statusFilter: InvoiceStatus;
+  onStatusFilterChange: (value: InvoiceStatus) => void;
 }
 
 export const InvoiceFilters = ({ 
