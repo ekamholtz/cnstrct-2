@@ -50,14 +50,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             console.log("No profile found, creating one...");
             const { error: insertError } = await supabase
               .from('profiles')
-              .insert([
-                {
-                  id: session.user.id,
-                  full_name: session.user.user_metadata.full_name,
-                  role: session.user.user_metadata.role,
-                  has_completed_profile: false
-                }
-              ]);
+              .insert({
+                id: session.user.id,
+                full_name: session.user.user_metadata.full_name || '',
+                role: session.user.user_metadata.role,
+                has_completed_profile: false,
+                address: '', // Required field, will be completed during profile completion
+              });
 
             if (insertError) {
               console.error("Error creating profile:", insertError);
