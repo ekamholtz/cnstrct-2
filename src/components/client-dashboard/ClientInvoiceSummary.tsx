@@ -24,14 +24,14 @@ export function ClientInvoiceSummary() {
             project:project_id (
               id,
               name,
-              client!inner (
+              clients!inner (
                 id,
                 user_id
               )
             )
           )
         `)
-        .eq('milestone.project.client.user_id', user.id);
+        .eq('milestone.project.clients.user_id', user.id);
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);

@@ -13,7 +13,6 @@ export function ClientProjectsList() {
 
       console.log('Starting project fetch for user:', user.id);
 
-      // Get projects through the clients table using user_id
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -24,12 +23,12 @@ export function ClientProjectsList() {
             amount,
             status
           ),
-          client!inner (
+          clients!inner (
             id,
             user_id
           )
         `)
-        .eq('client.user_id', user.id);
+        .eq('clients.user_id', user.id);
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);
