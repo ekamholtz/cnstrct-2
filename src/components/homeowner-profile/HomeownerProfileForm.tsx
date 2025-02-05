@@ -9,12 +9,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 
 const profileSchema = z.object({
   full_name: z.string().min(1, "Full name is required"),
   address: z.string().min(1, "Address is required"),
   phone_number: z.string().optional(),
   bio: z.string().optional(),
+  company_name: z.string().optional(),
+  license_number: z.string().optional(),
+  website: z.string().url().optional().or(z.literal("")),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -28,6 +32,22 @@ interface HomeownerProfileFormProps {
 
 export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: HomeownerProfileFormProps) {
   const { toast } = useToast();
+  const { data: userRole } = useQuery({
+    queryKey: ['user-role'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data.role;
+    },
+  });
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -36,6 +56,9 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
       address: profile.address || "",
       phone_number: profile.phone_number || "",
       bio: profile.bio || "",
+      company_name: profile.company_name || "",
+      license_number: profile.license_number || "",
+      website: profile.website || "",
     },
   });
 
@@ -78,6 +101,13 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
           {renderField("Email", profile.email)}
           {renderField("Phone Number", profile.phone_number)}
           {renderField("Address", profile.address)}
+          {userRole === "general_contractor" && (
+            <>
+              {renderField("Company Name", profile.company_name)}
+              {renderField("License Number", profile.license_number)}
+              {renderField("Website", profile.website)}
+            </>
+          )}
           {renderField("About", profile.bio)}
           {renderField("Member Since", profile.join_date ? format(new Date(profile.join_date), 'MMMM dd, yyyy') : 'Not available')}
         </div>
@@ -134,6 +164,52 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
             </FormItem>
           )}
         />
+
+        {userRole === "general_contractor" && (
+          <>
+            <FormField
+              control={form.control}
+              name="company_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="license_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>License Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="url" placeholder="https://" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
 
         <FormField
           control={form.control}
