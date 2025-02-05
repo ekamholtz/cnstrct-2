@@ -34,28 +34,7 @@ export function ClientInvoiceSummary() {
 
       console.log('Found client record:', clientData);
 
-      // First get all projects for this client
-      const { data: projects, error: projectsError } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('client_id', clientData.id);
-
-      if (projectsError) {
-        console.error('Error fetching projects:', projectsError);
-        throw projectsError;
-      }
-
-      console.log('Found projects:', projects);
-
-      if (!projects || projects.length === 0) {
-        console.log('No projects found for client');
-        return [];
-      }
-
-      const projectIds = projects.map(p => p.id);
-      console.log('Project IDs to query:', projectIds);
-
-      // Now fetch invoices for all of this client's projects
+      // Direct query to get all invoices related to this client's projects
       const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
@@ -64,19 +43,28 @@ export function ClientInvoiceSummary() {
             name,
             project:project_id (
               id,
-              name
+              name,
+              client_id
             )
           )
         `)
-        .in('milestone.project_id', projectIds);
+        .eq('milestone.project.client_id', clientData.id);
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);
         throw invoicesError;
       }
 
-      console.log('Found invoices:', invoices);
-      return invoices || [];
+      // Log the full query results for debugging
+      console.log('Raw invoice query results:', invoices);
+
+      // Filter out any invoices where the relationships are broken
+      const validInvoices = invoices?.filter(inv => 
+        inv.milestone?.project?.client_id === clientData.id
+      ) || [];
+
+      console.log('Filtered valid invoices:', validInvoices);
+      return validInvoices;
     },
   });
 
