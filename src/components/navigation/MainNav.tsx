@@ -57,7 +57,7 @@ export function MainNav() {
 
   // Determine dashboard route based on user role
   const homeRoute = profile?.role === 'homeowner' ? '/client-dashboard' : '/dashboard';
-  const projectsRoute = profile?.role === 'homeowner' ? '/client-projects' : '/dashboard';
+  const projectsRoute = profile?.role === 'homeowner' ? '/client-projects' : '/gc-projects';
 
   const navItems = [
     { label: "Home", path: homeRoute, icon: Home },
