@@ -30,12 +30,9 @@ export function ExpenseDateField({ form }: ExpenseDateFieldProps) {
                     "w-full pl-3 text-left font-normal",
                     !field.value && "text-muted-foreground"
                   )}
-                  onClick={(e) => {
-                    e.preventDefault();
-                  }}
                 >
                   {field.value ? (
-                    format(new Date(field.value), "PPP")
+                    format(field.value, "PPP")
                   ) : (
                     <span>Pick a date</span>
                   )}
@@ -46,12 +43,8 @@ export function ExpenseDateField({ form }: ExpenseDateFieldProps) {
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={field.value ? new Date(field.value) : undefined}
-                onSelect={(date) => {
-                  if (date) {
-                    field.onChange(date);
-                  }
-                }}
+                selected={field.value}
+                onSelect={field.onChange}
                 initialFocus
               />
             </PopoverContent>
