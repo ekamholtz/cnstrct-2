@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -34,7 +35,27 @@ export function ClientInvoiceSummary() {
 
       console.log('Found client record:', clientData);
 
-      // Query invoices through the milestones and projects relationship
+      // First get all projects for this client
+      const { data: projects, error: projectsError } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('client_id', clientData.id);
+
+      if (projectsError) {
+        console.error('Error fetching projects:', projectsError);
+        throw projectsError;
+      }
+
+      console.log('Found projects:', projects);
+
+      if (!projects?.length) {
+        console.log('No projects found for client');
+        return [];
+      }
+
+      const projectIds = projects.map(p => p.id);
+
+      // Now get invoices for these projects
       const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
@@ -47,7 +68,8 @@ export function ClientInvoiceSummary() {
               client_id
             )
           )
-        `);
+        `)
+        .in('milestone.project_id', projectIds);
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);
@@ -57,7 +79,7 @@ export function ClientInvoiceSummary() {
       // Log the full query results for debugging
       console.log('Raw invoice query results:', invoices);
 
-      // Filter out any invoices where the relationships are broken
+      // Verify invoice relationships
       const validInvoices = invoices?.filter(inv => 
         inv.milestone?.project?.client_id === clientData.id
       ) || [];
