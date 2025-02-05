@@ -11,10 +11,58 @@ export function ClientProjectsList() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      console.log('Fetching projects for user:', user.id, 'with email:', user.email);
+      console.log('Starting project fetch for user:', user.id);
 
-      // First, try to get all projects directly through the client_id -> user_id relationship
-      const { data: projectsData, error: projectsError } = await supabase
+      // First try to get projects through the clients table using user_id
+      const { data: clientProjects, error: projectsError } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          milestones (
+            id,
+            name,
+            amount,
+            status
+          ),
+          client:client_id (
+            id,
+            user_id
+          )
+        `)
+        .eq('client.user_id', user.id);
+
+      if (projectsError) {
+        console.error('Error fetching projects by user_id:', projectsError);
+        throw projectsError;
+      }
+
+      if (clientProjects && clientProjects.length > 0) {
+        console.log('Found projects through user_id:', clientProjects);
+        return clientProjects as ClientProject[];
+      }
+
+      // If no projects found, try looking up by email
+      console.log('No projects found by user_id, trying email lookup:', user.email);
+      const { data: clientByEmail, error: clientError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('email', user.email?.toLowerCase())
+        .maybeSingle();
+
+      if (clientError) {
+        console.error('Error fetching client by email:', clientError);
+        throw clientError;
+      }
+
+      if (!clientByEmail) {
+        console.log('No client found by email');
+        return [];
+      }
+
+      console.log('Found client by email:', clientByEmail);
+
+      // Get projects for this client
+      const { data: emailProjects, error: emailProjectsError } = await supabase
         .from('projects')
         .select(`
           *,
@@ -25,69 +73,15 @@ export function ClientProjectsList() {
             status
           )
         `)
-        .eq('client_id', user.id);
+        .eq('client_id', clientByEmail.id);
 
-      if (projectsError) {
-        console.error('Error fetching projects by user_id:', projectsError);
-      } else if (projectsData && projectsData.length > 0) {
-        console.log('Found projects by user_id:', projectsData);
-        return projectsData as ClientProject[];
+      if (emailProjectsError) {
+        console.error('Error fetching projects by client email:', emailProjectsError);
+        throw emailProjectsError;
       }
 
-      // If no projects found, try to get the client record
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (clientError) {
-        console.error('Error fetching client by user_id:', clientError);
-      }
-
-      // If no client found by user_id, try by email
-      if (!clientData) {
-        console.log('No client found by user_id, trying email lookup:', user.email);
-        const { data: emailClient, error: emailError } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('email', user.email?.toLowerCase())
-          .maybeSingle();
-
-        if (emailError) {
-          console.error('Error fetching client by email:', emailError);
-          throw emailError;
-        }
-
-        if (emailClient) {
-          console.log('Found client by email:', emailClient);
-          
-          // Get projects for this client
-          const { data: clientProjects, error: clientProjectsError } = await supabase
-            .from('projects')
-            .select(`
-              *,
-              milestones (
-                id,
-                name,
-                amount,
-                status
-              )
-            `)
-            .eq('client_id', emailClient.id);
-
-          if (clientProjectsError) {
-            console.error('Error fetching client projects:', clientProjectsError);
-            throw clientProjectsError;
-          }
-
-          console.log('Found projects for client:', clientProjects);
-          return clientProjects as ClientProject[] || [];
-        }
-      }
-
-      console.log('No client record or projects found for user');
-      return [];
+      console.log('Found projects by email:', emailProjects);
+      return emailProjects as ClientProject[] || [];
     },
   });
 

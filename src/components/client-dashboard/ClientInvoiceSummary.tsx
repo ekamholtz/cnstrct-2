@@ -13,65 +13,10 @@ export function ClientInvoiceSummary() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      console.log('Fetching invoices for user:', user.id, 'with email:', user.email);
+      console.log('Starting invoice fetch for user:', user.id);
 
-      // First try to get the client record by user_id
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (clientError) {
-        console.error('Error fetching client by user_id:', clientError);
-      }
-
-      let clientId = clientData?.id;
-
-      // If no client found by user_id, try by email
-      if (!clientId) {
-        console.log('No client found by user_id, trying email lookup:', user.email);
-        const { data: emailClient, error: emailError } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('email', user.email?.toLowerCase())
-          .maybeSingle();
-
-        if (emailError) {
-          console.error('Error fetching client by email:', emailError);
-          throw emailError;
-        }
-
-        if (emailClient) {
-          console.log('Found client by email:', emailClient);
-          clientId = emailClient.id;
-        }
-      }
-
-      if (!clientId) {
-        console.log('No client record found for user');
-        return [];
-      }
-
-      // Get all invoices for projects where this client is assigned
-      const { data: projectIds, error: projectError } = await supabase
-        .from('projects')
-        .select('id')
-        .eq('client_id', clientId);
-
-      if (projectError) {
-        console.error('Error fetching project IDs:', projectError);
-        throw projectError;
-      }
-
-      if (!projectIds || projectIds.length === 0) {
-        console.log('No projects found for client');
-        return [];
-      }
-
-      const projectIdArray = projectIds.map(p => p.id);
-      
-      const { data: invoicesData, error: invoicesError } = await supabase
+      // First try to get invoices through projects linked to user_id
+      const { data: userInvoices, error: userInvoicesError } = await supabase
         .from('invoices')
         .select(`
           *,
@@ -80,21 +25,66 @@ export function ClientInvoiceSummary() {
             project:project_id (
               id,
               name,
-              client_id
+              client:client_id (
+                user_id
+              )
             )
           )
         `)
-        .in('milestone.project_id', projectIdArray)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .eq('milestone.project.client.user_id', user.id);
 
-      if (invoicesError) {
-        console.error('Error fetching invoices:', invoicesError);
-        throw invoicesError;
+      if (userInvoicesError) {
+        console.error('Error fetching invoices by user_id:', userInvoicesError);
+        throw userInvoicesError;
       }
 
-      console.log('Fetched client invoices:', invoicesData);
-      return invoicesData;
+      if (userInvoices && userInvoices.length > 0) {
+        console.log('Found invoices through user_id:', userInvoices);
+        return userInvoices;
+      }
+
+      // If no invoices found, try looking up by email
+      console.log('No invoices found by user_id, trying email lookup:', user.email);
+      const { data: clientByEmail, error: clientError } = await supabase
+        .from('clients')
+        .select('id')
+        .eq('email', user.email?.toLowerCase())
+        .maybeSingle();
+
+      if (clientError) {
+        console.error('Error fetching client by email:', clientError);
+        throw clientError;
+      }
+
+      if (!clientByEmail) {
+        console.log('No client found by email');
+        return [];
+      }
+
+      console.log('Found client by email:', clientByEmail);
+
+      // Get invoices for this client's projects
+      const { data: emailInvoices, error: emailInvoicesError } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          milestone:milestone_id (
+            name,
+            project:project_id (
+              id,
+              name
+            )
+          )
+        `)
+        .eq('milestone.project.client_id', clientByEmail.id);
+
+      if (emailInvoicesError) {
+        console.error('Error fetching invoices by client email:', emailInvoicesError);
+        throw emailInvoicesError;
+      }
+
+      console.log('Found invoices by email:', emailInvoices);
+      return emailInvoices || [];
     },
   });
 
