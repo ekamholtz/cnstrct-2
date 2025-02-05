@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,6 +54,11 @@ export function ClientInvoiceSummary() {
         return [];
       }
 
+      if (!projects || projects.length === 0) {
+        console.log('No projects found for client');
+        return [];
+      }
+
       // Check for milestones
       const { data: milestones, error: milestonesError } = await supabase
         .from('milestones')
@@ -66,11 +72,21 @@ export function ClientInvoiceSummary() {
         return [];
       }
 
-      // Get all invoices for this client's projects in a single query
+      if (!milestones || milestones.length === 0) {
+        console.log('No milestones found for projects');
+        return [];
+      }
+
+      // Get all invoices for this client's milestones
       const { data: invoices, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
-          *,
+          id,
+          invoice_number,
+          amount,
+          status,
+          created_at,
+          milestone_id,
           milestone:milestone_id (
             id,
             name,
@@ -81,7 +97,7 @@ export function ClientInvoiceSummary() {
             )
           )
         `)
-        .eq('milestone.project.client_id', client.id);
+        .in('milestone_id', milestones.map(m => m.id));
 
       if (invoiceError) {
         console.error('Error fetching invoices:', invoiceError);
