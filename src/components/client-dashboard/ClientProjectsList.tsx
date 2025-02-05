@@ -32,7 +32,7 @@ export function ClientProjectsList() {
         return [];
       }
 
-      // Now fetch only projects for this client using RLS policy
+      // Now fetch only projects for this client
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`

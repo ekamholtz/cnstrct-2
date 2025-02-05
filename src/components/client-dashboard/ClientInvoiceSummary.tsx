@@ -34,7 +34,7 @@ export function ClientInvoiceSummary() {
 
       console.log('Found client record:', clientData);
 
-      // Fetch invoices using RLS policy
+      // Fetch invoices for this client's projects
       const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
