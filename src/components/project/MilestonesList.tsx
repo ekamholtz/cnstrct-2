@@ -53,6 +53,25 @@ export function MilestonesList({ milestones, onMarkComplete }: MilestonesListPro
 
   const handleUndoCompletion = async (milestoneId: string) => {
     try {
+      // First check if there's a paid invoice
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('status')
+        .eq('milestone_id', milestoneId)
+        .single();
+
+      if (invoiceError) throw invoiceError;
+
+      if (invoice && invoice.status === 'paid') {
+        toast({
+          variant: "destructive",
+          title: "Cannot Undo Completion",
+          description: "This milestone cannot be reverted because its invoice has already been paid.",
+        });
+        return;
+      }
+
+      // If no paid invoice, proceed with undo
       const { data, error } = await supabase.rpc('undo_milestone_completion', {
         milestone_id_param: milestoneId
       });
@@ -185,3 +204,4 @@ export function MilestonesList({ milestones, onMarkComplete }: MilestonesListPro
     </div>
   );
 }
+
