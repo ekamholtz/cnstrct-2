@@ -11,7 +11,7 @@ export function ClientProjectsList() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
-      console.log('Fetching projects for user:', user.id);
+      console.log('Fetching projects for user:', user.id, 'with email:', user.email);
 
       // First try to get the client record by user_id
       let { data: clientData, error: clientError } = await supabase
@@ -27,7 +27,7 @@ export function ClientProjectsList() {
 
       // If no client found by user_id, try by email
       if (!clientData) {
-        console.log('No client found by user_id, trying email lookup');
+        console.log('No client found by user_id, trying email lookup:', user.email?.toLowerCase());
         const { data: emailClient, error: emailError } = await supabase
           .from('clients')
           .select('id, email')
