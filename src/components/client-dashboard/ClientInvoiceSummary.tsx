@@ -34,6 +34,7 @@ export function ClientInvoiceSummary() {
 
       console.log('Found client record:', clientData);
 
+      // Fetch invoices for projects where the client_id matches
       const { data: invoices, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
@@ -42,11 +43,13 @@ export function ClientInvoiceSummary() {
             name,
             project:project_id (
               id,
-              name
+              name,
+              client_id
             )
           )
         `)
-        .eq('milestone.project.client_id', clientData.id);
+        .eq('milestone.project.client_id', clientData.id)
+        .order('created_at', { ascending: false });
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);

@@ -32,7 +32,7 @@ export function ClientProjectsList() {
         return [];
       }
 
-      // Now fetch projects with the client ID
+      // Now fetch only projects for this client
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -44,7 +44,8 @@ export function ClientProjectsList() {
             status
           )
         `)
-        .eq('client_id', clientData.id);
+        .eq('client_id', clientData.id)
+        .order('created_at', { ascending: false });
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);
