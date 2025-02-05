@@ -16,53 +16,32 @@ export function ClientInvoiceSummary() {
 
       console.log('Starting invoice fetch for user:', user.id);
 
-      // First, get the client details
-      const { data: clientData, error: clientError } = await supabase
-        .from('clients')
-        .select('id, email, name')
-        .eq('user_id', user.id)
-        .single();
-
-      if (clientError) {
-        console.error('Error finding client:', clientError);
-        throw clientError;
-      }
-
-      console.log('Found client:', clientData);
-
-      // Get projects for this client
-      const { data: projectIds, error: projectError } = await supabase
+      // First, get all projects for this client's user_id
+      const { data: projects, error: projectError } = await supabase
         .from('projects')
-        .select('id')
-        .eq('client_id', clientData.id);
+        .select(`
+          id,
+          name,
+          client_id,
+          client:client_id (
+            user_id
+          )
+        `)
+        .eq('client.user_id', user.id);
 
       if (projectError) {
         console.error('Error fetching projects:', projectError);
         throw projectError;
       }
 
-      if (!projectIds || projectIds.length === 0) {
-        console.log('No projects found for client');
+      console.log('Found projects:', projects);
+
+      if (!projects || projects.length === 0) {
+        console.log('No projects found for user');
         return [];
       }
 
-      // Get milestones for these projects
-      const { data: milestoneIds, error: milestoneError } = await supabase
-        .from('milestones')
-        .select('id')
-        .in('project_id', projectIds.map(p => p.id));
-
-      if (milestoneError) {
-        console.error('Error fetching milestones:', milestoneError);
-        throw milestoneError;
-      }
-
-      if (!milestoneIds || milestoneIds.length === 0) {
-        console.log('No milestones found for projects');
-        return [];
-      }
-
-      // Finally get all invoices for these milestones
+      // Get all invoices for these projects with all related data in a single query
       const { data: invoiceData, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
@@ -75,7 +54,11 @@ export function ClientInvoiceSummary() {
             )
           )
         `)
-        .in('milestone_id', milestoneIds.map(m => m.id));
+        .in(
+          'milestone.project_id',
+          projects.map(p => p.id)
+        )
+        .order('created_at', { ascending: false });
 
       if (invoiceError) {
         console.error('Error fetching invoices:', invoiceError);
