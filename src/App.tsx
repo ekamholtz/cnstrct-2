@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +12,7 @@ import NotFound from "./pages/NotFound";
 import ProfileCompletion from "./pages/ProfileCompletion";
 import Dashboard from "./pages/Dashboard";
 import ClientDashboard from "./pages/ClientDashboard";
+import ClientProjectsPage from "./pages/ClientProjectsPage";
 import ProjectDashboard from "./pages/ProjectDashboard";
 import InvoiceDashboard from "./pages/InvoiceDashboard";
 
@@ -135,6 +137,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <ClientDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/client-projects"
+            element={
+              <ProtectedRoute>
+                <ClientProjectsPage />
               </ProtectedRoute>
             }
           />

@@ -55,11 +55,12 @@ export function MainNav() {
   };
 
   // Determine dashboard route based on user role
-  const dashboardRoute = profile?.role === 'homeowner' ? '/client-dashboard' : '/dashboard';
+  const homeRoute = profile?.role === 'homeowner' ? '/client-dashboard' : '/dashboard';
+  const projectsRoute = profile?.role === 'homeowner' ? '/client-projects' : '/dashboard';
 
   const navItems = [
-    { label: "Home", path: dashboardRoute, icon: Home },
-    { label: "Projects", path: dashboardRoute, icon: Grid },
+    { label: "Home", path: homeRoute, icon: Home },
+    { label: "Projects", path: projectsRoute, icon: Grid },
     { label: "Invoices", path: "/invoices", icon: FileText },
     { label: "Profile", path: "/profile", icon: User },
     { label: "Help", path: "/help", icon: HelpCircle },
@@ -72,7 +73,7 @@ export function MainNav() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to={dashboardRoute} className="flex items-center">
+          <Link to={homeRoute} className="flex items-center">
             <img
               src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
               alt="CNSTRCT Logo"
