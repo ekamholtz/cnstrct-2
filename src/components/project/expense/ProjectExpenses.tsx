@@ -2,6 +2,7 @@
 import { ExpenseForm } from "./ExpenseForm";
 import { ExpenseList } from "./ExpenseList";
 import { useExpenses } from "./hooks/useExpenses";
+import type { ExpenseFormData } from "./types";
 
 interface ProjectExpensesProps {
   projectId: string;
@@ -9,6 +10,10 @@ interface ProjectExpensesProps {
 
 export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
   const { expenses, isLoading, createExpense } = useExpenses(projectId);
+
+  const handleCreateExpense = async (data: ExpenseFormData) => {
+    await createExpense(data);
+  };
 
   if (isLoading) {
     return (
@@ -21,7 +26,7 @@ export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <ExpenseForm onSubmit={createExpense} />
+        <ExpenseForm onSubmit={handleCreateExpense} />
       </div>
       <ExpenseList expenses={expenses} />
     </div>
