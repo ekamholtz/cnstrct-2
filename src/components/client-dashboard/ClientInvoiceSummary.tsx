@@ -30,52 +30,40 @@ export function ClientInvoiceSummary() {
 
       console.log('Found client:', clientData);
 
-      // Get projects directly with milestones and their invoices
-      const { data: projects, error: projectError } = await supabase
-        .from('projects')
+      // Get all invoices for client's projects using a simplified query
+      const { data: invoiceData, error: invoiceError } = await supabase
+        .from('invoices')
         .select(`
-          id,
-          name,
-          milestones!inner (
-            id,
+          *,
+          milestone:milestone_id (
             name,
-            status,
-            invoices (
-              *
+            project:project_id (
+              id,
+              name
             )
           )
         `)
-        .eq('client_id', clientData.id);
+        .in(
+          'milestone_id',
+          supabase
+            .from('milestones')
+            .select('id')
+            .in(
+              'project_id',
+              supabase
+                .from('projects')
+                .select('id')
+                .eq('client_id', clientData.id)
+            )
+        );
 
-      if (projectError) {
-        console.error('Error finding projects:', projectError);
-        throw projectError;
+      if (invoiceError) {
+        console.error('Error fetching invoices:', invoiceError);
+        throw invoiceError;
       }
 
-      console.log('Projects with milestones and invoices:', projects);
-
-      // Flatten the nested structure to get all invoices
-      const allInvoices = projects?.flatMap(project => 
-        project.milestones?.flatMap(milestone => 
-          milestone.invoices?.map(invoice => ({
-            ...invoice,
-            milestone: {
-              id: milestone.id,
-              name: milestone.name,
-              project: {
-                id: project.id,
-                name: project.name,
-                client: {
-                  id: clientData.id
-                }
-              }
-            }
-          }))
-        )
-      ).filter(Boolean) || [];
-
-      console.log('Processed invoices:', allInvoices);
-      return allInvoices;
+      console.log('Found invoices:', invoiceData);
+      return invoiceData;
     },
   });
 
