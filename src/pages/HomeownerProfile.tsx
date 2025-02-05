@@ -26,7 +26,12 @@ export default function HomeownerProfile() {
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Add email from auth user to profile data
+      return {
+        ...data,
+        email: user.email
+      };
     },
   });
 
