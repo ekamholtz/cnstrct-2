@@ -1,5 +1,8 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Milestone {
   id: string;
@@ -15,6 +18,22 @@ interface MilestonesListProps {
 }
 
 export function MilestonesList({ milestones, onMarkComplete }: MilestonesListProps) {
+  const { data: userRole } = useQuery({
+    queryKey: ['userRole'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      return data?.role;
+    }
+  });
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
@@ -27,6 +46,8 @@ export function MilestonesList({ milestones, onMarkComplete }: MilestonesListPro
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  const isHomeowner = userRole === 'homeowner';
 
   return (
     <div>
@@ -52,7 +73,7 @@ export function MilestonesList({ milestones, onMarkComplete }: MilestonesListPro
                     <span className={`px-2.5 py-0.5 rounded-full text-sm font-medium ${getStatusColor(milestone.status)}`}>
                       {milestone.status.charAt(0).toUpperCase() + milestone.status.slice(1)}
                     </span>
-                    {milestone.status !== 'completed' && (
+                    {!isHomeowner && milestone.status !== 'completed' && (
                       <Button
                         onClick={() => onMarkComplete(milestone.id)}
                         variant="outline"
