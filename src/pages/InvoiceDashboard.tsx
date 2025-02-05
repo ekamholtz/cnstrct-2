@@ -52,6 +52,7 @@ export default function InvoiceDashboard() {
       <InvoiceFilters
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
+        invoices={invoices}
       />
 
       <InvoiceTable
