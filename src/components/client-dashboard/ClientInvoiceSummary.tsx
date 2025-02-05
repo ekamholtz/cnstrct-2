@@ -20,17 +20,17 @@ export function ClientInvoiceSummary() {
         throw new Error('No user found');
       }
 
-      console.log('Starting invoice fetch for user:', user.id);
+      console.log('Step 1: Starting query with user:', user.id);
 
-      // First get the client id for this user
+      // First get the client details for this user
       const { data: client, error: clientError } = await supabase
         .from('clients')
-        .select('id, name')
+        .select('id, name, user_id')
         .eq('user_id', user.id)
         .single();
 
       if (clientError) {
-        console.error('Error fetching client:', clientError);
+        console.error('Step 1 Error - Failed to fetch client:', clientError);
         toast({
           variant: "destructive",
           title: "Error",
@@ -39,9 +39,47 @@ export function ClientInvoiceSummary() {
         throw clientError;
       }
 
-      console.log('Found client:', client);
+      console.log('Step 2: Found client:', client);
 
-      // Get all invoices through project relationship
+      // Get projects for this client
+      const { data: projects, error: projectsError } = await supabase
+        .from('projects')
+        .select('id, name')
+        .eq('client_id', client.id);
+
+      if (projectsError) {
+        console.error('Step 3 Error - Failed to fetch projects:', projectsError);
+        throw projectsError;
+      }
+
+      console.log('Step 3: Found projects:', projects);
+
+      if (!projects?.length) {
+        console.log('No projects found for client');
+        return [];
+      }
+
+      // Get milestones for these projects
+      const projectIds = projects.map(p => p.id);
+      const { data: milestones, error: milestonesError } = await supabase
+        .from('milestones')
+        .select('id, name, project_id')
+        .in('project_id', projectIds);
+
+      if (milestonesError) {
+        console.error('Step 4 Error - Failed to fetch milestones:', milestonesError);
+        throw milestonesError;
+      }
+
+      console.log('Step 4: Found milestones:', milestones);
+
+      if (!milestones?.length) {
+        console.log('No milestones found for projects');
+        return [];
+      }
+
+      // Finally get all invoices through milestone relationship
+      const milestoneIds = milestones.map(m => m.id);
       const { data: invoices, error: invoiceError } = await supabase
         .from('invoices')
         .select(`
@@ -56,15 +94,14 @@ export function ClientInvoiceSummary() {
             name,
             project:project_id (
               id,
-              name,
-              client_id
+              name
             )
           )
         `)
-        .eq('milestone.project.client_id', client.id);
+        .in('milestone_id', milestoneIds);
 
       if (invoiceError) {
-        console.error('Error fetching invoices:', invoiceError);
+        console.error('Step 5 Error - Failed to fetch invoices:', invoiceError);
         toast({
           variant: "destructive",
           title: "Error",
@@ -73,7 +110,7 @@ export function ClientInvoiceSummary() {
         throw invoiceError;
       }
 
-      console.log('Found invoices:', invoices);
+      console.log('Step 5: Final invoices result:', invoices);
       return invoices || [];
     },
   });
