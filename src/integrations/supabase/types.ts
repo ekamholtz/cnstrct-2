@@ -240,6 +240,7 @@ export type Database = {
           company_address: string | null
           company_name: string | null
           created_at: string
+          email_confirmed_at: string | null
           full_name: string
           has_completed_profile: boolean | null
           id: string
@@ -258,6 +259,7 @@ export type Database = {
           company_address?: string | null
           company_name?: string | null
           created_at?: string
+          email_confirmed_at?: string | null
           full_name: string
           has_completed_profile?: boolean | null
           id: string
@@ -276,6 +278,7 @@ export type Database = {
           company_address?: string | null
           company_name?: string | null
           created_at?: string
+          email_confirmed_at?: string | null
           full_name?: string
           has_completed_profile?: boolean | null
           id?: string
