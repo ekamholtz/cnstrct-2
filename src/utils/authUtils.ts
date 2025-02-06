@@ -1,6 +1,9 @@
 
 import { AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type UserRole = Database["public"]["Enums"]["user_role"];
 
 export const handleLoginError = (error: AuthError) => {
   console.error("Sign in error details:", {
@@ -22,7 +25,7 @@ export const handleLoginError = (error: AuthError) => {
   return errorMessage;
 };
 
-export const createProfile = async (userId: string, fullName: string, role: string) => {
+export const createProfile = async (userId: string, fullName: string, role: UserRole) => {
   const { error: insertError } = await supabase
     .from('profiles')
     .insert({
