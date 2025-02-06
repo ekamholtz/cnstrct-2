@@ -6,11 +6,13 @@ import type { Database } from "@/integrations/supabase/types";
 type UserRole = Database["public"]["Enums"]["user_role"];
 
 export const handleLoginError = (error: AuthError | Error) => {
-  // Log the full error details for debugging
+  // Enhanced error logging
   console.error("Sign in error details:", {
     message: error.message,
     status: 'status' in error ? error.status : undefined,
     name: error.name,
+    stack: error.stack,
+    fullError: error
   });
 
   let errorMessage = "An unexpected error occurred during login";
@@ -21,12 +23,23 @@ export const handleLoginError = (error: AuthError | Error) => {
     } else if (error.message.includes("Email not confirmed")) {
       errorMessage = "Please confirm your email address before logging in";
     } else if (error.status === 500) {
-      errorMessage = "Server error. Please try again in a few minutes";
+      errorMessage = "Server error. Please try again in a few minutes. If the problem persists, contact support.";
+      // Additional logging for 500 errors
+      console.error("Server error details:", {
+        error,
+        timestamp: new Date().toISOString(),
+        additionalInfo: error.message
+      });
     } else {
       errorMessage = error.message;
     }
   } else if (error instanceof Error) {
     errorMessage = error.message;
+    // Log unexpected errors
+    console.error("Unexpected error type:", {
+      error,
+      type: error.constructor.name
+    });
   }
   
   return errorMessage;
@@ -47,11 +60,23 @@ export const createProfile = async (userId: string, fullName: string, role: User
       });
 
     if (insertError) {
-      console.error("Error creating profile:", insertError);
+      console.error("Error creating profile:", {
+        error: insertError,
+        userId,
+        fullName,
+        role,
+        timestamp: new Date().toISOString()
+      });
       throw insertError;
     }
   } catch (error) {
-    console.error("Unexpected error in createProfile:", error);
+    console.error("Unexpected error in createProfile:", {
+      error,
+      userId,
+      fullName,
+      role,
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 };
@@ -67,14 +92,22 @@ export const fetchUserProfile = async (userId: string) => {
       .maybeSingle();
 
     if (profileError) {
-      console.error("Error fetching profile:", profileError);
+      console.error("Error fetching profile:", {
+        error: profileError,
+        userId,
+        timestamp: new Date().toISOString()
+      });
       throw profileError;
     }
 
     console.log("Fetched profile:", profile);
     return profile;
   } catch (error) {
-    console.error("Unexpected error in fetchUserProfile:", error);
+    console.error("Unexpected error in fetchUserProfile:", {
+      error,
+      userId,
+      timestamp: new Date().toISOString()
+    });
     throw error;
   }
 };
