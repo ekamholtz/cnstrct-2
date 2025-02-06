@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -39,8 +40,7 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
         console.error("Sign in error details:", {
           message: signInError.message,
           status: signInError.status,
-          name: signInError.name,
-          body: signInError.cause,
+          name: signInError.name
         });
         throw signInError;
       }
