@@ -25,7 +25,7 @@ export function useInvoices(projectId: string) {
             )
           )
         `)
-        .eq('project_id', projectId)  // Filter by project_id
+        .eq('project_id', projectId)  // Direct project_id filter
         .order('created_at', { ascending: false });
 
       if (invoicesError) {
@@ -39,7 +39,18 @@ export function useInvoices(projectId: string) {
         invoices: invoicesData
       });
 
-      return invoicesData as Invoice[];
+      // Additional client-side verification
+      const filteredInvoices = invoicesData?.filter(invoice => 
+        invoice.project_id === projectId
+      );
+
+      console.log('Filtered invoices:', {
+        projectId,
+        beforeFilter: invoicesData?.length,
+        afterFilter: filteredInvoices?.length
+      });
+
+      return filteredInvoices as Invoice[];
     },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
