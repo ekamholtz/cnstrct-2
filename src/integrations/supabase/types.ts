@@ -9,6 +9,44 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_actions: {
+        Row: {
+          action_type: string
+          admin_id: string
+          created_at: string
+          details: Json | null
+          entity_id: string
+          entity_type: string
+          id: string
+        }
+        Insert: {
+          action_type: string
+          admin_id: string
+          created_at?: string
+          details?: Json | null
+          entity_id: string
+          entity_type: string
+          id?: string
+        }
+        Update: {
+          action_type?: string
+          admin_id?: string
+          created_at?: string
+          details?: Json | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string
@@ -328,6 +366,12 @@ export type Database = {
           project_id: string
         }[]
       }
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
       undo_milestone_completion: {
         Args: {
           milestone_id_param: string
@@ -341,7 +385,7 @@ export type Database = {
       invoice_status: "pending_payment" | "paid" | "cancelled"
       milestone_status: "pending" | "completed"
       project_status: "draft" | "active" | "completed" | "cancelled"
-      user_role: "general_contractor" | "homeowner"
+      user_role: "general_contractor" | "homeowner" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
