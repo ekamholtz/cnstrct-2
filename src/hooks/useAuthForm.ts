@@ -23,6 +23,15 @@ export const useAuthForm = () => {
 
       if (signInError) {
         console.error("Sign in error:", signInError);
+        // Special handling for database errors
+        if (signInError.message.includes("Database error")) {
+          toast({
+            variant: "destructive",
+            title: "System Error",
+            description: "We're experiencing technical difficulties. Please try again in a few moments.",
+          });
+          return;
+        }
         throw signInError;
       }
 
@@ -50,7 +59,7 @@ export const useAuthForm = () => {
         );
         navigate("/profile-completion");
       } else if (profile.role === 'admin') {
-        navigate("/admin"); // Admin dashboard route
+        navigate("/admin");
       } else if (!profile.has_completed_profile) {
         navigate("/profile-completion");
       } else {
@@ -97,6 +106,15 @@ export const useAuthForm = () => {
       });
 
       if (error) {
+        // Special handling for database errors
+        if (error.message.includes("Database error")) {
+          toast({
+            variant: "destructive",
+            title: "System Error",
+            description: "We're experiencing technical difficulties. Please try again in a few moments.",
+          });
+          return;
+        }
         console.error("Registration error:", error);
         throw error;
       }
