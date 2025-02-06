@@ -25,7 +25,7 @@ export function useInvoices(projectId: string) {
             )
           )
         `)
-        .eq('project_id', projectId)  // Direct project_id filter
+        .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
       if (invoicesError) {
@@ -39,18 +39,7 @@ export function useInvoices(projectId: string) {
         invoices: invoicesData
       });
 
-      // Additional client-side verification
-      const filteredInvoices = invoicesData?.filter(invoice => 
-        invoice.project_id === projectId
-      );
-
-      console.log('Filtered invoices:', {
-        projectId,
-        beforeFilter: invoicesData?.length,
-        afterFilter: filteredInvoices?.length
-      });
-
-      return filteredInvoices as Invoice[];
+      return invoicesData as Invoice[];
     },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
@@ -71,7 +60,7 @@ export function useInvoices(projectId: string) {
           event: '*',
           schema: 'public',
           table: 'invoices',
-          filter: `project_id=eq.${projectId}`  // Filter realtime events by project_id
+          filter: `project_id=eq.${projectId}`
         },
         (payload) => {
           console.log('Real-time update received:', payload);
