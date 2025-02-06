@@ -6,13 +6,14 @@ import type { Database } from "@/integrations/supabase/types";
 type UserRole = Database["public"]["Enums"]["user_role"];
 
 export const handleLoginError = (error: AuthError | Error) => {
-  // Enhanced error logging
+  // Enhanced error logging with detailed information
   console.error("Authentication error details:", {
     message: error.message,
     status: 'status' in error ? error.status : undefined,
     name: error.name,
     stack: error.stack,
-    fullError: error
+    fullError: error,
+    timestamp: new Date().toISOString()
   });
 
   let errorMessage = "An unexpected error occurred. Please try again.";
@@ -27,6 +28,14 @@ export const handleLoginError = (error: AuthError | Error) => {
         break;
       case "Password recovery initiated":
         errorMessage = "Check your email for password reset instructions";
+        break;
+      case "Database error querying schema":
+        errorMessage = "System error. Please try again in a few moments.";
+        // Additional logging for schema errors
+        console.error("Database schema error:", {
+          error,
+          timestamp: new Date().toISOString()
+        });
         break;
       default:
         if (error.message.includes("Database error")) {

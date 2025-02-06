@@ -58,7 +58,8 @@ export const useAuthForm = () => {
         error,
         message: error.message,
         status: error.status,
-        name: error.name
+        name: error.name,
+        timestamp: new Date().toISOString()
       });
       const errorMessage = handleLoginError(error);
       toast({
@@ -120,7 +121,8 @@ export const useAuthForm = () => {
         error,
         message: error.message,
         status: error.status,
-        name: error.name
+        name: error.name,
+        timestamp: new Date().toISOString()
       });
       const errorMessage = handleLoginError(error);
       toast({
