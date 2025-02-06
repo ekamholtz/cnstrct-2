@@ -15,14 +15,13 @@ export const useInvoiceDashboard = () => {
   const fetchInvoices = async () => {
     try {
       console.log("Fetching invoices for dashboard...");
-      let query = supabase
+      const { data, error } = await supabase
         .rpc('get_project_invoices', { p_id: null });
 
-      const { data, error } = await query;
-
       if (error) throw error;
+
       console.log("Invoices fetched for dashboard:", data);
-      setInvoices(data || []);
+      setInvoices(data as Invoice[]);
     } catch (error) {
       console.error('Error fetching invoices:', error);
       toast({

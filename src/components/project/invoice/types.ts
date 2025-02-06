@@ -1,3 +1,4 @@
+
 export interface Invoice {
   id: string;
   invoice_number: string;
@@ -9,9 +10,9 @@ export interface Invoice {
   project_name: string;
   project_id: string;
   payment_method?: "cc" | "check" | "transfer" | "cash" | null;
-  payment_date?: string;
-  payment_reference?: string;
-  payment_gateway?: string;
+  payment_date?: string | null;
+  payment_reference?: string | null;
+  payment_gateway?: string | null;
   updated_at: string;
 }
 
