@@ -36,14 +36,10 @@ export function useInvoices(projectId: string) {
           milestone:milestone_id (
             id,
             name,
-            project:project_id (
-              id,
-              name
-            )
+            project_id
           )
         `)
-        .eq('milestone.project_id', projectId)
-        .order('created_at', { ascending: false });
+        .eq('milestone.project_id', projectId);
 
       if (error) {
         console.error('Error fetching invoices:', error);
@@ -57,10 +53,10 @@ export function useInvoices(projectId: string) {
         invoices: data?.map(inv => ({
           id: inv.id,
           invoice_number: inv.invoice_number,
+          amount: inv.amount,
           milestone_id: inv.milestone_id,
           milestone_name: inv.milestone?.name,
-          project_id: inv.milestone?.project?.id,
-          project_name: inv.milestone?.project?.name,
+          milestone_project_id: inv.milestone?.project_id,
         }))
       });
 
