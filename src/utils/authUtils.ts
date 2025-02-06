@@ -63,7 +63,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
       .from('profiles')
       .select('id')
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (existingProfile) {
       console.log("Profile already exists for user:", userId);
