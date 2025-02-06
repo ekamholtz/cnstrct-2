@@ -25,7 +25,8 @@ export function useInvoices(projectId: string) {
             )
           )
         `)
-        .eq('project_id', projectId);
+        .eq('project_id', projectId)  // Filter by project_id
+        .order('created_at', { ascending: false });
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);
@@ -59,7 +60,7 @@ export function useInvoices(projectId: string) {
           event: '*',
           schema: 'public',
           table: 'invoices',
-          filter: `project_id.eq.${projectId}`
+          filter: `project_id=eq.${projectId}`  // Filter realtime events by project_id
         },
         (payload) => {
           console.log('Real-time update received:', payload);
