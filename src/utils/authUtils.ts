@@ -93,7 +93,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
         id: userId,
         full_name: fullName,
         role: role,
-        has_completed_profile: false,
+        has_completed_profile: role === 'admin', // Admin profiles are considered complete by default
         address: '',
       });
 

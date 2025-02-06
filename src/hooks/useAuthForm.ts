@@ -49,6 +49,8 @@ export const useAuthForm = () => {
           signInData.user.user_metadata.role || 'general_contractor'
         );
         navigate("/profile-completion");
+      } else if (profile.role === 'admin') {
+        navigate("/admin"); // Admin dashboard route
       } else if (!profile.has_completed_profile) {
         navigate("/profile-completion");
       } else {
