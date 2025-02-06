@@ -54,15 +54,20 @@ export function ContractorFinancialSummary() {
     queryKey: ['contractor-incomplete-milestones'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      // First get the contractor's project IDs
+      const { data: projectIds } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('contractor_id', user?.id);
+      
+      const projectIdArray = projectIds?.map(p => p.id) || [];
+
+      // Then query milestones using those project IDs
       const { data, error } = await supabase
         .from('milestones')
         .select('amount, project_id')
         .eq('status', 'pending')
-        .eq('project_id', supabase
-          .from('projects')
-          .select('id')
-          .eq('contractor_id', user?.id)
-        );
+        .in('project_id', projectIdArray);
 
       if (error) throw error;
       return data;
@@ -74,14 +79,19 @@ export function ContractorFinancialSummary() {
     queryKey: ['contractor-expenses-total'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      // First get the contractor's project IDs
+      const { data: projectIds } = await supabase
+        .from('projects')
+        .select('id')
+        .eq('contractor_id', user?.id);
+      
+      const projectIdArray = projectIds?.map(p => p.id) || [];
+
+      // Then query expenses using those project IDs
       const { data, error } = await supabase
         .from('expenses')
         .select('amount, project_id')
-        .eq('project_id', supabase
-          .from('projects')
-          .select('id')
-          .eq('contractor_id', user?.id)
-        );
+        .in('project_id', projectIdArray);
 
       if (error) throw error;
       return data;
