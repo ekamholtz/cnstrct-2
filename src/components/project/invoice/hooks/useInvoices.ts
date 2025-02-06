@@ -1,13 +1,14 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Invoice, PaymentFormData } from "../types";
 
 export function useInvoices(projectId: string) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [milestoneIds, setMilestoneIds] = useState<string[]>([]);
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['project-invoices', projectId],
@@ -39,7 +40,8 @@ export function useInvoices(projectId: string) {
         throw milestonesError;
       }
 
-      const milestoneIds = milestones.map(m => m.id);
+      const currentMilestoneIds = milestones.map(m => m.id);
+      setMilestoneIds(currentMilestoneIds);
       
       // Then fetch invoices that belong to these milestones
       const { data, error } = await supabase
@@ -53,7 +55,7 @@ export function useInvoices(projectId: string) {
             )
           )
         `)
-        .in('milestone_id', milestoneIds);
+        .in('milestone_id', currentMilestoneIds);
 
       if (error) {
         console.error('Error fetching invoices:', error);
@@ -62,7 +64,7 @@ export function useInvoices(projectId: string) {
 
       console.log('Fetched invoices for project:', {
         projectId,
-        milestoneIds,
+        milestoneIds: currentMilestoneIds,
         invoiceCount: data?.length,
         invoices: data
       });
@@ -76,6 +78,8 @@ export function useInvoices(projectId: string) {
 
   // Set up real-time subscription for this specific project's invoices
   useEffect(() => {
+    if (milestoneIds.length === 0) return;
+
     console.log('Setting up real-time subscription for project invoices:', projectId);
     const channel = supabase
       .channel(`project-invoices-${projectId}`)
@@ -85,7 +89,7 @@ export function useInvoices(projectId: string) {
           event: '*',
           schema: 'public',
           table: 'invoices',
-          filter: `milestone_id.in.(${milestones?.map(m => m.id).join(',')})`
+          filter: `milestone_id.in.(${milestoneIds.join(',')})`
         },
         (payload) => {
           console.log('Real-time update received for project invoices:', {
@@ -102,7 +106,7 @@ export function useInvoices(projectId: string) {
       console.log('Cleaning up real-time subscription for project:', projectId);
       supabase.removeChannel(channel);
     };
-  }, [projectId, queryClient]);
+  }, [projectId, queryClient, milestoneIds]);
 
   const markAsPaidMutation = useMutation({
     mutationFn: async ({ 
