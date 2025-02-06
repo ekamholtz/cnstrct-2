@@ -16,21 +16,7 @@ export const useInvoiceDashboard = () => {
     try {
       console.log("Fetching invoices for dashboard...");
       let query = supabase
-        .from('invoices')
-        .select(`
-          *,
-          milestone:milestone_id (
-            name,
-            project:project_id (
-              name
-            )
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (statusFilter !== "all") {
-        query = query.eq('status', statusFilter);
-      }
+        .rpc('get_project_invoices', { p_id: null });
 
       const { data, error } = await query;
 
