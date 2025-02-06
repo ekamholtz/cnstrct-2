@@ -34,9 +34,10 @@ export function useInvoices(projectId: string) {
         .select(`
           *,
           milestone:milestone_id (
-            id,
             name,
-            project_id
+            project:project_id (
+              name
+            )
           )
         `)
         .eq('milestone.project_id', projectId);
@@ -50,14 +51,7 @@ export function useInvoices(projectId: string) {
       console.log('Fetched invoices for project:', {
         projectId,
         invoiceCount: data?.length,
-        invoices: data?.map(inv => ({
-          id: inv.id,
-          invoice_number: inv.invoice_number,
-          amount: inv.amount,
-          milestone_id: inv.milestone_id,
-          milestone_name: inv.milestone?.name,
-          milestone_project_id: inv.milestone?.project_id,
-        }))
+        invoices: data
       });
 
       return data as Invoice[];
