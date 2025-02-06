@@ -59,7 +59,7 @@ export function useInvoices(projectId: string) {
           event: '*',
           schema: 'public',
           table: 'invoices',
-          filter: `project_id=eq.${projectId}`
+          filter: `project_id.eq.${projectId}`
         },
         (payload) => {
           console.log('Real-time update received:', payload);
