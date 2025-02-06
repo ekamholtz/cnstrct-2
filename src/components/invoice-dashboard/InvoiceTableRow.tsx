@@ -5,6 +5,7 @@ import { FileText, DollarSign } from "lucide-react";
 import { PaymentModal } from "@/components/project/invoice/PaymentModal";
 import { StatusBadge } from "@/components/project/invoice/StatusBadge";
 import { PaymentFormData, Invoice } from "@/components/project/invoice/types";
+import { Link } from "react-router-dom";
 
 interface InvoiceTableRowProps {
   invoice: Invoice;
@@ -15,10 +16,10 @@ export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps)
   return (
     <TableRow>
       <TableCell className="font-medium">
-        <div className="flex items-center">
+        <Link to={`/invoices/${invoice.id}`} className="flex items-center hover:text-blue-600 transition-colors">
           <FileText className="h-4 w-4 mr-2 text-gray-500" />
           {invoice.invoice_number}
-        </div>
+        </Link>
       </TableCell>
       <TableCell>
         <div className="flex flex-col">
