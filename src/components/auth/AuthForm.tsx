@@ -23,39 +23,60 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
   const handleLogin = async (values: LoginFormData) => {
     setLoading(true);
     try {
-      console.log("Attempting to sign in with:", values.email);
+      console.log("Starting login process for:", values.email);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       });
 
-      if (error) {
-        console.error("Sign in error:", error);
-        throw error;
+      if (signInError) {
+        console.error("Sign in error details:", {
+          message: signInError.message,
+          status: signInError.status,
+          name: signInError.name
+        });
+        throw signInError;
       }
 
-      if (!data.user) {
-        throw new Error("No user returned after login");
+      if (!signInData?.user) {
+        console.error("No user data returned after login");
+        throw new Error("Login failed - no user data returned");
       }
 
-      console.log("Sign in successful, user:", data.user);
+      console.log("Sign in successful, fetching user profile...");
 
-      // Check profile completion status
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('has_completed_profile')
-        .eq('id', data.user.id)
-        .single();
+        .select('*')
+        .eq('id', signInData.user.id)
+        .maybeSingle();
 
       if (profileError) {
         console.error("Error fetching profile:", profileError);
         throw profileError;
       }
 
-      console.log("Profile data:", profile);
+      console.log("Profile data retrieved:", profile);
 
-      if (profile && !profile.has_completed_profile) {
+      if (!profile) {
+        console.log("No profile found, creating one...");
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert({
+            id: signInData.user.id,
+            full_name: signInData.user.user_metadata.full_name || '',
+            role: signInData.user.user_metadata.role || 'admin',
+            has_completed_profile: false,
+          });
+
+        if (insertError) {
+          console.error("Error creating profile:", insertError);
+          throw insertError;
+        }
+
+        navigate("/profile-completion");
+      } else if (!profile.has_completed_profile) {
         navigate("/profile-completion");
       } else {
         navigate("/dashboard");
@@ -71,7 +92,7 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: error.message || "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred during login",
       });
     } finally {
       setLoading(false);
