@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const markMilestoneComplete = async (milestoneId: string) => {
@@ -6,7 +7,7 @@ export const markMilestoneComplete = async (milestoneId: string) => {
   // Get the milestone details for the invoice
   const { data: milestone, error: fetchError } = await supabase
     .from('milestones')
-    .select('*')
+    .select('*, project:project_id (*)')
     .eq('id', milestoneId)
     .maybeSingle();
 
@@ -27,6 +28,7 @@ export const markMilestoneComplete = async (milestoneId: string) => {
     .from('invoices')
     .insert({
       milestone_id: milestoneId,
+      project_id: milestone.project_id,
       amount: milestone.amount,
       invoice_number: invoiceNumber,
     })

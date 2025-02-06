@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { FileText, DollarSign } from "lucide-react";
@@ -11,6 +12,7 @@ interface Invoice {
   amount: number;
   status: "pending_payment" | "paid" | "cancelled";
   created_at: string;
+  project_id: string;
   milestone: {
     name: string;
     project: {
