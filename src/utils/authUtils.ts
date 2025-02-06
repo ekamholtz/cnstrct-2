@@ -9,49 +9,72 @@ export const handleLoginError = (error: AuthError) => {
   console.error("Sign in error details:", {
     message: error.message,
     status: error.status,
-    name: error.name
+    name: error.name,
+    body: error.body,
+    errorType: error.error_type
   });
 
   let errorMessage = "An unexpected error occurred during login";
+  
   if (error.message) {
     if (error.message.includes("Invalid login credentials")) {
       errorMessage = "Invalid email or password";
     } else if (error.message.includes("Email not confirmed")) {
       errorMessage = "Please confirm your email address before logging in";
+    } else if (error.status === 500) {
+      errorMessage = "Server error. Please try again in a few minutes";
     } else {
       errorMessage = error.message;
     }
   }
+  
   return errorMessage;
 };
 
 export const createProfile = async (userId: string, fullName: string, role: UserRole) => {
-  const { error: insertError } = await supabase
-    .from('profiles')
-    .insert({
-      id: userId,
-      full_name: fullName,
-      role: role,
-      has_completed_profile: false,
-    });
+  console.log("Creating profile for user:", { userId, fullName, role });
+  
+  try {
+    const { error: insertError } = await supabase
+      .from('profiles')
+      .insert({
+        id: userId,
+        full_name: fullName,
+        role: role,
+        has_completed_profile: false,
+        address: '', // Required field with empty default
+      });
 
-  if (insertError) {
-    console.error("Error creating profile:", insertError);
-    throw insertError;
+    if (insertError) {
+      console.error("Error creating profile:", insertError);
+      throw insertError;
+    }
+  } catch (error) {
+    console.error("Unexpected error in createProfile:", error);
+    throw error;
   }
 };
 
 export const fetchUserProfile = async (userId: string) => {
-  const { data: profile, error: profileError } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .maybeSingle();
+  console.log("Fetching profile for user:", userId);
+  
+  try {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
 
-  if (profileError) {
-    console.error("Error fetching profile:", profileError);
-    throw profileError;
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
+      throw profileError;
+    }
+
+    console.log("Fetched profile:", profile);
+    return profile;
+  } catch (error) {
+    console.error("Unexpected error in fetchUserProfile:", error);
+    throw error;
   }
-
-  return profile;
 };
+
