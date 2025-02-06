@@ -28,7 +28,7 @@ export function useInvoices(projectId: string) {
 
       console.log('Verified project exists:', project);
 
-      // Fetch invoices with milestone and project data
+      // Fetch invoices for milestones belonging to this project
       const { data, error } = await supabase
         .from('invoices')
         .select(`
@@ -43,7 +43,7 @@ export function useInvoices(projectId: string) {
           )
         `)
         .eq('milestone.project_id', projectId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching invoices:', error);
@@ -63,12 +63,6 @@ export function useInvoices(projectId: string) {
           project_name: inv.milestone?.project?.name,
         }))
       });
-
-      // Verify all invoices are correctly linked to the project
-      const invalidInvoices = data?.filter(inv => inv.milestone?.project?.id !== projectId);
-      if (invalidInvoices?.length) {
-        console.warn('Found invoices with incorrect project association:', invalidInvoices);
-      }
 
       return data as Invoice[];
     },
