@@ -29,7 +29,13 @@ export const useAuthForm = () => {
         throw new Error("Login failed - no user data returned");
       }
 
+      // Fetch profile after successful login
       const profile = await fetchUserProfile(signInData.user.id);
+      
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully signed in.",
+      });
 
       if (!profile) {
         console.log("No profile found, creating one...");
@@ -44,11 +50,6 @@ export const useAuthForm = () => {
       } else {
         navigate("/dashboard");
       }
-
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully signed in.",
-      });
 
     } catch (error: any) {
       console.error("Login process error:", error);
@@ -92,19 +93,27 @@ export const useAuthForm = () => {
         throw new Error("No user data returned after registration");
       }
 
-      navigate("/profile-completion");
-      
+      // Create profile immediately after successful registration
+      await createProfile(
+        data.user.id,
+        values.fullName,
+        selectedRole
+      );
+
       toast({
         title: "Registration successful!",
         description: "Please complete your profile information.",
       });
 
+      navigate("/profile-completion");
+
     } catch (error: any) {
       console.error("Registration error:", error);
+      const errorMessage = handleLoginError(error);
       toast({
         variant: "destructive",
         title: "Registration failed",
-        description: error.message || "An unexpected error occurred during registration",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);

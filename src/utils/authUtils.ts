@@ -22,6 +22,8 @@ export const handleLoginError = (error: AuthError | Error) => {
       errorMessage = "Invalid email or password";
     } else if (error.message.includes("Email not confirmed")) {
       errorMessage = "Please confirm your email address before logging in";
+    } else if (error.message.includes("Database error")) {
+      errorMessage = "Unable to complete login. Please try again.";
     } else if (error.status === 500) {
       errorMessage = "Server error. Please try again in a few minutes. If the problem persists, contact support.";
       // Additional logging for 500 errors
@@ -49,6 +51,17 @@ export const createProfile = async (userId: string, fullName: string, role: User
   console.log("Creating profile for user:", { userId, fullName, role });
   
   try {
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('id', userId)
+      .single();
+
+    if (existingProfile) {
+      console.log("Profile already exists for user:", userId);
+      return;
+    }
+
     const { error: insertError } = await supabase
       .from('profiles')
       .insert({
@@ -111,3 +124,4 @@ export const fetchUserProfile = async (userId: string) => {
     throw error;
   }
 };
+
