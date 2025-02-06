@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -12,29 +13,53 @@ export const Header = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user || null);
-    });
+    // Get initial session
+    const getInitialSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user || null);
+      } catch (error) {
+        console.error('Error getting session:', error);
+        setUser(null);
+      }
+    };
 
+    getInitialSession();
+
+    // Set up auth state listener
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log("Auth state changed:", _event, session?.user);
       setUser(session?.user || null);
     });
 
-    return () => subscription.unsubscribe();
+    // Cleanup subscription
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   const handleLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear user state
+      setUser(null);
+      navigate("/");
+      
+      toast({
+        title: "Logged out successfully",
+        description: "You have been signed out of your account.",
+      });
+    } catch (error) {
+      console.error('Error during logout:', error);
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to sign out. Please try again.",
       });
-    } else {
-      navigate("/");
     }
   };
 
