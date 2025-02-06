@@ -28,39 +28,33 @@ export function useInvoices(projectId: string) {
 
       console.log('Verified project exists:', project);
 
-      // Fetch invoices by joining through milestones to ensure correct project association
+      // Fetch invoices with an inner join to ensure we only get invoices
+      // that belong to milestones of this project
       const { data, error } = await supabase
-        .from('milestones')
+        .from('invoices')
         .select(`
-          invoices (
-            *,
-            milestone:milestone_id (
-              name,
-              project:project_id (
-                name
-              )
+          *,
+          milestone:milestone_id!inner (
+            name,
+            project:project_id!inner (
+              name
             )
           )
         `)
-        .eq('project_id', projectId);
+        .eq('milestone.project_id', projectId);
 
       if (error) {
         console.error('Error fetching invoices:', error);
         throw error;
       }
 
-      // Transform the nested data structure to match our Invoice type
-      const flattenedInvoices = data
-        ?.flatMap(milestone => milestone.invoices)
-        .filter(Boolean);
-
       console.log('Fetched invoices for project:', {
         projectId,
-        invoiceCount: flattenedInvoices?.length,
-        invoices: flattenedInvoices
+        invoiceCount: data?.length,
+        invoices: data
       });
 
-      return flattenedInvoices as Invoice[];
+      return data as Invoice[];
     },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
