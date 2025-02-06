@@ -9,7 +9,7 @@ interface ProjectFinancialSummaryProps {
 }
 
 export function ProjectFinancialSummary({ projectId }: ProjectFinancialSummaryProps) {
-  // Fetch paid invoices
+  // Fetch paid invoices for this project
   const { data: paidInvoices = [] } = useQuery({
     queryKey: ['project-paid-invoices', projectId],
     queryFn: async () => {
@@ -17,19 +17,17 @@ export function ProjectFinancialSummary({ projectId }: ProjectFinancialSummaryPr
         .from('invoices')
         .select(`
           amount,
-          milestone:milestone_id (
-            project_id
-          )
+          project_id
         `)
         .eq('status', 'paid')
-        .eq('milestone.project_id', projectId);
+        .eq('project_id', projectId);
 
       if (error) throw error;
       return data;
     },
   });
 
-  // Fetch pending invoices
+  // Fetch pending invoices for this project
   const { data: pendingInvoices = [] } = useQuery({
     queryKey: ['project-pending-invoices', projectId],
     queryFn: async () => {
@@ -37,19 +35,17 @@ export function ProjectFinancialSummary({ projectId }: ProjectFinancialSummaryPr
         .from('invoices')
         .select(`
           amount,
-          milestone:milestone_id (
-            project_id
-          )
+          project_id
         `)
         .eq('status', 'pending_payment')
-        .eq('milestone.project_id', projectId);
+        .eq('project_id', projectId);
 
       if (error) throw error;
       return data;
     },
   });
 
-  // Fetch incomplete milestones
+  // Fetch incomplete milestones for this project
   const { data: incompleteMilestones = [] } = useQuery({
     queryKey: ['project-incomplete-milestones', projectId],
     queryFn: async () => {
@@ -64,7 +60,7 @@ export function ProjectFinancialSummary({ projectId }: ProjectFinancialSummaryPr
     },
   });
 
-  // Fetch expenses
+  // Fetch expenses for this project
   const { data: expenses = [] } = useQuery({
     queryKey: ['project-expenses-total', projectId],
     queryFn: async () => {
@@ -85,7 +81,7 @@ export function ProjectFinancialSummary({ projectId }: ProjectFinancialSummaryPr
   
   // Updated net profit calculation to include pending invoices
   const netProfit = (totalPaidInvoices + totalPendingInvoices) - totalExpenses;
-  // New net cash flow calculation
+  // Net cash flow calculation (only considering paid invoices)
   const netCashFlow = totalPaidInvoices - totalExpenses;
 
   return (
