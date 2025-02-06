@@ -7,7 +7,7 @@ type UserRole = Database["public"]["Enums"]["user_role"];
 
 export const handleLoginError = (error: AuthError | Error) => {
   // Enhanced error logging
-  console.error("Sign in error details:", {
+  console.error("Authentication error details:", {
     message: error.message,
     status: 'status' in error ? error.status : undefined,
     name: error.name,
@@ -15,32 +15,40 @@ export const handleLoginError = (error: AuthError | Error) => {
     fullError: error
   });
 
-  let errorMessage = "An unexpected error occurred during login";
+  let errorMessage = "An unexpected error occurred. Please try again.";
   
   if (error instanceof AuthError) {
-    if (error.message.includes("Invalid login credentials")) {
-      errorMessage = "Invalid email or password";
-    } else if (error.message.includes("Email not confirmed")) {
-      errorMessage = "Please confirm your email address before logging in";
-    } else if (error.message.includes("Database error")) {
-      errorMessage = "Unable to complete login. Please try again.";
-    } else if (error.status === 500) {
-      errorMessage = "Server error. Please try again in a few minutes. If the problem persists, contact support.";
-      // Additional logging for 500 errors
-      console.error("Server error details:", {
-        error,
-        timestamp: new Date().toISOString(),
-        additionalInfo: error.message
-      });
-    } else {
-      errorMessage = error.message;
+    switch (error.message) {
+      case "Invalid login credentials":
+        errorMessage = "Invalid email or password";
+        break;
+      case "Email not confirmed":
+        errorMessage = "Please confirm your email address before logging in";
+        break;
+      case "Password recovery initiated":
+        errorMessage = "Check your email for password reset instructions";
+        break;
+      default:
+        if (error.message.includes("Database error")) {
+          errorMessage = "Unable to complete login. Please try again in a few moments.";
+        } else if (error.status === 500) {
+          errorMessage = "Server error. Please try again in a few minutes.";
+          // Additional logging for 500 errors
+          console.error("Server error details:", {
+            error,
+            timestamp: new Date().toISOString()
+          });
+        } else {
+          errorMessage = error.message;
+        }
     }
   } else if (error instanceof Error) {
     errorMessage = error.message;
     // Log unexpected errors
     console.error("Unexpected error type:", {
       error,
-      type: error.constructor.name
+      type: error.constructor.name,
+      timestamp: new Date().toISOString()
     });
   }
   
@@ -124,4 +132,3 @@ export const fetchUserProfile = async (userId: string) => {
     throw error;
   }
 };
-

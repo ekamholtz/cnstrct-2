@@ -22,10 +22,12 @@ export const useAuthForm = () => {
       });
 
       if (signInError) {
+        console.error("Sign in error:", signInError);
         throw signInError;
       }
 
       if (!signInData?.user) {
+        console.error("No user data returned from sign in");
         throw new Error("Login failed - no user data returned");
       }
 
@@ -52,7 +54,12 @@ export const useAuthForm = () => {
       }
 
     } catch (error: any) {
-      console.error("Login process error:", error);
+      console.error("Login error details:", {
+        error,
+        message: error.message,
+        status: error.status,
+        name: error.name
+      });
       const errorMessage = handleLoginError(error);
       toast({
         variant: "destructive",
@@ -90,6 +97,7 @@ export const useAuthForm = () => {
       }
 
       if (!data.user) {
+        console.error("No user data returned after registration");
         throw new Error("No user data returned after registration");
       }
 
@@ -108,7 +116,12 @@ export const useAuthForm = () => {
       navigate("/profile-completion");
 
     } catch (error: any) {
-      console.error("Registration error:", error);
+      console.error("Registration error details:", {
+        error,
+        message: error.message,
+        status: error.status,
+        name: error.name
+      });
       const errorMessage = handleLoginError(error);
       toast({
         variant: "destructive",
