@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -25,6 +24,12 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
     try {
       console.log("Starting login process for:", values.email);
       
+      // Log sign-in request details
+      console.log("Sign-in request:", {
+        email: values.email,
+        timestamp: new Date().toISOString()
+      });
+
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
@@ -34,7 +39,8 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
         console.error("Sign in error details:", {
           message: signInError.message,
           status: signInError.status,
-          name: signInError.name
+          name: signInError.name,
+          body: signInError.cause,
         });
         throw signInError;
       }
@@ -44,7 +50,11 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
         throw new Error("Login failed - no user data returned");
       }
 
-      console.log("Sign in successful, fetching user profile...");
+      console.log("Sign in successful, user data:", {
+        id: signInData.user.id,
+        email: signInData.user.email,
+        metadata: signInData.user.user_metadata
+      });
 
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
@@ -89,10 +99,22 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
 
     } catch (error: any) {
       console.error("Login process error:", error);
+      // Enhanced error message based on error type
+      let errorMessage = "An unexpected error occurred during login";
+      if (error.message) {
+        if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "Invalid email or password";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Please confirm your email address before logging in";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: error.message || "An unexpected error occurred during login",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
