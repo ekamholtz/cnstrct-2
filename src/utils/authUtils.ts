@@ -30,20 +30,19 @@ export const handleLoginError = (error: AuthError | Error) => {
         errorMessage = "Check your email for password reset instructions";
         break;
       case "Database error querying schema":
-        errorMessage = "System error. Please try again in a few moments.";
-        // Additional logging for schema errors
-        console.error("Database schema error:", {
-          error,
-          timestamp: new Date().toISOString()
-        });
+        console.error("Database schema error detected, retrying auth flow");
+        errorMessage = "Authentication service temporarily unavailable. Please try again.";
         break;
       default:
         if (error.message.includes("Database error")) {
-          errorMessage = "Unable to complete login. Please try again in a few moments.";
+          errorMessage = "Authentication service temporarily unavailable. Please try again.";
+          console.error("Database error in auth flow:", {
+            error,
+            timestamp: new Date().toISOString()
+          });
         } else if (error.status === 500) {
-          errorMessage = "Server error. Please try again in a few minutes.";
-          // Additional logging for 500 errors
-          console.error("Server error details:", {
+          errorMessage = "Authentication service is currently unavailable. Please try again in a few moments.";
+          console.error("Server error in auth flow:", {
             error,
             timestamp: new Date().toISOString()
           });
@@ -52,13 +51,12 @@ export const handleLoginError = (error: AuthError | Error) => {
         }
     }
   } else if (error instanceof Error) {
-    errorMessage = error.message;
-    // Log unexpected errors
-    console.error("Unexpected error type:", {
+    console.error("Unexpected error type in auth flow:", {
       error,
       type: error.constructor.name,
       timestamp: new Date().toISOString()
     });
+    errorMessage = "Unable to complete authentication. Please try again in a few moments.";
   }
   
   return errorMessage;
@@ -68,11 +66,21 @@ export const createProfile = async (userId: string, fullName: string, role: User
   console.log("Creating profile for user:", { userId, fullName, role });
   
   try {
-    const { data: existingProfile } = await supabase
+    // Check if profile exists first
+    const { data: existingProfile, error: checkError } = await supabase
       .from('profiles')
       .select('id')
       .eq('id', userId)
       .maybeSingle();
+
+    if (checkError) {
+      console.error("Error checking existing profile:", {
+        error: checkError,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+      throw checkError;
+    }
 
     if (existingProfile) {
       console.log("Profile already exists for user:", userId);
@@ -86,11 +94,11 @@ export const createProfile = async (userId: string, fullName: string, role: User
         full_name: fullName,
         role: role,
         has_completed_profile: false,
-        address: '', // Required field with empty default
+        address: '',
       });
 
     if (insertError) {
-      console.error("Error creating profile:", {
+      console.error("Profile creation failed:", {
         error: insertError,
         userId,
         fullName,
@@ -99,6 +107,8 @@ export const createProfile = async (userId: string, fullName: string, role: User
       });
       throw insertError;
     }
+
+    console.log("Profile created successfully:", { userId, role });
   } catch (error) {
     console.error("Unexpected error in createProfile:", {
       error,
@@ -130,7 +140,7 @@ export const fetchUserProfile = async (userId: string) => {
       throw profileError;
     }
 
-    console.log("Fetched profile:", profile);
+    console.log("Profile fetch result:", { profile, userId });
     return profile;
   } catch (error) {
     console.error("Unexpected error in fetchUserProfile:", {

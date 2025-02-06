@@ -31,6 +31,8 @@ export const useAuthForm = () => {
         throw new Error("Login failed - no user data returned");
       }
 
+      console.log("Sign in successful, fetching profile...");
+      
       // Fetch profile after successful login
       const profile = await fetchUserProfile(signInData.user.id);
       
@@ -44,7 +46,7 @@ export const useAuthForm = () => {
         await createProfile(
           signInData.user.id, 
           signInData.user.user_metadata.full_name || '',
-          signInData.user.user_metadata.role || 'admin'
+          signInData.user.user_metadata.role || 'general_contractor'
         );
         navigate("/profile-completion");
       } else if (!profile.has_completed_profile) {
@@ -99,8 +101,10 @@ export const useAuthForm = () => {
 
       if (!data.user) {
         console.error("No user data returned after registration");
-        throw new Error("No user data returned after registration");
+        throw new Error("Registration failed - no user data returned");
       }
+
+      console.log("Registration successful, creating profile...");
 
       // Create profile immediately after successful registration
       await createProfile(
