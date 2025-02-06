@@ -1,9 +1,11 @@
+
 export interface Invoice {
   id: string;
   invoice_number: string;
   amount: number;
   status: "pending_payment" | "paid" | "cancelled";
   created_at: string;
+  project_id: string;
   milestone: {
     name: string;
     project: {

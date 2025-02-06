@@ -25,7 +25,7 @@ export function useInvoices(projectId: string) {
             )
           )
         `)
-        .eq('milestone.project_id', projectId);
+        .eq('project_id', projectId);
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);
@@ -59,7 +59,7 @@ export function useInvoices(projectId: string) {
           event: '*',
           schema: 'public',
           table: 'invoices',
-          filter: `milestone.project_id=eq.${projectId}`
+          filter: `project_id=eq.${projectId}`
         },
         (payload) => {
           console.log('Real-time update received:', payload);

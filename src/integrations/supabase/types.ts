@@ -103,6 +103,7 @@ export type Database = {
           payment_gateway: string | null
           payment_method: string | null
           payment_reference: string | null
+          project_id: string
           status: Database["public"]["Enums"]["invoice_status"]
           updated_at: string
         }
@@ -116,6 +117,7 @@ export type Database = {
           payment_gateway?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          project_id: string
           status?: Database["public"]["Enums"]["invoice_status"]
           updated_at?: string
         }
@@ -129,6 +131,7 @@ export type Database = {
           payment_gateway?: string | null
           payment_method?: string | null
           payment_reference?: string | null
+          project_id?: string
           status?: Database["public"]["Enums"]["invoice_status"]
           updated_at?: string
         }
@@ -138,6 +141,13 @@ export type Database = {
             columns: ["milestone_id"]
             isOneToOne: false
             referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
