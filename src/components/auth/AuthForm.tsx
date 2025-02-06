@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
@@ -22,32 +23,55 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
   const handleLogin = async (values: LoginFormData) => {
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log("Attempting to sign in with:", values.email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Sign in error:", error);
+        throw error;
+      }
 
-      // Check profile completion status after successful login
+      if (!data.user) {
+        throw new Error("No user returned after login");
+      }
+
+      console.log("Sign in successful, user:", data.user);
+
+      // Check profile completion status
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('has_completed_profile')
-        .eq('id', (await supabase.auth.getUser()).data.user?.id)
-        .maybeSingle();
+        .eq('id', data.user.id)
+        .single();
 
-      console.log("Login profile check:", profile, profileError);
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        throw profileError;
+      }
+
+      console.log("Profile data:", profile);
 
       if (profile && !profile.has_completed_profile) {
         navigate("/profile-completion");
       } else {
-        navigate("/");
+        navigate("/dashboard");
       }
+
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully signed in.",
+      });
+
     } catch (error: any) {
+      console.error("Login process error:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message,
+        title: "Login failed",
+        description: error.message || "An unexpected error occurred",
       });
     } finally {
       setLoading(false);
@@ -66,13 +90,13 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
 
     setLoading(true);
     try {
-      console.log("Starting registration with data:", {
+      console.log("Starting registration with:", {
         email: values.email,
         role: selectedRole,
         fullName: values.fullName,
       });
 
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
@@ -83,30 +107,26 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
         },
       });
 
-      if (signUpError) {
-        console.error("Signup error:", {
-          error: signUpError,
-          message: signUpError.message,
-        });
-        throw signUpError;
+      if (error) {
+        console.error("Registration error:", error);
+        throw error;
       }
 
-      console.log("Signup successful:", signUpData);
+      if (!data.user) {
+        throw new Error("No user data returned after registration");
+      }
 
-      // After successful registration, redirect to profile completion
+      console.log("Registration successful:", data);
+
       navigate("/profile-completion");
-
+      
       toast({
         title: "Registration successful!",
         description: "Please complete your profile information.",
       });
 
     } catch (error: any) {
-      console.error("Registration error:", {
-        error,
-        message: error.message,
-      });
-      
+      console.error("Registration error:", error);
       toast({
         variant: "destructive",
         title: "Registration failed",
