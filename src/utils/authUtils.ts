@@ -5,18 +5,17 @@ import type { Database } from "@/integrations/supabase/types";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
 
-export const handleLoginError = (error: AuthError) => {
+export const handleLoginError = (error: AuthError | Error) => {
+  // Log the full error details for debugging
   console.error("Sign in error details:", {
     message: error.message,
-    status: error.status,
+    status: 'status' in error ? error.status : undefined,
     name: error.name,
-    body: error.body,
-    errorType: error.error_type
   });
 
   let errorMessage = "An unexpected error occurred during login";
   
-  if (error.message) {
+  if (error instanceof AuthError) {
     if (error.message.includes("Invalid login credentials")) {
       errorMessage = "Invalid email or password";
     } else if (error.message.includes("Email not confirmed")) {
@@ -26,6 +25,8 @@ export const handleLoginError = (error: AuthError) => {
     } else {
       errorMessage = error.message;
     }
+  } else if (error instanceof Error) {
+    errorMessage = error.message;
   }
   
   return errorMessage;
@@ -77,4 +78,3 @@ export const fetchUserProfile = async (userId: string) => {
     throw error;
   }
 };
-
