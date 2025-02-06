@@ -14,21 +14,21 @@ export function useInvoices(projectId: string) {
     queryFn: async () => {
       console.log('Starting invoice fetch for project:', projectId);
       
-      const { data: invoicesData, error: invoicesError } = await supabase
+      const { data, error } = await supabase
         .rpc('get_project_invoices', { p_id: projectId });
 
-      if (invoicesError) {
-        console.error('Error fetching invoices:', invoicesError);
-        throw invoicesError;
+      if (error) {
+        console.error('Error fetching invoices:', error);
+        throw error;
       }
 
       console.log('Fetched invoices:', {
         projectId,
-        invoiceCount: invoicesData?.length,
-        invoices: invoicesData
+        invoiceCount: data?.length,
+        invoices: data
       });
 
-      return invoicesData as Invoice[];
+      return data as Invoice[];
     },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),

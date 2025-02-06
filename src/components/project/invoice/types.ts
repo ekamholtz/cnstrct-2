@@ -1,4 +1,3 @@
-
 export interface Invoice {
   id: string;
   invoice_number: string;
@@ -9,7 +8,7 @@ export interface Invoice {
   milestone_name: string;
   project_name: string;
   project_id: string;
-  payment_method?: "cc" | "check" | "transfer" | "cash";
+  payment_method?: "cc" | "check" | "transfer" | "cash" | null;
   payment_date?: string;
   payment_reference?: string;
   payment_gateway?: string;

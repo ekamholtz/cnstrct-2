@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -29,7 +30,12 @@ export function InvoiceTable({ invoices, onMarkAsPaid }: InvoiceTableProps) {
           {invoices?.map((invoice) => (
             <TableRow key={invoice.id}>
               <TableCell className="font-medium">{invoice.invoice_number}</TableCell>
-              <TableCell>{invoice.milestone?.name || 'N/A'}</TableCell>
+              <TableCell>
+                <div className="flex flex-col">
+                  <span className="font-medium">{invoice.project_name}</span>
+                  <span className="text-sm text-gray-500">{invoice.milestone_name}</span>
+                </div>
+              </TableCell>
               <TableCell>${invoice.amount.toLocaleString()}</TableCell>
               <TableCell>
                 <StatusBadge status={invoice.status} />
