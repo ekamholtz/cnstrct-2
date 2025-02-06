@@ -4,22 +4,7 @@ import { TableCell, TableRow } from "@/components/ui/table";
 import { FileText, DollarSign } from "lucide-react";
 import { PaymentModal } from "@/components/project/invoice/PaymentModal";
 import { StatusBadge } from "@/components/project/invoice/StatusBadge";
-import { PaymentFormData } from "@/components/project/invoice/types";
-
-interface Invoice {
-  id: string;
-  invoice_number: string;
-  amount: number;
-  status: "pending_payment" | "paid" | "cancelled";
-  created_at: string;
-  project_id: string;
-  milestone: {
-    name: string;
-    project: {
-      name: string;
-    };
-  };
-}
+import { PaymentFormData, Invoice } from "@/components/project/invoice/types";
 
 interface InvoiceTableRowProps {
   invoice: Invoice;
@@ -37,8 +22,8 @@ export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps)
       </TableCell>
       <TableCell>
         <div className="flex flex-col">
-          <span className="font-medium">{invoice.milestone.project.name}</span>
-          <span className="text-sm text-gray-500">{invoice.milestone.name}</span>
+          <span className="font-medium">{invoice.milestone?.project.name}</span>
+          <span className="text-sm text-gray-500">{invoice.milestone?.name}</span>
         </div>
       </TableCell>
       <TableCell>

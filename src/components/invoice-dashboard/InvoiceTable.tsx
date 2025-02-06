@@ -1,3 +1,4 @@
+
 import {
   Table,
   TableBody,
@@ -7,21 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { InvoiceTableRow } from "./InvoiceTableRow";
-import { PaymentFormData } from "@/components/project/invoice/types";
-
-interface Invoice {
-  id: string;
-  invoice_number: string;
-  amount: number;
-  status: "pending_payment" | "paid" | "cancelled";
-  created_at: string;
-  milestone: {
-    name: string;
-    project: {
-      name: string;
-    };
-  };
-}
+import { Invoice, PaymentFormData } from "@/components/project/invoice/types";
 
 interface InvoiceTableProps {
   invoices: Invoice[];
