@@ -21,6 +21,7 @@ interface Project {
   name: string;
   address: string;
   status: string;
+  contractor_id: string;
 }
 
 export default function ProjectDashboard() {
@@ -39,6 +40,16 @@ export default function ProjectDashboard() {
       
       if (error) throw error;
       return data as Project;
+    },
+  });
+
+  // Get current user to check if they are the contractor
+  const { data: currentUser } = useQuery({
+    queryKey: ['current-user'],
+    queryFn: async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return user;
     },
   });
 
@@ -125,6 +136,7 @@ export default function ProjectDashboard() {
   }
 
   const completionPercentage = calculateCompletion(milestones || []);
+  const isContractor = currentUser?.id === project.contractor_id;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -159,7 +171,7 @@ export default function ProjectDashboard() {
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
           <ProjectInvoices projectId={project.id} />
-          <ProjectExpenses projectId={project.id} />
+          {isContractor && <ProjectExpenses projectId={project.id} />}
         </div>
       </main>
     </div>
