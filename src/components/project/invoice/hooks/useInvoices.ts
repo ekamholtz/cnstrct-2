@@ -15,18 +15,7 @@ export function useInvoices(projectId: string) {
       console.log('Starting invoice fetch for project:', projectId);
       
       const { data: invoicesData, error: invoicesError } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          milestone:milestone_id (
-            name,
-            project:project_id (
-              name
-            )
-          )
-        `)
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: false });
+        .rpc('get_project_invoices', { p_id: projectId });
 
       if (invoicesError) {
         console.error('Error fetching invoices:', invoicesError);

@@ -307,6 +307,27 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_project_invoices: {
+        Args: {
+          p_id: string
+        }
+        Returns: {
+          id: string
+          invoice_number: string
+          amount: number
+          status: Database["public"]["Enums"]["invoice_status"]
+          created_at: string
+          updated_at: string
+          payment_method: string
+          payment_date: string
+          payment_reference: string
+          payment_gateway: string
+          milestone_id: string
+          milestone_name: string
+          project_name: string
+          project_id: string
+        }[]
+      }
       undo_milestone_completion: {
         Args: {
           milestone_id_param: string
