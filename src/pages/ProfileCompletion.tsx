@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,8 +14,12 @@ import { ContractorFormFields } from "@/components/profile-completion/Contractor
 import { HomeownerFormFields } from "@/components/profile-completion/HomeownerFormFields";
 import { ProfileCompletionFooter } from "@/components/profile-completion/ProfileCompletionFooter";
 
+// Import the user_role type from Supabase generated types
+import type { Database } from "@/integrations/supabase/types";
+type UserRole = Database["public"]["Enums"]["user_role"];
+
 export default function ProfileCompletion() {
-  const [userRole, setUserRole] = useState<"general_contractor" | "homeowner" | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -91,7 +96,8 @@ export default function ProfileCompletion() {
     }
   };
 
-  if (!userRole) return null;
+  // Only render form for contractors and homeowners, not admins
+  if (!userRole || userRole === 'admin') return null;
 
   return (
     <div className="min-h-screen bg-gray-50">
