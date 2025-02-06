@@ -29,7 +29,7 @@ export function useInvoices(projectId: string) {
 
       console.log('Verified project exists:', project);
 
-      // First get all milestones for this project
+      // Get milestones for this project with a direct project_id filter
       const { data: milestones, error: milestonesError } = await supabase
         .from('milestones')
         .select('id')
@@ -40,11 +40,17 @@ export function useInvoices(projectId: string) {
         throw milestonesError;
       }
 
+      if (!milestones || milestones.length === 0) {
+        console.log('No milestones found for project:', projectId);
+        return [];
+      }
+
       const currentMilestoneIds = milestones.map(m => m.id);
+      console.log('Milestone IDs for project:', currentMilestoneIds);
       setMilestoneIds(currentMilestoneIds);
-      
-      // Then fetch invoices that belong to these milestones
-      const { data, error } = await supabase
+
+      // Fetch invoices using milestone_id IN clause
+      const { data: invoicesData, error: invoicesError } = await supabase
         .from('invoices')
         .select(`
           *,
@@ -57,30 +63,34 @@ export function useInvoices(projectId: string) {
         `)
         .in('milestone_id', currentMilestoneIds);
 
-      if (error) {
-        console.error('Error fetching invoices:', error);
-        throw error;
+      if (invoicesError) {
+        console.error('Error fetching invoices:', invoicesError);
+        throw invoicesError;
       }
 
-      console.log('Fetched invoices for project:', {
+      console.log('Fetched invoices:', {
         projectId,
         milestoneIds: currentMilestoneIds,
-        invoiceCount: data?.length,
-        invoices: data
+        invoiceCount: invoicesData?.length,
+        invoices: invoicesData
       });
 
-      return data as Invoice[];
+      return invoicesData as Invoice[];
     },
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Set up real-time subscription for this specific project's invoices
+  // Set up real-time subscription for invoices
   useEffect(() => {
-    if (milestoneIds.length === 0) return;
+    if (!milestoneIds.length) return;
 
-    console.log('Setting up real-time subscription for project invoices:', projectId);
+    console.log('Setting up real-time subscription for project invoices:', {
+      projectId,
+      milestoneIds
+    });
+
     const channel = supabase
       .channel(`project-invoices-${projectId}`)
       .on(
@@ -92,18 +102,16 @@ export function useInvoices(projectId: string) {
           filter: `milestone_id.in.(${milestoneIds.join(',')})`
         },
         (payload) => {
-          console.log('Real-time update received for project invoices:', {
-            projectId,
-            event: payload.eventType,
-            data: payload.new
-          });
+          console.log('Real-time update received:', payload);
           queryClient.invalidateQueries({ queryKey: ['project-invoices', projectId] });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
-      console.log('Cleaning up real-time subscription for project:', projectId);
+      console.log('Cleaning up real-time subscription');
       supabase.removeChannel(channel);
     };
   }, [projectId, queryClient, milestoneIds]);
