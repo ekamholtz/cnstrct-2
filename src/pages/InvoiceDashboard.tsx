@@ -9,6 +9,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
+import { Invoice } from "@/components/project/invoice/types";
 
 export default function InvoiceDashboard() {
   const {
@@ -58,11 +59,11 @@ export default function InvoiceDashboard() {
       <InvoiceFilters
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
-        invoices={invoices}
+        invoices={invoices as Invoice[]}
       />
 
       <InvoiceTable
-        invoices={invoices}
+        invoices={invoices as Invoice[]}
         loading={loading}
         onMarkAsPaid={handleMarkAsPaid}
       />

@@ -2,21 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { PaymentFormData } from "@/components/project/invoice/types";
-
-interface Invoice {
-  id: string;
-  invoice_number: string;
-  amount: number;
-  status: "pending_payment" | "paid" | "cancelled";
-  created_at: string;
-  milestone: {
-    name: string;
-    project: {
-      name: string;
-    };
-  };
-}
+import { Invoice, PaymentFormData } from "@/components/project/invoice/types";
 
 export type InvoiceStatus = "pending_payment" | "paid" | "cancelled" | "all";
 
