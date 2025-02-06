@@ -28,20 +28,32 @@ export function useInvoices(projectId: string) {
 
       console.log('Verified project exists:', project);
 
-      // Fetch invoices with an inner join to ensure we only get invoices
-      // that belong to milestones of this project
+      // First get all milestones for this project
+      const { data: milestones, error: milestonesError } = await supabase
+        .from('milestones')
+        .select('id')
+        .eq('project_id', projectId);
+
+      if (milestonesError) {
+        console.error('Error fetching milestones:', milestonesError);
+        throw milestonesError;
+      }
+
+      const milestoneIds = milestones.map(m => m.id);
+      
+      // Then fetch invoices that belong to these milestones
       const { data, error } = await supabase
         .from('invoices')
         .select(`
           *,
-          milestone:milestone_id!inner (
+          milestone:milestone_id (
             name,
-            project:project_id!inner (
+            project:project_id (
               name
             )
           )
         `)
-        .eq('milestone.project_id', projectId);
+        .in('milestone_id', milestoneIds);
 
       if (error) {
         console.error('Error fetching invoices:', error);
@@ -50,6 +62,7 @@ export function useInvoices(projectId: string) {
 
       console.log('Fetched invoices for project:', {
         projectId,
+        milestoneIds,
         invoiceCount: data?.length,
         invoices: data
       });
@@ -72,7 +85,7 @@ export function useInvoices(projectId: string) {
           event: '*',
           schema: 'public',
           table: 'invoices',
-          filter: `milestone.project_id=eq.${projectId}`
+          filter: `milestone_id.in.(${milestones?.map(m => m.id).join(',')})`
         },
         (payload) => {
           console.log('Real-time update received for project invoices:', {
