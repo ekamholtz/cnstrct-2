@@ -6,7 +6,7 @@ import type { Database } from "@/integrations/supabase/types";
 type UserRole = Database["public"]["Enums"]["user_role"];
 
 export const handleLoginError = (error: AuthError | Error) => {
-  // Enhanced error logging with detailed information
+  // Enhanced error logging with detailed information and timing
   console.error("Authentication error details:", {
     message: error.message,
     status: 'status' in error ? error.status : undefined,
@@ -30,6 +30,7 @@ export const handleLoginError = (error: AuthError | Error) => {
         errorMessage = "Check your email for password reset instructions";
         break;
       case "Database error querying schema":
+        // Specific handling for the schema error we're encountering
         console.error("Database schema error detected, retrying auth flow");
         errorMessage = "Authentication service temporarily unavailable. Please try again in a few moments.";
         break;
