@@ -3,8 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 
+type AdminStats = {
+  total_users?: number;
+  active_projects?: number;
+  total_revenue?: number;
+}
+
 const AdminDashboard = () => {
-  const { data: stats, isLoading } = useQuery({
+  const { data: stats, isLoading } = useQuery<AdminStats>({
     queryKey: ['admin-stats'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -20,7 +26,7 @@ const AdminDashboard = () => {
       return data.reduce((acc, stat) => ({
         ...acc,
         [stat.stat_type]: stat.value
-      }), {});
+      }), {} as AdminStats);
     }
   });
 
