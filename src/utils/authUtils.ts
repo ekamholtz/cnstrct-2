@@ -59,23 +59,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
   console.log("Creating profile for user:", { userId, fullName, role });
   
   try {
-    // Check if profile exists first
-    const { data: existingProfile, error: checkError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('id', userId)
-      .maybeSingle();
-
-    if (checkError) {
-      console.error("Error checking existing profile:", checkError);
-      throw checkError;
-    }
-
-    if (existingProfile) {
-      console.log("Profile already exists for user:", userId);
-      return;
-    }
-
+    // Insert the profile with minimal required data
     const { error: insertError } = await supabase
       .from('profiles')
       .insert({
@@ -120,4 +104,3 @@ export const fetchUserProfile = async (userId: string) => {
     throw error;
   }
 };
-

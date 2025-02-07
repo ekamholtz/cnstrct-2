@@ -85,7 +85,8 @@ export const useAuthForm = () => {
         fullName: values.fullName,
       });
 
-      const { data, error } = await supabase.auth.signUp({
+      // First create the user through auth API
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
         options: {
@@ -93,15 +94,16 @@ export const useAuthForm = () => {
             full_name: values.fullName,
             role: selectedRole,
           },
+          emailRedirectTo: window.location.origin + '/auth'
         },
       });
 
-      if (error) {
-        console.error("Registration error:", error);
-        throw error;
+      if (signUpError) {
+        console.error("Registration error:", signUpError);
+        throw signUpError;
       }
 
-      if (!data.user) {
+      if (!signUpData.user) {
         console.error("No user data returned after registration");
         throw new Error("Registration failed - no user data returned");
       }
@@ -110,17 +112,18 @@ export const useAuthForm = () => {
 
       // Create profile immediately after successful registration
       await createProfile(
-        data.user.id,
+        signUpData.user.id,
         values.fullName,
         selectedRole
       );
 
       toast({
         title: "Registration successful!",
-        description: "Please complete your profile information.",
+        description: "Please check your email to confirm your account.",
       });
 
-      navigate("/profile-completion");
+      // Don't navigate yet - wait for email confirmation
+      navigate("/auth");
 
     } catch (error: any) {
       console.error("Registration error details:", {
@@ -147,4 +150,3 @@ export const useAuthForm = () => {
     handleRegister
   };
 };
-
