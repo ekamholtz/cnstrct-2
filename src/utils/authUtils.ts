@@ -120,3 +120,4 @@ export const fetchUserProfile = async (userId: string) => {
     throw error;
   }
 };
+
