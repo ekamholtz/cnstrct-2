@@ -30,9 +30,8 @@ export const handleLoginError = (error: AuthError | Error) => {
         errorMessage = "Check your email for password reset instructions";
         break;
       case "Database error querying schema":
-        // Handle schema-related errors more gracefully
-        console.error("Database schema error, attempting recovery flow:", error);
-        errorMessage = "Please try logging in again. If the problem persists, contact support.";
+        console.error("Database schema error details:", error);
+        errorMessage = "The system is experiencing technical difficulties. Please try again in a few moments.";
         break;
       default:
         if (error.message.includes("Database error")) {
@@ -72,16 +71,18 @@ export const createProfile = async (userId: string, fullName: string, role: User
 
     if (existingProfile) {
       console.log("Profile already exists for user:", userId);
-      return;
+      return existingProfile;
     }
 
-    const { error: insertError } = await supabase
+    const { data: newProfile, error: insertError } = await supabase
       .from('profiles')
       .insert({
         id: userId,
         full_name: fullName || '',
         role: role,
         has_completed_profile: role === 'admin',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -92,6 +93,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
     }
 
     console.log("Profile created successfully:", { userId, role });
+    return newProfile;
   } catch (error) {
     console.error("Unexpected error in createProfile:", error);
     throw error;

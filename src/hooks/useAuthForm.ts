@@ -42,15 +42,21 @@ export const useAuthForm = () => {
 
       if (!profile) {
         console.log("No profile found, creating one...");
-        await createProfile(
+        const newProfile = await createProfile(
           signInData.user.id, 
           signInData.user.user_metadata.full_name || '',
           signInData.user.user_metadata.role || 'general_contractor'
         );
-        navigate("/profile-completion");
-      } else if (profile.role === 'admin') {
+        
+        if (!newProfile.has_completed_profile) {
+          navigate("/profile-completion");
+          return;
+        }
+      }
+      
+      if (profile?.role === 'admin') {
         navigate("/admin");
-      } else if (!profile.has_completed_profile) {
+      } else if (!profile?.has_completed_profile) {
         navigate("/profile-completion");
       } else {
         navigate("/dashboard");
