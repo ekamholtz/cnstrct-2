@@ -23,14 +23,6 @@ export const useAuthForm = () => {
 
       if (signInError) {
         console.error("Sign in error:", signInError);
-        if (signInError.message.includes("Database error")) {
-          toast({
-            variant: "destructive",
-            title: "Authentication Error",
-            description: "We're experiencing technical difficulties. Please try again in a few moments. If the problem persists, contact support.",
-          });
-          return;
-        }
         throw signInError;
       }
 
@@ -105,14 +97,6 @@ export const useAuthForm = () => {
       });
 
       if (error) {
-        if (error.message.includes("Database error")) {
-          toast({
-            variant: "destructive",
-            title: "Registration Error",
-            description: "We're experiencing technical difficulties. Please try again in a few moments. If the problem persists, contact support.",
-          });
-          return;
-        }
         console.error("Registration error:", error);
         throw error;
       }

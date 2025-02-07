@@ -30,23 +30,15 @@ export const handleLoginError = (error: AuthError | Error) => {
         errorMessage = "Check your email for password reset instructions";
         break;
       case "Database error querying schema":
-        // Specific handling for the schema error we're encountering
-        console.error("Database schema error detected, retrying auth flow");
-        errorMessage = "Authentication service temporarily unavailable. Please try again in a few moments.";
+        // Handle the specific schema error gracefully
+        console.error("Database schema error detected");
+        errorMessage = "The system is temporarily unavailable. Please try again in a few moments.";
         break;
       default:
         if (error.message.includes("Database error")) {
-          errorMessage = "Authentication service temporarily unavailable. Please try again in a few moments.";
-          console.error("Database error in auth flow:", {
-            error,
-            timestamp: new Date().toISOString()
-          });
+          errorMessage = "The system is temporarily unavailable. Please try again in a few moments.";
         } else if (error.status === 500) {
-          errorMessage = "Authentication service is currently unavailable. Please try again in a few moments.";
-          console.error("Server error in auth flow:", {
-            error,
-            timestamp: new Date().toISOString()
-          });
+          errorMessage = "The service is currently unavailable. Please try again in a few moments.";
         } else {
           errorMessage = error.message;
         }
@@ -57,7 +49,7 @@ export const handleLoginError = (error: AuthError | Error) => {
       type: error.constructor.name,
       timestamp: new Date().toISOString()
     });
-    errorMessage = "Unable to complete authentication. Please try again in a few moments.";
+    errorMessage = "Unable to complete your request. Please try again in a few moments.";
   }
   
   return errorMessage;
@@ -75,11 +67,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
       .maybeSingle();
 
     if (checkError) {
-      console.error("Error checking existing profile:", {
-        error: checkError,
-        userId,
-        timestamp: new Date().toISOString()
-      });
+      console.error("Error checking existing profile:", checkError);
       throw checkError;
     }
 
@@ -94,30 +82,18 @@ export const createProfile = async (userId: string, fullName: string, role: User
         id: userId,
         full_name: fullName,
         role: role,
-        has_completed_profile: role === 'admin', // Admin profiles are considered complete by default
+        has_completed_profile: role === 'admin',
         address: '',
       });
 
     if (insertError) {
-      console.error("Profile creation failed:", {
-        error: insertError,
-        userId,
-        fullName,
-        role,
-        timestamp: new Date().toISOString()
-      });
+      console.error("Profile creation failed:", insertError);
       throw insertError;
     }
 
     console.log("Profile created successfully:", { userId, role });
   } catch (error) {
-    console.error("Unexpected error in createProfile:", {
-      error,
-      userId,
-      fullName,
-      role,
-      timestamp: new Date().toISOString()
-    });
+    console.error("Unexpected error in createProfile:", error);
     throw error;
   }
 };
@@ -133,22 +109,14 @@ export const fetchUserProfile = async (userId: string) => {
       .maybeSingle();
 
     if (profileError) {
-      console.error("Error fetching profile:", {
-        error: profileError,
-        userId,
-        timestamp: new Date().toISOString()
-      });
+      console.error("Error fetching profile:", profileError);
       throw profileError;
     }
 
     console.log("Profile fetch result:", { profile, userId });
     return profile;
   } catch (error) {
-    console.error("Unexpected error in fetchUserProfile:", {
-      error,
-      userId,
-      timestamp: new Date().toISOString()
-    });
+    console.error("Unexpected error in fetchUserProfile:", error);
     throw error;
   }
 };
