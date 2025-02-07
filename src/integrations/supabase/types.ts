@@ -47,6 +47,27 @@ export type Database = {
           },
         ]
       }
+      admin_stats_cache: {
+        Row: {
+          id: string
+          last_updated: string | null
+          stat_type: string
+          value: number
+        }
+        Insert: {
+          id?: string
+          last_updated?: string | null
+          stat_type: string
+          value: number
+        }
+        Update: {
+          id?: string
+          last_updated?: string | null
+          stat_type?: string
+          value?: number
+        }
+        Relationships: []
+      }
       clients: {
         Row: {
           address: string
@@ -380,6 +401,18 @@ export type Database = {
           milestone_id_param: string
         }
         Returns: boolean
+      }
+      update_active_projects_stat: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_total_revenue_stat: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      update_total_users_stat: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {
