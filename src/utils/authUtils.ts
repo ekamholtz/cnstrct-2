@@ -30,8 +30,9 @@ export const handleLoginError = (error: AuthError | Error) => {
         errorMessage = "Check your email for password reset instructions";
         break;
       case "Database error querying schema":
-        console.error("Database schema error detected:", error);
-        errorMessage = "The system is temporarily unavailable. Please try again in a few moments.";
+        // Handle schema-related errors more gracefully
+        console.error("Database schema error, attempting recovery flow:", error);
+        errorMessage = "Please try logging in again. If the problem persists, contact support.";
         break;
       default:
         if (error.message.includes("Database error")) {
