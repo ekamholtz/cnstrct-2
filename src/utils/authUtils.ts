@@ -1,4 +1,3 @@
-
 import { AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -31,8 +30,8 @@ export const handleLoginError = (error: AuthError | Error) => {
         break;
       case "Database error querying schema":
         // Handle the specific schema error gracefully
-        console.error("Database schema error detected");
-        errorMessage = "The system is temporarily unavailable. Please try again in a few moments.";
+        console.error("Database schema error detected, retrying auth flow");
+        errorMessage = "Please try logging in again in a few moments.";
         break;
       default:
         if (error.message.includes("Database error")) {
