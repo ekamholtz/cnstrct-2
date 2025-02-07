@@ -1,3 +1,4 @@
+
 import { AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -29,9 +30,9 @@ export const handleLoginError = (error: AuthError | Error) => {
         errorMessage = "Check your email for password reset instructions";
         break;
       case "Database error querying schema":
-        // Handle the specific schema error gracefully
-        console.error("Database schema error detected, retrying auth flow");
-        errorMessage = "Please try logging in again in a few moments.";
+        // Handle database schema errors more gracefully
+        console.error("Database schema error detected:", error);
+        errorMessage = "The system is temporarily unavailable. Please try again in a few moments.";
         break;
       default:
         if (error.message.includes("Database error")) {
@@ -58,7 +59,14 @@ export const createProfile = async (userId: string, fullName: string, role: User
   console.log("Creating profile for user:", { userId, fullName, role });
   
   try {
-    // Insert the profile with minimal required data
+    // Add detailed logging for profile creation
+    console.log("Starting profile creation with data:", {
+      id: userId,
+      full_name: fullName,
+      role: role,
+      has_completed_profile: role === 'admin'
+    });
+
     const { error: insertError } = await supabase
       .from('profiles')
       .insert({
@@ -66,6 +74,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
         full_name: fullName || '',
         role: role,
         has_completed_profile: role === 'admin',
+        address: '', // Required field with default empty string
       });
 
     if (insertError) {
