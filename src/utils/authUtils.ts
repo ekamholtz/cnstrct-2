@@ -64,11 +64,9 @@ export const createProfile = async (userId: string, fullName: string, role: User
       .from('profiles')
       .insert({
         id: userId,
-        full_name: fullName,
+        full_name: fullName || '',
         role: role,
         has_completed_profile: role === 'admin',
-        address: '',
-        email_confirmed_at: new Date().toISOString(),
       });
 
     if (insertError) {

@@ -260,7 +260,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           email_confirmed_at?: string | null
-          full_name: string
+          full_name?: string
           has_completed_profile?: boolean | null
           id: string
           join_date?: string | null

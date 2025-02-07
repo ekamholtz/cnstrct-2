@@ -85,7 +85,6 @@ export const useAuthForm = () => {
         fullName: values.fullName,
       });
 
-      // Explicitly create the profile first to avoid race conditions
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
