@@ -9,8 +9,18 @@ type AdminStats = {
   total_revenue?: number;
 }
 
+type AdminAction = {
+  id: string;
+  admin_id: string;
+  entity_type: string;
+  entity_id: string;
+  action_type: string;
+  details: any;
+  created_at: string;
+}
+
 const AdminDashboard = () => {
-  const { data: stats, isLoading } = useQuery<AdminStats>({
+  const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
     queryKey: ['admin-stats'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -22,11 +32,31 @@ const AdminDashboard = () => {
         throw error;
       }
       
-      // Convert array to object with stat_type as keys
       return data.reduce((acc, stat) => ({
         ...acc,
         [stat.stat_type]: stat.value
       }), {} as AdminStats);
+    }
+  });
+
+  const { data: recentActions, isLoading: actionsLoading } = useQuery({
+    queryKey: ['admin-actions'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('admin_actions')
+        .select(`
+          *,
+          admin:profiles(full_name)
+        `)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) {
+        console.error('Error fetching admin actions:', error);
+        throw error;
+      }
+
+      return data;
     }
   });
 
@@ -41,6 +71,16 @@ const AdminDashboard = () => {
     return new Intl.NumberFormat().format(value);
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
@@ -48,28 +88,54 @@ const AdminDashboard = () => {
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-2">Total Users</h3>
           <p className="text-3xl font-bold">
-            {isLoading ? 'Loading...' : formatValue(stats?.total_users, 'total_users')}
+            {statsLoading ? 'Loading...' : formatValue(stats?.total_users, 'total_users')}
           </p>
         </Card>
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-2">Active Projects</h3>
           <p className="text-3xl font-bold">
-            {isLoading ? 'Loading...' : formatValue(stats?.active_projects, 'active_projects')}
+            {statsLoading ? 'Loading...' : formatValue(stats?.active_projects, 'active_projects')}
           </p>
         </Card>
         <Card className="p-6">
           <h3 className="text-lg font-semibold mb-2">Total Revenue</h3>
           <p className="text-3xl font-bold">
-            {isLoading ? 'Loading...' : formatValue(stats?.total_revenue, 'total_revenue')}
+            {statsLoading ? 'Loading...' : formatValue(stats?.total_revenue, 'total_revenue')}
           </p>
         </Card>
       </div>
       
-      {/* Recent activity section kept for future implementation */}
       <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Recent Activity</h2>
         <Card className="p-6">
-          <p className="text-gray-500">No recent activity to display</p>
+          {actionsLoading ? (
+            <p className="text-gray-500">Loading recent activity...</p>
+          ) : recentActions && recentActions.length > 0 ? (
+            <div className="space-y-4">
+              {recentActions.map((action) => (
+                <div key={action.id} className="border-b last:border-0 pb-4 last:pb-0">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-semibold">{action.action_type}</p>
+                      <p className="text-sm text-gray-600">
+                        {action.admin?.full_name} - {action.entity_type}
+                      </p>
+                    </div>
+                    <span className="text-sm text-gray-500">
+                      {formatDate(action.created_at)}
+                    </span>
+                  </div>
+                  {action.details && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      {JSON.stringify(action.details)}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500">No recent activity to display</p>
+          )}
         </Card>
       </div>
     </div>
