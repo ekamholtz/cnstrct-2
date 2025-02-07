@@ -18,6 +18,7 @@ import ProjectDashboard from "./pages/ProjectDashboard";
 import InvoiceDashboard from "./pages/InvoiceDashboard";
 import InvoiceDetails from "./pages/InvoiceDetails";
 import HomeownerProfile from "./pages/HomeownerProfile";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -101,9 +102,63 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (hasCompletedProfile && window.location.pathname === '/') {
+    if (userRole === 'admin') {
+      return <Navigate to="/admin" replace />;
+    }
     return userRole === 'homeowner' ? 
       <Navigate to="/client-dashboard" replace /> : 
       <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdminSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+
+        if (session) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .maybeSingle();
+
+          if (error) {
+            console.error("Error fetching profile:", error);
+            setLoading(false);
+            return;
+          }
+
+          setIsAdmin(data?.role === 'admin');
+        }
+        setLoading(false);
+      } catch (error) {
+        console.error("Error in checkAdminSession:", error);
+        setLoading(false);
+      }
+    };
+
+    checkAdminSession();
+  }, []);
+
+  if (loading) {
+    return null;
+  }
+
+  if (!session) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (!isAdmin) {
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -131,6 +186,14 @@ const App = () => (
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
             }
           />
           <Route
@@ -206,3 +269,4 @@ const App = () => (
 );
 
 export default App;
+
