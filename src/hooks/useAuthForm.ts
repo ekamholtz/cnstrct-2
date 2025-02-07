@@ -85,7 +85,7 @@ export const useAuthForm = () => {
         fullName: values.fullName,
       });
 
-      // First create the user through auth API
+      // Explicitly create the profile first to avoid race conditions
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: values.email,
         password: values.password,
@@ -94,7 +94,7 @@ export const useAuthForm = () => {
             full_name: values.fullName,
             role: selectedRole,
           },
-          emailRedirectTo: window.location.origin + '/auth'
+          emailRedirectTo: `${window.location.origin}/auth`
         },
       });
 
@@ -122,7 +122,7 @@ export const useAuthForm = () => {
         description: "Please check your email to confirm your account.",
       });
 
-      // Don't navigate yet - wait for email confirmation
+      // Stay on auth page waiting for email confirmation
       navigate("/auth");
 
     } catch (error: any) {

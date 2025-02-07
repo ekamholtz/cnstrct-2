@@ -68,6 +68,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
         role: role,
         has_completed_profile: role === 'admin',
         address: '',
+        email_confirmed_at: new Date().toISOString(),
       });
 
     if (insertError) {
