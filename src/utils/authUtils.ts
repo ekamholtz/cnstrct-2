@@ -59,14 +59,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
   console.log("Creating profile for user:", { userId, fullName, role });
   
   try {
-    // Add detailed logging for profile creation
-    console.log("Starting profile creation with data:", {
-      id: userId,
-      full_name: fullName,
-      role: role,
-      has_completed_profile: role === 'admin'
-    });
-
+    // Use the service role client for initial profile creation
     const { error: insertError } = await supabase
       .from('profiles')
       .insert({
@@ -75,7 +68,9 @@ export const createProfile = async (userId: string, fullName: string, role: User
         role: role,
         has_completed_profile: role === 'admin',
         address: '', // Required field with default empty string
-      });
+      })
+      .select()
+      .single();
 
     if (insertError) {
       console.error("Profile creation failed:", insertError);
