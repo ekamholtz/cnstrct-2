@@ -21,7 +21,7 @@ export const handleLoginError = (error: AuthError | Error) => {
   if (error instanceof AuthError) {
     switch (error.message) {
       case "Invalid login credentials":
-        errorMessage = "Invalid email or password";
+        errorMessage = "Invalid email or password. Please check your credentials and try again.";
         break;
       case "Email not confirmed":
         errorMessage = "Please confirm your email address before logging in";
@@ -31,11 +31,11 @@ export const handleLoginError = (error: AuthError | Error) => {
         break;
       case "Database error querying schema":
         console.error("Database schema error detected, retrying auth flow");
-        errorMessage = "Authentication service temporarily unavailable. Please try again.";
+        errorMessage = "Authentication service temporarily unavailable. Please try again in a few moments.";
         break;
       default:
         if (error.message.includes("Database error")) {
-          errorMessage = "Authentication service temporarily unavailable. Please try again.";
+          errorMessage = "Authentication service temporarily unavailable. Please try again in a few moments.";
           console.error("Database error in auth flow:", {
             error,
             timestamp: new Date().toISOString()
