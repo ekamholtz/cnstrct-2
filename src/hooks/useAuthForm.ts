@@ -33,7 +33,6 @@ export const useAuthForm = () => {
 
       console.log("Sign in successful, fetching profile...");
       
-      // Fetch profile after successful login
       const profile = await fetchUserProfile(signInData.user.id);
       
       toast({
@@ -109,7 +108,6 @@ export const useAuthForm = () => {
 
       console.log("Registration successful, creating profile...");
 
-      // Create profile immediately after successful registration
       await createProfile(
         signUpData.user.id,
         values.fullName,
@@ -121,7 +119,6 @@ export const useAuthForm = () => {
         description: "Please check your email to confirm your account.",
       });
 
-      // Stay on auth page waiting for email confirmation
       navigate("/auth");
 
     } catch (error: any) {

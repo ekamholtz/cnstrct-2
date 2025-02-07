@@ -6,7 +6,7 @@ import type { Database } from "@/integrations/supabase/types";
 type UserRole = Database["public"]["Enums"]["user_role"];
 
 export const handleLoginError = (error: AuthError | Error) => {
-  // Enhanced error logging with detailed information and timing
+  // Enhanced error logging with detailed information
   console.error("Authentication error details:", {
     message: error.message,
     status: 'status' in error ? error.status : undefined,
@@ -30,7 +30,6 @@ export const handleLoginError = (error: AuthError | Error) => {
         errorMessage = "Check your email for password reset instructions";
         break;
       case "Database error querying schema":
-        // Handle database schema errors more gracefully
         console.error("Database schema error detected:", error);
         errorMessage = "The system is temporarily unavailable. Please try again in a few moments.";
         break;
@@ -59,7 +58,22 @@ export const createProfile = async (userId: string, fullName: string, role: User
   console.log("Creating profile for user:", { userId, fullName, role });
   
   try {
-    // Use the service role client for initial profile creation
+    const { data: existingProfile, error: checkError } = await supabase
+      .from('profiles')
+      .select()
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("Error checking existing profile:", checkError);
+      throw checkError;
+    }
+
+    if (existingProfile) {
+      console.log("Profile already exists for user:", userId);
+      return;
+    }
+
     const { error: insertError } = await supabase
       .from('profiles')
       .insert({
@@ -67,7 +81,6 @@ export const createProfile = async (userId: string, fullName: string, role: User
         full_name: fullName || '',
         role: role,
         has_completed_profile: role === 'admin',
-        address: '', // Required field with default empty string
       })
       .select()
       .single();
@@ -106,4 +119,3 @@ export const fetchUserProfile = async (userId: string) => {
     throw error;
   }
 };
-
