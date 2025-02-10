@@ -11,6 +11,7 @@ import { StatusBadge } from "@/components/project/invoice/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PaymentModal } from "@/components/project/invoice/PaymentModal";
 import { PaymentSimulationModal } from "@/components/project/invoice/PaymentSimulationModal";
+import { Invoice } from "@/components/project/invoice/types";
 
 export default function InvoiceDetails() {
   const { invoiceId } = useParams();
@@ -33,7 +34,7 @@ export default function InvoiceDetails() {
     },
   });
 
-  const { data: invoice, isLoading: isInvoiceLoading } = useQuery({
+  const { data: invoiceData, isLoading: isInvoiceLoading } = useQuery({
     queryKey: ['invoice', invoiceId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -42,7 +43,15 @@ export default function InvoiceDetails() {
         .single();
 
       if (error) throw error;
-      return data;
+      
+      // Transform the data to match the Invoice type
+      const invoice: Invoice = {
+        ...data,
+        payment_method: data.payment_method as "cc" | "check" | "transfer" | "cash" | null,
+        payment_method_type: data.payment_method_type as "cc" | "check" | "transfer" | "cash" | "simulated" | null,
+      };
+      
+      return invoice;
     },
   });
 
@@ -58,7 +67,7 @@ export default function InvoiceDetails() {
     );
   }
 
-  if (!invoice) {
+  if (!invoiceData) {
     return (
       <DashboardLayout>
         <div className="text-center">
@@ -83,7 +92,7 @@ export default function InvoiceDetails() {
       </div>
 
       <ClientPageHeader 
-        pageTitle={`Invoice #${invoice.invoice_number}`}
+        pageTitle={`Invoice #${invoiceData.invoice_number}`}
         pageDescription="View invoice details and payment information"
       />
 
@@ -91,18 +100,18 @@ export default function InvoiceDetails() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Invoice Information</CardTitle>
-            {invoice.status === 'pending_payment' && (
+            {invoiceData.status === 'pending_payment' && (
               <div>
                 {isClient ? (
                   <PaymentSimulationModal
-                    invoice={invoice}
+                    invoice={invoiceData}
                     onPaymentComplete={() => {
                       window.location.reload();
                     }}
                   />
                 ) : (
                   <PaymentModal
-                    invoice={invoice}
+                    invoice={invoiceData}
                     onSubmit={async (data) => {
                       // This is a placeholder - the actual implementation would come from props
                       console.log('Payment marked:', data);
@@ -117,33 +126,33 @@ export default function InvoiceDetails() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h3 className="font-medium text-gray-500">Status</h3>
-                <StatusBadge status={invoice.status} />
+                <StatusBadge status={invoiceData.status} />
               </div>
               <div>
                 <h3 className="font-medium text-gray-500">Amount</h3>
-                <p className="text-lg font-semibold">${invoice.amount.toLocaleString()}</p>
+                <p className="text-lg font-semibold">${invoiceData.amount.toLocaleString()}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h3 className="font-medium text-gray-500">Project</h3>
-                <p>{invoice.project_name}</p>
+                <p>{invoiceData.project_name}</p>
               </div>
               <div>
                 <h3 className="font-medium text-gray-500">Milestone</h3>
-                <p>{invoice.milestone_name}</p>
+                <p>{invoiceData.milestone_name}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h3 className="font-medium text-gray-500">Created Date</h3>
-                <p>{format(new Date(invoice.created_at), 'MMM d, yyyy')}</p>
+                <p>{format(new Date(invoiceData.created_at), 'MMM d, yyyy')}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {invoice.status === "paid" && (
+        {invoiceData.status === "paid" && (
           <Card>
             <CardHeader>
               <CardTitle>Payment Details</CardTitle>
@@ -152,17 +161,17 @@ export default function InvoiceDetails() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-medium text-gray-500">Payment Method</h3>
-                  <p className="capitalize">{invoice.payment_method}</p>
+                  <p className="capitalize">{invoiceData.payment_method}</p>
                 </div>
                 <div>
                   <h3 className="font-medium text-gray-500">Payment Date</h3>
-                  <p>{invoice.payment_date ? format(new Date(invoice.payment_date), 'MMM d, yyyy') : 'N/A'}</p>
+                  <p>{invoiceData.payment_date ? format(new Date(invoiceData.payment_date), 'MMM d, yyyy') : 'N/A'}</p>
                 </div>
               </div>
-              {invoice.payment_reference && (
+              {invoiceData.payment_reference && (
                 <div>
                   <h3 className="font-medium text-gray-500">Payment Reference</h3>
-                  <p>{invoice.payment_reference}</p>
+                  <p>{invoiceData.payment_reference}</p>
                 </div>
               )}
             </CardContent>
