@@ -1,7 +1,7 @@
 
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users, Receipt } from "lucide-react";
+import { LayoutDashboard, Users, Receipt, FolderKanban } from "lucide-react";
 
 export const AdminNav = () => {
   const location = useLocation();
@@ -11,6 +11,11 @@ export const AdminNav = () => {
       title: "Dashboard",
       href: "/admin",
       icon: LayoutDashboard
+    },
+    {
+      title: "Projects",
+      href: "/admin/projects",
+      icon: FolderKanban
     },
     {
       title: "Users",
@@ -48,4 +53,4 @@ export const AdminNav = () => {
       })}
     </nav>
   );
-};
+}

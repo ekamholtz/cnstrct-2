@@ -17,6 +17,7 @@ import HomeownerProfile from "@/pages/HomeownerProfile";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AdminUsers from "@/pages/AdminUsers";
 import AdminTransactions from "@/pages/AdminTransactions";
+import AdminProjects from "@/pages/AdminProjects";
 
 export const AppRoutes = () => {
   return (
@@ -51,6 +52,14 @@ export const AppRoutes = () => {
         element={
           <AdminRoute>
             <AdminUsers />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/projects"
+        element={
+          <AdminRoute>
+            <AdminProjects />
           </AdminRoute>
         }
       />
