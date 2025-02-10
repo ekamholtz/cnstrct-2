@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { ProjectsTable } from "@/components/admin/projects/ProjectsTable";
 import { ProjectFilters } from "@/components/admin/projects/ProjectFilters";
-import { Header } from "@/components/landing/Header";
 import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
 import { Database } from "@/integrations/supabase/types";
 
@@ -67,13 +66,12 @@ export default function AdminProjects() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      <AdminNav />
       <main className="container mx-auto px-4 py-8 mt-16">
         <ClientPageHeader
           pageTitle="Project Management"
           pageDescription="Monitor and manage all construction projects"
         />
-        <AdminNav />
         <div className="mt-8">
           <ProjectFilters
             statusFilter={statusFilter}

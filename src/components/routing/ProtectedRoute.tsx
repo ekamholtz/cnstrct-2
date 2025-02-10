@@ -2,6 +2,8 @@
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { AdminNav } from "@/components/admin/AdminNav";
+import { Header } from "@/components/landing/Header";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<any>(null);
@@ -93,5 +95,13 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       <Navigate to="/dashboard" replace />;
   }
 
-  return <>{children}</>;
+  // Wrap children with the appropriate navigation based on user role
+  const wrappedChildren = (
+    <>
+      {userRole === 'admin' ? <AdminNav /> : <Header />}
+      {children}
+    </>
+  );
+
+  return wrappedChildren;
 };
