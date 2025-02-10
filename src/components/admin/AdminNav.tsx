@@ -39,7 +39,8 @@ export const AdminNav = () => {
             <Icon className="h-4 w-4" />
             <span>{item.title}</span>
           </Link>
-        ))}
+        );
+      })}
     </nav>
   );
 };
