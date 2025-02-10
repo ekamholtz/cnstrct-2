@@ -405,6 +405,12 @@ export type Database = {
           project_id: string
         }[]
       }
+      has_project_access: {
+        Args: {
+          project_id: string
+        }
+        Returns: boolean
+      }
       is_admin: {
         Args: {
           user_id: string
