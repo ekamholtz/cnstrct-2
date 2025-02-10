@@ -9,11 +9,31 @@ import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader
 import { format } from "date-fns";
 import { StatusBadge } from "@/components/project/invoice/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PaymentModal } from "@/components/project/invoice/PaymentModal";
+import { PaymentSimulationModal } from "@/components/project/invoice/PaymentSimulationModal";
 
 export default function InvoiceDetails() {
   const { invoiceId } = useParams();
 
-  const { data: invoice, isLoading } = useQuery({
+  // Fetch user profile to determine role
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const { data: invoice, isLoading: isInvoiceLoading } = useQuery({
     queryKey: ['invoice', invoiceId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -25,6 +45,8 @@ export default function InvoiceDetails() {
       return data;
     },
   });
+
+  const isLoading = isProfileLoading || isInvoiceLoading;
 
   if (isLoading) {
     return (
@@ -47,6 +69,8 @@ export default function InvoiceDetails() {
     );
   }
 
+  const isClient = profile?.role === 'homeowner';
+
   return (
     <DashboardLayout>
       <div className="mb-8">
@@ -65,8 +89,29 @@ export default function InvoiceDetails() {
 
       <div className="grid gap-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Invoice Information</CardTitle>
+            {invoice.status === 'pending_payment' && (
+              <div>
+                {isClient ? (
+                  <PaymentSimulationModal
+                    invoice={invoice}
+                    onPaymentComplete={() => {
+                      window.location.reload();
+                    }}
+                  />
+                ) : (
+                  <PaymentModal
+                    invoice={invoice}
+                    onSubmit={async (data) => {
+                      // This is a placeholder - the actual implementation would come from props
+                      console.log('Payment marked:', data);
+                      window.location.reload();
+                    }}
+                  />
+                )}
+              </div>
+            )}
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="grid grid-cols-2 gap-4">
