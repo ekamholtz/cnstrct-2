@@ -4,10 +4,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, SortAsc, SortDesc } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Database } from "@/integrations/supabase/types";
+
+type ProjectStatus = Database["public"]["Enums"]["project_status"];
 
 interface ProjectFiltersProps {
-  statusFilter: string;
-  onStatusChange: (value: string) => void;
+  statusFilter: ProjectStatus | 'all';
+  onStatusChange: (value: ProjectStatus | 'all') => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
   dateSort: 'asc' | 'desc';

@@ -7,9 +7,12 @@ import { ProjectsTable } from "@/components/admin/projects/ProjectsTable";
 import { ProjectFilters } from "@/components/admin/projects/ProjectFilters";
 import { Header } from "@/components/landing/Header";
 import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
+import { Database } from "@/integrations/supabase/types";
+
+type ProjectStatus = Database["public"]["Enums"]["project_status"];
 
 export default function AdminProjects() {
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<ProjectStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [dateSort, setDateSort] = useState<'asc' | 'desc'>('desc');
 
