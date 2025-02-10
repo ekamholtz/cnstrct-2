@@ -61,7 +61,9 @@ export function MainNav() {
                    profile?.role === 'homeowner' ? '/client-dashboard' : 
                    '/dashboard';
                    
-  const projectsRoute = profile?.role === 'homeowner' ? '/client-projects' : '/gc-projects';
+  const projectsRoute = profile?.role === 'homeowner' ? '/client-projects' : 
+                       profile?.role === 'admin' ? '/admin/projects' :
+                       '/gc-projects';
 
   // Customize nav items based on user role
   const getNavItems = () => {
