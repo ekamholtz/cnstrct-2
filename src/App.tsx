@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,7 @@ import InvoiceDashboard from "./pages/InvoiceDashboard";
 import InvoiceDetails from "./pages/InvoiceDetails";
 import HomeownerProfile from "./pages/HomeownerProfile";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -197,6 +197,14 @@ const App = () => (
             }
           />
           <Route
+            path="/admin/users"
+            element={
+              <AdminRoute>
+                <AdminUsers />
+              </AdminRoute>
+            }
+          />
+          <Route
             path="/gc-projects"
             element={
               <ProtectedRoute>
@@ -221,6 +229,14 @@ const App = () => (
             }
           />
           <Route
+            path="/project/:projectId"
+            element={
+              <ProtectedRoute>
+                <ProjectDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/invoices"
             element={
               <ProtectedRoute>
@@ -233,14 +249,6 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <InvoiceDetails />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/project/:projectId"
-            element={
-              <ProtectedRoute>
-                <ProjectDashboard />
               </ProtectedRoute>
             }
           />
@@ -269,4 +277,3 @@ const App = () => (
 );
 
 export default App;
-
