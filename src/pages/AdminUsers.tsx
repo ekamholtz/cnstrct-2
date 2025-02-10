@@ -47,8 +47,8 @@ type UserProfile = {
 
 const AdminUsers = () => {
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<UserRole | "">("");
-  const [statusFilter, setStatusFilter] = useState<string>("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const { toast } = useToast();
 
   const { data: users, isLoading, refetch } = useQuery({
@@ -140,8 +140,8 @@ const AdminUsers = () => {
 
   const filteredUsers = users?.filter(user => {
     const matchesSearch = user.full_name.toLowerCase().includes(search.toLowerCase());
-    const matchesRole = !roleFilter || user.role === roleFilter;
-    const matchesStatus = !statusFilter || user.account_status === statusFilter;
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    const matchesStatus = statusFilter === 'all' || user.account_status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
   }) || [];
 
@@ -180,12 +180,12 @@ const AdminUsers = () => {
                   />
                 </div>
               </div>
-              <Select value={roleFilter} onValueChange={(value: UserRole | "") => setRoleFilter(value)}>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All roles</SelectItem>
+                  <SelectItem value="all">All roles</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="general_contractor">General Contractor</SelectItem>
                   <SelectItem value="homeowner">Homeowner</SelectItem>
@@ -196,7 +196,7 @@ const AdminUsers = () => {
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="suspended">Suspended</SelectItem>
                   <SelectItem value="pending_approval">Pending Approval</SelectItem>
