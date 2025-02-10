@@ -80,23 +80,26 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!hasCompletedProfile && window.location.pathname !== '/profile-completion') {
+  // If profile is not completed, always redirect to profile completion
+  if (hasCompletedProfile === false && window.location.pathname !== '/profile-completion') {
+    console.log("Redirecting to profile completion");
     return <Navigate to="/profile-completion" replace />;
   }
 
-  // Check user role from user metadata if available, fallback to profile role
+  // Get current role from user metadata if available, fallback to profile role
   const currentRole = session?.user?.user_metadata?.role || userRole;
   
-  // Check if user is on the root path or dashboard and redirect based on role
-  if (hasCompletedProfile && (window.location.pathname === '/' || window.location.pathname === '/dashboard')) {
-    console.log("Checking role-based redirect. Current role:", currentRole);
+  // Only redirect to role-specific dashboard if profile is completed
+  if (hasCompletedProfile && window.location.pathname === '/') {
+    console.log("Redirecting based on role. Current role:", currentRole);
     
     if (currentRole === 'admin') {
       return <Navigate to="/admin" replace />;
     } else if (currentRole === 'homeowner') {
       console.log("Redirecting homeowner to client dashboard");
       return <Navigate to="/client-dashboard" replace />;
-    } else {
+    } else if (currentRole === 'general_contractor') {
+      console.log("Redirecting contractor to dashboard");
       return <Navigate to="/dashboard" replace />;
     }
   }
@@ -111,3 +114,4 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   return wrappedChildren;
 };
+
