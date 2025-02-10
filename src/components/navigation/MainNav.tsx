@@ -79,15 +79,9 @@ export function MainNav() {
       ];
     }
 
-    const projectItem = {
-      label: "Projects",
-      path: profile?.role === 'homeowner' ? '/client-projects' : '/gc-projects',
-      icon: Grid
-    };
-    
     return [
       ...baseItems,
-      projectItem,
+      { label: "Projects", path: projectsRoute, icon: Grid },
       { label: "Invoices", path: "/invoices", icon: FileText },
       { label: "Profile", path: "/profile", icon: User },
       { label: "Help", path: "/help", icon: HelpCircle },
@@ -96,6 +90,17 @@ export function MainNav() {
 
   const navItems = getNavItems();
   const isActive = (path: string) => location.pathname === path;
+
+  // If user is on wrong projects page, redirect them
+  if (location.pathname === '/gc-projects' && profile?.role === 'homeowner') {
+    navigate('/client-projects');
+    return null;
+  }
+
+  if (location.pathname === '/client-projects' && profile?.role === 'general_contractor') {
+    navigate('/gc-projects');
+    return null;
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
