@@ -28,6 +28,29 @@ export default function ProjectDashboard() {
   const { projectId } = useParams();
   const { toast } = useToast();
   
+  // Get current user's role
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Determine the dashboard route based on user role
+  const dashboardRoute = userProfile?.role === 'admin' ? '/admin' : 
+                        userProfile?.role === 'homeowner' ? '/client-dashboard' : 
+                        '/dashboard';
+  
   // Fetch project details
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
@@ -94,7 +117,7 @@ export default function ProjectDashboard() {
         <Header />
         <main className="container mx-auto px-4 py-8 mt-16">
           <div className="mb-8">
-            <Link to="/client-dashboard">
+            <Link to={dashboardRoute}>
               <Button variant="ghost" className="text-gray-600">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Dashboard
@@ -119,7 +142,7 @@ export default function ProjectDashboard() {
         <Header />
         <main className="container mx-auto px-4 py-8 mt-16">
           <div className="mb-8">
-            <Link to="/client-dashboard">
+            <Link to={dashboardRoute}>
               <Button variant="ghost" className="text-gray-600">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Dashboard
@@ -143,7 +166,7 @@ export default function ProjectDashboard() {
       <Header />
       <main className="container mx-auto px-4 py-8 mt-16">
         <div className="mb-8">
-          <Link to="/client-dashboard">
+          <Link to={dashboardRoute}>
             <Button variant="ghost" className="text-gray-600">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
@@ -177,3 +200,4 @@ export default function ProjectDashboard() {
     </div>
   );
 }
+
