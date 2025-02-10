@@ -35,6 +35,7 @@ export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps)
   });
 
   const isClient = profile?.role === 'homeowner';
+  console.log('Current user role:', profile?.role, 'Is client:', isClient);
 
   return (
     <TableRow>
