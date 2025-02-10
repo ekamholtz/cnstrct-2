@@ -4,6 +4,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types/project";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { StatsOverview } from "@/components/dashboard/StatsOverview";
 import { ContractorFinancialSummary } from "@/components/dashboard/ContractorFinancialSummary";
 import { ProjectsList } from "@/components/dashboard/ProjectsList";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -75,6 +76,7 @@ export default function Dashboard() {
   return (
     <DashboardLayout>
       <DashboardHeader onProjectCreated={fetchProjects} />
+      <StatsOverview projects={projects} />
       <ContractorFinancialSummary />
       <ProjectsList projects={projects} loading={loading} />
     </DashboardLayout>
