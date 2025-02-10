@@ -82,8 +82,10 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/profile-completion" replace />;
   }
 
-  if (hasCompletedProfile && window.location.pathname === '/') {
+  // Check if user is on the root path and redirect based on role
+  if (hasCompletedProfile && (window.location.pathname === '/' || window.location.pathname === '/dashboard')) {
     if (userRole === 'admin') {
+      console.log("Redirecting admin to admin dashboard");
       return <Navigate to="/admin" replace />;
     }
     return userRole === 'homeowner' ? 
