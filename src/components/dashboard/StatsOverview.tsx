@@ -1,12 +1,66 @@
+
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Clock, DollarSign, Users } from "lucide-react";
 import { Project } from "@/types/project";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StatsOverviewProps {
   projects: Project[];
 }
 
 export function StatsOverview({ projects }: StatsOverviewProps) {
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [activeClients, setActiveClients] = useState(0);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get pending approvals count (milestones pending approval)
+      const { data: pendingData, error: pendingError } = await supabase
+        .from('milestones')
+        .select('id', { count: 'exact' })
+        .eq('status', 'pending')
+        .in('project_id', projects.map(p => p.id));
+
+      if (!pendingError) {
+        setPendingApprovals(pendingData?.length || 0);
+      }
+
+      // Get total revenue from paid invoices in last 30 days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const { data: revenueData, error: revenueError } = await supabase
+        .from('invoices')
+        .select('amount')
+        .eq('status', 'paid')
+        .in('project_id', projects.map(p => p.id))
+        .gte('payment_date', thirtyDaysAgo.toISOString());
+
+      if (!revenueError) {
+        const total = revenueData?.reduce((sum, invoice) => sum + invoice.amount, 0) || 0;
+        setTotalRevenue(total);
+      }
+
+      // Get unique active clients count
+      const uniqueClientIds = [...new Set(projects.map(p => p.client_id))];
+      setActiveClients(uniqueClientIds.length);
+    };
+
+    if (projects.length > 0) {
+      fetchStats();
+    } else {
+      // Reset stats to 0 if there are no projects
+      setPendingApprovals(0);
+      setTotalRevenue(0);
+      setActiveClients(0);
+    }
+  }, [projects]);
+
   const stats = [
     {
       label: "Active Projects",
@@ -16,19 +70,19 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
     },
     {
       label: "Pending Approvals",
-      value: "3",
+      value: pendingApprovals,
       icon: Clock,
       description: "Awaiting client approval"
     },
     {
       label: "Total Revenue",
-      value: "$45,231",
+      value: `$${totalRevenue.toLocaleString()}`,
       icon: DollarSign,
       description: "Last 30 days"
     },
     {
       label: "Active Clients",
-      value: "8",
+      value: activeClients,
       icon: Users,
       description: "Currently working with"
     }
