@@ -76,12 +76,16 @@ export default function Dashboard() {
     fetchProjects();
   }, []);
 
+  console.log("Dashboard rendering with projects:", projects);
+
   return (
     <DashboardLayout>
-      <DashboardHeader onProjectCreated={fetchProjects} />
-      <StatsOverview projects={projects} />
-      <ContractorFinancialSummary />
-      <ProjectsList projects={projects} loading={loading} />
+      <div className="space-y-8">
+        <DashboardHeader onProjectCreated={fetchProjects} />
+        <StatsOverview projects={projects} />
+        <ContractorFinancialSummary />
+        <ProjectsList projects={projects} loading={loading} />
+      </div>
     </DashboardLayout>
   );
 }
