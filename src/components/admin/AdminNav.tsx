@@ -1,7 +1,7 @@
 
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, Users } from "lucide-react";
+import { LayoutDashboard, Users, Receipt } from "lucide-react";
 
 export const AdminNav = () => {
   const location = useLocation();
@@ -16,6 +16,11 @@ export const AdminNav = () => {
       title: "Users",
       href: "/admin/users",
       icon: Users
+    },
+    {
+      title: "Transactions",
+      href: "/admin/transactions",
+      icon: Receipt
     }
   ];
 

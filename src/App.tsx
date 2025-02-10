@@ -19,6 +19,7 @@ import InvoiceDetails from "./pages/InvoiceDetails";
 import HomeownerProfile from "./pages/HomeownerProfile";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUsers from "./pages/AdminUsers";
+import AdminTransactions from "./pages/AdminTransactions";
 
 const queryClient = new QueryClient();
 
@@ -266,6 +267,14 @@ const App = () => (
               <ProtectedRoute>
                 <ProfileCompletion />
               </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/transactions"
+            element={
+              <AdminRoute>
+                <AdminTransactions />
+              </AdminRoute>
             }
           />
           <Route path="/landing" element={<Index />} />
