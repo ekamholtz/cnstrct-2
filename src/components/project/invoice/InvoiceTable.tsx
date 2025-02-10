@@ -29,7 +29,9 @@ export function InvoiceTable({ invoices, onMarkAsPaid }: InvoiceTableProps) {
             <InvoiceTableRow 
               key={invoice.id} 
               invoice={invoice} 
-              onMarkAsPaid={onMarkAsPaid}
+              onMarkAsPaid={async (invoiceId, data) => {
+                await onMarkAsPaid(invoiceId, data);
+              }}
             />
           ))}
         </TableBody>
