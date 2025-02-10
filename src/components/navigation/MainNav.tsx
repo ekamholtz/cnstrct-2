@@ -37,6 +37,14 @@ export function MainNav() {
         .single();
 
       if (error) throw error;
+
+      // If on incorrect route, redirect to appropriate route
+      if (location.pathname === '/gc-projects' && data.role === 'homeowner') {
+        navigate('/client-projects');
+      } else if (location.pathname === '/client-projects' && data.role === 'general_contractor') {
+        navigate('/gc-projects');
+      }
+
       return data;
     },
   });
