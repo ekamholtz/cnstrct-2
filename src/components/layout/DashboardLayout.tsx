@@ -1,3 +1,4 @@
+
 import { MainNav } from "@/components/navigation/MainNav";
 
 interface DashboardLayoutProps {
@@ -6,7 +7,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <MainNav />
       <main className="container mx-auto px-4 py-8 mt-16">
         {children}
