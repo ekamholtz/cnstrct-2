@@ -17,7 +17,7 @@ interface InvoiceTableRowProps {
 
 export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps) => {
   // Fetch user profile to determine role
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading } = useQuery({
     queryKey: ['user-profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -27,15 +27,19 @@ export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps)
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      console.log('User profile data:', data); // Debug log
       return data;
     },
   });
 
+  // Wait for role to be determined
+  if (isLoading) return null;
+
   const isClient = profile?.role === 'homeowner';
-  console.log('Current user role:', profile?.role, 'Is client:', isClient);
+  console.log('Role check - profile:', profile, 'isClient:', isClient);
 
   return (
     <TableRow>
