@@ -36,41 +36,39 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Search, UserCog } from "lucide-react";
 
+type UserRole = 'admin' | 'general_contractor' | 'homeowner';
+
 type UserProfile = {
   id: string;
   full_name: string;
-  email: string;
-  role: 'admin' | 'general_contractor' | 'homeowner';
+  role: UserRole;
   account_status: string;
 };
 
 const AdminUsers = () => {
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<string>("");
+  const [roleFilter, setRoleFilter] = useState<UserRole | "">("");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const { toast } = useToast();
 
-  const { data: users, isLoading, refetch } = useQuery<UserProfile[]>({
+  const { data: users, isLoading, refetch } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      const query = supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select(`
           id,
           full_name,
-          email,
           role,
           account_status
         `);
-
-      const { data, error } = await query;
       
       if (error) {
         console.error('Error fetching users:', error);
         throw error;
       }
       
-      return data;
+      return data as UserProfile[];
     }
   });
 
@@ -83,7 +81,6 @@ const AdminUsers = () => {
 
       if (error) throw error;
 
-      // Log admin action
       await supabase.from('admin_actions').insert({
         admin_id: (await supabase.auth.getUser()).data.user?.id,
         entity_type: 'user',
@@ -108,7 +105,7 @@ const AdminUsers = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: string) => {
+  const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
       const { error } = await supabase
         .from('profiles')
@@ -117,7 +114,6 @@ const AdminUsers = () => {
 
       if (error) throw error;
 
-      // Log admin action
       await supabase.from('admin_actions').insert({
         admin_id: (await supabase.auth.getUser()).data.user?.id,
         entity_type: 'user',
@@ -143,12 +139,11 @@ const AdminUsers = () => {
   };
 
   const filteredUsers = users?.filter(user => {
-    const matchesSearch = user.full_name.toLowerCase().includes(search.toLowerCase()) ||
-                         user.email.toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = user.full_name.toLowerCase().includes(search.toLowerCase());
     const matchesRole = !roleFilter || user.role === roleFilter;
     const matchesStatus = !statusFilter || user.account_status === statusFilter;
     return matchesSearch && matchesRole && matchesStatus;
-  });
+  }) || [];
 
   const getStatusBadgeColor = (status: string) => {
     switch (status) {
@@ -185,7 +180,7 @@ const AdminUsers = () => {
                   />
                 </div>
               </div>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <Select value={roleFilter} onValueChange={(value: UserRole | "") => setRoleFilter(value)}>
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="Filter by role" />
                 </SelectTrigger>
@@ -216,7 +211,6 @@ const AdminUsers = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -225,21 +219,20 @@ const AdminUsers = () => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4">
+                  <TableCell colSpan={4} className="text-center py-4">
                     Loading users...
                   </TableCell>
                 </TableRow>
-              ) : filteredUsers?.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4">
+                  <TableCell colSpan={4} className="text-center py-4">
                     No users found
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUsers?.map((user) => (
+                filteredUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>{user.full_name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
@@ -255,7 +248,7 @@ const AdminUsers = () => {
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <div className="grid gap-4">
-                            {['admin', 'general_contractor', 'homeowner'].map((role) => (
+                            {(['admin', 'general_contractor', 'homeowner'] as const).map((role) => (
                               <Button
                                 key={role}
                                 variant={user.role === role ? "default" : "outline"}
