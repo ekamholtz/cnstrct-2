@@ -83,9 +83,9 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <AdminNav />
-      <div className="container mx-auto p-6">
+      <div className="flex-1 container mx-auto p-6 mt-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-2">Total Users</h3>

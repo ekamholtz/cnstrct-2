@@ -65,9 +65,9 @@ export default function AdminProjects() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <AdminNav />
-      <main className="container mx-auto px-4 py-8 mt-16">
+      <main className="flex-1 container mx-auto px-4 py-8 mt-16">
         <ClientPageHeader
           pageTitle="Project Management"
           pageDescription="Monitor and manage all construction projects"

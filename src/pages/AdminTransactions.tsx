@@ -122,9 +122,9 @@ const AdminTransactions = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex flex-col min-h-screen bg-gray-50">
       <AdminNav />
-      <div className="container mx-auto p-6">
+      <div className="flex-1 container mx-auto p-6 mt-16">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Transaction Oversight</h1>
         </div>
