@@ -48,7 +48,8 @@ export default function InvoiceDetails() {
       const invoice: Invoice = {
         ...data,
         payment_method: data.payment_method as "cc" | "check" | "transfer" | "cash" | null,
-        payment_method_type: data.payment_method_type as "cc" | "check" | "transfer" | "cash" | "simulated" | null,
+        // Since payment_method_type isn't returned by the function, we'll derive it from payment_method
+        payment_method_type: data.payment_method as "cc" | "check" | "transfer" | "cash" | "simulated" | null,
       };
       
       return invoice;
