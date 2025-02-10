@@ -12,17 +12,11 @@ export function ContractorFinancialSummary() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
       
-      console.log('Fetching paid invoices for contractor:', user.id);
       const { data, error } = await supabase
         .from('invoices')
-        .select('amount')
+        .select('amount, project_id')
         .eq('status', 'paid')
-        .in('project_id', (
-          supabase
-            .from('projects')
-            .select('id')
-            .eq('contractor_id', user.id)
-        ));
+        .eq('project:contractor_id', user.id);
 
       if (error) {
         console.error('Error fetching paid invoices:', error);
@@ -39,17 +33,11 @@ export function ContractorFinancialSummary() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
       
-      console.log('Fetching pending invoices for contractor:', user.id);
       const { data, error } = await supabase
         .from('invoices')
-        .select('amount')
+        .select('amount, project_id')
         .eq('status', 'pending_payment')
-        .in('project_id', (
-          supabase
-            .from('projects')
-            .select('id')
-            .eq('contractor_id', user.id)
-        ));
+        .eq('project:contractor_id', user.id);
 
       if (error) {
         console.error('Error fetching pending invoices:', error);
@@ -66,17 +54,11 @@ export function ContractorFinancialSummary() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
       
-      console.log('Fetching incomplete milestones for contractor:', user.id);
       const { data, error } = await supabase
         .from('milestones')
-        .select('amount')
+        .select('amount, project_id')
         .eq('status', 'pending')
-        .in('project_id', (
-          supabase
-            .from('projects')
-            .select('id')
-            .eq('contractor_id', user.id)
-        ));
+        .eq('project:contractor_id', user.id);
 
       if (error) {
         console.error('Error fetching incomplete milestones:', error);
@@ -93,16 +75,10 @@ export function ContractorFinancialSummary() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
       
-      console.log('Fetching expenses for contractor:', user.id);
       const { data, error } = await supabase
         .from('expenses')
-        .select('amount')
-        .in('project_id', (
-          supabase
-            .from('projects')
-            .select('id')
-            .eq('contractor_id', user.id)
-        ));
+        .select('amount, project_id')
+        .eq('project:contractor_id', user.id);
 
       if (error) {
         console.error('Error fetching expenses:', error);
