@@ -161,8 +161,12 @@ export type Database = {
           payment_date: string | null
           payment_gateway: string | null
           payment_method: string | null
+          payment_method_type:
+            | Database["public"]["Enums"]["payment_method_type"]
+            | null
           payment_reference: string | null
           project_id: string
+          simulation_data: Json | null
           status: Database["public"]["Enums"]["invoice_status"]
           updated_at: string
         }
@@ -175,8 +179,12 @@ export type Database = {
           payment_date?: string | null
           payment_gateway?: string | null
           payment_method?: string | null
+          payment_method_type?:
+            | Database["public"]["Enums"]["payment_method_type"]
+            | null
           payment_reference?: string | null
           project_id: string
+          simulation_data?: Json | null
           status?: Database["public"]["Enums"]["invoice_status"]
           updated_at?: string
         }
@@ -189,8 +197,12 @@ export type Database = {
           payment_date?: string | null
           payment_gateway?: string | null
           payment_method?: string | null
+          payment_method_type?:
+            | Database["public"]["Enums"]["payment_method_type"]
+            | null
           payment_reference?: string | null
           project_id?: string
+          simulation_data?: Json | null
           status?: Database["public"]["Enums"]["invoice_status"]
           updated_at?: string
         }
@@ -399,6 +411,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      simulate_invoice_payment: {
+        Args: {
+          invoice_id: string
+          simulation_details: Json
+        }
+        Returns: undefined
+      }
       undo_milestone_completion: {
         Args: {
           milestone_id_param: string
@@ -423,6 +442,7 @@ export type Database = {
       expense_type: "labor" | "materials" | "subcontractor" | "other"
       invoice_status: "pending_payment" | "paid" | "cancelled"
       milestone_status: "pending" | "completed"
+      payment_method_type: "cc" | "check" | "transfer" | "cash" | "simulated"
       project_status: "draft" | "active" | "completed" | "cancelled"
       user_role: "general_contractor" | "homeowner" | "admin"
     }

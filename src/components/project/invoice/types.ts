@@ -13,6 +13,8 @@ export interface Invoice {
   payment_date?: string | null;
   payment_reference?: string | null;
   payment_gateway?: string | null;
+  payment_method_type?: "cc" | "check" | "transfer" | "cash" | "simulated" | null;
+  simulation_data?: any;
   updated_at: string;
 }
 

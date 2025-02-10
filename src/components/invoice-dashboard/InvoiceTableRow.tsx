@@ -3,9 +3,12 @@ import { format } from "date-fns";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { FileText, DollarSign } from "lucide-react";
 import { PaymentModal } from "@/components/project/invoice/PaymentModal";
+import { PaymentSimulationModal } from "@/components/project/invoice/PaymentSimulationModal";
 import { StatusBadge } from "@/components/project/invoice/StatusBadge";
 import { PaymentFormData, Invoice } from "@/components/project/invoice/types";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface InvoiceTableRowProps {
   invoice: Invoice;
@@ -13,6 +16,26 @@ interface InvoiceTableRowProps {
 }
 
 export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps) => {
+  // Fetch user profile to determine role
+  const { data: profile } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const isClient = profile?.role === 'homeowner';
+
   return (
     <TableRow>
       <TableCell className="font-medium">
@@ -43,10 +66,22 @@ export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps)
         {format(new Date(invoice.created_at), 'MMM d, yyyy')}
       </TableCell>
       <TableCell>
-        <PaymentModal
-          invoice={invoice}
-          onSubmit={(data) => onMarkAsPaid(invoice.id, data)}
-        />
+        {isClient ? (
+          invoice.status === 'pending_payment' && (
+            <PaymentSimulationModal
+              invoice={invoice}
+              onPaymentComplete={() => {
+                // Refetch invoices
+                window.location.reload();
+              }}
+            />
+          )
+        ) : (
+          <PaymentModal
+            invoice={invoice}
+            onSubmit={(data) => onMarkAsPaid(invoice.id, data)}
+          />
+        )}
       </TableCell>
     </TableRow>
   );
