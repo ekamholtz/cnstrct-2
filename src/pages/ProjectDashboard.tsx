@@ -1,7 +1,7 @@
-
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/landing/Header";
+import { AdminNav } from "@/components/admin/AdminNav";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
@@ -50,6 +50,8 @@ export default function ProjectDashboard() {
   const dashboardRoute = userProfile?.role === 'admin' ? '/admin' : 
                         userProfile?.role === 'homeowner' ? '/client-dashboard' : 
                         '/dashboard';
+
+  const isAdmin = userProfile?.role === 'admin';
   
   // Fetch project details
   const { data: project, isLoading: projectLoading } = useQuery({
@@ -114,7 +116,7 @@ export default function ProjectDashboard() {
   if (projectLoading || milestonesLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        {isAdmin ? <AdminNav /> : <Header />}
         <main className="container mx-auto px-4 py-8 mt-16">
           <div className="mb-8">
             <Link to={dashboardRoute}>
@@ -139,7 +141,7 @@ export default function ProjectDashboard() {
   if (!project) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
+        {isAdmin ? <AdminNav /> : <Header />}
         <main className="container mx-auto px-4 py-8 mt-16">
           <div className="mb-8">
             <Link to={dashboardRoute}>
@@ -163,7 +165,7 @@ export default function ProjectDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      {isAdmin ? <AdminNav /> : <Header />}
       <main className="container mx-auto px-4 py-8 mt-16">
         <div className="mb-8">
           <Link to={dashboardRoute}>
@@ -200,4 +202,3 @@ export default function ProjectDashboard() {
     </div>
   );
 }
-
