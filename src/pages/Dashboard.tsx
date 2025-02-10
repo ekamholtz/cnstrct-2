@@ -41,7 +41,7 @@ export default function Dashboard() {
         throw profileError;
       }
 
-      console.log("Fetching projects for profile ID:", profile.id);
+      console.log("Profile ID for project fetch:", profile.id);
       
       const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
@@ -70,6 +70,7 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    console.log("Dashboard mounted, fetching projects...");
     fetchProjects();
   }, []);
 
