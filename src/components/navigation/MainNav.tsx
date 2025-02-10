@@ -39,16 +39,6 @@ export function MainNav() {
       if (error) throw error;
 
       console.log('Current user role:', data.role); // Debug log
-
-      // If on incorrect route, redirect to appropriate route
-      if (data.role === 'homeowner' && location.pathname === '/gc-projects') {
-        console.log('Redirecting homeowner to client-projects'); // Debug log
-        navigate('/client-projects');
-      } else if (data.role === 'general_contractor' && location.pathname === '/client-projects') {
-        console.log('Redirecting contractor to gc-projects'); // Debug log
-        navigate('/gc-projects');
-      }
-
       return data;
     },
   });
