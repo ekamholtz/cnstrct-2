@@ -16,6 +16,8 @@ export default function Dashboard() {
 
   const fetchProjects = async () => {
     try {
+      console.log("Starting to fetch projects...");
+      
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       
       if (userError) {
