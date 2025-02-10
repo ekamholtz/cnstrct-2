@@ -23,17 +23,17 @@ export function InvoiceList({ invoices }: InvoiceListProps) {
       {invoices.map((invoice) => (
         <Link
           key={invoice.id}
-          to={`/project/${invoice.milestone?.project?.id}`}
+          to={`/project/${invoice.project_id}`}
           className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
         >
           <div className="flex items-start space-x-4">
             <FileText className="h-5 w-5 text-gray-400 mt-1" />
             <div>
               <div className="font-medium text-gray-900">
-                {invoice.milestone?.project?.name}
+                {invoice.project_name}
               </div>
               <div className="text-sm text-gray-500">
-                {invoice.milestone?.name}
+                {invoice.milestone_name}
               </div>
               <div className="text-sm text-gray-500">
                 {format(new Date(invoice.created_at), 'MMM d, yyyy')}

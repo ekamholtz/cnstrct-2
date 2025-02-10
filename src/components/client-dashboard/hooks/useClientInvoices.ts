@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { Invoice } from "@/components/project/invoice/types";
 
 export const useClientInvoices = () => {
   const { toast } = useToast();
@@ -90,11 +91,12 @@ export const useClientInvoices = () => {
           amount,
           status,
           created_at,
+          updated_at,
           milestone_id,
-          milestone:milestone_id (
+          milestone:milestones!inner (
             id,
             name,
-            project:project_id (
+            project:projects!inner (
               id,
               name
             )
@@ -115,9 +117,29 @@ export const useClientInvoices = () => {
         throw invoiceError;
       }
 
-      console.log('Step 5: Final result:', { displayInvoices, totalPending });
+      // Transform the data to match the Invoice type
+      const transformedInvoices: Invoice[] = displayInvoices?.map(invoice => ({
+        id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        amount: invoice.amount,
+        status: invoice.status,
+        created_at: invoice.created_at,
+        updated_at: invoice.updated_at,
+        milestone_id: invoice.milestone_id,
+        milestone_name: invoice.milestone.name,
+        project_name: invoice.milestone.project.name,
+        project_id: invoice.milestone.project.id,
+        payment_method: null,
+        payment_date: null,
+        payment_reference: null,
+        payment_gateway: null,
+        payment_method_type: null,
+        simulation_data: null
+      })) || [];
+
+      console.log('Step 5: Final result:', { transformedInvoices, totalPending });
       return { 
-        invoices: displayInvoices || [],
+        invoices: transformedInvoices,
         totalPending
       };
     },
