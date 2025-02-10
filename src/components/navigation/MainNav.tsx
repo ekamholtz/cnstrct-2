@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -56,17 +55,31 @@ export function MainNav() {
   };
 
   // Determine dashboard route based on user role
-  const homeRoute = profile?.role === 'homeowner' ? '/client-dashboard' : '/dashboard';
+  const homeRoute = profile?.role === 'admin' ? '/admin' : 
+                   profile?.role === 'homeowner' ? '/client-dashboard' : 
+                   '/dashboard';
+                   
   const projectsRoute = profile?.role === 'homeowner' ? '/client-projects' : '/gc-projects';
 
-  const navItems = [
-    { label: "Home", path: homeRoute, icon: Home },
-    { label: "Projects", path: projectsRoute, icon: Grid },
-    { label: "Invoices", path: "/invoices", icon: FileText },
-    { label: "Profile", path: "/profile", icon: User },
-    { label: "Help", path: "/help", icon: HelpCircle },
-  ];
+  // Customize nav items based on user role
+  const getNavItems = () => {
+    if (profile?.role === 'admin') {
+      return [
+        { label: "Dashboard", path: "/admin", icon: Home },
+        { label: "Users", path: "/admin/users", icon: Users },
+      ];
+    }
+    
+    return [
+      { label: "Home", path: homeRoute, icon: Home },
+      { label: "Projects", path: projectsRoute, icon: Grid },
+      { label: "Invoices", path: "/invoices", icon: FileText },
+      { label: "Profile", path: "/profile", icon: User },
+      { label: "Help", path: "/help", icon: HelpCircle },
+    ];
+  };
 
+  const navItems = getNavItems();
   const isActive = (path: string) => location.pathname === path;
 
   return (
