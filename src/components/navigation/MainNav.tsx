@@ -58,27 +58,36 @@ export function MainNav() {
     }
   };
 
-  // Determine dashboard route based on user role
   const homeRoute = profile?.role === 'admin' ? '/admin' : 
                    profile?.role === 'homeowner' ? '/client-dashboard' : 
                    '/dashboard';
-                   
+
   const projectsRoute = profile?.role === 'homeowner' ? '/client-projects' : 
                        profile?.role === 'admin' ? '/admin/projects' :
                        '/gc-projects';
 
   // Customize nav items based on user role
   const getNavItems = () => {
+    const baseItems = [
+      { label: "Home", path: homeRoute, icon: Home },
+    ];
+
     if (profile?.role === 'admin') {
       return [
-        { label: "Dashboard", path: "/admin", icon: Home },
+        ...baseItems,
         { label: "Users", path: "/admin/users", icon: Users },
       ];
     }
+
+    const projectItem = {
+      label: "Projects",
+      path: profile?.role === 'homeowner' ? '/client-projects' : '/gc-projects',
+      icon: Grid
+    };
     
     return [
-      { label: "Home", path: homeRoute, icon: Home },
-      { label: "Projects", path: projectsRoute, icon: Grid },
+      ...baseItems,
+      projectItem,
       { label: "Invoices", path: "/invoices", icon: FileText },
       { label: "Profile", path: "/profile", icon: User },
       { label: "Help", path: "/help", icon: HelpCircle },
