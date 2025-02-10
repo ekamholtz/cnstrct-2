@@ -84,21 +84,27 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/profile-completion" replace />;
   }
 
-  // Check if user is on the root path and redirect based on role
+  // Check user role from user metadata if available, fallback to profile role
+  const currentRole = session?.user?.user_metadata?.role || userRole;
+  
+  // Check if user is on the root path or dashboard and redirect based on role
   if (hasCompletedProfile && (window.location.pathname === '/' || window.location.pathname === '/dashboard')) {
-    if (userRole === 'admin') {
-      console.log("Redirecting admin to admin dashboard");
+    console.log("Checking role-based redirect. Current role:", currentRole);
+    
+    if (currentRole === 'admin') {
       return <Navigate to="/admin" replace />;
+    } else if (currentRole === 'homeowner') {
+      console.log("Redirecting homeowner to client dashboard");
+      return <Navigate to="/client-dashboard" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
     }
-    return userRole === 'homeowner' ? 
-      <Navigate to="/client-dashboard" replace /> : 
-      <Navigate to="/dashboard" replace />;
   }
 
   // Wrap children with the appropriate navigation based on user role
   const wrappedChildren = (
     <>
-      {userRole === 'admin' ? <AdminNav /> : <Header />}
+      {currentRole === 'admin' ? <AdminNav /> : <Header />}
       {children}
     </>
   );
