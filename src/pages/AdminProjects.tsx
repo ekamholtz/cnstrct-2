@@ -20,28 +20,19 @@ export default function AdminProjects() {
     queryFn: async () => {
       console.log('Fetching projects with filters:', { statusFilter, dateSort, searchTerm });
       
+      // First fetch the projects with basic client info
       let query = supabase
         .from('projects')
         .select(`
-          *,
+          id,
+          name,
+          address,
+          status,
+          created_at,
+          client_id,
           clients (
             name,
             email
-          ),
-          milestones (
-            id,
-            name,
-            amount,
-            status
-          ),
-          invoices (
-            id,
-            amount,
-            status
-          ),
-          expenses (
-            id,
-            amount
           )
         `);
 
@@ -55,15 +46,45 @@ export default function AdminProjects() {
 
       query = query.order('created_at', { ascending: dateSort === 'asc' });
 
-      const { data, error } = await query;
+      const { data: projectsData, error: projectsError } = await query;
 
-      if (error) {
-        console.error('Error fetching projects:', error);
-        throw error;
+      if (projectsError) {
+        console.error('Error fetching projects:', projectsError);
+        throw projectsError;
       }
 
-      console.log('Successfully fetched projects:', data);
-      return data;
+      // Then fetch related data for each project
+      const projectsWithDetails = await Promise.all(
+        (projectsData || []).map(async (project) => {
+          // Fetch milestones
+          const { data: milestones } = await supabase
+            .from('milestones')
+            .select('id, name, amount, status')
+            .eq('project_id', project.id);
+
+          // Fetch invoices
+          const { data: invoices } = await supabase
+            .from('invoices')
+            .select('id, amount, status')
+            .eq('project_id', project.id);
+
+          // Fetch expenses
+          const { data: expenses } = await supabase
+            .from('expenses')
+            .select('id, amount')
+            .eq('project_id', project.id);
+
+          return {
+            ...project,
+            milestones: milestones || [],
+            invoices: invoices || [],
+            expenses: expenses || []
+          };
+        })
+      );
+
+      console.log('Successfully fetched projects with details:', projectsWithDetails);
+      return projectsWithDetails;
     },
   });
 
