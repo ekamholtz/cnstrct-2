@@ -33,13 +33,18 @@ const AdminTransactions = () => {
 
   // Fetch projects for filter dropdown
   const { data: projects } = useQuery({
-    queryKey: ['admin-projects'],
+    queryKey: ['admin-projects-list'],
     queryFn: async () => {
+      console.log('Fetching projects for dropdown');
       const { data, error } = await supabase
         .from('projects')
         .select('id, name');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching projects:', error);
+        throw error;
+      }
+      console.log('Projects fetched:', data);
       return data;
     }
   });
@@ -48,6 +53,7 @@ const AdminTransactions = () => {
   const { data: invoices = [] } = useQuery({
     queryKey: ['admin-invoices', statusFilter, projectFilter],
     queryFn: async () => {
+      console.log('Fetching invoices with filters:', { statusFilter, projectFilter });
       let query = supabase
         .from('invoices')
         .select(`
@@ -74,7 +80,11 @@ const AdminTransactions = () => {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching invoices:', error);
+        throw error;
+      }
+      console.log('Invoices fetched:', data);
       return data;
     },
     enabled: transactionType === 'all' || transactionType === 'invoice'
@@ -84,6 +94,7 @@ const AdminTransactions = () => {
   const { data: expenses = [] } = useQuery({
     queryKey: ['admin-expenses', projectFilter],
     queryFn: async () => {
+      console.log('Fetching expenses with filter:', { projectFilter });
       let query = supabase
         .from('expenses')
         .select(`
@@ -104,7 +115,11 @@ const AdminTransactions = () => {
       }
 
       const { data, error } = await query;
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching expenses:', error);
+        throw error;
+      }
+      console.log('Expenses fetched:', data);
       return data;
     },
     enabled: transactionType === 'all' || transactionType === 'expense'
