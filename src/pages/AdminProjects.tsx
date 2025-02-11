@@ -16,8 +16,10 @@ export default function AdminProjects() {
   const [dateSort, setDateSort] = useState<'asc' | 'desc'>('desc');
 
   const { data: projects, isLoading } = useQuery({
-    queryKey: ['admin-projects', statusFilter, dateSort],
+    queryKey: ['admin-projects', statusFilter, dateSort, searchTerm],
     queryFn: async () => {
+      console.log('Fetching projects with filters:', { statusFilter, dateSort, searchTerm });
+      
       let query = supabase
         .from('projects')
         .select(`
@@ -60,6 +62,7 @@ export default function AdminProjects() {
         throw error;
       }
 
+      console.log('Successfully fetched projects:', data);
       return data;
     },
   });
