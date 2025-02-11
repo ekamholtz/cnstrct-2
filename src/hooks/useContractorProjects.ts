@@ -14,18 +14,7 @@ export function useContractorProjects() {
       
       const { data, error } = await supabase
         .from('projects')
-        .select(`
-          id,
-          name,
-          status,
-          address,
-          created_at,
-          clients (
-            id,
-            name,
-            email
-          )
-        `)
+        .select('*, clients:client_id (id, name, email)')
         .eq('contractor_id', user.id)
         .order('created_at', { ascending: false });
 
