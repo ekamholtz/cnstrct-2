@@ -13,16 +13,21 @@ export function ContractorFinancialSummary() {
       if (!user) throw new Error('No user found');
       
       const { data, error } = await supabase
-        .from('invoices')
-        .select('amount, project_id')
-        .eq('status', 'paid')
-        .eq('project:contractor_id', user.id);
+        .from('projects')
+        .select(`
+          invoices!inner (
+            amount,
+            project_id
+          )
+        `)
+        .eq('contractor_id', user.id)
+        .eq('invoices.status', 'paid');
 
       if (error) {
         console.error('Error fetching paid invoices:', error);
         throw error;
       }
-      return data;
+      return data?.flatMap(project => project.invoices) || [];
     },
   });
 
@@ -34,16 +39,21 @@ export function ContractorFinancialSummary() {
       if (!user) throw new Error('No user found');
       
       const { data, error } = await supabase
-        .from('invoices')
-        .select('amount, project_id')
-        .eq('status', 'pending_payment')
-        .eq('project:contractor_id', user.id);
+        .from('projects')
+        .select(`
+          invoices!inner (
+            amount,
+            project_id
+          )
+        `)
+        .eq('contractor_id', user.id)
+        .eq('invoices.status', 'pending_payment');
 
       if (error) {
         console.error('Error fetching pending invoices:', error);
         throw error;
       }
-      return data;
+      return data?.flatMap(project => project.invoices) || [];
     },
   });
 
@@ -55,16 +65,21 @@ export function ContractorFinancialSummary() {
       if (!user) throw new Error('No user found');
       
       const { data, error } = await supabase
-        .from('milestones')
-        .select('amount, project_id')
-        .eq('status', 'pending')
-        .eq('project:contractor_id', user.id);
+        .from('projects')
+        .select(`
+          milestones!inner (
+            amount,
+            project_id
+          )
+        `)
+        .eq('contractor_id', user.id)
+        .eq('milestones.status', 'pending');
 
       if (error) {
         console.error('Error fetching incomplete milestones:', error);
         throw error;
       }
-      return data;
+      return data?.flatMap(project => project.milestones) || [];
     },
   });
 
@@ -76,15 +91,20 @@ export function ContractorFinancialSummary() {
       if (!user) throw new Error('No user found');
       
       const { data, error } = await supabase
-        .from('expenses')
-        .select('amount, project_id')
-        .eq('project:contractor_id', user.id);
+        .from('projects')
+        .select(`
+          expenses!inner (
+            amount,
+            project_id
+          )
+        `)
+        .eq('contractor_id', user.id);
 
       if (error) {
         console.error('Error fetching expenses:', error);
         throw error;
       }
-      return data;
+      return data?.flatMap(project => project.expenses) || [];
     },
   });
 
