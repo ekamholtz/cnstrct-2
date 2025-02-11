@@ -21,7 +21,7 @@ export function useContractorProjects() {
           address,
           created_at,
           client_id,
-          clients!inner (
+          clients (
             id,
             name,
             email
