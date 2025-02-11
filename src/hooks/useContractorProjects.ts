@@ -1,6 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Project } from "@/types/project";
 
 export function useContractorProjects() {
   return useQuery({
@@ -18,6 +19,7 @@ export function useContractorProjects() {
           name,
           status,
           address,
+          created_at,
           clients (
             id,
             name,
@@ -33,7 +35,7 @@ export function useContractorProjects() {
       }
 
       console.log('Successfully fetched projects:', data);
-      return data || [];
+      return (data || []) as Project[];
     },
   });
 }
