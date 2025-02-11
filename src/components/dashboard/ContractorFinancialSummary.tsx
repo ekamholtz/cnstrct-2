@@ -14,20 +14,30 @@ export function ContractorFinancialSummary() {
       
       const { data, error } = await supabase
         .from('projects')
-        .select(`
-          invoices!inner (
-            amount,
-            project_id
-          )
-        `)
-        .eq('contractor_id', user.id)
-        .eq('invoices.status', 'paid');
+        .select('id')
+        .eq('contractor_id', user.id);
 
       if (error) {
-        console.error('Error fetching paid invoices:', error);
+        console.error('Error fetching projects:', error);
         throw error;
       }
-      return data?.flatMap(project => project.invoices) || [];
+
+      const projectIds = data?.map(p => p.id) || [];
+      
+      if (projectIds.length === 0) return [];
+
+      const { data: invoices, error: invoicesError } = await supabase
+        .from('invoices')
+        .select('amount')
+        .eq('status', 'paid')
+        .in('project_id', projectIds);
+
+      if (invoicesError) {
+        console.error('Error fetching paid invoices:', invoicesError);
+        throw invoicesError;
+      }
+
+      return invoices || [];
     },
   });
 
@@ -40,20 +50,30 @@ export function ContractorFinancialSummary() {
       
       const { data, error } = await supabase
         .from('projects')
-        .select(`
-          invoices!inner (
-            amount,
-            project_id
-          )
-        `)
-        .eq('contractor_id', user.id)
-        .eq('invoices.status', 'pending_payment');
+        .select('id')
+        .eq('contractor_id', user.id);
 
       if (error) {
-        console.error('Error fetching pending invoices:', error);
+        console.error('Error fetching projects:', error);
         throw error;
       }
-      return data?.flatMap(project => project.invoices) || [];
+
+      const projectIds = data?.map(p => p.id) || [];
+      
+      if (projectIds.length === 0) return [];
+
+      const { data: invoices, error: invoicesError } = await supabase
+        .from('invoices')
+        .select('amount')
+        .eq('status', 'pending_payment')
+        .in('project_id', projectIds);
+
+      if (invoicesError) {
+        console.error('Error fetching pending invoices:', invoicesError);
+        throw invoicesError;
+      }
+
+      return invoices || [];
     },
   });
 
@@ -66,20 +86,30 @@ export function ContractorFinancialSummary() {
       
       const { data, error } = await supabase
         .from('projects')
-        .select(`
-          milestones!inner (
-            amount,
-            project_id
-          )
-        `)
-        .eq('contractor_id', user.id)
-        .eq('milestones.status', 'pending');
+        .select('id')
+        .eq('contractor_id', user.id);
 
       if (error) {
-        console.error('Error fetching incomplete milestones:', error);
+        console.error('Error fetching projects:', error);
         throw error;
       }
-      return data?.flatMap(project => project.milestones) || [];
+
+      const projectIds = data?.map(p => p.id) || [];
+      
+      if (projectIds.length === 0) return [];
+
+      const { data: milestones, error: milestonesError } = await supabase
+        .from('milestones')
+        .select('amount')
+        .eq('status', 'pending')
+        .in('project_id', projectIds);
+
+      if (milestonesError) {
+        console.error('Error fetching incomplete milestones:', milestonesError);
+        throw milestonesError;
+      }
+
+      return milestones || [];
     },
   });
 
@@ -92,19 +122,29 @@ export function ContractorFinancialSummary() {
       
       const { data, error } = await supabase
         .from('projects')
-        .select(`
-          expenses!inner (
-            amount,
-            project_id
-          )
-        `)
+        .select('id')
         .eq('contractor_id', user.id);
 
       if (error) {
-        console.error('Error fetching expenses:', error);
+        console.error('Error fetching projects:', error);
         throw error;
       }
-      return data?.flatMap(project => project.expenses) || [];
+
+      const projectIds = data?.map(p => p.id) || [];
+      
+      if (projectIds.length === 0) return [];
+
+      const { data: expenses, error: expensesError } = await supabase
+        .from('expenses')
+        .select('amount')
+        .in('project_id', projectIds);
+
+      if (expensesError) {
+        console.error('Error fetching expenses:', expensesError);
+        throw expensesError;
+      }
+
+      return expenses || [];
     },
   });
 
