@@ -12,31 +12,42 @@ export function useContractorProjects() {
       
       console.log('Fetching projects for contractor:', user.id);
       
-      const { data, error } = await supabase
+      // First fetch projects
+      const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select(`
-          id,
-          name,
-          status,
-          address,
-          created_at,
-          client_id,
-          clients (
-            id,
-            name,
-            email
-          )
-        `)
+        .select('id, name, status, address, created_at, client_id')
         .eq('contractor_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching projects:', error);
-        throw error;
+      if (projectsError) {
+        console.error('Error fetching projects:', projectsError);
+        throw projectsError;
       }
 
-      console.log('Successfully fetched projects:', data);
-      return (data || []) as Project[];
+      // Then fetch associated client data
+      const projectsWithClients = await Promise.all(
+        (projects || []).map(async (project) => {
+          if (!project.client_id) {
+            return { ...project, clients: null };
+          }
+
+          const { data: clientData, error: clientError } = await supabase
+            .from('clients')
+            .select('id, name, email')
+            .eq('id', project.client_id)
+            .single();
+
+          if (clientError) {
+            console.error('Error fetching client for project:', project.id, clientError);
+            return { ...project, clients: null };
+          }
+
+          return { ...project, clients: clientData };
+        })
+      );
+
+      console.log('Successfully fetched projects with clients:', projectsWithClients);
+      return projectsWithClients as Project[];
     },
   });
 }
