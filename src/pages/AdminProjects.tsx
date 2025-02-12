@@ -20,10 +20,31 @@ export default function AdminProjects() {
     queryFn: async () => {
       console.log('Fetching projects with filters:', { statusFilter, dateSort, searchTerm });
       
-      // Fetch projects first
+      // Use a single query with nested selects
       let query = supabase
         .from('projects')
-        .select('id, name, address, status, created_at, client_id');
+        .select(`
+          *,
+          clients (
+            name,
+            email
+          ),
+          milestones (
+            id,
+            name,
+            amount,
+            status
+          ),
+          invoices (
+            id,
+            amount,
+            status
+          ),
+          expenses (
+            id,
+            amount
+          )
+        `);
 
       if (statusFilter !== 'all') {
         query = query.eq('status', statusFilter);
@@ -42,50 +63,8 @@ export default function AdminProjects() {
         throw projectsError;
       }
 
-      // Fetch all related data in parallel for better performance
-      const projectsWithDetails = await Promise.all(
-        (projectsData || []).map(async (project) => {
-          const [
-            { data: clientData },
-            { data: milestones },
-            { data: invoices },
-            { data: expenses }
-          ] = await Promise.all([
-            // Fetch client info
-            supabase
-              .from('clients')
-              .select('name, email')
-              .eq('id', project.client_id)
-              .single(),
-            // Fetch milestones
-            supabase
-              .from('milestones')
-              .select('id, name, amount, status')
-              .eq('project_id', project.id),
-            // Fetch invoices
-            supabase
-              .from('invoices')
-              .select('id, amount, status')
-              .eq('project_id', project.id),
-            // Fetch expenses
-            supabase
-              .from('expenses')
-              .select('id, amount')
-              .eq('project_id', project.id)
-          ]);
-
-          return {
-            ...project,
-            clients: clientData || null,
-            milestones: milestones || [],
-            invoices: invoices || [],
-            expenses: expenses || []
-          };
-        })
-      );
-
-      console.log('Successfully fetched projects with details:', projectsWithDetails);
-      return projectsWithDetails;
+      console.log('Successfully fetched projects:', projectsData);
+      return projectsData || [];
     },
   });
 
