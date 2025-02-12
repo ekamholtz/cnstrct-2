@@ -1,7 +1,7 @@
 
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Header } from "@/components/landing/Header";
+import { MainNav } from "@/components/navigation/MainNav";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,7 +109,7 @@ export default function ProjectDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {isAdmin ? <AdminNav /> : <Header />}
+      {isAdmin ? <AdminNav /> : <MainNav />}
       <main>
         {projectLoading || milestonesLoading ? (
           <LoadingState dashboardRoute={dashboardRoute} isAdmin={isAdmin} />
