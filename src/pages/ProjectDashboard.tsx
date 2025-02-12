@@ -5,17 +5,10 @@ import { Header } from "@/components/landing/Header";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { ProjectHeader } from "@/components/project/ProjectHeader";
-import { ProjectStatus } from "@/components/project/ProjectStatus";
-import { MilestonesList } from "@/components/project/MilestonesList";
+import { LoadingState } from "@/components/project/dashboard/LoadingState";
+import { ProjectNotFound } from "@/components/project/dashboard/ProjectNotFound";
+import { ProjectContent } from "@/components/project/dashboard/ProjectContent";
 import { markMilestoneComplete, calculateCompletion } from "@/utils/milestoneOperations";
-import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
-import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
-import { ProjectInvoices } from "@/components/project/invoice/ProjectInvoices";
-import { ProjectExpenses } from "@/components/project/expense/ProjectExpenses";
-import { ProjectFinancialSummary } from "@/components/project/ProjectFinancialSummary";
 
 interface Project {
   id: string;
@@ -114,95 +107,24 @@ export default function ProjectDashboard() {
     }
   };
 
-  if (projectLoading || milestonesLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {isAdmin ? <AdminNav /> : <Header />}
-        <main className="container mx-auto px-4 py-8 mt-16">
-          <div className="mb-8">
-            <Link to={dashboardRoute}>
-              <Button variant="ghost" className="text-gray-600">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-          <ClientPageHeader 
-            pageTitle="Project Details"
-            pageDescription="Loading project information..."
-          />
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  if (!project) {
-    return (
-      <div className="min-h-screen bg-gray-50">
-        {isAdmin ? <AdminNav /> : <Header />}
-        <main className="container mx-auto px-4 py-8 mt-16">
-          <div className="mb-8">
-            <Link to={dashboardRoute}>
-              <Button variant="ghost" className="text-gray-600">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Dashboard
-              </Button>
-            </Link>
-          </div>
-          <ClientPageHeader 
-            pageTitle="Project Not Found"
-            pageDescription="The project you're looking for doesn't exist or you don't have access to it."
-          />
-        </main>
-      </div>
-    );
-  }
-
-  const completionPercentage = calculateCompletion(milestones || []);
-  const isContractor = currentUser?.id === project.contractor_id;
-
   return (
     <div className="min-h-screen bg-gray-50">
       {isAdmin ? <AdminNav /> : <Header />}
-      <main className="container mx-auto px-4 py-8 mt-16">
-        <div className="mb-8">
-          <Link to={dashboardRoute}>
-            <Button variant="ghost" className="text-gray-600">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          </Link>
-        </div>
-        <ClientPageHeader 
-          pageTitle={`Project: ${project.name}`}
-          pageDescription="View project details and track progress"
-        />
-        <ProjectHeader 
-          name={project.name} 
-          address={project.address} 
-          projectId={project.id}
-        />
-        {!isAdmin && (
-          <ProjectFinancialSummary projectId={project.id} />
-        )}
-        <div className="mb-8">
-          <ProjectStatus status={project.status} completionPercentage={completionPercentage} />
-        </div>
-        <div className="space-y-8">
-          <MilestonesList 
-            milestones={milestones || []} 
+      <main>
+        {projectLoading || milestonesLoading ? (
+          <LoadingState dashboardRoute={dashboardRoute} isAdmin={isAdmin} />
+        ) : !project ? (
+          <ProjectNotFound dashboardRoute={dashboardRoute} />
+        ) : (
+          <ProjectContent
+            project={project}
+            dashboardRoute={dashboardRoute}
+            isAdmin={isAdmin}
+            isContractor={currentUser?.id === project.contractor_id}
+            completionPercentage={calculateCompletion(milestones || [])}
+            milestones={milestones || []}
             onMarkComplete={handleMarkComplete}
-            hideControls={isAdmin}
           />
-        </div>
-        {!isAdmin && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-            <ProjectInvoices projectId={project.id} />
-            {isContractor && <ProjectExpenses projectId={project.id} />}
-          </div>
         )}
       </main>
     </div>
