@@ -4,17 +4,59 @@ import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ClientProjectCard } from "./ClientProjectCard";
 import { ClientProject } from "@/types/project-types";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useToast } from "@/components/ui/use-toast";
 
 interface ClientProjectsListProps {
   limit?: number;
 }
 
 export function ClientProjectsList({ limit }: ClientProjectsListProps) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Check authentication status on component mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('Auth error:', error);
+        toast({
+          variant: "destructive",
+          title: "Authentication Error",
+          description: "Please log in again to continue.",
+        });
+        navigate('/auth');
+        return;
+      }
+
+      if (!session) {
+        console.log('No session found, redirecting to auth');
+        navigate('/auth');
+        return;
+      }
+    };
+
+    checkAuth();
+  }, [navigate, toast]);
+
   const { data: projects, isLoading, error } = useQuery({
     queryKey: ['client-projects', limit],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error('Error getting user:', userError);
+        throw userError;
+      }
+
+      if (!user) {
+        console.log('No user found, redirecting to auth');
+        navigate('/auth');
+        throw new Error('No user found');
+      }
 
       console.log('Starting project fetch for user:', user.id);
 
@@ -67,6 +109,16 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
       console.log('Projects found:', projects);
       return projects as ClientProject[];
     },
+    retry: 1, // Only retry once
+    onError: (error) => {
+      console.error('Query error:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load projects. Please try logging in again.",
+      });
+      navigate('/auth');
+    }
   });
 
   if (isLoading) {
