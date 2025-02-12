@@ -104,6 +104,7 @@ export type Database = {
       expenses: {
         Row: {
           amount: number
+          contractor_id: string
           created_at: string
           expense_date: string
           expense_type: Database["public"]["Enums"]["expense_type"]
@@ -117,6 +118,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          contractor_id: string
           created_at?: string
           expense_date: string
           expense_type?: Database["public"]["Enums"]["expense_type"]
@@ -130,6 +132,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          contractor_id?: string
           created_at?: string
           expense_date?: string
           expense_type?: Database["public"]["Enums"]["expense_type"]
@@ -143,6 +146,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "expenses_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expenses_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -154,6 +164,7 @@ export type Database = {
       invoices: {
         Row: {
           amount: number
+          contractor_id: string
           created_at: string
           id: string
           invoice_number: string
@@ -172,6 +183,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          contractor_id: string
           created_at?: string
           id?: string
           invoice_number: string
@@ -190,6 +202,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          contractor_id?: string
           created_at?: string
           id?: string
           invoice_number?: string
@@ -207,6 +220,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_milestone_id_fkey"
             columns: ["milestone_id"]
