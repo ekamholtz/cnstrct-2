@@ -16,9 +16,9 @@ export const markMilestoneComplete = async (milestoneId: string) => {
   
   console.log('Fetched milestone details:', milestone);
 
-  // Generate invoice number
+  // Generate invoice number with milestone ID
   const { data: invoiceNumber, error: invoiceNumberError } = await supabase
-    .rpc('generate_invoice_number');
+    .rpc('generate_invoice_number', { milestone_id: milestoneId });
 
   if (invoiceNumberError) throw invoiceNumberError;
   console.log('Generated invoice number:', invoiceNumber);
@@ -72,3 +72,4 @@ export const calculateCompletion = (milestones: any[]) => {
 
   return totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0;
 };
+

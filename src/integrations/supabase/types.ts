@@ -400,10 +400,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      generate_invoice_number: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_invoice_number:
+        | {
+            Args: Record<PropertyKey, never>
+            Returns: string
+          }
+        | {
+            Args: {
+              milestone_id: string
+            }
+            Returns: string
+          }
       get_project_invoices: {
         Args: {
           p_id: string
