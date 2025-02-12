@@ -63,11 +63,15 @@ export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) 
   };
 
   const isGeneralContractor = userRole === 'general_contractor';
+  const isAdmin = userRole === 'admin';
+
+  // Determine the back link based on user role
+  const backLink = isAdmin ? '/admin/projects' : '/dashboard';
 
   return (
     <div className="mb-8">
       <div className="mb-8">
-        <Link to="/dashboard">
+        <Link to={backLink}>
           <Button variant="ghost" className="text-gray-600">
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Projects
