@@ -13,31 +13,17 @@ export const Header = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user || null);
-      } catch (error) {
-        console.error('Error getting session:', error);
-        setUser(null);
-      }
-    };
-
-    getInitialSession();
-
-    // Set up auth state listener
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("Auth state changed:", _event, session?.user);
+    supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user || null);
     });
 
-    // Cleanup subscription
-    return () => {
-      subscription.unsubscribe();
-    };
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const handleLogout = async () => {
@@ -45,7 +31,6 @@ export const Header = () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Clear user state
       setUser(null);
       navigate("/");
       
@@ -63,12 +48,12 @@ export const Header = () => {
     }
   };
 
-  const navItems = user ? [
-    { label: "Home", path: "/dashboard" },
-    { label: "Projects", path: "/dashboard" },
-    { label: "Invoices", path: "/invoices" },
-    { label: "Profile", path: "/profile" },
-  ] : [];
+  const navItems = [
+    { label: "Home", path: "/" },
+    { label: "Features", path: "#features" },
+    { label: "About", path: "#about" },
+    { label: "Contact", path: "#contact" },
+  ];
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white z-50 shadow-sm">
@@ -94,9 +79,17 @@ export const Header = () => {
               </a>
             ))}
             {user ? (
-              <Button onClick={handleLogout} variant="outline">
-                Sign Out
-              </Button>
+              <>
+                <Button variant="outline" onClick={() => navigate("/dashboard")}>
+                  Dashboard
+                </Button>
+                <Button 
+                  onClick={handleLogout}
+                  className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
+                >
+                  Sign Out
+                </Button>
+              </>
             ) : (
               <>
                 <Button variant="outline" onClick={() => navigate("/auth")}>
@@ -104,10 +97,7 @@ export const Header = () => {
                 </Button>
                 <Button
                   className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
-                  onClick={() => {
-                    navigate("/auth");
-                    setIsMenuOpen(false);
-                  }}
+                  onClick={() => navigate("/auth")}
                 >
                   Register
                 </Button>
@@ -130,19 +120,33 @@ export const Header = () => {
                   key={item.label}
                   href={item.path}
                   className="text-cnstrct-navy hover:text-cnstrct-orange transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
                 >
                   {item.label}
                 </a>
               ))}
               {user ? (
-                <Button onClick={handleLogout} variant="outline" className="w-full">
-                  Sign Out
-                </Button>
+                <>
+                  <Button variant="outline" onClick={() => {
+                    navigate("/dashboard");
+                    setIsMenuOpen(false);
+                  }}>
+                    Dashboard
+                  </Button>
+                  <Button 
+                    onClick={() => {
+                      handleLogout();
+                      setIsMenuOpen(false);
+                    }}
+                    className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
+                  >
+                    Sign Out
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button
                     variant="outline"
-                    className="w-full"
                     onClick={() => {
                       navigate("/auth");
                       setIsMenuOpen(false);
@@ -151,7 +155,7 @@ export const Header = () => {
                     Login
                   </Button>
                   <Button
-                    className="w-full bg-cnstrct-orange hover:bg-cnstrct-orange/90"
+                    className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
                     onClick={() => {
                       navigate("/auth");
                       setIsMenuOpen(false);
@@ -167,5 +171,4 @@ export const Header = () => {
       </div>
     </header>
   );
-}
-
+};
