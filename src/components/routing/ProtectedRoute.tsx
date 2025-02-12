@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { Header } from "@/components/landing/Header";
+import { MainNav } from "@/components/navigation/MainNav";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<any>(null);
@@ -105,13 +105,12 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Wrap children with the appropriate navigation based on user role
-  const wrappedChildren = (
+  const Navigation = currentRole === 'admin' ? AdminNav : MainNav;
+  
+  return (
     <>
-      {currentRole === 'admin' ? <AdminNav /> : <Header />}
+      <Navigation />
       {children}
     </>
   );
-
-  return wrappedChildren;
 };
-
