@@ -109,15 +109,16 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
       console.log('Projects found:', projects);
       return projects as ClientProject[];
     },
-    retry: 1, // Only retry once
-    onError: (error) => {
-      console.error('Query error:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load projects. Please try logging in again.",
-      });
-      navigate('/auth');
+    meta: {
+      errorHandler: (error: Error) => {
+        console.error('Query error:', error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load projects. Please try logging in again.",
+        });
+        navigate('/auth');
+      }
     }
   });
 

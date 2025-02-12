@@ -24,13 +24,28 @@ export function useExpenses(projectId: string) {
     },
   });
 
+  // Get the contractor_id from the project
+  const getContractorId = async () => {
+    const { data: project, error } = await supabase
+      .from('projects')
+      .select('contractor_id')
+      .eq('id', projectId)
+      .single();
+
+    if (error) throw error;
+    return project.contractor_id;
+  };
+
   // Create expense mutation
   const createExpense = useMutation({
     mutationFn: async (data: ExpenseFormData) => {
+      const contractor_id = await getContractorId();
+      
       const { error } = await supabase
         .from('expenses')
         .insert({
           project_id: projectId,
+          contractor_id,
           name: data.name,
           payee: data.payee,
           amount: Number(data.amount),

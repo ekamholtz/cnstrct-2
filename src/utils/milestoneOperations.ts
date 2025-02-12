@@ -29,6 +29,7 @@ export const markMilestoneComplete = async (milestoneId: string) => {
     .insert({
       milestone_id: milestoneId,
       project_id: milestone.project_id,
+      contractor_id: milestone.project.contractor_id,
       amount: milestone.amount,
       invoice_number: invoiceNumber,
     })
