@@ -15,57 +15,25 @@ export default function AdminProjects() {
   const [searchTerm, setSearchTerm] = useState('');
   const [dateSort, setDateSort] = useState<'asc' | 'desc'>('desc');
 
+  // Basic query to test data access without RLS
   const { data: projects, isLoading } = useQuery({
     queryKey: ['admin-projects', statusFilter, dateSort, searchTerm],
     queryFn: async () => {
-      console.log('Fetching projects with filters:', { statusFilter, dateSort, searchTerm });
+      console.log('Fetching all projects - RLS disabled');
       
-      // Use a single query with nested selects
-      let query = supabase
+      // Simple query to test data access
+      const { data, error } = await supabase
         .from('projects')
-        .select(`
-          *,
-          clients (
-            name,
-            email
-          ),
-          milestones (
-            id,
-            name,
-            amount,
-            status
-          ),
-          invoices (
-            id,
-            amount,
-            status
-          ),
-          expenses (
-            id,
-            amount
-          )
-        `);
+        .select('*, clients ( name, email )');
 
-      if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+      if (error) {
+        console.error('Error fetching projects:', error);
+        throw error;
       }
 
-      if (searchTerm) {
-        query = query.or(`name.ilike.%${searchTerm}%,address.ilike.%${searchTerm}%`);
-      }
-
-      query = query.order('created_at', { ascending: dateSort === 'asc' });
-
-      const { data: projectsData, error: projectsError } = await query;
-
-      if (projectsError) {
-        console.error('Error fetching projects:', projectsError);
-        throw projectsError;
-      }
-
-      console.log('Successfully fetched projects:', projectsData);
-      return projectsData || [];
-    },
+      console.log('Projects fetched:', data);
+      return data || [];
+    }
   });
 
   return (
