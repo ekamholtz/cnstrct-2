@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -28,9 +29,10 @@ interface Milestone {
 interface MilestonesListProps {
   milestones: Milestone[];
   onMarkComplete: (id: string) => void;
+  hideControls?: boolean;
 }
 
-export function MilestonesList({ milestones, onMarkComplete }: MilestonesListProps) {
+export function MilestonesList({ milestones, onMarkComplete, hideControls = false }: MilestonesListProps) {
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -139,7 +141,7 @@ export function MilestonesList({ milestones, onMarkComplete }: MilestonesListPro
                     <span className={`px-2.5 py-0.5 rounded-full text-sm font-medium ${getStatusColor(milestone.status)}`}>
                       {milestone.status.charAt(0).toUpperCase() + milestone.status.slice(1)}
                     </span>
-                    {!isHomeowner && (
+                    {!hideControls && !isHomeowner && (
                       <div className="flex gap-2">
                         {milestone.status !== 'completed' && (
                           <Button

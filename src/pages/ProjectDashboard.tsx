@@ -1,3 +1,4 @@
+
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Header } from "@/components/landing/Header";
@@ -184,7 +185,9 @@ export default function ProjectDashboard() {
           address={project.address} 
           projectId={project.id}
         />
-        <ProjectFinancialSummary projectId={project.id} />
+        {!isAdmin && (
+          <ProjectFinancialSummary projectId={project.id} />
+        )}
         <div className="mb-8">
           <ProjectStatus status={project.status} completionPercentage={completionPercentage} />
         </div>
@@ -192,12 +195,15 @@ export default function ProjectDashboard() {
           <MilestonesList 
             milestones={milestones || []} 
             onMarkComplete={handleMarkComplete}
+            hideControls={isAdmin}
           />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-          <ProjectInvoices projectId={project.id} />
-          {isContractor && <ProjectExpenses projectId={project.id} />}
-        </div>
+        {!isAdmin && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
+            <ProjectInvoices projectId={project.id} />
+            {isContractor && <ProjectExpenses projectId={project.id} />}
+          </div>
+        )}
       </main>
     </div>
   );
