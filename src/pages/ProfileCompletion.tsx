@@ -51,7 +51,14 @@ export default function ProfileCompletion() {
         .single();
 
       if (profile?.has_completed_profile) {
-        navigate("/");
+        // Route based on user role
+        if (profile.role === 'homeowner') {
+          navigate("/client-dashboard");
+        } else if (profile.role === 'general_contractor') {
+          navigate("/dashboard");
+        } else if (profile.role === 'admin') {
+          navigate("/admin");
+        }
         return;
       }
 
@@ -85,7 +92,14 @@ export default function ProfileCompletion() {
         description: "You will now be redirected to the dashboard.",
       });
 
-      navigate("/dashboard");
+      // Route based on user role
+      if (userRole === 'homeowner') {
+        navigate("/client-dashboard");
+      } else if (userRole === 'general_contractor') {
+        navigate("/dashboard");
+      } else if (userRole === 'admin') {
+        navigate("/admin");
+      }
     } catch (error: any) {
       console.error("Error updating profile:", error);
       toast({
