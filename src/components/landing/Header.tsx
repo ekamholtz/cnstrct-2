@@ -58,12 +58,12 @@ export const Header = () => {
   return (
     <header className="fixed top-0 left-0 right-0 bg-white z-50 shadow-sm">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           <div className="flex items-center">
             <img
               src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
               alt="CNSTRCT Logo"
-              className="h-8"
+              className="h-12 w-auto" // Increased from h-8 to h-12
             />
           </div>
 
