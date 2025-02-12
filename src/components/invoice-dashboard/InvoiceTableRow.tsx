@@ -41,6 +41,20 @@ export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps)
   const isClient = profile?.role === 'homeowner';
   console.log('Role check - profile:', profile, 'isClient:', isClient);
 
+  // Format date safely
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'N/A';
+    
+    const date = new Date(dateString);
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.error('Invalid date:', dateString);
+      return 'Invalid date';
+    }
+    
+    return format(date, 'MMM d, yyyy');
+  };
+
   return (
     <TableRow>
       <TableCell className="font-medium">
@@ -68,7 +82,7 @@ export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps)
         <StatusBadge status={invoice.status} />
       </TableCell>
       <TableCell>
-        {format(new Date(invoice.created_at), 'MMM d, yyyy')}
+        {formatDate(invoice.created_at)}
       </TableCell>
       <TableCell>
         {isClient ? (
