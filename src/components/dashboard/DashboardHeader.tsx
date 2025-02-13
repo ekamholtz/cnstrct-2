@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import {
@@ -10,17 +11,39 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProjectCreationForm from "@/components/projects/ProjectCreationForm";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardHeaderProps {
   onProjectCreated: () => void;
 }
 
 export function DashboardHeader({ onProjectCreated }: DashboardHeaderProps) {
+  const { data: profile } = useQuery({
+    queryKey: ['contractor-profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('company_name')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   return (
     <div className="flex justify-between items-center mb-8">
       <div>
         <h1 className="text-2xl font-bold text-gray-900">General Contractor Dashboard</h1>
-        <p className="text-gray-600">Manage your projects and track progress</p>
+        {profile?.company_name && (
+          <p className="text-lg text-gray-600 mt-1">{profile.company_name}</p>
+        )}
+        <p className="text-gray-600 mt-1">Manage your projects and track progress</p>
       </div>
       <Dialog>
         <DialogTrigger asChild>
