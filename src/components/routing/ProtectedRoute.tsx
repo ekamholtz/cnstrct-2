@@ -23,7 +23,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             .from('profiles')
             .select('has_completed_profile, role')
             .eq('id', session.user.id)
-            .maybeSingle();
+            .single();
 
           console.log("Profile data:", data, "Error:", error);
 
@@ -89,7 +89,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Get current role from user metadata if available, fallback to profile role
   const currentRole = session?.user?.user_metadata?.role || userRole;
   
-  // Only redirect to role-specific dashboard if profile is completed
+  // Only redirect to role-specific dashboard if profile is completed and user is on root path
   if (hasCompletedProfile && window.location.pathname === '/') {
     console.log("Redirecting based on role. Current role:", currentRole);
     
@@ -102,6 +102,18 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       console.log("Redirecting contractor to dashboard");
       return <Navigate to="/dashboard" replace />;
     }
+  }
+
+  // Prevent homeowners from accessing the GC dashboard
+  if (currentRole === 'homeowner' && window.location.pathname === '/dashboard') {
+    console.log("Homeowner attempting to access GC dashboard, redirecting to client dashboard");
+    return <Navigate to="/client-dashboard" replace />;
+  }
+
+  // Prevent GCs from accessing the client dashboard
+  if (currentRole === 'general_contractor' && window.location.pathname === '/client-dashboard') {
+    console.log("GC attempting to access client dashboard, redirecting to GC dashboard");
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Wrap children with the appropriate navigation based on user role
