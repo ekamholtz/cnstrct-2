@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { InvoiceTableRow } from "./InvoiceTableRow";
 import { Invoice, PaymentFormData } from "@/components/project/invoice/types";
+import { Card } from "@/components/ui/card";
 
 interface InvoiceTableProps {
   invoices: Invoice[];
@@ -18,7 +19,10 @@ interface InvoiceTableProps {
 
 export const InvoiceTable = ({ invoices, loading, onMarkAsPaid }: InvoiceTableProps) => {
   return (
-    <div className="bg-white rounded-lg shadow">
+    <Card className="mt-6">
+      <div className="p-6 border-b border-gray-200">
+        <h2 className="text-lg font-semibold text-gray-900">Recent Invoices</h2>
+      </div>
       <Table>
         <TableHeader>
           <TableRow>
@@ -54,6 +58,6 @@ export const InvoiceTable = ({ invoices, loading, onMarkAsPaid }: InvoiceTablePr
           )}
         </TableBody>
       </Table>
-    </div>
+    </Card>
   );
 };

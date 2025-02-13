@@ -43,43 +43,45 @@ export default function InvoiceDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="mb-8">
-        <Link to={dashboardRoute}>
-          <Button variant="ghost" className="text-gray-600">
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to Dashboard
-          </Button>
-        </Link>
-      </div>
-
-      {isContractor ? (
-        // Contractor view
-        <div>
-          {profile?.company_name && (
-            <p className="text-xl font-bold text-gray-700 mb-2">{profile.company_name}</p>
-          )}
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invoice Management</h1>
-          <p className="text-gray-600">Track and manage all project invoices</p>
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Link to={dashboardRoute}>
+            <Button variant="ghost" className="text-gray-600">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Dashboard
+            </Button>
+          </Link>
         </div>
-      ) : (
-        // Client view
-        <ClientPageHeader 
-          pageTitle="Invoices"
-          pageDescription="View and manage all your payment invoices"
+
+        {isContractor ? (
+          // Contractor view
+          <div>
+            {profile?.company_name && (
+              <p className="text-xl font-bold text-gray-700 mb-2">{profile.company_name}</p>
+            )}
+            <h1 className="text-2xl font-bold text-gray-900">Invoice Management</h1>
+            <p className="text-gray-600">Track and manage all project invoices</p>
+          </div>
+        ) : (
+          // Client view
+          <ClientPageHeader 
+            pageTitle="Invoices"
+            pageDescription="View and manage all your payment invoices"
+          />
+        )}
+
+        <InvoiceFilters
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          invoices={invoices as Invoice[]}
         />
-      )}
 
-      <InvoiceFilters
-        statusFilter={statusFilter}
-        onStatusFilterChange={setStatusFilter}
-        invoices={invoices as Invoice[]}
-      />
-
-      <InvoiceTable
-        invoices={invoices as Invoice[]}
-        loading={loading}
-        onMarkAsPaid={handleMarkAsPaid}
-      />
+        <InvoiceTable
+          invoices={invoices as Invoice[]}
+          loading={loading}
+          onMarkAsPaid={handleMarkAsPaid}
+        />
+      </div>
     </DashboardLayout>
   );
 }
