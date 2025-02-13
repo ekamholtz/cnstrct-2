@@ -21,7 +21,7 @@ export default function InvoiceDashboard() {
   } = useInvoiceDashboard();
 
   // Fetch user role to determine the correct dashboard route and UI
-  const { data: profile } = useQuery({
+  const { data: profile, isLoading: isProfileLoading } = useQuery({
     queryKey: ['user-profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -29,7 +29,7 @@ export default function InvoiceDashboard() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('role, company_name')
+        .select('role, company_name, full_name')
         .eq('id', user.id)
         .single();
 
@@ -43,7 +43,7 @@ export default function InvoiceDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-8">
         <div>
           <div className="flex items-center justify-between mb-8">
             <Link to={dashboardRoute}>
@@ -55,8 +55,8 @@ export default function InvoiceDashboard() {
           </div>
 
           {isContractor ? (
-            <div>
-              <p className="text-xl font-bold text-gray-700 mb-2">{profile?.company_name}</p>
+            <div className="space-y-1">
+              <p className="text-xl font-bold text-gray-700">{profile?.company_name || profile?.full_name}</p>
               <h1 className="text-2xl font-bold text-gray-900">Invoice Management</h1>
               <p className="text-gray-600">Track and manage all project invoices</p>
             </div>
