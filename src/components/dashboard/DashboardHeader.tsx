@@ -39,10 +39,10 @@ export function DashboardHeader({ onProjectCreated }: DashboardHeaderProps) {
   return (
     <div className="flex justify-between items-center mb-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">General Contractor Dashboard</h1>
         {profile?.company_name && (
-          <p className="text-lg text-gray-600 mt-1">{profile.company_name}</p>
+          <p className="text-xl font-bold text-gray-700 mb-2">{profile.company_name}</p>
         )}
+        <h1 className="text-2xl font-bold text-gray-900">General Contractor Dashboard</h1>
         <p className="text-gray-600 mt-1">Manage your projects and track progress</p>
       </div>
       <Dialog>

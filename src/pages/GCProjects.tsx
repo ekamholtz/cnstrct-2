@@ -44,10 +44,10 @@ export default function GCProjects() {
     <DashboardLayout>
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">All Projects</h1>
           {profile?.company_name && (
-            <p className="text-lg text-gray-600 mt-1">{profile.company_name}</p>
+            <p className="text-xl font-bold text-gray-700 mb-2">{profile.company_name}</p>
           )}
+          <h1 className="text-2xl font-bold text-gray-900">All Projects</h1>
           <p className="text-gray-600 mt-1">View and manage all your construction projects</p>
         </div>
       </div>
