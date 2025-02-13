@@ -21,8 +21,8 @@ export default function InvoiceDashboard() {
   } = useInvoiceDashboard();
 
   // Fetch user role to determine the correct dashboard route and UI
-  const { data: profile, isLoading: isProfileLoading } = useQuery({
-    queryKey: ['user-profile'],
+  const { data: profile } = useQuery({
+    queryKey: ['contractor-profile'],  // Changed to match GCProjects implementation
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
@@ -39,6 +39,8 @@ export default function InvoiceDashboard() {
   });
 
   const dashboardRoute = profile?.role === 'homeowner' ? '/client-dashboard' : '/dashboard';
+
+  console.log("Profile data:", profile); // Add logging to debug
 
   return (
     <DashboardLayout>
