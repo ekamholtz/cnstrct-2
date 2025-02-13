@@ -20,7 +20,7 @@ export default function InvoiceDashboard() {
     handleMarkAsPaid,
   } = useInvoiceDashboard();
 
-  // Fetch user role to determine the correct dashboard route
+  // Fetch user role to determine the correct dashboard route and UI
   const { data: profile } = useQuery({
     queryKey: ['user-profile'],
     queryFn: async () => {
@@ -29,7 +29,7 @@ export default function InvoiceDashboard() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, company_name')
         .eq('id', user.id)
         .single();
 
@@ -39,6 +39,7 @@ export default function InvoiceDashboard() {
   });
 
   const dashboardRoute = profile?.role === 'homeowner' ? '/client-dashboard' : '/dashboard';
+  const isContractor = profile?.role === 'general_contractor';
 
   return (
     <DashboardLayout>
@@ -51,10 +52,22 @@ export default function InvoiceDashboard() {
         </Link>
       </div>
 
-      <ClientPageHeader 
-        pageTitle="Invoices"
-        pageDescription="View and manage all your payment invoices"
-      />
+      {isContractor ? (
+        // Contractor view
+        <div>
+          {profile?.company_name && (
+            <p className="text-xl font-bold text-gray-700 mb-2">{profile.company_name}</p>
+          )}
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Invoice Management</h1>
+          <p className="text-gray-600">Track and manage all project invoices</p>
+        </div>
+      ) : (
+        // Client view
+        <ClientPageHeader 
+          pageTitle="Invoices"
+          pageDescription="View and manage all your payment invoices"
+        />
+      )}
 
       <InvoiceFilters
         statusFilter={statusFilter}
