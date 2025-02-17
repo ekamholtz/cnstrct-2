@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import {
   Menu,
   X,
   Grid,
+  DollarSign,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -23,7 +23,6 @@ export function MainNav() {
   const location = useLocation();
   const { toast } = useToast();
 
-  // Fetch user role from profiles table
   const { data: profile } = useQuery({
     queryKey: ['user-profile'],
     queryFn: async () => {
@@ -66,7 +65,6 @@ export function MainNav() {
                        profile?.role === 'admin' ? '/admin/projects' :
                        '/gc-projects';
 
-  // Customize nav items based on user role
   const getNavItems = () => {
     const baseItems = [
       { label: "Home", path: homeRoute, icon: Home },
@@ -83,6 +81,7 @@ export function MainNav() {
       ...baseItems,
       { label: "Projects", path: projectsRoute, icon: Grid },
       { label: "Invoices", path: "/invoices", icon: FileText },
+      { label: "Expenses", path: "/expenses", icon: DollarSign },
       { label: "Profile", path: "/profile", icon: User },
       { label: "Help", path: "/help", icon: HelpCircle },
     ];
@@ -91,7 +90,6 @@ export function MainNav() {
   const navItems = getNavItems();
   const isActive = (path: string) => location.pathname === path;
 
-  // If user is on wrong projects page, redirect them
   if (location.pathname === '/gc-projects' && profile?.role === 'homeowner') {
     navigate('/client-projects');
     return null;
@@ -106,7 +104,6 @@ export function MainNav() {
     <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link to={homeRoute} className="flex items-center">
             <img
               src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
@@ -115,7 +112,6 @@ export function MainNav() {
             />
           </Link>
 
-          {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -144,7 +140,6 @@ export function MainNav() {
             </Button>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             className="md:hidden p-2"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
@@ -157,7 +152,6 @@ export function MainNav() {
           </button>
         </div>
 
-        {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <div className="flex flex-col space-y-4">
