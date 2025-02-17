@@ -14,22 +14,46 @@ export function useInvoices(projectId: string) {
     queryFn: async () => {
       console.log('Starting invoice fetch for project:', projectId);
       
+      // Direct query instead of RPC to ensure we get all fields
       const { data, error } = await supabase
-        .rpc('get_project_invoices', { p_id: projectId });
+        .from('invoices')
+        .select(`
+          *,
+          milestone:milestones(
+            name,
+            project:projects(name)
+          )
+        `)
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true });
 
       if (error) {
         console.error('Error fetching invoices:', error);
         throw error;
       }
 
-      // Log the fetched data for debugging
-      console.log('Fetched invoices:', data);
+      // Transform the data to match our Invoice type
+      const transformedData = data.map(invoice => ({
+        id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        amount: invoice.amount,
+        status: invoice.status,
+        created_at: invoice.created_at,
+        milestone_id: invoice.milestone_id,
+        milestone_name: invoice.milestone.name,
+        project_name: invoice.milestone.project.name,
+        project_id: invoice.project_id,
+        payment_method: invoice.payment_method,
+        payment_date: invoice.payment_date,
+        payment_reference: invoice.payment_reference,
+        payment_gateway: invoice.payment_gateway,
+        updated_at: invoice.updated_at
+      }));
 
-      return data as Invoice[];
+      console.log('Fetched and transformed invoices:', transformedData);
+
+      return transformedData;
     },
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
   // Set up real-time subscription for invoices
