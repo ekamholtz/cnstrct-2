@@ -10,6 +10,15 @@ interface StatsOverviewProps {
   projects: Project[];
 }
 
+interface StatItem {
+  label: string;
+  value: string | number;
+  icon: typeof Building2 | typeof Clock | typeof DollarSign | typeof Users;
+  description: string;
+  link?: string;
+  isExpense?: boolean;
+}
+
 export function StatsOverview({ projects }: StatsOverviewProps) {
   const [pendingApprovals, setPendingApprovals] = useState(0);
   const [totalContractValue, setTotalContractValue] = useState(0);
@@ -57,7 +66,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
     }
   }, [projects]);
 
-  const stats = [
+  const stats: StatItem[] = [
     {
       label: "Active Projects",
       value: projects.filter(p => p.status === "active").length,
@@ -94,12 +103,9 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {stats.map((stat) => {
-        const CardWrapper = stat.link ? Link : 'div';
-        const wrapperProps = stat.link ? { to: stat.link, className: "block" } : {};
-        
-        return (
-          <CardWrapper {...wrapperProps} key={stat.label}>
+      {stats.map((stat) => (
+        stat.link ? (
+          <Link to={stat.link} className="block" key={stat.label}>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">
@@ -114,9 +120,22 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
                 <p className="text-xs text-gray-500">{stat.description}</p>
               </CardContent>
             </Card>
-          </CardWrapper>
-        );
-      })}
+          </Link>
+        ) : (
+          <Card key={stat.label}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                {stat.label}
+              </CardTitle>
+              <stat.icon className="h-4 w-4 text-gray-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+              <p className="text-xs text-gray-500">{stat.description}</p>
+            </CardContent>
+          </Card>
+        )
+      ))}
     </div>
   );
 }
