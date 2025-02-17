@@ -61,10 +61,7 @@ export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps)
         </Link>
       </TableCell>
       <TableCell>
-        <div className="flex flex-col">
-          <span className="font-medium">{invoice.project_name}</span>
-          <span className="text-sm text-gray-500">{invoice.milestone_name}</span>
-        </div>
+        <span className="text-sm text-gray-900">{invoice.milestone_name}</span>
       </TableCell>
       <TableCell>
         <div className="flex items-center">

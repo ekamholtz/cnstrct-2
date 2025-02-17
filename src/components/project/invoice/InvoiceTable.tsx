@@ -24,7 +24,7 @@ export function InvoiceTable({ invoices, onMarkAsPaid }: InvoiceTableProps) {
         <TableHeader>
           <TableRow>
             <TableHead>Invoice Number</TableHead>
-            <TableHead>Project/Milestone</TableHead>
+            <TableHead>Milestone</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Date</TableHead>
