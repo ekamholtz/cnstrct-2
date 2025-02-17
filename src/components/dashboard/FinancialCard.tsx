@@ -20,7 +20,7 @@ export function FinancialCard({
   textColor
 }: FinancialCardProps) {
   return (
-    <Card className="p-6 flex items-center space-x-4">
+    <Card className="p-6 flex items-center space-x-4 w-full">
       <div className={`${bgColor} p-3 rounded-full`}>
         <Icon className={`h-6 w-6 ${iconColor}`} />
       </div>
