@@ -5,18 +5,10 @@ import { Building2, Clock, DollarSign, Users } from "lucide-react";
 import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { FinancialCard } from "./FinancialCard";
 
 interface StatsOverviewProps {
   projects: Project[];
-}
-
-interface StatItem {
-  label: string;
-  value: string | number;
-  icon: typeof Building2 | typeof Clock | typeof DollarSign | typeof Users;
-  description: string;
-  link?: string;
-  isExpense?: boolean;
 }
 
 export function StatsOverview({ projects }: StatsOverviewProps) {
@@ -66,7 +58,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
     }
   }, [projects]);
 
-  const stats: StatItem[] = [
+  const stats = [
     {
       label: "Active Projects",
       value: projects.filter(p => p.status === "active").length,
@@ -90,52 +82,35 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       value: activeClients,
       icon: Users,
       description: "Currently working with"
-    },
-    {
-      label: "Total Expenses",
-      value: "$1,000",
-      icon: DollarSign,
-      description: "Project expenses",
-      link: "/expenses",
-      isExpense: true
     }
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {stats.map((stat) => (
-        stat.link ? (
-          <Link to={stat.link} className="block" key={stat.label}>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {stat.label}
-                </CardTitle>
-                <stat.icon className={`h-4 w-4 ${stat.isExpense ? 'text-red-500' : 'text-gray-500'}`} />
-              </CardHeader>
-              <CardContent>
-                <div className={`text-2xl font-bold ${stat.isExpense ? 'text-red-500' : ''}`}>
-                  {stat.value}
-                </div>
-                <p className="text-xs text-gray-500">{stat.description}</p>
-              </CardContent>
-            </Card>
-          </Link>
-        ) : (
-          <Card key={stat.label}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.label}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-gray-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-gray-500">{stat.description}</p>
-            </CardContent>
-          </Card>
-        )
+        <Card key={stat.label}>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              {stat.label}
+            </CardTitle>
+            <stat.icon className="h-4 w-4 text-gray-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stat.value}</div>
+            <p className="text-xs text-gray-500">{stat.description}</p>
+          </CardContent>
+        </Card>
       ))}
+      <Link to="/expenses" className="block">
+        <FinancialCard
+          icon={DollarSign}
+          iconColor="text-red-500"
+          bgColor="bg-red-50"
+          label="Total Expenses"
+          amount={1000}
+          textColor="text-red-500"
+        />
+      </Link>
     </div>
   );
 }
