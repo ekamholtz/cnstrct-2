@@ -6,6 +6,9 @@ import { useContractorProjects } from "@/hooks/useContractorProjects";
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 export default function GCProjects() {
   const { data: projects = [], isLoading: loading, error } = useContractorProjects();
@@ -42,6 +45,15 @@ export default function GCProjects() {
 
   return (
     <DashboardLayout>
+      <div className="mb-8">
+        <Link to="/dashboard">
+          <Button variant="ghost" className="text-gray-600">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </Link>
+      </div>
+      
       <div className="flex justify-between items-center mb-8">
         <div>
           {profile?.company_name && (
