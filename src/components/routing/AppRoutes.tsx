@@ -18,6 +18,7 @@ import AdminDashboard from "@/pages/AdminDashboard";
 import AdminUsers from "@/pages/AdminUsers";
 import AdminTransactions from "@/pages/AdminTransactions";
 import AdminProjects from "@/pages/AdminProjects";
+import ExpenseDashboard from "@/pages/ExpenseDashboard";
 
 export const AppRoutes = () => {
   return (
@@ -108,6 +109,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <InvoiceDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/expenses"
+        element={
+          <ProtectedRoute>
+            <ExpenseDashboard />
           </ProtectedRoute>
         }
       />
