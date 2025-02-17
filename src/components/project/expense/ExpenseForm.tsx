@@ -22,22 +22,8 @@ import { ExpenseDateField } from "./form/ExpenseDateField";
 import { ExpensePaymentTypeField } from "./form/ExpensePaymentTypeField";
 import { ExpenseTypeField } from "./form/ExpenseTypeField";
 import { ExpenseNotesField } from "./form/ExpenseNotesField";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { ExpenseProjectField } from "./form/ExpenseProjectField";
+import { ExpenseFormActions } from "./form/ExpenseFormActions";
 import { useToast } from "@/hooks/use-toast";
 
 interface ExpenseFormProps {
@@ -65,36 +51,16 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
     },
   });
 
-  // Fetch projects for dropdown
-  const { data: projects = [] } = useQuery({
-    queryKey: ['contractor-projects'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      const { data, error } = await supabase
-        .from('projects')
-        .select('id, name')
-        .eq('contractor_id', user.id)
-        .order('name');
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const handleSubmit = async (data: ExpenseFormData, action: 'save_as_paid' | 'pay') => {
     try {
       setIsProcessing(true);
       
       if (action === 'pay') {
-        // Simulate payment processing
         toast({
           title: "Processing Payment",
           description: "Please wait while we process the payment...",
         });
         
-        // Simulate a delay
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
       
@@ -138,69 +104,16 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
               <ExpensePaymentTypeField form={form} />
               <ExpenseTypeField form={form} />
               
-              {!defaultProjectId && (
-                <FormField
-                  control={form.control}
-                  name="project_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Project</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a project" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {projects.map((project) => (
-                            <SelectItem key={project.id} value={project.id}>
-                              {project.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+              {!defaultProjectId && <ExpenseProjectField form={form} />}
               
               <ExpenseNotesField form={form} />
               
-              <div className="flex justify-end space-x-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setOpen(false)}
-                  disabled={isProcessing}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => {
-                    const values = form.getValues();
-                    form.handleSubmit((data) => handleSubmit(data, 'save_as_paid'))();
-                  }}
-                  disabled={isProcessing}
-                >
-                  Save as Paid
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => {
-                    const values = form.getValues();
-                    form.handleSubmit((data) => handleSubmit(data, 'pay'))();
-                  }}
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? "Processing..." : "Pay"}
-                </Button>
-              </div>
+              <ExpenseFormActions
+                form={form}
+                isProcessing={isProcessing}
+                onClose={() => setOpen(false)}
+                onSubmit={handleSubmit}
+              />
             </form>
           </Form>
         </ScrollArea>
