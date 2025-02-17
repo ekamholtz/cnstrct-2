@@ -30,7 +30,7 @@ export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps)
         .maybeSingle();
 
       if (error) throw error;
-      console.log('User profile data:', data); // Debug log
+      console.log('User profile data:', data);
       return data;
     },
   });
@@ -44,15 +44,12 @@ export const InvoiceTableRow = ({ invoice, onMarkAsPaid }: InvoiceTableRowProps)
   // Format date safely
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
-    
-    const date = new Date(dateString);
-    // Check if date is valid
-    if (isNaN(date.getTime())) {
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy');
+    } catch (error) {
       console.error('Invalid date:', dateString);
       return 'Invalid date';
     }
-    
-    return format(date, 'MMM d, yyyy');
   };
 
   return (
