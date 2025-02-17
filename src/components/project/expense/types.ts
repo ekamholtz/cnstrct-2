@@ -4,6 +4,7 @@ import { z } from "zod";
 export const expenseFormSchema = z.object({
   name: z.string().min(1, "Expense name is required"),
   payee: z.string().min(1, "Payee name is required"),
+  vendor_email: z.string().email("Please enter a valid email address"),
   amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Amount must be a positive number",
   }),
@@ -23,10 +24,12 @@ export interface Expense {
   project_id: string;
   name: string;
   payee: string;
+  vendor_email: string;
   amount: number;
   expense_date: string;
   payment_type: "cc" | "check" | "transfer" | "cash";
   expense_type: "labor" | "materials" | "subcontractor" | "other";
+  payment_status: "pending" | "paid" | "failed";
   notes?: string;
   created_at: string;
 }

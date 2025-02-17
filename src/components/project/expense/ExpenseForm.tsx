@@ -11,10 +11,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
-import { Plus } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
 import { ExpenseFormData, expenseFormSchema } from "./types";
 import { ExpenseNameField } from "./form/ExpenseNameField";
 import { ExpensePayeeField } from "./form/ExpensePayeeField";
+import { ExpenseVendorEmailField } from "./form/ExpenseVendorEmailField";
 import { ExpenseAmountField } from "./form/ExpenseAmountField";
 import { ExpenseDateField } from "./form/ExpenseDateField";
 import { ExpensePaymentTypeField } from "./form/ExpensePaymentTypeField";
@@ -36,20 +37,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 interface ExpenseFormProps {
-  onSubmit: (data: ExpenseFormData) => Promise<void>;
+  onSubmit: (data: ExpenseFormData, paymentAction: 'save_as_paid' | 'pay') => Promise<void>;
   defaultProjectId?: string;
 }
 
 export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
   const [open, setOpen] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { toast } = useToast();
   
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseFormSchema),
     defaultValues: {
       name: "",
       payee: "",
+      vendor_email: "",
       amount: "",
       expense_date: undefined,
       payment_type: undefined,
@@ -77,13 +82,35 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
     },
   });
 
-  const handleSubmit = async (data: ExpenseFormData) => {
+  const handleSubmit = async (data: ExpenseFormData, action: 'save_as_paid' | 'pay') => {
     try {
-      await onSubmit(data);
+      setIsProcessing(true);
+      
+      if (action === 'pay') {
+        // Simulate payment processing
+        toast({
+          title: "Processing Payment",
+          description: "Please wait while we process the payment...",
+        });
+        
+        // Simulate a delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+      
+      await onSubmit(data, action);
       form.reset();
       setOpen(false);
+      
+      if (action === 'pay') {
+        toast({
+          title: "Payment Simulated Successfully",
+          description: "The payment has been simulated and the expense has been recorded.",
+        });
+      }
     } catch (error) {
       console.error("Error submitting expense:", error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -100,9 +127,10 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
           <DialogTitle>Create New Expense</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <form className="space-y-4">
             <ExpenseNameField form={form} />
             <ExpensePayeeField form={form} />
+            <ExpenseVendorEmailField form={form} />
             <ExpenseAmountField form={form} />
             <ExpenseDateField form={form} />
             <ExpensePaymentTypeField form={form} />
@@ -145,10 +173,31 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
+                disabled={isProcessing}
               >
                 Cancel
               </Button>
-              <Button type="submit">Save Expense</Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  const values = form.getValues();
+                  form.handleSubmit((data) => handleSubmit(data, 'save_as_paid'))();
+                }}
+                disabled={isProcessing}
+              >
+                Save as Paid
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  const values = form.getValues();
+                  form.handleSubmit((data) => handleSubmit(data, 'pay'))();
+                }}
+                disabled={isProcessing}
+              >
+                {isProcessing ? "Processing..." : "Pay"}
+              </Button>
             </div>
           </form>
         </Form>

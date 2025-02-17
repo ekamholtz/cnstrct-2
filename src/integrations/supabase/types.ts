@@ -112,9 +112,11 @@ export type Database = {
           name: string
           notes: string | null
           payee: string
+          payment_status: string
           payment_type: Database["public"]["Enums"]["expense_payment_method"]
           project_id: string
           updated_at: string
+          vendor_email: string | null
         }
         Insert: {
           amount: number
@@ -126,9 +128,11 @@ export type Database = {
           name: string
           notes?: string | null
           payee: string
+          payment_status?: string
           payment_type: Database["public"]["Enums"]["expense_payment_method"]
           project_id: string
           updated_at?: string
+          vendor_email?: string | null
         }
         Update: {
           amount?: number
@@ -140,9 +144,11 @@ export type Database = {
           name?: string
           notes?: string | null
           payee?: string
+          payment_status?: string
           payment_type?: Database["public"]["Enums"]["expense_payment_method"]
           project_id?: string
           updated_at?: string
+          vendor_email?: string | null
         }
         Relationships: [
           {
