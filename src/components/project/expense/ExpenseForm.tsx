@@ -10,8 +10,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Form } from "@/components/ui/form";
-import { Plus, AlertCircle } from "lucide-react";
+import { Plus } from "lucide-react";
 import { ExpenseFormData, expenseFormSchema } from "./types";
 import { ExpenseNameField } from "./form/ExpenseNameField";
 import { ExpensePayeeField } from "./form/ExpensePayeeField";
@@ -122,85 +123,87 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
           Create Expense
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Create New Expense</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form className="space-y-4">
-            <ExpenseNameField form={form} />
-            <ExpensePayeeField form={form} />
-            <ExpenseVendorEmailField form={form} />
-            <ExpenseAmountField form={form} />
-            <ExpenseDateField form={form} />
-            <ExpensePaymentTypeField form={form} />
-            <ExpenseTypeField form={form} />
-            
-            {!defaultProjectId && (
-              <FormField
-                control={form.control}
-                name="project_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Project</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a project" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {projects.map((project) => (
-                          <SelectItem key={project.id} value={project.id}>
-                            {project.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-            
-            <ExpenseNotesField form={form} />
-            
-            <div className="flex justify-end space-x-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={isProcessing}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  const values = form.getValues();
-                  form.handleSubmit((data) => handleSubmit(data, 'save_as_paid'))();
-                }}
-                disabled={isProcessing}
-              >
-                Save as Paid
-              </Button>
-              <Button
-                type="button"
-                onClick={() => {
-                  const values = form.getValues();
-                  form.handleSubmit((data) => handleSubmit(data, 'pay'))();
-                }}
-                disabled={isProcessing}
-              >
-                {isProcessing ? "Processing..." : "Pay"}
-              </Button>
-            </div>
-          </form>
-        </Form>
+        <ScrollArea className="max-h-[calc(90vh-8rem)] overflow-y-auto pr-4">
+          <Form {...form}>
+            <form className="space-y-4">
+              <ExpenseNameField form={form} />
+              <ExpensePayeeField form={form} />
+              <ExpenseVendorEmailField form={form} />
+              <ExpenseAmountField form={form} />
+              <ExpenseDateField form={form} />
+              <ExpensePaymentTypeField form={form} />
+              <ExpenseTypeField form={form} />
+              
+              {!defaultProjectId && (
+                <FormField
+                  control={form.control}
+                  name="project_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Project</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a project" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {projects.map((project) => (
+                            <SelectItem key={project.id} value={project.id}>
+                              {project.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+              
+              <ExpenseNotesField form={form} />
+              
+              <div className="flex justify-end space-x-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    const values = form.getValues();
+                    form.handleSubmit((data) => handleSubmit(data, 'save_as_paid'))();
+                  }}
+                  disabled={isProcessing}
+                >
+                  Save as Paid
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    const values = form.getValues();
+                    form.handleSubmit((data) => handleSubmit(data, 'pay'))();
+                  }}
+                  disabled={isProcessing}
+                >
+                  {isProcessing ? "Processing..." : "Pay"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
