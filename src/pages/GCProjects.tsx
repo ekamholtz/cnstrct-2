@@ -8,10 +8,20 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import ProjectCreationForm from "@/components/projects/ProjectCreationForm";
 
 export default function GCProjects() {
-  const { data: projects = [], isLoading: loading, error } = useContractorProjects();
+  const { data: projects = [], isLoading: loading, error, refetch } = useContractorProjects();
   const { toast } = useToast();
 
   const { data: profile } = useQuery({
@@ -62,6 +72,27 @@ export default function GCProjects() {
           <h1 className="text-2xl font-bold text-gray-900">All Projects</h1>
           <p className="text-gray-600 mt-1">View and manage all your construction projects</p>
         </div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Project
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-6">
+            <DialogHeader className="mb-4">
+              <DialogTitle>Create New Project</DialogTitle>
+              <DialogDescription>
+                Fill in the project details below to create a new project.
+              </DialogDescription>
+            </DialogHeader>
+            <ScrollArea className="h-[calc(90vh-180px)] pr-6">
+              <div className="pb-6">
+                <ProjectCreationForm onSuccess={refetch} />
+              </div>
+            </ScrollArea>
+          </DialogContent>
+        </Dialog>
       </div>
       <ProjectsList projects={projects} loading={loading} />
     </DashboardLayout>
