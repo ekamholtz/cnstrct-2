@@ -11,7 +11,7 @@ interface StatsOverviewProps {
 
 export function StatsOverview({ projects }: StatsOverviewProps) {
   const [pendingApprovals, setPendingApprovals] = useState(0);
-  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalContractValue, setTotalContractValue] = useState(0);
   const [activeClients, setActiveClients] = useState(0);
 
   useEffect(() => {
@@ -30,20 +30,15 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
         setPendingApprovals(pendingData?.length || 0);
       }
 
-      // Get total revenue from paid invoices in last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const { data: revenueData, error: revenueError } = await supabase
-        .from('invoices')
+      // Get total contract value from active projects' milestones
+      const { data: milestonesData, error: milestonesError } = await supabase
+        .from('milestones')
         .select('amount')
-        .eq('status', 'paid')
-        .in('project_id', projects.map(p => p.id))
-        .gte('payment_date', thirtyDaysAgo.toISOString());
+        .in('project_id', projects.filter(p => p.status === 'active').map(p => p.id));
 
-      if (!revenueError) {
-        const total = revenueData?.reduce((sum, invoice) => sum + invoice.amount, 0) || 0;
-        setTotalRevenue(total);
+      if (!milestonesError) {
+        const total = milestonesData?.reduce((sum, milestone) => sum + (milestone.amount || 0), 0) || 0;
+        setTotalContractValue(total);
       }
 
       // Get unique active clients count
@@ -56,7 +51,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
     } else {
       // Reset stats to 0 if there are no projects
       setPendingApprovals(0);
-      setTotalRevenue(0);
+      setTotalContractValue(0);
       setActiveClients(0);
     }
   }, [projects]);
@@ -75,10 +70,10 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       description: "Awaiting client approval"
     },
     {
-      label: "Total Revenue",
-      value: `$${totalRevenue.toLocaleString()}`,
+      label: "Total Contract Value",
+      value: `$${totalContractValue.toLocaleString()}`,
       icon: DollarSign,
-      description: "Last 30 days"
+      description: "Active projects"
     },
     {
       label: "Active Clients",
