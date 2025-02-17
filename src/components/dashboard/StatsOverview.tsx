@@ -70,7 +70,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       description: "Awaiting client approval"
     },
     {
-      label: "Total Contract Value",
+      label: "Total Active Project Value",
       value: `$${totalContractValue.toLocaleString()}`,
       icon: DollarSign,
       description: "Active projects"
