@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Clock, DollarSign, Users } from "lucide-react";
 import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 
 interface StatsOverviewProps {
   projects: Project[];
@@ -61,7 +62,8 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       label: "Active Projects",
       value: projects.filter(p => p.status === "active").length,
       icon: Building2,
-      description: "Current ongoing projects"
+      description: "Current ongoing projects",
+      link: "/projects"
     },
     {
       label: "Pending Approvals",
@@ -73,7 +75,8 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       label: "Total Active Project Value",
       value: `$${totalContractValue.toLocaleString()}`,
       icon: DollarSign,
-      description: "Active projects"
+      description: "Active projects",
+      link: "/projects"
     },
     {
       label: "Active Clients",
@@ -85,20 +88,29 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-      {stats.map((stat) => (
-        <Card key={stat.label}>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {stat.label}
-            </CardTitle>
-            <stat.icon className="h-4 w-4 text-gray-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stat.value}</div>
-            <p className="text-xs text-gray-500">{stat.description}</p>
-          </CardContent>
-        </Card>
-      ))}
+      {stats.map((stat) => {
+        const CardWrapper = stat.link ? Link : 'div';
+        return (
+          <CardWrapper 
+            key={stat.label} 
+            to={stat.link || ''} 
+            className={stat.link ? "block transition-transform hover:scale-[1.02]" : undefined}
+          >
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {stat.label}
+                </CardTitle>
+                <stat.icon className="h-4 w-4 text-gray-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+                <p className="text-xs text-gray-500">{stat.description}</p>
+              </CardContent>
+            </Card>
+          </CardWrapper>
+        );
+      })}
     </div>
   );
 }
