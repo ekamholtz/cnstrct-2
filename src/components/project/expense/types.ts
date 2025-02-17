@@ -12,6 +12,7 @@ export const expenseFormSchema = z.object({
   }),
   payment_type: z.enum(["cc", "check", "transfer", "cash"]),
   expense_type: z.enum(["labor", "materials", "subcontractor", "other"]),
+  project_id: z.string().min(1, "Project is required"),
   notes: z.string().optional(),
 });
 

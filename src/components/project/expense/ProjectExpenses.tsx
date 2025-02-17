@@ -26,7 +26,7 @@ export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <ExpenseForm onSubmit={handleCreateExpense} />
+        <ExpenseForm onSubmit={handleCreateExpense} defaultProjectId={projectId} />
       </div>
       <ExpenseList expenses={expenses} />
     </div>

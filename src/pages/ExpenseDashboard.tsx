@@ -7,8 +7,12 @@ import { ExpenseList } from "@/components/project/expense/ExpenseList";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Expense } from "@/components/project/expense/types";
+import { ExpenseForm } from "@/components/project/expense/ExpenseForm";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ExpenseDashboard() {
+  const { toast } = useToast();
+
   // Fetch user profile
   const { data: profile } = useQuery({
     queryKey: ['contractor-profile'],
@@ -28,7 +32,7 @@ export default function ExpenseDashboard() {
   });
 
   // Fetch all expenses for the current contractor
-  const { data: expenses = [], isLoading } = useQuery({
+  const { data: expenses = [], isLoading, refetch } = useQuery({
     queryKey: ['contractor-expenses'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -48,6 +52,34 @@ export default function ExpenseDashboard() {
     },
   });
 
+  const handleCreateExpense = async (data: any) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No user found');
+
+    const { error } = await supabase
+      .from('expenses')
+      .insert({
+        ...data,
+        amount: Number(data.amount),
+        contractor_id: user.id,
+      });
+
+    if (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create expense. Please try again.",
+      });
+      throw error;
+    }
+
+    toast({
+      title: "Success",
+      description: "Expense has been created",
+    });
+    refetch();
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-8">
@@ -59,6 +91,7 @@ export default function ExpenseDashboard() {
                 Back to Dashboard
               </Button>
             </Link>
+            <ExpenseForm onSubmit={handleCreateExpense} />
           </div>
 
           <div className="space-y-1">
