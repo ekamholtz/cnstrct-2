@@ -20,7 +20,7 @@ export function ContractorFinancialSummary() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-      <Link to="/invoices" className="block">
+      <Link to="/invoices?status=paid" className="block">
         <FinancialCard
           icon={BadgeDollarSign}
           iconColor="text-green-600"
@@ -30,7 +30,7 @@ export function ContractorFinancialSummary() {
         />
       </Link>
 
-      <Link to="/invoices" className="block">
+      <Link to="/invoices?status=pending_payment" className="block">
         <FinancialCard
           icon={Clock}
           iconColor="text-orange-600"

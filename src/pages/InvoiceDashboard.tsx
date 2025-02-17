@@ -1,7 +1,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { InvoiceFilters } from "@/components/invoice-dashboard/InvoiceFilters";
 import { InvoiceTable } from "@/components/invoice-dashboard/InvoiceTable";
 import { useInvoiceDashboard } from "@/hooks/useInvoiceDashboard";
@@ -10,8 +10,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
 import { Invoice } from "@/components/project/invoice/types";
+import { useEffect } from "react";
 
 export default function InvoiceDashboard() {
+  const [searchParams] = useSearchParams();
   const {
     invoices,
     loading,
@@ -20,9 +22,17 @@ export default function InvoiceDashboard() {
     handleMarkAsPaid,
   } = useInvoiceDashboard();
 
+  // Set initial status filter from URL parameter
+  useEffect(() => {
+    const statusFromUrl = searchParams.get('status');
+    if (statusFromUrl && ['paid', 'pending_payment', 'cancelled', 'all'].includes(statusFromUrl)) {
+      setStatusFilter(statusFromUrl as any);
+    }
+  }, [searchParams, setStatusFilter]);
+
   // Fetch user role to determine the correct dashboard route and UI
   const { data: profile } = useQuery({
-    queryKey: ['contractor-profile'],  // Changed to match GCProjects implementation
+    queryKey: ['contractor-profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
@@ -39,8 +49,6 @@ export default function InvoiceDashboard() {
   });
 
   const dashboardRoute = profile?.role === 'homeowner' ? '/client-dashboard' : '/dashboard';
-
-  console.log("Profile data:", profile); // Add logging to debug
 
   return (
     <DashboardLayout>
