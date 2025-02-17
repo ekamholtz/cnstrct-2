@@ -22,11 +22,8 @@ export function useInvoices(projectId: string) {
         throw error;
       }
 
-      console.log('Fetched invoices:', {
-        projectId,
-        invoiceCount: data?.length,
-        invoices: data
-      });
+      // Log the fetched data for debugging
+      console.log('Fetched invoices:', data);
 
       return data as Invoice[];
     },
