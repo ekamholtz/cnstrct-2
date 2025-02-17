@@ -11,7 +11,7 @@ interface ProjectExpensesProps {
 export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
   const { expenses, isLoading, createExpense } = useExpenses(projectId);
 
-  const handleCreateExpense = async (data: ExpenseFormData) => {
+  const handleCreateExpense = async (data: ExpenseFormData, paymentAction: 'save_as_paid' | 'pay') => {
     await createExpense(data);
   };
 

@@ -48,6 +48,7 @@ export function useExpenses(projectId: string) {
           contractor_id,
           name: data.name,
           payee: data.payee,
+          vendor_email: data.vendor_email,
           amount: Number(data.amount),
           expense_date: data.expense_date,
           payment_type: data.payment_type,
