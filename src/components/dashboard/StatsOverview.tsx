@@ -4,8 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Clock, DollarSign, Users } from "lucide-react";
 import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
-import { FinancialCard } from "./FinancialCard";
 
 interface StatsOverviewProps {
   projects: Project[];
@@ -101,16 +99,6 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
           </CardContent>
         </Card>
       ))}
-      <Link to="/expenses" className="block">
-        <FinancialCard
-          icon={DollarSign}
-          iconColor="text-red-500"
-          bgColor="bg-red-50"
-          label="Total Expenses"
-          amount={1000}
-          textColor="text-red-500"
-        />
-      </Link>
     </div>
   );
 }
