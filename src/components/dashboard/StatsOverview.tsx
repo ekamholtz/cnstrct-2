@@ -63,7 +63,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       value: projects.filter(p => p.status === "active").length,
       icon: Building2,
       description: "Current ongoing projects",
-      link: "/projects"
+      link: "/gc-projects"
     },
     {
       label: "Pending Approvals",
@@ -76,7 +76,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       value: `$${totalContractValue.toLocaleString()}`,
       icon: DollarSign,
       description: "Active projects",
-      link: "/projects"
+      link: "/gc-projects"
     },
     {
       label: "Active Clients",
