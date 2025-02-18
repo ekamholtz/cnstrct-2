@@ -44,3 +44,16 @@ export interface Expense {
   notes?: string;
   created_at: string;
 }
+
+export interface Payment {
+  id: string;
+  expense_id: string;
+  payment_type: "cc" | "check" | "transfer" | "cash";
+  payment_date: string;
+  payment_amount: number;
+  vendor_email?: string;
+  vendor_phone?: string;
+  created_at: string;
+  updated_at: string;
+  simulation_data?: any;
+}
