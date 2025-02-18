@@ -19,10 +19,10 @@ export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
     paymentDetails?: PaymentDetailsData
   ) => {
     try {
-      // Create the expense with DUE status initially
+      // Create the expense with due status initially
       const expense = await createExpense({
         ...data,
-        payment_status: 'DUE' // Ensure we're using the enum value
+        payment_status: 'due' // Using lowercase to match database enum
       });
       
       // If payment details are provided, create a payment record
