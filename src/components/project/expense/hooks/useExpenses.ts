@@ -47,7 +47,7 @@ export function useExpenses(projectId: string) {
           notes: data.notes,
           project_id: data.project_id,
           contractor_id: project.contractor_id,
-          payment_status: 'due'
+          payment_status: 'DUE' // Changed to uppercase to match enum
         })
         .select()
         .single();
@@ -72,19 +72,42 @@ export function useExpenses(projectId: string) {
       expenseId: string;
       paymentData: PaymentDetailsData;
     }) => {
-      const { data, error } = await supabase
+      const { data: expense, error: expenseError } = await supabase
+        .from('expenses')
+        .select('amount, payments(payment_amount)')
+        .eq('id', expenseId)
+        .single();
+
+      if (expenseError) throw expenseError;
+
+      const totalPaid = (expense.payments || []).reduce((sum, p) => sum + p.payment_amount, 0);
+      const newPaymentAmount = Number(paymentData.payment_amount);
+      const newTotalPaid = totalPaid + newPaymentAmount;
+      const paymentStatus = newTotalPaid >= expense.amount ? 'PAID' : 'PARTIALLY_PAID';
+
+      // First create the payment
+      const { data: payment, error: paymentError } = await supabase
         .from('payments')
         .insert({
           expense_id: expenseId,
           payment_type: paymentData.payment_type,
           payment_date: paymentData.payment_date,
-          payment_amount: Number(paymentData.payment_amount)
+          payment_amount: newPaymentAmount
         })
         .select()
         .single();
 
-      if (error) throw error;
-      return data;
+      if (paymentError) throw paymentError;
+
+      // Then update the expense status
+      const { error: updateError } = await supabase
+        .from('expenses')
+        .update({ payment_status: paymentStatus })
+        .eq('id', expenseId);
+
+      if (updateError) throw updateError;
+
+      return payment;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
