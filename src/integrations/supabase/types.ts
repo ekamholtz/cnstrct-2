@@ -112,7 +112,7 @@ export type Database = {
           name: string
           notes: string | null
           payee: string
-          payment_status: string
+          payment_status: Database["public"]["Enums"]["payment_status"]
           payment_type:
             | Database["public"]["Enums"]["expense_payment_method"]
             | null
@@ -130,7 +130,7 @@ export type Database = {
           name: string
           notes?: string | null
           payee: string
-          payment_status?: string
+          payment_status?: Database["public"]["Enums"]["payment_status"]
           payment_type?:
             | Database["public"]["Enums"]["expense_payment_method"]
             | null
@@ -148,7 +148,7 @@ export type Database = {
           name?: string
           notes?: string | null
           payee?: string
-          payment_status?: string
+          payment_status?: Database["public"]["Enums"]["payment_status"]
           payment_type?:
             | Database["public"]["Enums"]["expense_payment_method"]
             | null

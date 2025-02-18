@@ -47,7 +47,7 @@ export function useExpenses(projectId: string) {
           notes: data.notes,
           project_id: data.project_id,
           contractor_id: project.contractor_id,
-          payment_status: data.payment_status
+          payment_status: data.payment_status // Now using lowercase enum values
         })
         .select()
         .single();
