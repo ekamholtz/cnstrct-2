@@ -20,7 +20,12 @@ export function useExpenses(projectId: string) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as (Expense & { project?: { name: string }, payments?: Payment[] })[];
+      // Cast the data to the correct type
+      return (data as any[]).map(expense => ({
+        ...expense,
+        project: expense.project,
+        payments: Array.isArray(expense.payments) ? expense.payments : []
+      })) as (Expense & { project?: { name: string }, payments?: Payment[] })[];
     },
   });
 
@@ -38,15 +43,15 @@ export function useExpenses(projectId: string) {
       const { data: expense, error } = await supabase
         .from('expenses')
         .insert({
-          project_id: data.project_id,
-          contractor_id: project.contractor_id,
           name: data.name,
           amount: Number(data.amount),
           payee: data.payee,
           expense_date: data.expense_date,
           expense_type: data.expense_type,
           notes: data.notes,
-          payment_status: 'due',
+          project_id: data.project_id,
+          contractor_id: project.contractor_id,
+          payment_status: 'due'
         })
         .select()
         .single();
@@ -78,17 +83,21 @@ export function useExpenses(projectId: string) {
         simulation_data?: any;
       }
     }) => {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('payments')
         .insert({
           expense_id: expenseId,
-          ...paymentData,
-        });
+          ...paymentData
+        } as any) // Using type assertion since the payments table isn't in the generated types yet
+        .select()
+        .single();
 
       if (error) {
         console.error("Error creating payment:", error);
         throw error;
       }
+
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
