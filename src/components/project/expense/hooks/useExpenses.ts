@@ -27,7 +27,7 @@ export function useExpenses(projectId: string) {
   });
 
   const { mutateAsync: createExpense } = useMutation({
-    mutationFn: async (data: ExpenseFormStage1Data) => {
+    mutationFn: async (data: ExpenseFormStage1Data & { payment_status: 'DUE' | 'PAID' | 'PARTIALLY_PAID' }) => {
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .select('contractor_id')
@@ -47,7 +47,7 @@ export function useExpenses(projectId: string) {
           notes: data.notes,
           project_id: data.project_id,
           contractor_id: project.contractor_id,
-          payment_status: 'DUE'
+          payment_status: data.payment_status // Use the provided payment status
         })
         .select()
         .single();
