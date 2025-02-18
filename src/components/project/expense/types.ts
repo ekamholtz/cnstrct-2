@@ -15,7 +15,18 @@ export const expenseFormStage1Schema = z.object({
   notes: z.string().optional(),
 });
 
+export const paymentDetailsSchema = z.object({
+  payment_type: z.enum(["cc", "check", "transfer", "cash"], {
+    required_error: "Payment type is required",
+  }),
+  payment_date: z.string().min(1, "Payment date is required"),
+  payment_amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+    message: "Payment amount must be a positive number",
+  }),
+});
+
 export type ExpenseFormStage1Data = z.infer<typeof expenseFormStage1Schema>;
+export type PaymentDetailsData = z.infer<typeof paymentDetailsSchema>;
 
 export interface Expense {
   id: string;
@@ -25,7 +36,11 @@ export interface Expense {
   amount: number;
   expense_date: string;
   expense_type: "labor" | "materials" | "subcontractor" | "other";
-  payment_status: "due" | "paid" | "failed";
+  payment_status: "due" | "paid" | "partially_paid" | "failed";
+  payment_type?: "cc" | "check" | "transfer" | "cash";
+  payment_date?: string;
+  payment_amount?: number;
+  remaining_balance?: number;
   notes?: string;
   created_at: string;
 }
