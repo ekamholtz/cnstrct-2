@@ -45,11 +45,14 @@ export function useExpenses(projectId: string) {
           expense_date: data.expense_date,
           expense_type: data.expense_type,
           notes: data.notes,
-          payment_status: 'due' as const,
-          payment_type: 'cash' as const,
+          payment_status: 'due',
+          payment_type: 'cash', // Setting a default payment_type
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating expense:", error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
