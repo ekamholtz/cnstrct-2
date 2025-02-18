@@ -81,13 +81,24 @@ export function ExpenseList({ expenses, loading, showProjectName }: ExpenseListP
                   </div>
                 )}
                 <div>
-                  <span className="font-medium">Payment Type:</span>{" "}
-                  {expense.payment_type.toUpperCase()}
+                  <span className="font-medium">Type:</span>{" "}
+                  {expense.expense_type.toUpperCase()}
+                </div>
+                <div>
+                  <span className="font-medium">Status:</span>{" "}
+                  {expense.payment_status.replace('_', ' ').toUpperCase()}
                 </div>
                 {expense.notes && (
                   <div className="col-span-2 mt-2">
                     <span className="font-medium">Notes:</span>{" "}
                     {expense.notes}
+                  </div>
+                )}
+                {expense.payments && expense.payments.length > 0 && (
+                  <div className="col-span-2 mt-2">
+                    <span className="font-medium">Latest Payment:</span>{" "}
+                    ${expense.payments[0].payment_amount.toLocaleString()} via{" "}
+                    {expense.payments[0].payment_type.toUpperCase()}
                   </div>
                 )}
               </div>
