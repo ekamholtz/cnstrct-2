@@ -2,7 +2,7 @@
 import { ExpenseForm } from "./ExpenseForm";
 import { ExpenseList } from "./ExpenseList";
 import { useExpenses } from "./hooks/useExpenses";
-import type { ExpenseFormData } from "./types";
+import type { ExpenseFormStage1Data, PaymentDetailsData } from "./types";
 
 interface ProjectExpensesProps {
   projectId: string;
@@ -11,7 +11,11 @@ interface ProjectExpensesProps {
 export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
   const { expenses, isLoading, createExpense } = useExpenses(projectId);
 
-  const handleCreateExpense = async (data: ExpenseFormData, paymentAction: 'save_as_paid' | 'pay') => {
+  const handleCreateExpense = async (
+    data: ExpenseFormStage1Data, 
+    status: 'due' | 'paid' | 'partially_paid',
+    paymentDetails?: PaymentDetailsData
+  ) => {
     await createExpense(data);
   };
 

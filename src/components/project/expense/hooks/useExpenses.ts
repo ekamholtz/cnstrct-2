@@ -1,17 +1,13 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { ExpenseFormData, Expense } from "../types";
-import { useEffect } from "react";
+import { ExpenseFormStage1Data, Expense } from "../types";
 
 export function useExpenses(projectId: string) {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Query expenses
-  const { data: expenses = [], isLoading } = useQuery({
-    queryKey: ['project-expenses', projectId],
+  const { data: expenses, isLoading } = useQuery({
+    queryKey: ['expenses', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('expenses')
@@ -24,83 +20,33 @@ export function useExpenses(projectId: string) {
     },
   });
 
-  // Get the contractor_id from the project
-  const getContractorId = async () => {
-    const { data: project, error } = await supabase
-      .from('projects')
-      .select('contractor_id')
-      .eq('id', projectId)
-      .single();
-
-    if (error) throw error;
-    return project.contractor_id;
-  };
-
-  // Create expense mutation
-  const createExpense = useMutation({
-    mutationFn: async (data: ExpenseFormData) => {
-      const contractor_id = await getContractorId();
-      
+  const { mutateAsync: createExpense } = useMutation({
+    mutationFn: async (data: ExpenseFormStage1Data) => {
       const { error } = await supabase
         .from('expenses')
-        .insert({
-          project_id: projectId,
-          contractor_id,
-          name: data.name,
-          payee: data.payee,
-          vendor_email: data.vendor_email,
-          amount: Number(data.amount),
-          expense_date: data.expense_date,
-          payment_type: data.payment_type,
-          expense_type: data.expense_type,
-          notes: data.notes,
-        });
+        .insert([
+          {
+            project_id: data.project_id,
+            name: data.name,
+            amount: Number(data.amount),
+            payee: data.payee,
+            expense_date: data.expense_date,
+            expense_type: data.expense_type,
+            notes: data.notes,
+            payment_status: 'due',
+          },
+        ]);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-expenses', projectId] });
-      toast({
-        title: "Success",
-        description: "Expense has been created",
-      });
-    },
-    onError: (error) => {
-      console.error('Error creating expense:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to create expense. Please try again.",
-      });
+      queryClient.invalidateQueries(['expenses', projectId]);
     },
   });
-
-  // Set up real-time subscription
-  useEffect(() => {
-    const channel = supabase
-      .channel('expenses-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'expenses',
-          filter: `project_id=eq.${projectId}`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ['project-expenses', projectId] });
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [projectId, queryClient]);
 
   return {
     expenses,
     isLoading,
-    createExpense: (data: ExpenseFormData) => createExpense.mutate(data),
+    createExpense,
   };
 }
