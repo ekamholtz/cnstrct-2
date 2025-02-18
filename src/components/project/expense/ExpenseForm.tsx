@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -12,7 +13,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Form } from "@/components/ui/form";
 import { Plus } from "lucide-react";
-import { ExpenseFormStage1Data, expenseFormStage1Schema } from "./types";
+import { ExpenseFormStage1Data, PaymentDetailsData, expenseFormStage1Schema } from "./types";
 import { ExpenseNameField } from "./form/ExpenseNameField";
 import { ExpensePayeeField } from "./form/ExpensePayeeField";
 import { ExpenseAmountField } from "./form/ExpenseAmountField";

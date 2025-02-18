@@ -32,7 +32,7 @@ export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
       <div className="flex justify-end">
         <ExpenseForm onSubmit={handleCreateExpense} defaultProjectId={projectId} />
       </div>
-      <ExpenseList expenses={expenses} />
+      <ExpenseList expenses={expenses ?? []} />
     </div>
   );
 }
