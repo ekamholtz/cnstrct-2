@@ -52,9 +52,13 @@ export default function ExpenseDashboard() {
     },
   });
 
-  const handleCreateExpense = async (data: any) => {
+  const handleCreateExpense = async (data: any, status: 'due' | 'paid' | 'partially_paid') => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No user found');
+
+    const paymentStatus = status === 'due' ? 'DUE' : 
+                         status === 'paid' ? 'PAID' : 
+                         'PARTIALLY_PAID';
 
     const { error } = await supabase
       .from('expenses')
@@ -62,6 +66,7 @@ export default function ExpenseDashboard() {
         ...data,
         amount: Number(data.amount),
         contractor_id: user.id,
+        payment_status: paymentStatus
       });
 
     if (error) {
