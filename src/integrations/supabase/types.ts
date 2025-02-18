@@ -113,7 +113,9 @@ export type Database = {
           notes: string | null
           payee: string
           payment_status: string
-          payment_type: Database["public"]["Enums"]["expense_payment_method"]
+          payment_type:
+            | Database["public"]["Enums"]["expense_payment_method"]
+            | null
           project_id: string
           updated_at: string
           vendor_email: string | null
@@ -129,7 +131,9 @@ export type Database = {
           notes?: string | null
           payee: string
           payment_status?: string
-          payment_type: Database["public"]["Enums"]["expense_payment_method"]
+          payment_type?:
+            | Database["public"]["Enums"]["expense_payment_method"]
+            | null
           project_id: string
           updated_at?: string
           vendor_email?: string | null
@@ -145,7 +149,9 @@ export type Database = {
           notes?: string | null
           payee?: string
           payment_status?: string
-          payment_type?: Database["public"]["Enums"]["expense_payment_method"]
+          payment_type?:
+            | Database["public"]["Enums"]["expense_payment_method"]
+            | null
           project_id?: string
           updated_at?: string
           vendor_email?: string | null
@@ -286,6 +292,53 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          created_at: string
+          expense_id: string
+          id: string
+          payment_amount: number
+          payment_date: string
+          payment_type: Database["public"]["Enums"]["expense_payment_method"]
+          simulation_data: Json | null
+          updated_at: string
+          vendor_email: string | null
+          vendor_phone: string | null
+        }
+        Insert: {
+          created_at?: string
+          expense_id: string
+          id?: string
+          payment_amount: number
+          payment_date: string
+          payment_type: Database["public"]["Enums"]["expense_payment_method"]
+          simulation_data?: Json | null
+          updated_at?: string
+          vendor_email?: string | null
+          vendor_phone?: string | null
+        }
+        Update: {
+          created_at?: string
+          expense_id?: string
+          id?: string
+          payment_amount?: number
+          payment_date?: string
+          payment_type?: Database["public"]["Enums"]["expense_payment_method"]
+          simulation_data?: Json | null
+          updated_at?: string
+          vendor_email?: string | null
+          vendor_phone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
             referencedColumns: ["id"]
           },
         ]
@@ -482,6 +535,7 @@ export type Database = {
       invoice_status: "pending_payment" | "paid" | "cancelled"
       milestone_status: "pending" | "completed"
       payment_method_type: "cc" | "check" | "transfer" | "cash" | "simulated"
+      payment_status: "due" | "partially_paid" | "paid"
       project_status: "draft" | "active" | "completed" | "cancelled"
       user_role: "general_contractor" | "homeowner" | "admin"
     }
