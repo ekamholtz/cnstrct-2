@@ -13,21 +13,18 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Form } from "@/components/ui/form";
 import { Plus } from "lucide-react";
-import { ExpenseFormData, expenseFormSchema } from "./types";
+import { ExpenseFormStage1Data, expenseFormStage1Schema } from "./types";
 import { ExpenseNameField } from "./form/ExpenseNameField";
 import { ExpensePayeeField } from "./form/ExpensePayeeField";
-import { ExpenseVendorEmailField } from "./form/ExpenseVendorEmailField";
 import { ExpenseAmountField } from "./form/ExpenseAmountField";
 import { ExpenseDateField } from "./form/ExpenseDateField";
-import { ExpensePaymentTypeField } from "./form/ExpensePaymentTypeField";
 import { ExpenseTypeField } from "./form/ExpenseTypeField";
 import { ExpenseNotesField } from "./form/ExpenseNotesField";
 import { ExpenseProjectField } from "./form/ExpenseProjectField";
-import { ExpenseFormActions } from "./form/ExpenseFormActions";
 import { useToast } from "@/hooks/use-toast";
 
 interface ExpenseFormProps {
-  onSubmit: (data: ExpenseFormData, paymentAction: 'save_as_paid' | 'pay') => Promise<void>;
+  onSubmit: (data: ExpenseFormStage1Data, status: 'due' | 'paid') => Promise<void>;
   defaultProjectId?: string;
 }
 
@@ -36,46 +33,39 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   
-  const form = useForm<ExpenseFormData>({
-    resolver: zodResolver(expenseFormSchema),
+  const form = useForm<ExpenseFormStage1Data>({
+    resolver: zodResolver(expenseFormStage1Schema),
     defaultValues: {
       name: "",
       payee: "",
-      vendor_email: "",
       amount: "",
-      expense_date: undefined,
-      payment_type: undefined,
+      expense_date: "",
       expense_type: undefined,
       project_id: defaultProjectId || "",
       notes: "",
     },
   });
 
-  const handleSubmit = async (data: ExpenseFormData, action: 'save_as_paid' | 'pay') => {
+  const handleSubmit = async (data: ExpenseFormStage1Data, status: 'due' | 'paid') => {
     try {
       setIsProcessing(true);
-      
-      if (action === 'pay') {
-        toast({
-          title: "Processing Payment",
-          description: "Please wait while we process the payment...",
-        });
-        
-        await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-      
-      await onSubmit(data, action);
+      await onSubmit(data, status);
       form.reset();
       setOpen(false);
       
-      if (action === 'pay') {
-        toast({
-          title: "Payment Simulated Successfully",
-          description: "The payment has been simulated and the expense has been recorded.",
-        });
-      }
+      toast({
+        title: "Success",
+        description: status === 'due' 
+          ? "Expense saved as due" 
+          : "Proceeding to payment details",
+      });
     } catch (error) {
       console.error("Error submitting expense:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save expense. Please try again.",
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -84,36 +74,53 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button>
+        <Button className="bg-[#9b87f5] hover:bg-[#7E69AB]">
           <Plus className="mr-2 h-4 w-4" />
           Create Expense
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px] max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Create New Expense</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">Create New Expense</DialogTitle>
         </DialogHeader>
         <ScrollArea className="max-h-[calc(90vh-8rem)] overflow-y-auto pr-4">
           <Form {...form}>
             <form className="space-y-4">
               <ExpenseNameField form={form} />
-              <ExpensePayeeField form={form} />
-              <ExpenseVendorEmailField form={form} />
               <ExpenseAmountField form={form} />
+              <ExpensePayeeField form={form} />
               <ExpenseDateField form={form} />
-              <ExpensePaymentTypeField form={form} />
               <ExpenseTypeField form={form} />
-              
               {!defaultProjectId && <ExpenseProjectField form={form} />}
-              
               <ExpenseNotesField form={form} />
               
-              <ExpenseFormActions
-                form={form}
-                isProcessing={isProcessing}
-                onClose={() => setOpen(false)}
-                onSubmit={handleSubmit}
-              />
+              <div className="flex justify-end space-x-2 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setOpen(false)}
+                  disabled={isProcessing}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={form.handleSubmit((data) => handleSubmit(data, 'due'))}
+                  disabled={isProcessing}
+                  className="bg-[#7E69AB] hover:bg-[#9b87f5] text-white"
+                >
+                  Save as Due
+                </Button>
+                <Button
+                  type="button"
+                  onClick={form.handleSubmit((data) => handleSubmit(data, 'paid'))}
+                  disabled={isProcessing}
+                  className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+                >
+                  Save as Paid
+                </Button>
+              </div>
             </form>
           </Form>
         </ScrollArea>

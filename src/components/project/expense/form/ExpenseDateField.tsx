@@ -2,10 +2,10 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
-import { ExpenseFormData } from "../types";
+import { ExpenseFormStage1Data } from "../types";
 
 interface ExpenseDateFieldProps {
-  form: UseFormReturn<ExpenseFormData>;
+  form: UseFormReturn<ExpenseFormStage1Data>;
 }
 
 export function ExpenseDateField({ form }: ExpenseDateFieldProps) {
@@ -18,12 +18,9 @@ export function ExpenseDateField({ form }: ExpenseDateFieldProps) {
           <FormLabel>Date</FormLabel>
           <FormControl>
             <Input
-              placeholder="MM/DD/YYYY"
+              type="date"
               {...field}
-              value={field.value ? field.value : ''}
-              onChange={(e) => {
-                field.onChange(e.target.value);
-              }}
+              value={field.value || ''}
             />
           </FormControl>
           <FormMessage />

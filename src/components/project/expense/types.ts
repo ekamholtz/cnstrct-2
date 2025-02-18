@@ -1,35 +1,31 @@
 
 import { z } from "zod";
 
-export const expenseFormSchema = z.object({
-  name: z.string().min(1, "Expense name is required"),
-  payee: z.string().min(1, "Payee name is required"),
-  vendor_email: z.string().email("Please enter a valid email address"),
+export const expenseFormStage1Schema = z.object({
+  name: z.string().min(1, "Expense description is required"),
   amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Amount must be a positive number",
   }),
-  expense_date: z.string().min(1, "Date is required").regex(/^\d{2}\/\d{2}\/\d{4}$/, {
-    message: "Date must be in MM/DD/YYYY format",
+  payee: z.string().min(1, "Payee name is required"),
+  expense_date: z.string().min(1, "Date is required"),
+  expense_type: z.enum(["labor", "materials", "subcontractor", "other"], {
+    required_error: "Expense type is required",
   }),
-  payment_type: z.enum(["cc", "check", "transfer", "cash"]),
-  expense_type: z.enum(["labor", "materials", "subcontractor", "other"]),
   project_id: z.string().min(1, "Project is required"),
   notes: z.string().optional(),
 });
 
-export type ExpenseFormData = z.infer<typeof expenseFormSchema>;
+export type ExpenseFormStage1Data = z.infer<typeof expenseFormStage1Schema>;
 
 export interface Expense {
   id: string;
   project_id: string;
   name: string;
   payee: string;
-  vendor_email: string;
   amount: number;
   expense_date: string;
-  payment_type: "cc" | "check" | "transfer" | "cash";
   expense_type: "labor" | "materials" | "subcontractor" | "other";
-  payment_status: "pending" | "paid" | "failed";
+  payment_status: "due" | "paid" | "failed";
   notes?: string;
   created_at: string;
 }
