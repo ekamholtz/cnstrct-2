@@ -2,10 +2,10 @@
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UseFormReturn } from "react-hook-form";
-import { ExpenseFormData } from "../types";
+import { ExpenseFormStage1Data } from "../types";
 
 interface ExpenseTypeFieldProps {
-  form: UseFormReturn<ExpenseFormData>;
+  form: UseFormReturn<ExpenseFormStage1Data>;
 }
 
 export function ExpenseTypeField({ form }: ExpenseTypeFieldProps) {
