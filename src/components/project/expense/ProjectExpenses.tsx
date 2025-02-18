@@ -3,20 +3,38 @@ import { ExpenseForm } from "./ExpenseForm";
 import { ExpenseList } from "./ExpenseList";
 import { useExpenses } from "./hooks/useExpenses";
 import type { ExpenseFormStage1Data, PaymentDetailsData } from "./types";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProjectExpensesProps {
   projectId: string;
 }
 
 export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
-  const { expenses, isLoading, createExpense } = useExpenses(projectId);
+  const { expenses, isLoading, createExpense, createPayment } = useExpenses(projectId);
+  const { toast } = useToast();
 
   const handleCreateExpense = async (
     data: ExpenseFormStage1Data, 
     status: 'due' | 'paid' | 'partially_paid',
     paymentDetails?: PaymentDetailsData
   ) => {
-    await createExpense(data);
+    try {
+      const expense = await createExpense(data);
+      
+      if (paymentDetails && expense) {
+        await createPayment({
+          expenseId: expense.id,
+          paymentData: paymentDetails
+        });
+      }
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create expense. Please try again.",
+      });
+    }
   };
 
   if (isLoading) {

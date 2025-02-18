@@ -1,10 +1,12 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ExpenseFormStage1Data, Expense, Payment } from "../types";
+import { ExpenseFormStage1Data, Expense, Payment, PaymentDetailsData } from "../types";
+import { useToast } from "@/hooks/use-toast";
 
 export function useExpenses(projectId: string) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['expenses', projectId],
@@ -20,18 +22,12 @@ export function useExpenses(projectId: string) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      // Cast the data to the correct type
-      return (data as any[]).map(expense => ({
-        ...expense,
-        project: expense.project,
-        payments: Array.isArray(expense.payments) ? expense.payments : []
-      })) as (Expense & { project?: { name: string }, payments?: Payment[] })[];
+      return data as (Expense & { project?: { name: string }, payments: Payment[] })[];
     },
   });
 
   const { mutateAsync: createExpense } = useMutation({
     mutationFn: async (data: ExpenseFormStage1Data) => {
-      // Get the contractor_id from the project
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .select('contractor_id')
@@ -56,15 +52,15 @@ export function useExpenses(projectId: string) {
         .select()
         .single();
 
-      if (error) {
-        console.error("Error creating expense:", error);
-        throw error;
-      }
-
+      if (error) throw error;
       return expense;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
+      toast({
+        title: "Success",
+        description: "Expense created successfully",
+      });
     },
   });
 
@@ -73,34 +69,29 @@ export function useExpenses(projectId: string) {
       expenseId, 
       paymentData 
     }: { 
-      expenseId: string, 
-      paymentData: {
-        payment_type: "cc" | "check" | "transfer" | "cash";
-        payment_date: string;
-        payment_amount: number;
-        vendor_email?: string;
-        vendor_phone?: string;
-        simulation_data?: any;
-      }
+      expenseId: string;
+      paymentData: PaymentDetailsData;
     }) => {
       const { data, error } = await supabase
         .from('payments')
         .insert({
           expense_id: expenseId,
-          ...paymentData
-        } as any) // Using type assertion since the payments table isn't in the generated types yet
+          payment_type: paymentData.payment_type,
+          payment_date: paymentData.payment_date,
+          payment_amount: Number(paymentData.payment_amount)
+        })
         .select()
         .single();
 
-      if (error) {
-        console.error("Error creating payment:", error);
-        throw error;
-      }
-
+      if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
+      toast({
+        title: "Success",
+        description: "Payment processed successfully",
+      });
     },
   });
 

@@ -36,13 +36,11 @@ export interface Expense {
   amount: number;
   expense_date: string;
   expense_type: "labor" | "materials" | "subcontractor" | "other";
-  payment_status: "due" | "paid" | "partially_paid" | "failed";
-  payment_type?: "cc" | "check" | "transfer" | "cash";
-  payment_date?: string;
-  payment_amount?: number;
-  remaining_balance?: number;
+  payment_status: "due" | "partially_paid" | "paid";
   notes?: string;
   created_at: string;
+  updated_at: string;
+  payments?: Payment[];
 }
 
 export interface Payment {
@@ -51,9 +49,9 @@ export interface Payment {
   payment_type: "cc" | "check" | "transfer" | "cash";
   payment_date: string;
   payment_amount: number;
-  vendor_email?: string;
-  vendor_phone?: string;
+  vendor_email?: string | null;
+  vendor_phone?: string | null;
+  simulation_data?: any;
   created_at: string;
   updated_at: string;
-  simulation_data?: any;
 }
