@@ -23,6 +23,7 @@ import { ExpenseNotesField } from "./form/ExpenseNotesField";
 import { ExpenseProjectField } from "./form/ExpenseProjectField";
 import { useToast } from "@/hooks/use-toast";
 import { PaymentDetailsForm } from "./form/PaymentDetailsForm";
+import { PaymentSimulationForm } from "./form/PaymentSimulationForm";
 
 interface ExpenseFormProps {
   onSubmit: (
@@ -37,6 +38,7 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+  const [showPaymentSimulation, setShowPaymentSimulation] = useState(false);
   const [stage1Data, setStage1Data] = useState<ExpenseFormStage1Data | null>(null);
   const { toast } = useToast();
   
@@ -53,11 +55,11 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
     },
   });
 
-  const handleStage1Submit = async (data: ExpenseFormStage1Data, status: 'due' | 'paid') => {
+  const handleStage1Submit = async (data: ExpenseFormStage1Data, action: 'save_as_due' | 'save_as_paid' | 'pay') => {
     try {
       setIsProcessing(true);
       
-      if (status === 'due') {
+      if (action === 'save_as_due') {
         await onSubmit(data, 'due');
         form.reset();
         setOpen(false);
@@ -65,9 +67,12 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
           title: "Success",
           description: "Expense saved as due",
         });
-      } else {
+      } else if (action === 'save_as_paid') {
         setStage1Data(data);
         setShowPaymentDetails(true);
+      } else if (action === 'pay') {
+        setStage1Data(data);
+        setShowPaymentSimulation(true);
       }
     } catch (error) {
       console.error("Error submitting expense:", error);
@@ -81,26 +86,29 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
     }
   };
 
-  const handlePaymentSubmit = async (paymentData: PaymentDetailsData, isPartialPayment: boolean) => {
+  const handlePaymentSimulation = async (simulationData: any) => {
     if (!stage1Data) return;
 
     try {
-      await onSubmit(
-        stage1Data, 
-        isPartialPayment ? 'partially_paid' : 'paid',
-        paymentData
-      );
+      setIsProcessing(true);
+      
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      await onSubmit(stage1Data, 'paid', {
+        payment_type: 'transfer',
+        payment_date: new Date().toISOString().split('T')[0],
+        payment_amount: simulationData.payment_amount,
+      });
       
       form.reset();
       setOpen(false);
-      setShowPaymentDetails(false);
+      setShowPaymentSimulation(false);
       setStage1Data(null);
       
       toast({
         title: "Success",
-        description: isPartialPayment 
-          ? "Partial payment processed successfully" 
-          : "Payment processed successfully",
+        description: "Payment processed successfully",
       });
     } catch (error) {
       console.error("Error processing payment:", error);
@@ -109,6 +117,8 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
         title: "Error",
         description: "Failed to process payment. Please try again.",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -123,14 +133,53 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
       <DialogContent className="sm:max-w-[425px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
-            {showPaymentDetails ? "Payment Details" : "Create New Expense"}
+            {showPaymentSimulation ? "Process Payment" : 
+             showPaymentDetails ? "Payment Details" : 
+             "Create New Expense"}
           </DialogTitle>
         </DialogHeader>
         <ScrollArea className="max-h-[calc(90vh-8rem)] overflow-y-auto pr-4">
-          {showPaymentDetails && stage1Data ? (
+          {showPaymentSimulation && stage1Data ? (
+            <PaymentSimulationForm
+              initialPayee={stage1Data.payee}
+              initialAmount={stage1Data.amount}
+              onSubmit={handlePaymentSimulation}
+              onCancel={() => {
+                setShowPaymentSimulation(false);
+                setStage1Data(null);
+              }}
+            />
+          ) : showPaymentDetails && stage1Data ? (
             <PaymentDetailsForm
               expenseAmount={Number(stage1Data.amount)}
-              onSubmit={handlePaymentSubmit}
+              onSubmit={async (data, isPartialPayment) => {
+                try {
+                  await onSubmit(
+                    stage1Data, 
+                    isPartialPayment ? 'partially_paid' : 'paid',
+                    data
+                  );
+                  
+                  form.reset();
+                  setOpen(false);
+                  setShowPaymentDetails(false);
+                  setStage1Data(null);
+                  
+                  toast({
+                    title: "Success",
+                    description: isPartialPayment 
+                      ? "Partial payment processed successfully" 
+                      : "Payment processed successfully",
+                  });
+                } catch (error) {
+                  console.error("Error processing payment:", error);
+                  toast({
+                    variant: "destructive",
+                    title: "Error",
+                    description: "Failed to process payment. Please try again.",
+                  });
+                }
+              }}
               onCancel={() => {
                 setShowPaymentDetails(false);
                 setStage1Data(null);
@@ -159,7 +208,7 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
                   <Button
                     type="button"
                     variant="secondary"
-                    onClick={form.handleSubmit((data) => handleStage1Submit(data, 'due'))}
+                    onClick={form.handleSubmit((data) => handleStage1Submit(data, 'save_as_due'))}
                     disabled={isProcessing}
                     className="bg-[#7E69AB] hover:bg-[#9b87f5] text-white"
                   >
@@ -167,11 +216,19 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
                   </Button>
                   <Button
                     type="button"
-                    onClick={form.handleSubmit((data) => handleStage1Submit(data, 'paid'))}
+                    onClick={form.handleSubmit((data) => handleStage1Submit(data, 'save_as_paid'))}
                     disabled={isProcessing}
                     className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
                   >
                     Save as Paid
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={form.handleSubmit((data) => handleStage1Submit(data, 'pay'))}
+                    disabled={isProcessing}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Pay Now
                   </Button>
                 </div>
               </form>
