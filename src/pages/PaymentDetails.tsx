@@ -1,7 +1,7 @@
 
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,6 +10,8 @@ import { format } from "date-fns";
 
 export default function PaymentDetails() {
   const { paymentId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const { data: payment, isLoading } = useQuery({
     queryKey: ['payment', paymentId],
@@ -32,6 +34,16 @@ export default function PaymentDetails() {
       return data;
     },
   });
+
+  const handleBack = () => {
+    // If we have state with a previous path, go back to that path
+    if (location.state?.from) {
+      navigate(location.state.from);
+    } else {
+      // Default to expense details if no previous path
+      navigate(`/expenses/${payment?.expense_id}`);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -61,12 +73,14 @@ export default function PaymentDetails() {
     <DashboardLayout>
       <div className="space-y-8">
         <div>
-          <Link to={`/expenses/${payment.expense_id}`}>
-            <Button variant="ghost" className="text-gray-600">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Expense
-            </Button>
-          </Link>
+          <Button 
+            variant="ghost" 
+            className="text-gray-600"
+            onClick={handleBack}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
+          </Button>
         </div>
 
         <Card className="p-6 space-y-6">

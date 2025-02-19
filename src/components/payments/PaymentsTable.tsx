@@ -52,27 +52,47 @@ export function PaymentsTable({ payments, isLoading }: PaymentsTableProps) {
               className="hover:bg-gray-50 cursor-pointer transition-colors"
             >
               <TableCell>
-                <Link to={`/payments/${payment.id}`} className="block">
+                <Link 
+                  to={`/payments/${payment.id}`}
+                  state={{ from: '/payments' }}
+                  className="block"
+                >
                   {format(new Date(payment.payment_date), 'MMM d, yyyy')}
                 </Link>
               </TableCell>
               <TableCell className="capitalize">
-                <Link to={`/payments/${payment.id}`} className="block">
+                <Link 
+                  to={`/payments/${payment.id}`}
+                  state={{ from: '/payments' }}
+                  className="block"
+                >
                   {payment.payment_type}
                 </Link>
               </TableCell>
               <TableCell>
-                <Link to={`/payments/${payment.id}`} className="block">
+                <Link 
+                  to={`/payments/${payment.id}`}
+                  state={{ from: '/payments' }}
+                  className="block"
+                >
                   ${payment.payment_amount.toFixed(2)}
                 </Link>
               </TableCell>
               <TableCell>
-                <Link to={`/payments/${payment.id}`} className="block">
+                <Link 
+                  to={`/payments/${payment.id}`}
+                  state={{ from: '/payments' }}
+                  className="block"
+                >
                   {payment.expense.project.name}
                 </Link>
               </TableCell>
               <TableCell>
-                <Link to={`/payments/${payment.id}`} className="block">
+                <Link 
+                  to={`/payments/${payment.id}`}
+                  state={{ from: '/payments' }}
+                  className="block"
+                >
                   {payment.vendor_email && (
                     <div>Email: {payment.vendor_email}</div>
                   )}
