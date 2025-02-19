@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { Expense, Payment } from "../types";
+import { Expense, Payment, PaymentDetailsData } from "../types";
 import { PaymentDetailsForm } from "../form/PaymentDetailsForm";
 import { PaymentSimulationForm } from "../form/PaymentSimulationForm";
 import {
@@ -27,7 +27,7 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
 
   if (!showActions) return null;
 
-  const handlePaymentSubmit = async (data: any) => {
+  const handlePaymentSubmit = async (data: PaymentDetailsData) => {
     await createPayment({
       expenseId: expense.id,
       paymentData: data
@@ -35,7 +35,11 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
     setShowPaymentDetails(false);
   };
 
-  const handlePaymentSimulation = async (data: any) => {
+  const handlePaymentSimulation = async (data: { 
+    payment_amount: string;
+    payee_email?: string;
+    payee_phone?: string;
+  }) => {
     await createPayment({
       expenseId: expense.id,
       paymentData: {
@@ -44,7 +48,7 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
         payment_amount: data.payment_amount,
         vendor_email: data.payee_email,
         vendor_phone: data.payee_phone
-      }
+      } as PaymentDetailsData
     });
     setShowPaymentSimulation(false);
   };

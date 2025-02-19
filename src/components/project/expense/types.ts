@@ -23,6 +23,8 @@ export const paymentDetailsSchema = z.object({
   payment_amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Payment amount must be a positive number",
   }),
+  vendor_email: z.string().email("Invalid email").optional(),
+  vendor_phone: z.string().optional(),
 });
 
 export type ExpenseFormStage1Data = z.infer<typeof expenseFormStage1Schema>;
@@ -36,7 +38,7 @@ export interface Expense {
   amount: number;
   expense_date: string;
   expense_type: "labor" | "materials" | "subcontractor" | "other";
-  payment_status: "due" | "partially_paid" | "paid"; // Updated to match database enum exactly
+  payment_status: "due" | "partially_paid" | "paid";
   notes?: string;
   created_at: string;
   updated_at: string;
