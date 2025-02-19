@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types/project";
@@ -6,9 +7,11 @@ export function useContractorProjects() {
   return useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
+      // Get current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      // Get user's role from profile
       const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -20,6 +23,7 @@ export function useContractorProjects() {
       if (profile?.role === 'homeowner') {
         console.log('Fetching projects as client for user:', user.id);
         
+        // For homeowners, get projects where they are the client
         const { data: clientProjects, error: clientProjectsError } = await supabase
           .from('projects')
           .select(`
@@ -48,6 +52,7 @@ export function useContractorProjects() {
 
       console.log('Fetching projects as contractor for user:', user.id);
       
+      // For contractors, get projects where they are the contractor
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -74,5 +79,10 @@ export function useContractorProjects() {
       console.log('Successfully fetched contractor projects:', projects);
       return (projects || []) as Project[];
     },
+    meta: {
+      errorHandler: (error: Error) => {
+        console.error('Projects query error:', error);
+      }
+    }
   });
 }
