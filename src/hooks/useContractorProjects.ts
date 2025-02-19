@@ -8,7 +8,7 @@ export function useContractorProjects() {
   const { toast } = useToast();
 
   return useQuery({
-    queryKey: ['projects'],
+    queryKey: ['contractor-projects'],
     queryFn: async () => {
       try {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -23,11 +23,27 @@ export function useContractorProjects() {
           throw new Error('No user found');
         }
 
-        console.log('Current user:', user);
-        console.log('User metadata:', user.user_metadata);
+        console.log('Fetching projects for contractor:', user.id);
         
-        // Simple direct query for projects
+        // First, try fetching just the projects without the clients join
         const { data: projects, error: projectsError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('contractor_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (projectsError) {
+          console.error('Error fetching projects:', projectsError);
+          throw projectsError;
+        }
+
+        if (!projects || projects.length === 0) {
+          console.log('No projects found for contractor:', user.id);
+          return [];
+        }
+
+        // If we successfully got projects, now fetch the associated clients
+        const { data: projectsWithClients, error: joinError } = await supabase
           .from('projects')
           .select(`
             *,
@@ -40,27 +56,23 @@ export function useContractorProjects() {
           .eq('contractor_id', user.id)
           .order('created_at', { ascending: false });
 
-        if (projectsError) {
-          console.error('Error fetching projects:', projectsError);
-          throw projectsError;
+        if (joinError) {
+          console.error('Error fetching client data:', joinError);
+          // If we fail to get client data, return just the projects
+          return projects;
         }
 
-        console.log('Fetched projects:', projects);
-        return projects || [];
+        console.log('Successfully fetched projects with clients:', projectsWithClients);
+        return projectsWithClients || [];
 
       } catch (error) {
         console.error('Error in useContractorProjects:', error);
-        throw error;
-      }
-    },
-    meta: {
-      errorHandler: (error: Error) => {
-        console.error('Projects query error:', error);
         toast({
           variant: "destructive",
           title: "Error loading projects",
           description: "There was a problem loading your projects. Please try again.",
         });
+        throw error;
       }
     }
   });
