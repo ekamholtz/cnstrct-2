@@ -1,6 +1,7 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ExpenseFormStage1Data, Expense, Payment, PaymentDetailsData } from "../types";
+import type { ExpenseFormStage1Data, Expense, Payment, PaymentDetailsData } from "@/components/project/expense/types";
 import { useToast } from "@/components/ui/use-toast";
 
 export function useExpenses(projectId: string) {

@@ -1,47 +1,47 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { PaymentFormData } from "../types";
+import type { Invoice } from "../types";
+import { useToast } from "@/components/ui/use-toast";
 
 export function useInvoiceMutation() {
-  const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  return useMutation({
-    mutationFn: async ({ 
-      invoiceId, 
-      payment_method, 
-      payment_date 
-    }: { 
-      invoiceId: string;
-    } & PaymentFormData) => {
-      const { error } = await supabase
+  const markInvoiceAsPaidMutation = useMutation(
+    async (invoiceId: string) => {
+      const { data, error } = await supabase
         .from('invoices')
-        .update({
-          status: 'paid',
-          payment_method,
-          payment_date: payment_date.toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', invoiceId);
+        .update({ status: 'paid' })
+        .eq('id', invoiceId)
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      return data as Invoice;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['project-invoices'] });
-      toast({
-        title: "Success",
-        description: "Invoice has been marked as paid",
-      });
-    },
-    onError: (error) => {
-      console.error('Error marking invoice as paid:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to mark invoice as paid. Please try again.",
-      });
-    },
-  });
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ['invoices'] });
+        toast({
+          title: "Success",
+          description: "Invoice marked as paid successfully.",
+        });
+      },
+      onError: (error: any) => {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: `Failed to mark invoice as paid: ${error.message}`,
+        });
+      },
+    }
+  );
+
+  return {
+    markInvoiceAsPaid: markInvoiceAsPaidMutation.mutateAsync,
+    isLoading: markInvoiceAsPaidMutation.isLoading,
+  };
 }
