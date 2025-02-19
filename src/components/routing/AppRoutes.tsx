@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -20,6 +19,7 @@ import AdminTransactions from "@/pages/AdminTransactions";
 import AdminProjects from "@/pages/AdminProjects";
 import ExpenseDashboard from "@/pages/ExpenseDashboard";
 import ExpenseDetails from "@/pages/ExpenseDetails";
+import PaymentDetails from "@/pages/PaymentDetails";
 
 export const AppRoutes = () => {
   return (
@@ -126,6 +126,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <ExpenseDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/payments/:paymentId"
+        element={
+          <ProtectedRoute>
+            <PaymentDetails />
           </ProtectedRoute>
         }
       />

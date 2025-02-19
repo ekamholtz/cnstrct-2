@@ -2,6 +2,7 @@
 import { Card } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Payment } from "../types";
+import { Link } from "react-router-dom";
 
 interface PaymentsSectionProps {
   payments: Payment[];
@@ -41,23 +42,34 @@ export function PaymentsSection({ payments }: PaymentsSectionProps) {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {payments.map((payment) => (
-              <tr key={payment.id}>
+              <tr 
+                key={payment.id}
+                className="hover:bg-gray-50 cursor-pointer transition-colors"
+              >
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {format(new Date(payment.payment_date), 'MMM d, yyyy')}
+                  <Link to={`/payments/${payment.id}`} className="block">
+                    {format(new Date(payment.payment_date), 'MMM d, yyyy')}
+                  </Link>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                  {payment.payment_type}
+                  <Link to={`/payments/${payment.id}`} className="block">
+                    {payment.payment_type}
+                  </Link>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  ${payment.payment_amount.toFixed(2)}
+                  <Link to={`/payments/${payment.id}`} className="block">
+                    ${payment.payment_amount.toFixed(2)}
+                  </Link>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {payment.vendor_email && (
-                    <div>Email: {payment.vendor_email}</div>
-                  )}
-                  {payment.vendor_phone && (
-                    <div>Phone: {payment.vendor_phone}</div>
-                  )}
+                  <Link to={`/payments/${payment.id}`} className="block">
+                    {payment.vendor_email && (
+                      <div>Email: {payment.vendor_email}</div>
+                    )}
+                    {payment.vendor_phone && (
+                      <div>Phone: {payment.vendor_phone}</div>
+                    )}
+                  </Link>
                 </td>
               </tr>
             ))}
