@@ -19,6 +19,7 @@ import AdminUsers from "@/pages/AdminUsers";
 import AdminTransactions from "@/pages/AdminTransactions";
 import AdminProjects from "@/pages/AdminProjects";
 import ExpenseDashboard from "@/pages/ExpenseDashboard";
+import ExpenseDetails from "@/pages/ExpenseDetails";
 
 export const AppRoutes = () => {
   return (
@@ -117,6 +118,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <ExpenseDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/expenses/:expenseId"
+        element={
+          <ProtectedRoute>
+            <ExpenseDetails />
           </ProtectedRoute>
         }
       />
