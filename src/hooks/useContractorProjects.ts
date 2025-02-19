@@ -2,18 +2,28 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types/project";
+import { useToast } from "@/components/ui/use-toast";
 
 export function useContractorProjects() {
+  const { toast } = useToast();
+
   return useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
       // Get current user and their metadata
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-      if (userError) throw userError;
+      if (!user) {
+        console.error('No user found in session');
+        throw new Error('No user found');
+      }
+      if (userError) {
+        console.error('Error getting user:', userError);
+        throw userError;
+      }
 
       const userRole = user.user_metadata.role;
       console.log('User role from metadata:', userRole);
+      console.log('User ID:', user.id);
 
       if (userRole === 'homeowner') {
         console.log('Fetching projects as homeowner for user:', user.id);
@@ -34,6 +44,8 @@ export function useContractorProjects() {
           console.log('No client record found for user:', user.id);
           return [];
         }
+
+        console.log('Found client record:', clientRecord);
 
         // For homeowners, get projects where they are the client
         const { data: clientProjects, error: clientProjectsError } = await supabase
@@ -65,7 +77,7 @@ export function useContractorProjects() {
 
       console.log('Fetching projects as contractor for user:', user.id);
       
-      // For contractors, just query projects - RLS will handle access control
+      // For contractors, use RLS to handle access control
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -94,6 +106,11 @@ export function useContractorProjects() {
     meta: {
       errorHandler: (error: Error) => {
         console.error('Projects query error:', error);
+        toast({
+          variant: "destructive",
+          title: "Error loading projects",
+          description: "There was a problem loading your projects. Please try again.",
+        });
       }
     }
   });
