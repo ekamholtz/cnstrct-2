@@ -25,10 +25,36 @@ export function useContractorProjects() {
       console.log('User role from metadata:', userRole);
       console.log('User ID:', user.id);
 
+      // For contractors, fetch their projects directly
+      if (userRole === 'general_contractor') {
+        console.log('Fetching projects as contractor for user:', user.id);
+        
+        const { data: projects, error: projectsError } = await supabase
+          .from('projects')
+          .select(`
+            *,
+            clients (
+              id,
+              name,
+              email
+            )
+          `)
+          .eq('contractor_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (projectsError) {
+          console.error('Error fetching contractor projects:', projectsError);
+          throw projectsError;
+        }
+
+        console.log('Successfully fetched contractor projects:', projects);
+        return (projects || []) as Project[];
+      }
+
+      // For homeowners, get projects where they are the client
       if (userRole === 'homeowner') {
         console.log('Fetching projects as homeowner for user:', user.id);
         
-        // Get user's client record first
         const { data: clientRecord, error: clientError } = await supabase
           .from('clients')
           .select('id')
@@ -47,16 +73,10 @@ export function useContractorProjects() {
 
         console.log('Found client record:', clientRecord);
 
-        // For homeowners, get projects where they are the client
         const { data: clientProjects, error: clientProjectsError } = await supabase
           .from('projects')
           .select(`
-            id,
-            name,
-            status,
-            address,
-            created_at,
-            client_id,
+            *,
             clients (
               id,
               name,
@@ -75,33 +95,8 @@ export function useContractorProjects() {
         return (clientProjects || []) as Project[];
       }
 
-      console.log('Fetching projects as contractor for user:', user.id);
-      
-      // For contractors, use RLS to handle access control
-      const { data: projects, error: projectsError } = await supabase
-        .from('projects')
-        .select(`
-          id,
-          name,
-          status,
-          address,
-          created_at,
-          client_id,
-          clients (
-            id,
-            name,
-            email
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (projectsError) {
-        console.error('Error fetching contractor projects:', projectsError);
-        throw projectsError;
-      }
-
-      console.log('Successfully fetched contractor projects:', projects);
-      return (projects || []) as Project[];
+      console.log('Unknown user role:', userRole);
+      return [];
     },
     meta: {
       errorHandler: (error: Error) => {
