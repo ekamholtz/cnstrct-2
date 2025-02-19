@@ -76,6 +76,7 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
           </DialogHeader>
           <PaymentDetailsForm
             expenseAmount={expense.amount}
+            amountDue={expense.amount_due}
             onSubmit={handlePaymentSubmit}
             onCancel={() => setShowPaymentDetails(false)}
           />
@@ -89,7 +90,7 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
           </DialogHeader>
           <PaymentSimulationForm
             initialPayee={expense.payee}
-            initialAmount={expense.amount.toString()}
+            initialAmount={expense.amount_due.toString()}
             onSubmit={handlePaymentSimulation}
             onCancel={() => setShowPaymentSimulation(false)}
           />

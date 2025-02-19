@@ -41,13 +41,14 @@ export function useExpenses(projectId: string) {
         .insert({
           name: data.name,
           amount: Number(data.amount),
+          amount_due: Number(data.amount), // Initialize amount_due with the full amount
           payee: data.payee,
           expense_date: data.expense_date,
           expense_type: data.expense_type,
           notes: data.notes,
           project_id: data.project_id,
           contractor_id: project.contractor_id,
-          payment_status: data.payment_status // Now using lowercase enum values
+          payment_status: data.payment_status
         })
         .select()
         .single();
@@ -72,19 +73,6 @@ export function useExpenses(projectId: string) {
       expenseId: string;
       paymentData: PaymentDetailsData;
     }) => {
-      const { data: expense, error: expenseError } = await supabase
-        .from('expenses')
-        .select('amount, payments(payment_amount)')
-        .eq('id', expenseId)
-        .single();
-
-      if (expenseError) throw expenseError;
-
-      const totalPaid = (expense.payments || []).reduce((sum, p) => sum + p.payment_amount, 0);
-      const newPaymentAmount = Number(paymentData.payment_amount);
-      const newTotalPaid = totalPaid + newPaymentAmount;
-      const paymentStatus = newTotalPaid >= expense.amount ? 'paid' : 'partially_paid';
-
       // First create the payment
       const { data: payment, error: paymentError } = await supabase
         .from('payments')
@@ -92,20 +80,14 @@ export function useExpenses(projectId: string) {
           expense_id: expenseId,
           payment_type: paymentData.payment_type,
           payment_date: paymentData.payment_date,
-          payment_amount: newPaymentAmount
+          payment_amount: Number(paymentData.payment_amount),
+          vendor_email: paymentData.vendor_email,
+          vendor_phone: paymentData.vendor_phone
         })
         .select()
         .single();
 
       if (paymentError) throw paymentError;
-
-      // Then update the expense status
-      const { error: updateError } = await supabase
-        .from('expenses')
-        .update({ payment_status: paymentStatus })
-        .eq('id', expenseId);
-
-      if (updateError) throw updateError;
 
       return payment;
     },

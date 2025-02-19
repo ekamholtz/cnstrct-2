@@ -104,6 +104,7 @@ export type Database = {
       expenses: {
         Row: {
           amount: number
+          amount_due: number
           contractor_id: string
           created_at: string
           expense_date: string
@@ -122,6 +123,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          amount_due?: number
           contractor_id: string
           created_at?: string
           expense_date: string
@@ -140,6 +142,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          amount_due?: number
           contractor_id?: string
           created_at?: string
           expense_date?: string

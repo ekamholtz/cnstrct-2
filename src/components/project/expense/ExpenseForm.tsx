@@ -70,6 +70,7 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
           ) : showPaymentDetails && stage1Data ? (
             <PaymentDetailsForm
               expenseAmount={Number(stage1Data.amount)}
+              amountDue={Number(stage1Data.amount)}
               onSubmit={async (data, isPartialPayment) => {
                 try {
                   await onSubmit(
