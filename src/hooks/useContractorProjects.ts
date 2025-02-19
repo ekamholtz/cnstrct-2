@@ -7,22 +7,34 @@ export function useContractorProjects() {
   return useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
+      // Get current user and their metadata
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
+      if (userError) throw userError;
 
-      // Get user's role from profile
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+      const userRole = user.user_metadata.role;
+      console.log('User role from metadata:', userRole);
 
-      console.log('Current user role:', profile?.role);
-
-      if (profile?.role === 'homeowner') {
-        console.log('Fetching projects as client for user:', user.id);
+      if (userRole === 'homeowner') {
+        console.log('Fetching projects as homeowner for user:', user.id);
         
+        // Get user's client record first
+        const { data: clientRecord, error: clientError } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', user.id)
+          .single();
+
+        if (clientError) {
+          console.error('Error finding client record:', clientError);
+          throw clientError;
+        }
+
+        if (!clientRecord) {
+          console.log('No client record found for user:', user.id);
+          return [];
+        }
+
         // For homeowners, get projects where they are the client
         const { data: clientProjects, error: clientProjectsError } = await supabase
           .from('projects')
@@ -39,6 +51,7 @@ export function useContractorProjects() {
               email
             )
           `)
+          .eq('client_id', clientRecord.id)
           .order('created_at', { ascending: false });
 
         if (clientProjectsError) {
