@@ -11,15 +11,7 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-
-interface TeamMember {
-  id: string;
-  full_name: string;
-  phone_number: string | null;
-  role: string;
-  invitation_status: 'pending' | 'accepted' | 'expired';
-  created_at: string;
-}
+import { UserProfile } from "@/components/admin/users/types";
 
 export function TeamMembers() {
   const { data: teamMembers, isLoading } = useQuery({
@@ -31,12 +23,12 @@ export function TeamMembers() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, phone_number, role, invitation_status, created_at')
+        .select('*')
         .or(`company_id.eq.${user.id},id.eq.${user.id}`)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data as TeamMember[];
+      return data as UserProfile[];
     },
   });
 
@@ -67,7 +59,7 @@ export function TeamMembers() {
               <TableCell className="capitalize">{member.role}</TableCell>
               <TableCell>
                 <Badge variant={member.invitation_status === 'accepted' ? 'default' : 'secondary'}>
-                  {member.invitation_status}
+                  {member.invitation_status || 'accepted'}
                 </Badge>
               </TableCell>
               <TableCell>

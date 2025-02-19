@@ -22,12 +22,13 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { UserRole } from "@/components/admin/users/types";
 
 const inviteUserSchema = z.object({
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   phoneNumber: z.string().min(10, "Phone number must be at least 10 digits"),
-  role: z.enum(["admin", "project_manager"]),
+  role: z.enum(["admin", "project_manager"] as const),
 });
 
 type InviteUserForm = z.infer<typeof inviteUserSchema>;
@@ -53,23 +54,24 @@ export function InviteUserForm() {
       if (userError) throw userError;
       if (!user) throw new Error("No authenticated user found");
 
-      const { data: functionData, error } = await supabase
+      const { data: profileData, error } = await supabase
         .from('profiles')
-        .insert({
+        .insert([{
+          id: crypto.randomUUID(),
           full_name: data.fullName,
           phone_number: data.phoneNumber,
-          role: data.role,
+          role: data.role as UserRole,
           company_id: user.id,
           invitation_status: 'pending',
           invite_token: crypto.randomUUID(),
-          invite_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          invite_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           account_status: 'pending'
-        })
+        }])
         .select()
         .single();
 
       if (error) throw error;
-      return functionData;
+      return profileData;
     },
     onSuccess: () => {
       toast({
