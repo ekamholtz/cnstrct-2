@@ -613,7 +613,11 @@ export type Database = {
       payment_method_type: "cc" | "check" | "transfer" | "cash" | "simulated"
       payment_status: "due" | "partially_paid" | "paid"
       project_status: "draft" | "active" | "completed" | "cancelled"
-      user_role: "general_contractor" | "homeowner" | "admin"
+      user_role:
+        | "general_contractor"
+        | "homeowner"
+        | "admin"
+        | "project_manager"
     }
     CompositeTypes: {
       [_ in never]: never

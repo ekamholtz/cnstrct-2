@@ -12,4 +12,5 @@ export type UserProfile = {
   invite_token?: string;
   invite_expires_at?: string;
   created_at: string;
+  email?: string;
 };

@@ -66,11 +66,7 @@ export const useUserManagement = () => {
     }
   };
 
-  const updateUserRole = async (userId: string, newRole: string) => {
-    if (!['admin', 'general_contractor', 'homeowner', 'project_manager'].includes(newRole)) {
-      throw new Error('Invalid role');
-    }
-
+  const updateUserRole = async (userId: string, newRole: UserRole) => {
     try {
       const { error } = await supabase
         .from('profiles')

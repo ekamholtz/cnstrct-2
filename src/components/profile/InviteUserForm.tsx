@@ -53,24 +53,26 @@ export function InviteUserForm() {
       if (userError) throw userError;
       if (!user) throw new Error("No authenticated user found");
 
-      const { data: profileData, error } = await supabase
+      const profileData = {
+        full_name: data.fullName,
+        phone_number: data.phoneNumber,
+        role: data.role as UserRole,
+        company_id: user.id,
+        invitation_status: 'pending',
+        invite_token: crypto.randomUUID(),
+        invite_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        account_status: 'pending',
+        email: data.email
+      };
+
+      const { data: inserted, error } = await supabase
         .from('profiles')
-        .insert({
-          full_name: data.fullName,
-          phone_number: data.phoneNumber,
-          role: data.role,
-          company_id: user.id,
-          invitation_status: 'pending',
-          invite_token: crypto.randomUUID(),
-          invite_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          account_status: 'pending',
-          email: data.email
-        })
+        .insert(profileData)
         .select()
         .single();
 
       if (error) throw error;
-      return profileData;
+      return inserted;
     },
     onSuccess: () => {
       toast({
