@@ -60,7 +60,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
   try {
     const { data: existingProfile, error: checkError } = await supabase
       .from('profiles')
-      .select('id')
+      .select('id, has_completed_profile')
       .eq('id', userId)
       .maybeSingle();
 
