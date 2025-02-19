@@ -1,8 +1,9 @@
+
 import { ExpenseForm } from "./ExpenseForm";
 import { ExpenseList } from "./ExpenseList";
 import { useExpenses } from "./hooks/useExpenses";
 import type { ExpenseFormStage1Data, PaymentDetailsData } from "./types";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProjectExpensesProps {
   projectId: string;

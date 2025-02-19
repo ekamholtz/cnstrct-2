@@ -42,14 +42,13 @@ export const useAuthForm = () => {
 
       if (!profile) {
         console.log("No profile found, creating one...");
-        // Request all necessary fields when creating the profile
         const newProfile = await createProfile(
           signInData.user.id, 
           signInData.user.user_metadata.full_name || '',
           signInData.user.user_metadata.role || 'general_contractor'
         );
         
-        if (!newProfile?.has_completed_profile) {
+        if (!newProfile.has_completed_profile) {
           navigate("/profile-completion");
           return;
         }

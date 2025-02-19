@@ -2,59 +2,87 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types/project";
-import { useToast } from "@/components/ui/use-toast";
 
 export function useContractorProjects() {
-  const { toast } = useToast();
-
   return useQuery({
-    queryKey: ['contractor-projects'],
+    queryKey: ['projects'],
     queryFn: async () => {
-      try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
-        if (userError) {
-          console.error('Error getting user:', userError);
-          throw userError;
-        }
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
 
-        if (!user) {
-          console.error('No user found in session');
-          throw new Error('No user found');
-        }
+      // Get user's role from profile
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
 
-        console.log('Attempting to fetch projects for contractor:', user.id);
+      console.log('Current user role:', profile?.role);
+
+      if (profile?.role === 'homeowner') {
+        console.log('Fetching projects as client for user:', user.id);
         
-        // Simplified query to first verify basic access
-        const { data: projects, error: projectsError } = await supabase
+        // For homeowners, get projects where they are the client
+        const { data: clientProjects, error: clientProjectsError } = await supabase
           .from('projects')
-          .select('id, name, address, status, created_at, client_id')
-          .eq('contractor_id', user.id);
+          .select(`
+            id,
+            name,
+            status,
+            address,
+            created_at,
+            client_id,
+            clients (
+              id,
+              name,
+              email
+            )
+          `)
+          .order('created_at', { ascending: false });
 
-        if (projectsError) {
-          console.error('Error fetching projects:', projectsError);
-          toast({
-            variant: "destructive",
-            title: "Error loading projects",
-            description: "There was a problem loading your projects. Please try again.",
-          });
-          throw projectsError;
+        if (clientProjectsError) {
+          console.error('Error fetching client projects:', clientProjectsError);
+          throw clientProjectsError;
         }
 
-        console.log('Successfully fetched projects:', projects);
-        return projects || [];
-
-      } catch (error) {
-        console.error('Error in useContractorProjects:', error);
-        toast({
-          variant: "destructive",
-          title: "Error loading projects",
-          description: "There was a problem loading your projects. Please try again.",
-        });
-        throw error;
+        console.log('Successfully fetched client projects:', clientProjects);
+        return (clientProjects || []) as Project[];
       }
+
+      console.log('Fetching projects as contractor for user:', user.id);
+      
+      // For contractors, get projects where they are the contractor
+      const { data: projects, error: projectsError } = await supabase
+        .from('projects')
+        .select(`
+          id,
+          name,
+          status,
+          address,
+          created_at,
+          client_id,
+          clients (
+            id,
+            name,
+            email
+          )
+        `)
+        .eq('contractor_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (projectsError) {
+        console.error('Error fetching contractor projects:', projectsError);
+        throw projectsError;
+      }
+
+      console.log('Successfully fetched contractor projects:', projects);
+      return (projects || []) as Project[];
     },
-    retry: 1,
-    refetchOnWindowFocus: false
+    meta: {
+      errorHandler: (error: Error) => {
+        console.error('Projects query error:', error);
+      }
+    }
   });
 }

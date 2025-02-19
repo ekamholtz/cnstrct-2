@@ -1,8 +1,8 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { ExpenseFormStage1Data, Expense, Payment, PaymentDetailsData } from "@/components/project/expense/types";
-import { useToast } from "@/components/ui/use-toast";
+import { ExpenseFormStage1Data, Expense, Payment, PaymentDetailsData } from "../components/project/expense/types";
+import { useToast } from "@/hooks/use-toast";
 
 export function useExpenses(projectId: string) {
   const queryClient = useQueryClient();
@@ -36,6 +36,7 @@ export function useExpenses(projectId: string) {
 
       if (projectError) throw projectError;
 
+      // Create the expense data object with the correct types
       const expenseData = {
         name: data.name,
         amount: Number(data.amount),
@@ -87,6 +88,7 @@ export function useExpenses(projectId: string) {
       const newTotalPaid = totalPaid + newPaymentAmount;
       const paymentStatus = newTotalPaid >= expense.amount ? 'paid' as const : 'partially_paid' as const;
 
+      // First create the payment
       const { data: payment, error: paymentError } = await supabase
         .from('payments')
         .insert({
@@ -100,6 +102,7 @@ export function useExpenses(projectId: string) {
 
       if (paymentError) throw paymentError;
 
+      // Then update the expense status
       const { error: updateError } = await supabase
         .from('expenses')
         .update({ payment_status: paymentStatus })

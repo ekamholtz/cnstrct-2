@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Expense } from "@/components/project/expense/types";
 import { ExpenseForm } from "@/components/project/expense/ExpenseForm";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ExpenseDashboard() {
   const { toast } = useToast();

@@ -1,9 +1,9 @@
 
-import { ExpenseForm } from "@/components/project/expense/ExpenseForm";
-import { ExpenseList } from "@/components/project/expense/ExpenseList";
-import { useExpenses } from "@/components/project/expense/hooks/useExpenses";
-import type { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
-import { useToast } from "@/components/ui/use-toast";
+import { ExpenseForm } from "./expense/ExpenseForm";
+import { ExpenseList } from "./expense/ExpenseList";
+import { useExpenses } from "./expense/hooks/useExpenses";
+import type { ExpenseFormStage1Data, PaymentDetailsData } from "./expense/types";
+import { useToast } from "@/hooks/use-toast";
 
 interface ProjectExpensesProps {
   projectId: string;
