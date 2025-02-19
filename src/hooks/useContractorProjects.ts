@@ -66,6 +66,7 @@ export function useContractorProjects() {
       console.log('Fetching projects as contractor for user:', user.id);
       
       // For contractors, get projects where they are the contractor
+      // Simplified query that doesn't join with profiles
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
