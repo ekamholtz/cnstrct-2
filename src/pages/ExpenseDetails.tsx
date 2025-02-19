@@ -9,11 +9,11 @@ import { Expense } from "@/components/project/expense/types";
 import { ExpenseDetailsSection } from "@/components/project/expense/details/ExpenseDetailsSection";
 import { PaymentsSection } from "@/components/project/expense/details/PaymentsSection";
 import { ExpensePaymentActions } from "@/components/project/expense/details/ExpensePaymentActions";
+import { useEffect } from "react";
 
 export default function ExpenseDetails() {
   const { expenseId } = useParams();
-
-  const { data: expense, isLoading } = useQuery({
+  const { data: expense, isLoading, refetch } = useQuery({
     queryKey: ['expense', expenseId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -41,6 +41,41 @@ export default function ExpenseDetails() {
       };
     },
   });
+
+  // Set up real-time subscription
+  useEffect(() => {
+    const channel = supabase
+      .channel('expense-details')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'expenses',
+          filter: `id=eq.${expenseId}`,
+        },
+        () => {
+          refetch();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'payments',
+          filter: `expense_id=eq.${expenseId}`,
+        },
+        () => {
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [expenseId, refetch]);
 
   if (isLoading) {
     return (
