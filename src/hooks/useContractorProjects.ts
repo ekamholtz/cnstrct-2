@@ -65,8 +65,7 @@ export function useContractorProjects() {
 
       console.log('Fetching projects as contractor for user:', user.id);
       
-      // For contractors, get projects where they are the contractor
-      // Simplified query that doesn't join with profiles
+      // For contractors, just query projects - RLS will handle access control
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -82,7 +81,6 @@ export function useContractorProjects() {
             email
           )
         `)
-        .eq('contractor_id', user.id)
         .order('created_at', { ascending: false });
 
       if (projectsError) {
