@@ -14,6 +14,11 @@ export function ExpenseDetailsSection({ expense }: ExpenseDetailsSectionProps) {
     paid: "bg-green-100 text-green-800",
   };
 
+  // Calculate total paid amount and amount due
+  const totalPaidAmount = expense.payments?.reduce((sum, payment) => sum + payment.payment_amount, 0) ?? 0;
+  const amountDue = expense.amount - totalPaidAmount;
+  const shouldShowAmountDue = ['due', 'partially_paid'].includes(expense.payment_status);
+
   return (
     <Card className="p-6">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Expense Details</h2>
@@ -29,6 +34,20 @@ export function ExpenseDetailsSection({ expense }: ExpenseDetailsSectionProps) {
             <label className="text-sm font-medium text-gray-500">Amount</label>
             <p className="mt-1 text-gray-900">${expense.amount.toFixed(2)}</p>
           </div>
+          
+          {shouldShowAmountDue && (
+            <div>
+              <label className="text-sm font-medium text-gray-500">Amount Due</label>
+              <p className="mt-1 text-gray-900 font-semibold text-red-600">
+                ${amountDue.toFixed(2)}
+              </p>
+              {totalPaidAmount > 0 && (
+                <p className="text-sm text-green-600">
+                  (${totalPaidAmount.toFixed(2)} paid)
+                </p>
+              )}
+            </div>
+          )}
           
           <div>
             <label className="text-sm font-medium text-gray-500">Payee</label>
