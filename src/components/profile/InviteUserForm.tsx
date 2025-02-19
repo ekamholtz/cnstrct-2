@@ -1,3 +1,4 @@
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -57,12 +58,13 @@ export function InviteUserForm() {
         .insert({
           full_name: data.fullName,
           phone_number: data.phoneNumber,
-          role: data.role as UserRole,
+          role: data.role,
           company_id: user.id,
           invitation_status: 'pending',
           invite_token: crypto.randomUUID(),
           invite_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          account_status: 'pending'
+          account_status: 'pending',
+          email: data.email
         })
         .select()
         .single();
