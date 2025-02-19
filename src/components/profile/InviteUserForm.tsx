@@ -53,21 +53,25 @@ export function InviteUserForm() {
       if (userError) throw userError;
       if (!user) throw new Error("No authenticated user found");
 
+      // Create the profile data with null id since it's auto-generated
       const profileData = {
+        id: null, // This will be replaced by the auto-generated UUID
         full_name: data.fullName,
         phone_number: data.phoneNumber,
         role: data.role as UserRole,
         company_id: user.id,
-        invitation_status: 'pending',
+        invitation_status: 'pending' as const,
         invite_token: crypto.randomUUID(),
         invite_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-        account_status: 'pending',
-        email: data.email
+        account_status: 'pending' as const,
+        email: data.email,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
 
       const { data: inserted, error } = await supabase
         .from('profiles')
-        .insert(profileData)
+        .insert([profileData]) // Wrap in array to match expected type
         .select()
         .single();
 
