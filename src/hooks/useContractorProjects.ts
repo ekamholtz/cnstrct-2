@@ -7,24 +7,55 @@ export function useContractorProjects() {
   return useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
+      console.log('Starting project fetch...');
+      
       // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (!userError) {
+        console.log('Current user:', user?.id);
+      }
+      if (userError || !user) {
+        console.error('No user found or error:', userError);
+        throw new Error('No user found');
+      }
 
-      // Get user's role from profile
-      const { data: profile } = await supabase
+      // Get user's profile with role
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
-      console.log('Current user role:', profile?.role);
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
+      }
 
+      console.log('User profile:', profile);
+
+      // If user is a homeowner
       if (profile?.role === 'homeowner') {
-        console.log('Fetching projects as client for user:', user.id);
+        console.log('Fetching projects as homeowner');
         
-        // For homeowners, get projects where they are the client
-        const { data: clientProjects, error: clientProjectsError } = await supabase
+        // Get the client record for this user
+        const { data: clientData, error: clientError } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (clientError) {
+          console.error('Error fetching client:', clientError);
+          throw clientError;
+        }
+
+        if (!clientData) {
+          console.log('No client record found');
+          return [];
+        }
+
+        // Get projects for this client
+        const { data: projects, error: projectsError } = await supabase
           .from('projects')
           .select(`
             id,
@@ -32,27 +63,23 @@ export function useContractorProjects() {
             status,
             address,
             created_at,
-            client_id,
-            clients (
-              id,
-              name,
-              email
-            )
+            contractor_id,
+            client_id
           `)
+          .eq('client_id', clientData.id)
           .order('created_at', { ascending: false });
 
-        if (clientProjectsError) {
-          console.error('Error fetching client projects:', clientProjectsError);
-          throw clientProjectsError;
+        if (projectsError) {
+          console.error('Error fetching client projects:', projectsError);
+          throw projectsError;
         }
 
-        console.log('Successfully fetched client projects:', clientProjects);
-        return (clientProjects || []) as Project[];
+        console.log('Client projects:', projects);
+        return projects as Project[];
       }
 
-      console.log('Fetching projects as contractor for user:', user.id);
-      
-      // For contractors, get projects where they are the contractor
+      // For contractors and admins
+      console.log('Fetching projects as contractor/admin');
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
@@ -61,12 +88,8 @@ export function useContractorProjects() {
           status,
           address,
           created_at,
-          client_id,
-          clients (
-            id,
-            name,
-            email
-          )
+          contractor_id,
+          client_id
         `)
         .eq('contractor_id', user.id)
         .order('created_at', { ascending: false });
@@ -76,8 +99,8 @@ export function useContractorProjects() {
         throw projectsError;
       }
 
-      console.log('Successfully fetched contractor projects:', projects);
-      return (projects || []) as Project[];
+      console.log('Contractor/admin projects:', projects);
+      return projects as Project[];
     },
     meta: {
       errorHandler: (error: Error) => {
