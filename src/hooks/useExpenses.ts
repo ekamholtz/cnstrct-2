@@ -36,19 +36,22 @@ export function useExpenses(projectId: string) {
 
       if (projectError) throw projectError;
 
+      // Create the expense data object with the correct types
+      const expenseData = {
+        name: data.name,
+        amount: Number(data.amount),
+        payee: data.payee,
+        expense_date: data.expense_date,
+        expense_type: data.expense_type,
+        notes: data.notes,
+        project_id: data.project_id,
+        contractor_id: project.contractor_id,
+        payment_status: data.payment_status as 'due' | 'paid' | 'partially_paid'
+      };
+
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert({
-          name: data.name,
-          amount: Number(data.amount),
-          payee: data.payee,
-          expense_date: data.expense_date,
-          expense_type: data.expense_type,
-          notes: data.notes,
-          project_id: data.project_id,
-          contractor_id: project.contractor_id,
-          payment_status: data.payment_status.toLowerCase() // Ensure lowercase value
-        })
+        .insert(expenseData)
         .select()
         .single();
 
@@ -83,7 +86,7 @@ export function useExpenses(projectId: string) {
       const totalPaid = (expense.payments || []).reduce((sum, p) => sum + p.payment_amount, 0);
       const newPaymentAmount = Number(paymentData.payment_amount);
       const newTotalPaid = totalPaid + newPaymentAmount;
-      const paymentStatus = newTotalPaid >= expense.amount ? 'paid' : 'partially_paid';
+      const paymentStatus = newTotalPaid >= expense.amount ? 'paid' as const : 'partially_paid' as const;
 
       // First create the payment
       const { data: payment, error: paymentError } = await supabase
