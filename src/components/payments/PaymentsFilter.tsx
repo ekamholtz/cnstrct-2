@@ -9,7 +9,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { PaymentFilters } from "./types";
+import type { PaymentFilters, PaymentType } from "./types";
 
 interface PaymentsFilterProps {
   filters: PaymentFilters;
@@ -28,6 +28,20 @@ export function PaymentsFilter({ filters, onFiltersChange }: PaymentsFilterProps
       return data;
     },
   });
+
+  const handlePaymentTypeChange = (value: string) => {
+    onFiltersChange({
+      ...filters,
+      paymentType: value === "all" ? undefined : value as PaymentType
+    });
+  };
+
+  const handleProjectChange = (value: string) => {
+    onFiltersChange({
+      ...filters,
+      projectId: value === "all" ? undefined : value
+    });
+  };
 
   return (
     <div className="flex flex-col sm:flex-row gap-4">
@@ -70,14 +84,14 @@ export function PaymentsFilter({ filters, onFiltersChange }: PaymentsFilterProps
       </Popover>
 
       <Select
-        value={filters.paymentType}
-        onValueChange={(value) => onFiltersChange({ ...filters, paymentType: value })}
+        value={filters.paymentType || "all"}
+        onValueChange={handlePaymentTypeChange}
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="Payment Type" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Types</SelectItem>
+          <SelectItem value="all">All Types</SelectItem>
           <SelectItem value="cc">Credit Card</SelectItem>
           <SelectItem value="check">Check</SelectItem>
           <SelectItem value="transfer">Transfer</SelectItem>
@@ -86,14 +100,14 @@ export function PaymentsFilter({ filters, onFiltersChange }: PaymentsFilterProps
       </Select>
 
       <Select
-        value={filters.projectId}
-        onValueChange={(value) => onFiltersChange({ ...filters, projectId: value })}
+        value={filters.projectId || "all"}
+        onValueChange={handleProjectChange}
       >
         <SelectTrigger className="w-[250px]">
           <SelectValue placeholder="Select Project" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">All Projects</SelectItem>
+          <SelectItem value="all">All Projects</SelectItem>
           {projects?.map((project) => (
             <SelectItem key={project.id} value={project.id}>
               {project.name}
