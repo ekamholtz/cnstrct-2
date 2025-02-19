@@ -62,7 +62,7 @@ export function PaymentDetailsForm({ expenseAmount, amountDue, onSubmit, onCance
         open={showPartialPaymentConfirm}
         onOpenChange={setShowPartialPaymentConfirm}
         pendingData={pendingData}
-        amountDue={amountDue}
+        expenseAmount={expenseAmount}
         onConfirm={handlePartialPaymentConfirm}
       />
     </>
