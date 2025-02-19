@@ -20,6 +20,7 @@ import AdminProjects from "@/pages/AdminProjects";
 import ExpenseDashboard from "@/pages/ExpenseDashboard";
 import ExpenseDetails from "@/pages/ExpenseDetails";
 import PaymentDetails from "@/pages/PaymentDetails";
+import PaymentsDashboard from "@/pages/PaymentsDashboard";
 
 export const AppRoutes = () => {
   return (
@@ -134,6 +135,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <PaymentDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/payments"
+        element={
+          <ProtectedRoute>
+            <PaymentsDashboard />
           </ProtectedRoute>
         }
       />
