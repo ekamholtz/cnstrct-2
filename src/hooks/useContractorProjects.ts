@@ -23,47 +23,26 @@ export function useContractorProjects() {
           throw new Error('No user found');
         }
 
-        console.log('Fetching projects for contractor:', user.id);
+        console.log('Attempting to fetch projects for contractor:', user.id);
         
-        // First, try fetching just the projects without the clients join
+        // Simplified query to first verify basic access
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
-          .select('*')
-          .eq('contractor_id', user.id)
-          .order('created_at', { ascending: false });
+          .select('id, name, address, status, created_at, client_id')
+          .eq('contractor_id', user.id);
 
         if (projectsError) {
           console.error('Error fetching projects:', projectsError);
+          toast({
+            variant: "destructive",
+            title: "Error loading projects",
+            description: "There was a problem loading your projects. Please try again.",
+          });
           throw projectsError;
         }
 
-        if (!projects || projects.length === 0) {
-          console.log('No projects found for contractor:', user.id);
-          return [];
-        }
-
-        // If we successfully got projects, now fetch the associated clients
-        const { data: projectsWithClients, error: joinError } = await supabase
-          .from('projects')
-          .select(`
-            *,
-            clients (
-              id,
-              name,
-              email
-            )
-          `)
-          .eq('contractor_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (joinError) {
-          console.error('Error fetching client data:', joinError);
-          // If we fail to get client data, return just the projects
-          return projects;
-        }
-
-        console.log('Successfully fetched projects with clients:', projectsWithClients);
-        return projectsWithClients || [];
+        console.log('Successfully fetched projects:', projects);
+        return projects || [];
 
       } catch (error) {
         console.error('Error in useContractorProjects:', error);
@@ -74,6 +53,8 @@ export function useContractorProjects() {
         });
         throw error;
       }
-    }
+    },
+    retry: 1,
+    refetchOnWindowFocus: false
   });
 }
