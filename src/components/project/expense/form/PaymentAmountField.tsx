@@ -6,10 +6,10 @@ import { PaymentDetailsData } from "../types";
 
 interface PaymentAmountFieldProps {
   form: UseFormReturn<PaymentDetailsData>;
-  expenseAmount: number;
+  amountDue: number;
 }
 
-export function PaymentAmountField({ form, expenseAmount }: PaymentAmountFieldProps) {
+export function PaymentAmountField({ form, amountDue }: PaymentAmountFieldProps) {
   return (
     <FormField
       control={form.control}
@@ -22,12 +22,12 @@ export function PaymentAmountField({ form, expenseAmount }: PaymentAmountFieldPr
               type="number" 
               step="0.01" 
               min="0" 
-              max={expenseAmount} 
+              max={amountDue} 
               {...field} 
             />
           </FormControl>
           <FormDescription>
-            Maximum amount: ${expenseAmount}
+            Maximum amount: ${amountDue}
           </FormDescription>
           <FormMessage />
         </FormItem>

@@ -7,9 +7,11 @@ import { useToast } from "@/hooks/use-toast";
 
 export function usePaymentDetailsForm({
   expenseAmount,
+  amountDue,
   onSubmit,
 }: {
   expenseAmount: number;
+  amountDue: number;
   onSubmit: (data: PaymentDetailsData, isPartialPayment: boolean) => Promise<void>;
 }) {
   const [showPartialPaymentConfirm, setShowPartialPaymentConfirm] = useState(false);
@@ -23,19 +25,19 @@ export function usePaymentDetailsForm({
     defaultValues: {
       payment_type: undefined,
       payment_date: new Date().toISOString().split('T')[0],
-      payment_amount: expenseAmount.toString(),
+      payment_amount: amountDue.toString(),
     },
   });
 
   const handleSubmit = async (data: PaymentDetailsData) => {
     const paymentAmount = Number(data.payment_amount);
     
-    if (paymentAmount > expenseAmount) {
+    if (paymentAmount > amountDue) {
       setShowErrorAlert(true);
       return;
     }
 
-    if (paymentAmount < expenseAmount) {
+    if (paymentAmount < amountDue) {
       setPendingData(data);
       setShowPartialPaymentConfirm(true);
       return;

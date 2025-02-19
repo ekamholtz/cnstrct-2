@@ -36,6 +36,7 @@ export interface Expense {
   name: string;
   payee: string;
   amount: number;
+  amount_due: number;
   expense_date: string;
   expense_type: "labor" | "materials" | "subcontractor" | "other";
   payment_status: "due" | "partially_paid" | "paid";
