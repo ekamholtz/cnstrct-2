@@ -1,6 +1,5 @@
-
-import { useToast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { useToast } from "@/components/ui/use-toast";
 import { ProjectsList } from "@/components/dashboard/ProjectsList";
 import { useContractorProjects } from "@/hooks/useContractorProjects";
 import { useEffect } from "react";
@@ -41,7 +40,6 @@ export default function GCProjects() {
     },
   });
 
-  // Handle error with useEffect to avoid render issues
   useEffect(() => {
     if (error) {
       console.error('Error in GCProjects:', error);
