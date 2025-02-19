@@ -52,7 +52,7 @@ export function PaymentDetailsForm({ expenseAmount, amountDue, onSubmit, onCance
               disabled={isProcessing}
               className="bg-[#9b87f5] hover:bg-[#7E69AB]"
             >
-              {isProcessing ? "Processing..." : "Process Payment"}
+              {isProcessing ? "Processing..." : "Save Payment"}
             </Button>
           </div>
         </form>
