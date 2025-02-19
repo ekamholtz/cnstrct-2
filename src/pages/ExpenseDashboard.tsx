@@ -1,4 +1,3 @@
-
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
@@ -56,9 +55,7 @@ export default function ExpenseDashboard() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('No user found');
 
-    const paymentStatus = status === 'due' ? 'DUE' : 
-                         status === 'paid' ? 'PAID' : 
-                         'PARTIALLY_PAID';
+    const paymentStatus = status.toLowerCase() as 'due' | 'paid' | 'partially_paid';
 
     const { error } = await supabase
       .from('expenses')
