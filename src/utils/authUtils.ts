@@ -60,7 +60,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
   try {
     const { data: existingProfile, error: checkError } = await supabase
       .from('profiles')
-      .select()
+      .select('id')
       .eq('id', userId)
       .maybeSingle();
 
@@ -84,7 +84,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
-      .select()
+      .select('id, full_name, role, has_completed_profile')
       .single();
 
     if (insertError) {
@@ -104,21 +104,52 @@ export const fetchUserProfile = async (userId: string) => {
   console.log("Fetching profile for user:", userId);
   
   try {
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    // First get the user's metadata from auth
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError) throw userError;
+    if (!user) throw new Error('No user found');
 
-    if (profileError) {
-      console.error("Error fetching profile:", profileError);
-      throw profileError;
+    // Create a basic profile from auth metadata
+    const baseProfile = {
+      id: userId,
+      full_name: user.user_metadata.full_name || '',
+      role: user.user_metadata.role as UserRole,
+      has_completed_profile: false,
+      account_status: 'active'
+    };
+
+    try {
+      // Attempt to get additional profile data with a minimal query
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('has_completed_profile, account_status')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.warn("Could not fetch additional profile data:", profileError);
+        return baseProfile;
+      }
+
+      if (!profileData) {
+        console.log("No additional profile data found, using base profile");
+        return baseProfile;
+      }
+
+      // Merge additional profile data with base profile
+      return {
+        ...baseProfile,
+        has_completed_profile: profileData.has_completed_profile,
+        account_status: profileData.account_status
+      };
+
+    } catch (error) {
+      console.warn("Error fetching additional profile data, using base profile:", error);
+      return baseProfile;
     }
 
-    console.log("Profile fetch result:", { profile, userId });
-    return profile;
   } catch (error) {
-    console.error("Unexpected error in fetchUserProfile:", error);
+    console.error("Error in fetchUserProfile:", error);
     throw error;
   }
 };
