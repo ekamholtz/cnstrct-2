@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -49,15 +48,13 @@ export function InviteUserForm() {
 
   const inviteUser = useMutation({
     mutationFn: async (data: InviteUserForm) => {
-      // First get the current user's ID
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
       if (!user) throw new Error("No authenticated user found");
 
       const { data: profileData, error } = await supabase
         .from('profiles')
-        .insert([{
-          id: crypto.randomUUID(),
+        .insert({
           full_name: data.fullName,
           phone_number: data.phoneNumber,
           role: data.role as UserRole,
@@ -66,7 +63,7 @@ export function InviteUserForm() {
           invite_token: crypto.randomUUID(),
           invite_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
           account_status: 'pending'
-        }])
+        })
         .select()
         .single();
 

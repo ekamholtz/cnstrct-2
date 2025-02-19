@@ -11,4 +11,5 @@ export type UserProfile = {
   company_id?: string;
   invite_token?: string;
   invite_expires_at?: string;
+  created_at: string;
 };

@@ -20,7 +20,8 @@ export const useUserManagement = () => {
           id,
           full_name,
           role,
-          account_status
+          account_status,
+          created_at
         `);
       
       if (error) {
