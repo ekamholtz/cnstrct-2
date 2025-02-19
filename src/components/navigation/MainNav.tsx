@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,7 @@ export function MainNav() {
       { label: "Projects", path: projectsRoute, icon: Grid },
       { label: "Invoices", path: "/invoices", icon: FileText },
       { label: "Expenses", path: "/expenses", icon: DollarSign },
+      { label: "Payments", path: "/payments", icon: DollarSign },
       { label: "Profile", path: "/profile", icon: User },
       { label: "Help", path: "/help", icon: HelpCircle },
     ];
