@@ -12,17 +12,31 @@ import {
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
+interface TeamMember {
+  id: string;
+  full_name: string;
+  phone_number: string | null;
+  role: string;
+  invitation_status: 'pending' | 'accepted' | 'expired';
+  created_at: string;
+}
+
 export function TeamMembers() {
   const { data: teamMembers, isLoading } = useQuery({
     queryKey: ['team-members'],
     queryFn: async () => {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error("No authenticated user found");
+
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, phone_number, role, invitation_status, created_at')
+        .or(`company_id.eq.${user.id},id.eq.${user.id}`)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data as TeamMember[];
     },
   });
 

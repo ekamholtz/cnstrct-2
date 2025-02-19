@@ -48,15 +48,25 @@ export function InviteUserForm() {
 
   const inviteUser = useMutation({
     mutationFn: async (data: InviteUserForm) => {
-      const { data: functionData, error } = await supabase.rpc(
-        'handle_user_invitation',
-        {
-          user_email: data.email,
-          user_full_name: data.fullName,
-          user_phone: data.phoneNumber,
-          user_role: data.role,
-        }
-      );
+      // First get the current user's ID
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      if (!user) throw new Error("No authenticated user found");
+
+      const { data: functionData, error } = await supabase
+        .from('profiles')
+        .insert({
+          full_name: data.fullName,
+          phone_number: data.phoneNumber,
+          role: data.role,
+          company_id: user.id,
+          invitation_status: 'pending',
+          invite_token: crypto.randomUUID(),
+          invite_expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          account_status: 'pending'
+        })
+        .select()
+        .single();
 
       if (error) throw error;
       return functionData;

@@ -176,6 +176,48 @@ export type Database = {
           },
         ]
       }
+      invitation_logs: {
+        Row: {
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          invited_by: string | null
+          profile_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          invited_by?: string | null
+          profile_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          invited_by?: string | null
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitation_logs_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invitation_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount: number
@@ -354,12 +396,16 @@ export type Database = {
           bank_routing_number: string | null
           bio: string | null
           company_address: string | null
+          company_id: string | null
           company_name: string | null
           created_at: string
           email_confirmed_at: string | null
           full_name: string
           has_completed_profile: boolean | null
           id: string
+          invitation_status: string | null
+          invite_expires_at: string | null
+          invite_token: string | null
           join_date: string | null
           license_number: string | null
           phone_number: string | null
@@ -374,12 +420,16 @@ export type Database = {
           bank_routing_number?: string | null
           bio?: string | null
           company_address?: string | null
+          company_id?: string | null
           company_name?: string | null
           created_at?: string
           email_confirmed_at?: string | null
           full_name?: string
           has_completed_profile?: boolean | null
           id: string
+          invitation_status?: string | null
+          invite_expires_at?: string | null
+          invite_token?: string | null
           join_date?: string | null
           license_number?: string | null
           phone_number?: string | null
@@ -394,12 +444,16 @@ export type Database = {
           bank_routing_number?: string | null
           bio?: string | null
           company_address?: string | null
+          company_id?: string | null
           company_name?: string | null
           created_at?: string
           email_confirmed_at?: string | null
           full_name?: string
           has_completed_profile?: boolean | null
           id?: string
+          invitation_status?: string | null
+          invite_expires_at?: string | null
+          invite_token?: string | null
           join_date?: string | null
           license_number?: string | null
           phone_number?: string | null
@@ -407,7 +461,15 @@ export type Database = {
           updated_at?: string
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -493,6 +555,17 @@ export type Database = {
           project_name: string
           project_id: string
         }[]
+      }
+      handle_user_invitation: {
+        Args: {
+          inviter_id: string
+          user_email: string
+          user_full_name: string
+          user_phone: string
+          user_role: Database["public"]["Enums"]["user_role"]
+          invite_expires_in?: unknown
+        }
+        Returns: string
       }
       has_project_access: {
         Args: {
