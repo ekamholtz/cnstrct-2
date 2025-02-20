@@ -6,12 +6,9 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
-import { format } from "date-fns";
-import { StatusBadge } from "@/components/project/invoice/StatusBadge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PaymentModal } from "@/components/project/invoice/PaymentModal";
-import { PaymentSimulationModal } from "@/components/project/invoice/PaymentSimulationModal";
-import { Invoice } from "@/components/project/invoice/types";
+import { InvoiceInformationCard } from "@/components/project/invoice/InvoiceInformationCard";
+import { PaymentDetailsCard } from "@/components/project/invoice/PaymentDetailsCard";
+import { useInvoiceDetails } from "@/components/project/invoice/hooks/useInvoiceDetails";
 
 export default function InvoiceDetails() {
   const { invoiceId } = useParams();
@@ -34,45 +31,7 @@ export default function InvoiceDetails() {
     },
   });
 
-  const { data: invoiceData, isLoading: isInvoiceLoading } = useQuery({
-    queryKey: ['invoice', invoiceId],
-    queryFn: async () => {
-      if (!invoiceId) throw new Error('No invoice ID provided');
-
-      // Get invoice data using RPC function
-      const { data, error } = await supabase
-        .rpc('get_project_invoices', { p_id: null })
-        .eq('id', invoiceId)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data) throw new Error('Invoice not found');
-
-      // Since we're getting data from the RPC function, we need to ensure it matches our Invoice type
-      const invoice: Invoice = {
-        id: data.id,
-        invoice_number: data.invoice_number,
-        amount: data.amount,
-        status: data.status,
-        created_at: data.created_at,
-        updated_at: data.updated_at,
-        milestone_id: data.milestone_id,
-        milestone_name: data.milestone_name,
-        project_name: data.project_name,
-        project_id: data.project_id,
-        payment_method: data.payment_method as "cc" | "check" | "transfer" | "cash" | null,
-        payment_date: data.payment_date,
-        payment_reference: data.payment_reference,
-        payment_gateway: data.payment_gateway,
-        payment_method_type: data.payment_method as "cc" | "check" | "transfer" | "cash" | "simulated" | null,
-        simulation_data: null
-      };
-      
-      console.log('Transformed invoice data:', invoice);
-      return invoice;
-    },
-  });
-
+  const { data: invoiceData, isLoading: isInvoiceLoading } = useInvoiceDetails(invoiceId);
   const isLoading = isProfileLoading || isInvoiceLoading;
 
   if (isLoading) {
@@ -115,85 +74,8 @@ export default function InvoiceDetails() {
       />
 
       <div className="grid gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Invoice Information</CardTitle>
-            {invoiceData.status === 'pending_payment' && (
-              <div>
-                {isClient ? (
-                  <PaymentSimulationModal
-                    invoice={invoiceData}
-                    onPaymentComplete={() => {
-                      window.location.reload();
-                    }}
-                  />
-                ) : (
-                  <PaymentModal
-                    invoice={invoiceData}
-                    onSubmit={async (data) => {
-                      console.log('Payment marked:', data);
-                      window.location.reload();
-                    }}
-                  />
-                )}
-              </div>
-            )}
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-medium text-gray-500">Status</h3>
-                <StatusBadge status={invoiceData.status} />
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-500">Amount</h3>
-                <p className="text-lg font-semibold">${invoiceData.amount.toLocaleString()}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-medium text-gray-500">Project</h3>
-                <p>{invoiceData.project_name}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-500">Milestone</h3>
-                <p>{invoiceData.milestone_name}</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-medium text-gray-500">Created Date</h3>
-                <p>{format(new Date(invoiceData.created_at), 'MMM d, yyyy')}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {invoiceData.status === "paid" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Details</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-medium text-gray-500">Payment Method</h3>
-                  <p className="capitalize">{invoiceData.payment_method}</p>
-                </div>
-                <div>
-                  <h3 className="font-medium text-gray-500">Payment Date</h3>
-                  <p>{invoiceData.payment_date ? format(new Date(invoiceData.payment_date), 'MMM d, yyyy') : 'N/A'}</p>
-                </div>
-              </div>
-              {invoiceData.payment_reference && (
-                <div>
-                  <h3 className="font-medium text-gray-500">Payment Reference</h3>
-                  <p>{invoiceData.payment_reference}</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
+        <InvoiceInformationCard invoice={invoiceData} isClient={isClient} />
+        <PaymentDetailsCard invoice={invoiceData} />
       </div>
     </DashboardLayout>
   );
