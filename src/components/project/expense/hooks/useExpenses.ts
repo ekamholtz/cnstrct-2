@@ -38,11 +38,10 @@ export function useExpenses(projectId: string) {
 
       const amount = Number(data.amount);
 
-      // Create a new mutable object that matches the database schema exactly
+      // Create the expense object without amount_due (it will be set by the database trigger)
       const newExpense = {
         name: data.name,
         amount,
-        amount_due: amount, // Initially equals the full amount since no payments exist
         payee: data.payee,
         expense_date: data.expense_date,
         expense_type: data.expense_type,
@@ -54,10 +53,9 @@ export function useExpenses(projectId: string) {
 
       console.log('Inserting expense data:', newExpense);
 
-      // Insert the expense as a mutable array using spread operator
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert([{ ...newExpense }])
+        .insert([newExpense])
         .select()
         .single();
 

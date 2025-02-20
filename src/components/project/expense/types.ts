@@ -33,11 +33,11 @@ export type PaymentDetailsData = z.infer<typeof paymentDetailsSchema>;
 export interface Expense {
   id: string;
   project_id: string;
-  contractor_id: string;  // Added this field
+  contractor_id: string;
   name: string;
   payee: string;
   amount: number;
-  amount_due: number;
+  amount_due?: number; // Made optional
   expense_date: string;
   expense_type: "labor" | "materials" | "subcontractor" | "other";
   payment_status: "due" | "partially_paid" | "paid";
