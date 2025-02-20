@@ -1,6 +1,6 @@
 
-import { UserNav } from "@/components/navigation/UserNav";
-import { ProjectCreationForm } from "@/components/projects/ProjectCreationForm";
+import { UserNav } from "@/components/ui/user-nav";
+import ProjectCreationForm from "@/components/projects/ProjectCreationForm";
 
 interface DashboardHeaderProps {
   onProjectCreated?: () => void;
