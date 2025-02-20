@@ -28,16 +28,27 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
   const handleSimulatePayment = async () => {
     setIsLoading(true);
     try {
+      console.log('Starting payment simulation for invoice:', invoice.id);
+      
+      const simulationDetails = {
+        simulated_at: new Date().toISOString(),
+        amount: invoice.amount,
+        invoice_number: invoice.invoice_number
+      };
+
+      console.log('Simulation details:', simulationDetails);
+
       const { error } = await supabase.rpc('simulate_invoice_payment', {
         invoice_id: invoice.id,
-        simulation_details: {
-          simulated_at: new Date().toISOString(),
-          amount: invoice.amount,
-          invoice_number: invoice.invoice_number
-        }
+        simulation_details: simulationDetails
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Payment simulation error:', error);
+        throw error;
+      }
+
+      console.log('Payment simulation completed successfully');
 
       toast({
         title: "Payment Successful",
