@@ -38,7 +38,27 @@ export default function InvoiceDetails() {
     queryKey: ['invoice', invoiceId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .rpc('get_project_invoices', { p_id: null })
+        .from('invoices')
+        .select(`
+          id,
+          invoice_number,
+          amount,
+          status,
+          created_at,
+          updated_at,
+          payment_method,
+          payment_date,
+          payment_reference,
+          payment_gateway,
+          milestone_id,
+          milestones (
+            name,
+            project:project_id (
+              name,
+              id
+            )
+          )
+        `)
         .eq('id', invoiceId)
         .single();
 
@@ -46,10 +66,22 @@ export default function InvoiceDetails() {
       
       // Transform the data to match the Invoice type
       const invoice: Invoice = {
-        ...data,
+        id: data.id,
+        invoice_number: data.invoice_number,
+        amount: data.amount,
+        status: data.status,
+        created_at: data.created_at,
+        updated_at: data.updated_at,
+        milestone_id: data.milestone_id,
+        milestone_name: data.milestones.name,
+        project_name: data.milestones.project.name,
+        project_id: data.milestones.project.id,
         payment_method: data.payment_method as "cc" | "check" | "transfer" | "cash" | null,
-        // Since payment_method_type isn't returned by the function, we'll derive it from payment_method
+        payment_date: data.payment_date,
+        payment_reference: data.payment_reference,
+        payment_gateway: data.payment_gateway,
         payment_method_type: data.payment_method as "cc" | "check" | "transfer" | "cash" | "simulated" | null,
+        simulation_data: null
       };
       
       return invoice;
