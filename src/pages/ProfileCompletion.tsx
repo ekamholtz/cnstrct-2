@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,12 +27,11 @@ export default function ProfileCompletion() {
     resolver: zodResolver(profileCompletionSchema),
     defaultValues: {
       company_name: "",
-      company_address: "",
+      address: "",
       license_number: "",
       phone_number: "",
       website: "",
       full_name: "",
-      address: "",
     },
     mode: "all"
   });

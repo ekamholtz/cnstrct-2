@@ -1,3 +1,4 @@
+
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
@@ -25,7 +26,7 @@ export const ContractorFormFields = ({ form }: ContractorFormFieldsProps) => {
       />
       <FormField
         control={form.control}
-        name="company_address"
+        name="address"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Company Address*</FormLabel>
