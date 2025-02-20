@@ -35,6 +35,7 @@ export default function ProfileCompletion() {
       full_name: "",
       address: "",
     },
+    mode: "onChange", // Enable real-time validation
   });
 
   useEffect(() => {
@@ -70,6 +71,8 @@ export default function ProfileCompletion() {
   }, [navigate]);
 
   const onSubmit = async (data: ProfileCompletionFormData) => {
+    if (isSubmitting) return; // Prevent double submission
+
     try {
       setIsSubmitting(true);
       console.log("Form data being submitted:", data);
@@ -85,13 +88,34 @@ export default function ProfileCompletion() {
         return;
       }
 
+      // Validate form data based on user role
+      if (userRole === 'general_contractor' && (!data.company_name || !data.company_address || !data.license_number)) {
+        toast({
+          variant: "destructive",
+          title: "Missing Information",
+          description: "Please fill in all required contractor fields.",
+        });
+        return;
+      }
+
+      if (userRole === 'homeowner' && (!data.full_name || !data.address)) {
+        toast({
+          variant: "destructive",
+          title: "Missing Information",
+          description: "Please fill in all required homeowner fields.",
+        });
+        return;
+      }
+
+      const updateData = {
+        ...data,
+        has_completed_profile: true,
+        updated_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from("profiles")
-        .update({
-          ...data,
-          has_completed_profile: true,
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq("id", session.user.id);
 
       if (error) {
@@ -135,7 +159,11 @@ export default function ProfileCompletion() {
         <ProfileCompletionHeader />
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form 
+            onSubmit={form.handleSubmit(onSubmit)} 
+            className="space-y-6"
+            noValidate // Let our custom validation handle it
+          >
             {userRole === "general_contractor" ? (
               <ContractorFormFields form={form} />
             ) : (
@@ -145,7 +173,7 @@ export default function ProfileCompletion() {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !form.formState.isValid}
             >
               {isSubmitting ? "Saving..." : "Save and Continue"}
             </Button>
