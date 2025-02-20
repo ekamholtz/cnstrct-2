@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,14 +58,20 @@ export default function ProfileCompletion() {
         .eq("id", session.user.id)
         .single();
 
+      console.log("Profile data:", profile);
+
       if (profile?.has_completed_profile) {
+        console.log("Profile is completed, routing to dashboard...");
         // Route based on user role
         if (profile.role === 'homeowner') {
-          navigate("/client-dashboard");
+          console.log("Routing homeowner to client dashboard");
+          navigate("/client-dashboard", { replace: true });
         } else if (profile.role === 'general_contractor') {
-          navigate("/dashboard");
+          console.log("Routing contractor to dashboard");
+          navigate("/dashboard", { replace: true });
         } else if (profile.role === 'admin') {
-          navigate("/admin");
+          console.log("Routing admin to admin dashboard");
+          navigate("/admin", { replace: true });
         }
         return;
       }
@@ -122,13 +129,16 @@ export default function ProfileCompletion() {
         description: "You will now be redirected to the dashboard.",
       });
 
-      // Route based on user role
+      // Route based on user role with replace: true to prevent back navigation
       if (userRole === 'homeowner') {
-        navigate("/client-dashboard");
+        console.log("Redirecting homeowner to client dashboard");
+        navigate("/client-dashboard", { replace: true });
       } else if (userRole === 'general_contractor') {
-        navigate("/dashboard");
+        console.log("Redirecting contractor to dashboard");
+        navigate("/dashboard", { replace: true });
       } else if (userRole === 'admin') {
-        navigate("/admin");
+        console.log("Redirecting admin to admin dashboard");
+        navigate("/admin", { replace: true });
       }
     } catch (error: any) {
       console.error("Error updating profile:", error);
