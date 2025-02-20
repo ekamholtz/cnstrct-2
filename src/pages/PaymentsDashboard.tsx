@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
-import type { PaymentFilters } from "@/components/payments/types";
+import type { PaymentFilters, Payment } from "@/components/payments/types";
 
 export default function PaymentsDashboard() {
   const [filters, setFilters] = useState<PaymentFilters>({
@@ -63,7 +63,7 @@ export default function PaymentsDashboard() {
       }
       
       console.log('Fetched payments:', data);
-      return data;
+      return data as Payment[];
     },
   });
 

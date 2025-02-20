@@ -33,8 +33,6 @@ export function useInvoiceDetails(invoiceId: string | undefined) {
         payment_date: data.payment_date,
         payment_reference: data.payment_reference,
         payment_gateway: data.payment_gateway,
-        payment_method_type: data.payment_method_type as "cc" | "check" | "transfer" | "cash" | "simulated" | null,
-        simulation_data: data.simulation_data,
         updated_at: data.updated_at
       };
       

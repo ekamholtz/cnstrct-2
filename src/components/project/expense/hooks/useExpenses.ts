@@ -28,7 +28,6 @@ export function useExpenses(projectId: string) {
 
   const { mutateAsync: createExpense } = useMutation({
     mutationFn: async (data: ExpenseFormStage1Data & { payment_status: 'due' | 'paid' | 'partially_paid' }) => {
-      // First get the contractor_id from the project
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .select('contractor_id')
@@ -43,7 +42,7 @@ export function useExpenses(projectId: string) {
       const expenseData = {
         name: data.name,
         amount,
-        amount_due: amount, // Initially equals the total amount
+        amount_due: amount, // Required field for database
         payee: data.payee,
         expense_date: data.expense_date,
         expense_type: data.expense_type,
@@ -55,7 +54,7 @@ export function useExpenses(projectId: string) {
 
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert([expenseData]) // Wrap in array to match PostgrestFilterBuilder type
+        .insert([expenseData])
         .select()
         .single();
 
