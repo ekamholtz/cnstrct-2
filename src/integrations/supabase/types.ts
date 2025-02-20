@@ -119,7 +119,7 @@ export type Database = {
         }
         Insert: {
           amount: number
-          amount_due: number
+          amount_due?: number
           contractor_id: string
           created_at?: string
           expense_date: string

@@ -38,10 +38,13 @@ export function useExpenses(projectId: string) {
 
       const amount = Number(data.amount);
 
-      // Create the expense object without amount_due (it will be set by the database trigger)
+      // Create the expense object and explicitly set amount_due to match amount
+      // The database trigger will handle this if not provided, but we'll include it
+      // to satisfy TypeScript
       const newExpense = {
         name: data.name,
         amount,
+        amount_due: amount, // Set explicitly to satisfy type checker
         payee: data.payee,
         expense_date: data.expense_date,
         expense_type: data.expense_type,
