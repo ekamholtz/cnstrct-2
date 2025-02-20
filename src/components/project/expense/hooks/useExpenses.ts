@@ -38,11 +38,11 @@ export function useExpenses(projectId: string) {
 
       const amount = Number(data.amount);
 
-      // Create the expense data object matching database schema
-      const expenseData = {
+      // Create an array with a single expense object that includes all required fields
+      const expenseDataArray = [{
         name: data.name,
         amount,
-        amount_due: amount, // Required field for database
+        amount_due: amount, // Add required amount_due field
         payee: data.payee,
         expense_date: data.expense_date,
         expense_type: data.expense_type,
@@ -50,11 +50,11 @@ export function useExpenses(projectId: string) {
         project_id: data.project_id,
         contractor_id: project.contractor_id,
         payment_status: data.payment_status
-      };
+      }];
 
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert([expenseData])
+        .insert(expenseDataArray) // Pass the array directly
         .select()
         .single();
 
