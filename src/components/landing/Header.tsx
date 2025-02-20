@@ -49,8 +49,8 @@ export const Header = () => {
   };
 
   const navItems = [
-    { label: "Home", path: "/" },
     { label: "Features", path: "#features" },
+    { label: "Pricing", path: "#pricing" },
     { label: "About", path: "#about" },
     { label: "Contact", path: "#contact" },
   ];
@@ -63,7 +63,8 @@ export const Header = () => {
             <img
               src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
               alt="CNSTRCT Logo"
-              className="h-12 w-auto" // Increased from h-8 to h-12
+              className="h-12 w-auto cursor-pointer"
+              onClick={() => navigate("/")}
             />
           </div>
 

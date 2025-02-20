@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Building, House } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -27,38 +28,39 @@ export const Hero = () => {
   };
 
   return (
-    <section className="pt-24 pb-16 bg-gradient-to-br from-cnstrct-navy to-cnstrct-navy/90 text-white">
+    <section className="pt-32 pb-20 bg-gradient-to-br from-cnstrct-navy to-cnstrct-navy/90 text-white">
       <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">
-            Streamline Your Construction Projects
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl md:text-6xl font-bold mb-8 leading-tight">
+            Transform Your Construction <br />
+            Payment Experience
           </h1>
-          <p className="text-lg md:text-xl text-gray-200 mb-8">
-            Simplify financial management with digitized workflows, invoicing, and real-time payments.
+          <p className="text-xl md:text-2xl text-gray-200 mb-12 leading-relaxed">
+            Streamline financial management with digitized workflows, automated invoicing, and real-time payments. Built specifically for construction professionals.
           </p>
           {!user && (
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
+            <div className="flex flex-col md:flex-row gap-6 justify-center">
               <Button
                 size="lg"
-                className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
+                className="bg-cnstrct-orange hover:bg-cnstrct-orange/90 text-lg h-14 px-8"
                 onClick={() => handleRegister("contractor")}
               >
-                <Building className="mr-2 h-5 w-5" />
-                Register as General Contractor
+                <Building className="mr-2 h-6 w-6" />
+                Start as General Contractor
               </Button>
               <Button
                 size="lg"
-                className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
+                className="bg-cnstrct-orange hover:bg-cnstrct-orange/90 text-lg h-14 px-8"
                 onClick={() => handleRegister("client")}
               >
-                <House className="mr-2 h-5 w-5" />
+                <House className="mr-2 h-6 w-6" />
                 Register as Homeowner
               </Button>
             </div>
           )}
           {!user && (
-            <p className="mt-6 text-sm text-gray-300">
-              First time receiving an invoice? Register after your initial payment.
+            <p className="mt-8 text-gray-300">
+              Already managing projects? <Button variant="link" className="text-cnstrct-orange p-0 hover:text-cnstrct-orange/90" onClick={() => navigate("/auth")}>Sign in to your account</Button>
             </p>
           )}
         </div>
