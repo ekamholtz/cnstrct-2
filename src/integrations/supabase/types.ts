@@ -37,7 +37,15 @@ export type Database = {
           entity_type?: string
           id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_admin_actions_admin"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       admin_stats_cache: {
         Row: {
@@ -151,7 +159,15 @@ export type Database = {
           updated_at?: string
           vendor_email?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_expenses_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invitation_logs: {
         Row: {
@@ -240,6 +256,20 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_invoices_milestone"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_invoices_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "invoices_milestone_id_fkey"
             columns: ["milestone_id"]
             isOneToOne: false
@@ -279,7 +309,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["milestone_status"] | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_milestones_project"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
@@ -319,6 +357,13 @@ export type Database = {
           vendor_phone?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_payments_expense"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "payments_expense_id_fkey"
             columns: ["expense_id"]

@@ -7,14 +7,14 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useContractorProjects } from "@/hooks/useContractorProjects";
 
 export default function Dashboard() {
-  const { data: projects = [], isLoading } = useContractorProjects();
+  const { data: projects = [], isLoading, refetch } = useContractorProjects();
 
   console.log("Dashboard rendering with projects:", projects);
 
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <DashboardHeader />
+        <DashboardHeader onProjectCreated={refetch} />
         <StatsOverview projects={projects} />
         <ContractorFinancialSummary />
         <ProjectsList projects={projects} loading={isLoading} />

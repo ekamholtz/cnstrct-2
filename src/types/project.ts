@@ -3,7 +3,9 @@ export interface Project {
   id: string;
   name: string;
   address: string;
-  status: string;
+  status: 'draft' | 'active' | 'completed' | 'cancelled';
   created_at: string;
-  client_id?: string; // Adding client_id as optional since it can be null in the database
+  updated_at: string;
+  contractor_id: string;
+  client_id?: string;
 }

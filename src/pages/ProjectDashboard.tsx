@@ -9,14 +9,7 @@ import { LoadingState } from "@/components/project/dashboard/LoadingState";
 import { ProjectNotFound } from "@/components/project/dashboard/ProjectNotFound";
 import { ProjectContent } from "@/components/project/dashboard/ProjectContent";
 import { markMilestoneComplete, calculateCompletion } from "@/utils/milestoneOperations";
-
-interface Project {
-  id: string;
-  name: string;
-  address: string;
-  status: string;
-  contractor_id: string;
-}
+import { Project } from "@/types/project";
 
 export default function ProjectDashboard() {
   const { projectId } = useParams();
@@ -47,15 +40,18 @@ export default function ProjectDashboard() {
 
   const isAdmin = userProfile?.role === 'admin';
   
-  // Fetch project details
+  // Fetch project details with milestones
   const { data: project, isLoading: projectLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
+        .select(`
+          *,
+          milestones (*)
+        `)
         .eq('id', projectId)
-        .maybeSingle();
+        .single();
       
       if (error) throw error;
       return data as Project;
