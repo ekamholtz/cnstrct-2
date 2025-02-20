@@ -1,26 +1,21 @@
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Milestone } from "@/components/projects/types";
 import { MilestoneStatusBadge } from "./MilestoneStatus";
-import { UndoCompletionDialog } from "./UndoCompletionDialog";
-import { Milestone } from "./types";
+import { MilestoneControls } from "./MilestoneControls";
 
 interface MilestoneCardProps {
   milestone: Milestone;
+  isContractor: boolean;
   onMarkComplete: (id: string) => void;
   onUndoCompletion: (id: string) => void;
-  hideControls: boolean;
-  isHomeowner: boolean;
-  isContractor: boolean;
 }
 
 export function MilestoneCard({
   milestone,
-  onMarkComplete,
-  onUndoCompletion,
-  hideControls,
-  isHomeowner,
   isContractor,
+  onMarkComplete,
+  onUndoCompletion
 }: MilestoneCardProps) {
   return (
     <Card>
@@ -31,31 +26,18 @@ export function MilestoneCard({
             {milestone.description && (
               <p className="text-sm text-gray-600">{milestone.description}</p>
             )}
-            {milestone.amount && (
-              <p className="text-sm font-medium text-gray-900">
-                ${milestone.amount.toLocaleString()}
-              </p>
-            )}
+            <p className="text-sm font-medium text-gray-900">
+              ${milestone.amount.toLocaleString()}
+            </p>
           </div>
           <div className="flex items-center gap-4">
             <MilestoneStatusBadge status={milestone.status} />
-            {!hideControls && !isHomeowner && (
-              <div className="flex gap-2">
-                {milestone.status !== 'completed' && (
-                  <Button
-                    onClick={() => onMarkComplete(milestone.id)}
-                    variant="outline"
-                  >
-                    Mark as Complete
-                  </Button>
-                )}
-                {isContractor && milestone.status === 'completed' && (
-                  <UndoCompletionDialog
-                    onUndo={() => onUndoCompletion(milestone.id)}
-                  />
-                )}
-              </div>
-            )}
+            <MilestoneControls
+              milestone={milestone}
+              isContractor={isContractor}
+              onMarkComplete={onMarkComplete}
+              onUndoCompletion={onUndoCompletion}
+            />
           </div>
         </div>
       </CardContent>

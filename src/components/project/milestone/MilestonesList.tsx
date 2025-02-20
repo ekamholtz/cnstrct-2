@@ -2,9 +2,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { Milestone } from "@/components/projects/types";
 import { MilestoneCard } from "./MilestoneCard";
-import { Milestone } from "./types";
 
 interface MilestonesListProps {
   milestones: Milestone[];
@@ -12,7 +12,11 @@ interface MilestonesListProps {
   hideControls?: boolean;
 }
 
-export function MilestonesList({ milestones, onMarkComplete, hideControls = false }: MilestonesListProps) {
+export function MilestonesList({ 
+  milestones, 
+  onMarkComplete, 
+  hideControls = false 
+}: MilestonesListProps) {
   const { toast } = useToast();
 
   const { data: userRole } = useQuery({
@@ -33,7 +37,6 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
 
   const handleUndoCompletion = async (milestoneId: string) => {
     try {
-      // First check if there's a paid invoice
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .select('status')
@@ -51,7 +54,6 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
         return;
       }
 
-      // If no paid invoice, proceed with undo
       const { data, error } = await supabase.rpc('undo_milestone_completion', {
         milestone_id_param: milestoneId
       });
@@ -80,8 +82,7 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
     }
   };
 
-  const isHomeowner = userRole === 'homeowner';
-  const isContractor = userRole === 'general_contractor';
+  const isContractor = userRole === 'general_contractor' && !hideControls;
 
   return (
     <div>
@@ -92,11 +93,9 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
             <MilestoneCard
               key={milestone.id}
               milestone={milestone}
+              isContractor={isContractor}
               onMarkComplete={onMarkComplete}
               onUndoCompletion={handleUndoCompletion}
-              hideControls={hideControls}
-              isHomeowner={isHomeowner}
-              isContractor={isContractor}
             />
           ))
         ) : (
