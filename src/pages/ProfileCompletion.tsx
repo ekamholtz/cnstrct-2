@@ -122,23 +122,30 @@ export default function ProfileCompletion() {
         throw error;
       }
 
-      console.log("Profile updated successfully");
+      console.log("Profile updated successfully, userRole:", userRole);
 
       toast({
         title: "Profile completed successfully!",
         description: "You will now be redirected to the dashboard.",
       });
 
-      // Route based on user role with replace: true to prevent back navigation
-      if (userRole === 'homeowner') {
-        console.log("Redirecting homeowner to client dashboard");
-        navigate("/client-dashboard", { replace: true });
-      } else if (userRole === 'general_contractor') {
-        console.log("Redirecting contractor to dashboard");
-        navigate("/dashboard", { replace: true });
-      } else if (userRole === 'admin') {
-        console.log("Redirecting admin to admin dashboard");
-        navigate("/admin", { replace: true });
+      // Ensure we handle all possible role cases
+      switch (userRole) {
+        case 'homeowner':
+          console.log("Redirecting homeowner to client dashboard");
+          navigate("/client-dashboard", { replace: true });
+          break;
+        case 'general_contractor':
+          console.log("Redirecting contractor to dashboard");
+          navigate("/dashboard", { replace: true });
+          break;
+        case 'admin':
+          console.log("Redirecting admin to admin dashboard");
+          navigate("/admin", { replace: true });
+          break;
+        default:
+          console.error("Unknown user role:", userRole);
+          navigate("/dashboard", { replace: true }); // Fallback to main dashboard
       }
     } catch (error: any) {
       console.error("Error updating profile:", error);
@@ -177,7 +184,7 @@ export default function ProfileCompletion() {
             <Button 
               type="submit" 
               className="w-full"
-              onClick={() => console.log("Submit button clicked")}
+              disabled={isSubmitting}
             >
               {isSubmitting ? "Saving..." : "Save and Continue"}
             </Button>
