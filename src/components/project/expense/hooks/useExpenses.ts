@@ -41,7 +41,7 @@ export function useExpenses(projectId: string) {
       const expenseData = {
         name: data.name,
         amount: Number(data.amount),
-        amount_due: Number(data.amount), // This is now explicitly included
+        amount_due: Number(data.amount), // Initially, amount_due equals the total amount
         payee: data.payee,
         expense_date: data.expense_date,
         expense_type: data.expense_type,
@@ -49,7 +49,7 @@ export function useExpenses(projectId: string) {
         project_id: data.project_id,
         contractor_id: project.contractor_id,
         payment_status: data.payment_status
-      } as const;
+      };
 
       const { data: expense, error } = await supabase
         .from('expenses')
