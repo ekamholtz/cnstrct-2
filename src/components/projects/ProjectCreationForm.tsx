@@ -19,6 +19,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus } from "lucide-react";
 
 export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => void }) {
@@ -59,26 +60,30 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
           New Project
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
             Fill in the project details below to create a new project.
           </DialogDescription>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-            <ClientInformationSection form={form} />
-            <ProjectDetailsSection form={form} />
-            <MilestonesSection form={form} />
-            <ContractValueSection form={form} />
+        <ScrollArea className="h-[calc(90vh-180px)]">
+          <div className="pr-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <ClientInformationSection form={form} />
+                <ProjectDetailsSection form={form} />
+                <MilestonesSection form={form} />
+                <ContractValueSection form={form} />
 
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              <Save className="h-4 w-4 mr-2" />
-              Create Project
-            </Button>
-          </form>
-        </Form>
+                <Button type="submit" disabled={isSubmitting} className="w-full">
+                  <Save className="h-4 w-4 mr-2" />
+                  Create Project
+                </Button>
+              </form>
+            </Form>
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );
