@@ -42,7 +42,7 @@ export function useExpenses(projectId: string) {
       // Create the expense data object matching database schema
       const expenseData = {
         name: data.name,
-        amount: amount,
+        amount,
         amount_due: amount, // Initially equals the total amount
         payee: data.payee,
         expense_date: data.expense_date,
@@ -55,7 +55,7 @@ export function useExpenses(projectId: string) {
 
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert(expenseData)
+        .insert([expenseData]) // Wrap in array to match PostgrestFilterBuilder type
         .select()
         .single();
 

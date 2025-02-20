@@ -26,14 +26,10 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
   const { toast } = useToast();
 
   const handleSimulatePayment = async () => {
-    console.log('Validating invoice data:', invoice);
+    console.log('Starting payment simulation with invoice:', invoice);
     
     if (!invoice?.id || !invoice?.amount || !invoice?.invoice_number) {
-      console.error('Invalid invoice data:', {
-        id: invoice?.id,
-        amount: invoice?.amount,
-        invoice_number: invoice?.invoice_number
-      });
+      console.error('Invalid invoice data:', invoice);
       toast({
         variant: "destructive",
         title: "Error",
@@ -44,12 +40,6 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
 
     setIsLoading(true);
     try {
-      console.log('Starting payment simulation for invoice:', {
-        id: invoice.id,
-        amount: invoice.amount,
-        invoice_number: invoice.invoice_number
-      });
-      
       const simulationDetails = {
         simulated_at: new Date().toISOString(),
         amount: invoice.amount,
@@ -61,7 +51,6 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
         simulation_details: simulationDetails
       });
 
-      // Call the RPC function
       const { data, error } = await supabase
         .rpc('simulate_invoice_payment', {
           invoice_id: invoice.id,
@@ -108,11 +97,11 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
             <div className="bg-gray-50 p-4 rounded-lg space-y-2">
               <div className="flex justify-between">
                 <span className="text-gray-600">Invoice Number:</span>
-                <span className="font-medium">{invoice?.invoice_number}</span>
+                <span className="font-medium">{invoice.invoice_number}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Amount:</span>
-                <span className="font-medium">${invoice?.amount?.toLocaleString()}</span>
+                <span className="font-medium">${invoice.amount?.toLocaleString()}</span>
               </div>
             </div>
             <p className="text-yellow-600 bg-yellow-50 p-3 rounded text-sm">
