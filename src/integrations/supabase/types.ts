@@ -37,15 +37,7 @@ export type Database = {
           entity_type?: string
           id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "admin_actions_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       admin_stats_cache: {
         Row: {
@@ -161,13 +153,6 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "expenses_contractor_id_fkey"
-            columns: ["contractor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "expenses_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
@@ -201,22 +186,7 @@ export type Database = {
           invited_by?: string | null
           profile_id?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "invitation_logs_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invitation_logs_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       invoices: {
         Row: {
@@ -277,13 +247,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "invoices_contractor_id_fkey"
-            columns: ["contractor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "invoices_milestone_id_fkey"
             columns: ["milestone_id"]
@@ -392,21 +355,12 @@ export type Database = {
         Row: {
           account_status: string
           address: string | null
-          bank_account_number: string | null
-          bank_routing_number: string | null
           bio: string | null
-          company_address: string | null
-          company_id: string | null
           company_name: string | null
           created_at: string
-          email_confirmed_at: string | null
           full_name: string
           has_completed_profile: boolean | null
           id: string
-          invitation_status: string | null
-          invite_expires_at: string | null
-          invite_token: string | null
-          join_date: string | null
           license_number: string | null
           phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
@@ -416,21 +370,12 @@ export type Database = {
         Insert: {
           account_status?: string
           address?: string | null
-          bank_account_number?: string | null
-          bank_routing_number?: string | null
           bio?: string | null
-          company_address?: string | null
-          company_id?: string | null
           company_name?: string | null
           created_at?: string
-          email_confirmed_at?: string | null
           full_name?: string
           has_completed_profile?: boolean | null
           id: string
-          invitation_status?: string | null
-          invite_expires_at?: string | null
-          invite_token?: string | null
-          join_date?: string | null
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
@@ -440,36 +385,19 @@ export type Database = {
         Update: {
           account_status?: string
           address?: string | null
-          bank_account_number?: string | null
-          bank_routing_number?: string | null
           bio?: string | null
-          company_address?: string | null
-          company_id?: string | null
           company_name?: string | null
           created_at?: string
-          email_confirmed_at?: string | null
           full_name?: string
           has_completed_profile?: boolean | null
           id?: string
-          invitation_status?: string | null
-          invite_expires_at?: string | null
-          invite_token?: string | null
-          join_date?: string | null
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
           website?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       projects: {
         Row: {
@@ -508,13 +436,6 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "projects_contractor_id_fkey"
-            columns: ["contractor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
