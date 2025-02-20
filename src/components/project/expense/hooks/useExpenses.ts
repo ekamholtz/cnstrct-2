@@ -37,20 +37,23 @@ export function useExpenses(projectId: string) {
 
       if (projectError) throw projectError;
 
+      // Create the expense data object with correct typing
+      const expenseData = {
+        name: data.name,
+        amount: Number(data.amount),
+        amount_due: Number(data.amount), // This is now explicitly included
+        payee: data.payee,
+        expense_date: data.expense_date,
+        expense_type: data.expense_type,
+        notes: data.notes,
+        project_id: data.project_id,
+        contractor_id: project.contractor_id,
+        payment_status: data.payment_status
+      } as const;
+
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert({
-          name: data.name,
-          amount: Number(data.amount),
-          amount_due: Number(data.amount), // Initialize amount_due with the full amount
-          payee: data.payee,
-          expense_date: data.expense_date,
-          expense_type: data.expense_type,
-          notes: data.notes,
-          project_id: data.project_id,
-          contractor_id: project.contractor_id,
-          payment_status: data.payment_status
-        })
+        .insert(expenseData)
         .select()
         .single();
 
