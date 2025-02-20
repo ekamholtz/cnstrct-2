@@ -33,6 +33,7 @@ export type PaymentDetailsData = z.infer<typeof paymentDetailsSchema>;
 export interface Expense {
   id: string;
   project_id: string;
+  contractor_id: string;  // Added this field
   name: string;
   payee: string;
   amount: number;
