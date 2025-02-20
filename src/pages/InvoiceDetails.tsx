@@ -37,34 +37,18 @@ export default function InvoiceDetails() {
   const { data: invoiceData, isLoading: isInvoiceLoading } = useQuery({
     queryKey: ['invoice', invoiceId],
     queryFn: async () => {
+      if (!invoiceId) throw new Error('No invoice ID provided');
+
+      // Get invoice data using RPC function
       const { data, error } = await supabase
-        .from('invoices')
-        .select(`
-          id,
-          invoice_number,
-          amount,
-          status,
-          created_at,
-          updated_at,
-          payment_method,
-          payment_date,
-          payment_reference,
-          payment_gateway,
-          milestone_id,
-          milestones (
-            name,
-            project:project_id (
-              name,
-              id
-            )
-          )
-        `)
+        .rpc('get_project_invoices', { p_id: null })
         .eq('id', invoiceId)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
-      
-      // Transform the data to match the Invoice type
+      if (!data) throw new Error('Invoice not found');
+
+      // Since we're getting data from the RPC function, we need to ensure it matches our Invoice type
       const invoice: Invoice = {
         id: data.id,
         invoice_number: data.invoice_number,
@@ -73,9 +57,9 @@ export default function InvoiceDetails() {
         created_at: data.created_at,
         updated_at: data.updated_at,
         milestone_id: data.milestone_id,
-        milestone_name: data.milestones.name,
-        project_name: data.milestones.project.name,
-        project_id: data.milestones.project.id,
+        milestone_name: data.milestone_name,
+        project_name: data.project_name,
+        project_id: data.project_id,
         payment_method: data.payment_method as "cc" | "check" | "transfer" | "cash" | null,
         payment_date: data.payment_date,
         payment_reference: data.payment_reference,
@@ -84,6 +68,7 @@ export default function InvoiceDetails() {
         simulation_data: null
       };
       
+      console.log('Transformed invoice data:', invoice);
       return invoice;
     },
   });
@@ -146,7 +131,6 @@ export default function InvoiceDetails() {
                   <PaymentModal
                     invoice={invoiceData}
                     onSubmit={async (data) => {
-                      // This is a placeholder - the actual implementation would come from props
                       console.log('Payment marked:', data);
                       window.location.reload();
                     }}
