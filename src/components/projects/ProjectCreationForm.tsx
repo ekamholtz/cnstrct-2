@@ -25,7 +25,7 @@ import { Plus } from "lucide-react";
 export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
-  const { createProject } = useProjectCreation(onSuccess);
+  const { createProject } = useProjectCreation();
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
@@ -49,6 +49,9 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
     if (success) {
       setOpen(false);
       form.reset();
+      if (onSuccess) {
+        onSuccess();
+      }
     }
   };
 
