@@ -256,31 +256,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_invoices_milestone"
-            columns: ["milestone_id"]
-            isOneToOne: false
-            referencedRelation: "milestones"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "fk_invoices_project"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "invoices_milestone_id_fkey"
-            columns: ["milestone_id"]
-            isOneToOne: false
-            referencedRelation: "milestones"
-            referencedColumns: ["id"]
-          },
         ]
       }
       milestones: {
         Row: {
-          amount: number | null
+          amount: number
           created_at: string
           description: string | null
           id: string
@@ -290,7 +276,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          amount?: number | null
+          amount: number
           created_at?: string
           description?: string | null
           id?: string
@@ -300,7 +286,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          amount?: number | null
+          amount?: number
           created_at?: string
           description?: string | null
           id?: string
@@ -311,7 +297,7 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_milestones_project"
+            foreignKeyName: "milestones_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"

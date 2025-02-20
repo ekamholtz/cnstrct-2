@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 
 export const milestoneSchema = z.object({
@@ -30,3 +31,16 @@ export const projectSchema = z.object({
 });
 
 export type ProjectFormValues = z.infer<typeof projectSchema>;
+
+export type MilestoneStatus = 'pending' | 'in_progress' | 'completed';
+
+export interface Milestone {
+  id: string;
+  project_id: string;
+  name: string;
+  description: string | null;
+  amount: number;
+  status: MilestoneStatus;
+  created_at: string;
+  updated_at: string;
+}

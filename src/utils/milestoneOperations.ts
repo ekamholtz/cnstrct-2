@@ -72,4 +72,3 @@ export const calculateCompletion = (milestones: any[]) => {
 
   return totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0;
 };
-
