@@ -26,7 +26,7 @@ export const Features = () => {
   ];
 
   return (
-    <section id="features" className="py-24 bg-cnstrct-gray">
+    <section id="features" className="py-24 bg-cnstrct-gray overflow-x-auto">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-3xl font-bold text-cnstrct-navy mb-4">
@@ -38,11 +38,11 @@ export const Features = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="flex flex-nowrap gap-6 min-w-full md:justify-center">
           {features.map((feature) => (
             <div
               key={feature.title}
-              className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow flex-none w-72"
             >
               <feature.icon className="h-12 w-12 text-cnstrct-orange mb-4" />
               <h3 className="text-xl font-semibold text-cnstrct-navy mb-2">
