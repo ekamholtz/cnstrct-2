@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -27,14 +26,7 @@ export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/" element={<Index />} />
       <Route
         path="/dashboard"
         element={
@@ -171,7 +163,7 @@ export const AppRoutes = () => {
           </AdminRoute>
         }
       />
-      <Route path="/landing" element={<Index />} />
+      <Route path="/landing" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
