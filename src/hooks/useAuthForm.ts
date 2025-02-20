@@ -114,18 +114,31 @@ export const useAuthForm = () => {
 
       console.log("Registration successful, creating profile...");
 
+      // Create profile after successful registration
       await createProfile(
         signUpData.user.id,
         values.fullName,
         selectedRole
       );
 
-      toast({
-        title: "Registration successful!",
-        description: "Please check your email to confirm your account.",
+      // Automatically sign in after registration
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
       });
 
-      navigate("/auth");
+      if (signInError) {
+        console.error("Auto-login error:", signInError);
+        throw signInError;
+      }
+
+      toast({
+        title: "Welcome to CNSTRCT!",
+        description: "Please complete your profile to get started.",
+      });
+
+      // Redirect to profile completion
+      navigate("/profile-completion");
 
     } catch (error: any) {
       console.error("Registration error details:", {
