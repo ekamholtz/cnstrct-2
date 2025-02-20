@@ -62,24 +62,26 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
 
       console.log('Starting project fetch for user:', user.id);
 
-      // First, verify the client record exists and log the result
-      const { data: clientData, error: clientError } = await supabase
+      // First, get all client records for this user
+      const { data: clientsData, error: clientError } = await supabase
         .from('clients')
         .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .eq('user_id', user.id);
 
       if (clientError) {
-        console.error('Error finding client record:', clientError);
+        console.error('Error finding client records:', clientError);
         throw clientError;
       }
 
-      console.log('Client data found:', clientData);
+      console.log('Client data found:', clientsData);
 
-      if (!clientData) {
+      if (!clientsData || clientsData.length === 0) {
         console.log('No client record found for user:', user.id);
         return [];
       }
+
+      // Get the first client record (there should typically only be one)
+      const clientData = clientsData[0];
 
       let query = supabase
         .from('projects')
