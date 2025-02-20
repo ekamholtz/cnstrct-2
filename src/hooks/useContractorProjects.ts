@@ -11,20 +11,16 @@ export function useContractorProjects() {
       
       // Get current user
       const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (!userError) {
-        console.log('Current user:', user?.id);
-      }
       if (userError || !user) {
         console.error('No user found or error:', userError);
         throw new Error('No user found');
       }
 
-      // Get user's profile with role - using simple and direct query
+      // Get user's profile with role - single direct query
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .limit(1)
         .single();
 
       if (profileError) {
@@ -38,12 +34,11 @@ export function useContractorProjects() {
       if (profile?.role === 'homeowner') {
         console.log('Fetching projects as homeowner');
         
-        // Get the client record for this user
+        // Get the client record for this user - single direct query
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
           .select('id')
           .eq('user_id', user.id)
-          .limit(1)
           .single();
 
         if (clientError) {
@@ -56,7 +51,7 @@ export function useContractorProjects() {
           return [];
         }
 
-        // Get projects for this client
+        // Get projects for this client with a simple select
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
           .select('id, name, status, address, created_at, contractor_id, client_id')
@@ -72,7 +67,7 @@ export function useContractorProjects() {
         return projects as Project[];
       }
 
-      // For contractors and admins
+      // For contractors and admins - simple direct query
       console.log('Fetching projects as contractor/admin');
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
