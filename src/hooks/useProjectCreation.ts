@@ -29,16 +29,46 @@ export const useProjectCreation = (onSuccess?: () => void) => {
       if (exactClient) {
         clientId = exactClient.id;
         console.log("Using existing client:", exactClient);
+        
+        // If this is an existing client without a user_id, check if there's a matching auth user
+        if (!exactClient.user_id) {
+          const { data: matchingUsers, error: matchingError } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('email', data.clientEmail.toLowerCase())
+            .maybeSingle();
+
+          if (!matchingError && matchingUsers?.id) {
+            // Update the client record with the user_id
+            const { error: updateError } = await supabase
+              .from("clients")
+              .update({ user_id: matchingUsers.id })
+              .eq('id', exactClient.id);
+
+            if (updateError) {
+              console.error("Error updating client user_id:", updateError);
+            } else {
+              console.log("Updated client with user_id:", matchingUsers.id);
+            }
+          }
+        }
       } else {
+        // Before creating a new client, check if there's an existing user with this email
+        const { data: matchingUsers, error: matchingError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('email', data.clientEmail.toLowerCase())
+          .maybeSingle();
+
         // Create new client
         const { data: newClient, error: createClientError } = await supabase
           .from("clients")
           .insert({
             name: data.clientName,
-            email: data.clientEmail.toLowerCase(), // Convert to lowercase for consistency
+            email: data.clientEmail.toLowerCase(),
             address: data.clientAddress,
             phone_number: data.clientPhone || null,
-            user_id: null // This will be linked when the client signs up
+            user_id: matchingUsers?.id || null // Link to existing user if found
           })
           .select()
           .single();
@@ -59,7 +89,7 @@ export const useProjectCreation = (onSuccess?: () => void) => {
           address: data.clientAddress,
           status: "active",
           contractor_id: session.user.id,
-          client_id: clientId // Ensure this is set correctly
+          client_id: clientId
         })
         .select()
         .single();
