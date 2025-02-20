@@ -26,7 +26,7 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
   const { toast } = useToast();
 
   const handleSimulatePayment = async () => {
-    if (!invoice?.id) {
+    if (!invoice?.id || !invoice?.amount || !invoice?.invoice_number) {
       console.error('Invalid invoice data:', invoice);
       toast({
         variant: "destructive",
@@ -76,7 +76,7 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
       console.error('Payment simulation error:', error);
       toast({
         variant: "destructive",
-        title: "Payment Failed",
+        title: "Error",
         description: "There was an error processing your payment. Please try again.",
       });
     } finally {
@@ -102,7 +102,7 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Amount:</span>
-                <span className="font-medium">${invoice.amount.toLocaleString()}</span>
+                <span className="font-medium">${invoice.amount?.toLocaleString()}</span>
               </div>
             </div>
             <p className="text-yellow-600 bg-yellow-50 p-3 rounded text-sm">

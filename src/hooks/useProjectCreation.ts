@@ -1,143 +1,74 @@
 
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ProjectFormValues } from "@/components/projects/types";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
-export const useProjectCreation = (onSuccess?: () => void) => {
+export const useProjectCreation = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const createProject = async (data: ProjectFormValues) => {
+  const createProject = async (projectData: any) => {
+    setIsLoading(true);
     try {
-      // Get the current user's profile ID which we'll use as contractor_id
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        throw new Error("No authenticated user found");
-      }
+      // Get current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
 
-      console.log("Creating project for contractor:", session.user.id);
-
-      // First, look for existing client with exact email match
-      const { data: exactClient, error: exactClientError } = await supabase
-        .from("clients")
-        .select("*")
-        .eq("email", data.clientEmail.toLowerCase()) // Convert to lowercase for consistency
-        .maybeSingle();
-
-      console.log("Exact client search result:", exactClient, "Error:", exactClientError);
-
-      let clientId;
-      if (exactClient) {
-        clientId = exactClient.id;
-        console.log("Using existing client:", exactClient);
-        
-        // If this is an existing client without a user_id, check if there's a matching auth user
-        if (!exactClient.user_id) {
-          const { data: matchingUsers, error: matchingError } = await supabase
-            .from('profiles')
-            .select('id')
-            .eq('email', data.clientEmail.toLowerCase())
-            .maybeSingle();
-
-          if (!matchingError && matchingUsers?.id) {
-            // Update the client record with the user_id
-            const { error: updateError } = await supabase
-              .from("clients")
-              .update({ user_id: matchingUsers.id })
-              .eq('id', exactClient.id);
-
-            if (updateError) {
-              console.error("Error updating client user_id:", updateError);
-            } else {
-              console.log("Updated client with user_id:", matchingUsers.id);
-            }
-          }
-        }
-      } else {
-        // Before creating a new client, check if there's an existing user with this email
-        const { data: matchingUsers, error: matchingError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('email', data.clientEmail.toLowerCase())
-          .maybeSingle();
-
-        // Create new client
-        const { data: newClient, error: createClientError } = await supabase
-          .from("clients")
-          .insert({
-            name: data.clientName,
-            email: data.clientEmail.toLowerCase(),
-            address: data.clientAddress,
-            phone_number: data.clientPhone || null,
-            user_id: matchingUsers?.id || null // Link to existing user if found
-          })
-          .select()
-          .single();
-
-        if (createClientError) {
-          console.error("Error creating client:", createClientError);
-          throw createClientError;
-        }
-        clientId = newClient.id;
-        console.log("Created new client:", newClient);
-      }
-
-      // Create project with client reference
+      // Create project
       const { data: project, error: projectError } = await supabase
-        .from("projects")
+        .from('projects')
         .insert({
-          name: data.projectName,
-          address: data.clientAddress,
-          status: "active",
-          contractor_id: session.user.id,
-          client_id: clientId
+          name: projectData.name,
+          address: projectData.address,
+          contractor_id: user.id,
+          status: 'active',
+          client_id: projectData.client_id
         })
         .select()
         .single();
 
-      if (projectError) {
-        console.error("Error creating project:", projectError);
-        throw projectError;
-      }
-
-      console.log("Project created successfully:", project);
+      if (projectError) throw projectError;
 
       // Create milestones
-      const milestonesData = data.milestones.map(milestone => ({
-        project_id: project.id,
-        name: milestone.name,
-        description: milestone.description,
-        amount: Number(milestone.amount),
-        status: "pending" as const
-      }));
+      if (projectData.milestones?.length > 0) {
+        const milestonesData = projectData.milestones.map((milestone: any) => ({
+          name: milestone.name,
+          amount: milestone.amount,
+          description: milestone.description,
+          project_id: project.id
+        }));
 
-      const { error: milestonesError } = await supabase
-        .from("milestones")
-        .insert(milestonesData);
+        const { error: milestonesError } = await supabase
+          .from('milestones')
+          .insert(milestonesData);
 
-      if (milestonesError) {
-        console.error("Error creating milestones:", milestonesError);
-        throw milestonesError;
+        if (milestonesError) throw milestonesError;
       }
-
-      console.log("Milestones created for project:", project.id);
 
       toast({
         title: "Success",
         description: "Project created successfully",
       });
 
-      onSuccess?.();
-      return true;
+      navigate(`/project/${project.id}`);
+      return project;
     } catch (error) {
-      console.error("Error in project creation flow:", error);
+      console.error('Error in project creation:', error);
       toast({
         variant: "destructive",
         title: "Error",
         description: "Failed to create project. Please try again.",
       });
-      return false;
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  return { createProject };
+  return {
+    createProject,
+    isLoading
+  };
 };
