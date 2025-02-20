@@ -38,11 +38,14 @@ export function useExpenses(projectId: string) {
 
       const amount = Number(data.amount);
 
+      // Calculate amount_due (for new expense, it equals amount since no payments exist)
+      const amount_due = amount;
+
       // Create a mutable expense object with all required fields
       const expenseData = {
         name: data.name,
         amount,
-        amount_due: amount, // New expense always has amount_due equal to amount
+        amount_due,
         payee: data.payee,
         expense_date: data.expense_date,
         expense_type: data.expense_type,
@@ -52,9 +55,10 @@ export function useExpenses(projectId: string) {
         payment_status: data.payment_status
       };
 
+      // Wrap the mutable object in an array and use spread operator to ensure it's not readonly
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert([expenseData]) // Pass array with mutable object
+        .insert([{ ...expenseData }])
         .select()
         .single();
 
