@@ -38,7 +38,7 @@ export function MainNav() {
 
       if (error) throw error;
 
-      console.log('Current user role:', data.role); // Debug log
+      console.log('Current user role:', data.role);
       return data;
     },
   });
@@ -58,6 +58,12 @@ export function MainNav() {
     }
   };
 
+  const handleNavigation = (path: string) => {
+    console.log("Navigating to:", path);
+    navigate(path);
+    setIsMenuOpen(false);
+  };
+
   const homeRoute = profile?.role === 'admin' ? '/admin' : 
                    profile?.role === 'homeowner' ? '/client-dashboard' : 
                    '/dashboard';
@@ -66,61 +72,40 @@ export function MainNav() {
                        profile?.role === 'admin' ? '/admin/projects' :
                        '/gc-projects';
 
-  const getNavItems = () => {
-    const baseItems = [
-      { label: "Home", path: homeRoute, icon: Home },
-    ];
+  const navItems = [
+    { label: "Home", path: homeRoute, icon: Home },
+    { label: "Projects", path: projectsRoute, icon: Grid },
+    { label: "Invoices", path: "/invoices", icon: FileText },
+    { label: "Expenses", path: "/expenses", icon: DollarSign },
+    { label: "Payments", path: "/payments", icon: DollarSign },
+    { label: "Profile", path: "/profile", icon: User },
+    { label: "Help", path: "/help", icon: HelpCircle },
+  ];
 
-    if (profile?.role === 'admin') {
-      return [
-        ...baseItems,
-        { label: "Users", path: "/admin/users", icon: Users },
-      ];
-    }
-
-    return [
-      ...baseItems,
-      { label: "Projects", path: projectsRoute, icon: Grid },
-      { label: "Invoices", path: "/invoices", icon: FileText },
-      { label: "Expenses", path: "/expenses", icon: DollarSign },
-      { label: "Payments", path: "/payments", icon: DollarSign },
-      { label: "Profile", path: "/profile", icon: User },
-      { label: "Help", path: "/help", icon: HelpCircle },
-    ];
-  };
-
-  const navItems = getNavItems();
   const isActive = (path: string) => location.pathname === path;
-
-  if (location.pathname === '/gc-projects' && profile?.role === 'homeowner') {
-    navigate('/client-projects');
-    return null;
-  }
-
-  if (location.pathname === '/client-projects' && profile?.role === 'general_contractor') {
-    navigate('/gc-projects');
-    return null;
-  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          <Link to={homeRoute} className="flex items-center">
+          <button 
+            onClick={() => handleNavigation(homeRoute)}
+            className="flex items-center"
+          >
             <img
               src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
               alt="CNSTRCT Logo"
               className="h-8"
             />
-          </Link>
+          </button>
 
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
-                <Link
+                <button
                   key={item.label}
-                  to={item.path}
+                  onClick={() => handleNavigation(item.path)}
                   className={`flex items-center space-x-2 text-sm font-medium transition-colors ${
                     isActive(item.path)
                       ? "text-cnstrct-orange"
@@ -129,7 +114,7 @@ export function MainNav() {
                 >
                   <Icon className="h-4 w-4" />
                   <span>{item.label}</span>
-                </Link>
+                </button>
               );
             })}
             <Button
@@ -160,19 +145,18 @@ export function MainNav() {
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Link
+                  <button
                     key={item.label}
-                    to={item.path}
+                    onClick={() => handleNavigation(item.path)}
                     className={`flex items-center space-x-2 px-4 py-2 text-sm font-medium transition-colors ${
                       isActive(item.path)
                         ? "text-cnstrct-orange"
                         : "text-gray-600 hover:text-cnstrct-orange"
                     }`}
-                    onClick={() => setIsMenuOpen(false)}
                   >
                     <Icon className="h-4 w-4" />
                     <span>{item.label}</span>
-                  </Link>
+                  </button>
                 );
               })}
               <Button
