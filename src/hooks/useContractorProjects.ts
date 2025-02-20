@@ -19,12 +19,13 @@ export function useContractorProjects() {
         throw new Error('No user found');
       }
 
-      // Get user's profile with role
+      // Get user's profile with role - using simple and direct query
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .maybeSingle();
+        .limit(1)
+        .single();
 
       if (profileError) {
         console.error('Error fetching profile:', profileError);
@@ -42,7 +43,8 @@ export function useContractorProjects() {
           .from('clients')
           .select('id')
           .eq('user_id', user.id)
-          .maybeSingle();
+          .limit(1)
+          .single();
 
         if (clientError) {
           console.error('Error fetching client:', clientError);
@@ -57,15 +59,7 @@ export function useContractorProjects() {
         // Get projects for this client
         const { data: projects, error: projectsError } = await supabase
           .from('projects')
-          .select(`
-            id,
-            name,
-            status,
-            address,
-            created_at,
-            contractor_id,
-            client_id
-          `)
+          .select('id, name, status, address, created_at, contractor_id, client_id')
           .eq('client_id', clientData.id)
           .order('created_at', { ascending: false });
 
@@ -82,15 +76,7 @@ export function useContractorProjects() {
       console.log('Fetching projects as contractor/admin');
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select(`
-          id,
-          name,
-          status,
-          address,
-          created_at,
-          contractor_id,
-          client_id
-        `)
+        .select('id, name, status, address, created_at, contractor_id, client_id')
         .eq('contractor_id', user.id)
         .order('created_at', { ascending: false });
 
