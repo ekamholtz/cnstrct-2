@@ -34,8 +34,16 @@ export default function ProfileCompletion() {
       website: "",
       full_name: "",
       address: "",
-    }
+    },
+    mode: "all"
   });
+
+  // Debug form state
+  console.log("Form values:", form.watch());
+  console.log("Form errors:", form.formState.errors);
+  console.log("Is form valid?", form.formState.isValid);
+  console.log("Is form dirty?", form.formState.isDirty);
+  console.log("User role:", userRole);
 
   useEffect(() => {
     const checkSession = async () => {
@@ -70,6 +78,9 @@ export default function ProfileCompletion() {
   }, [navigate]);
 
   const onSubmit = async (data: ProfileCompletionFormData) => {
+    // Debug submission attempt
+    console.log("Attempting to submit with data:", data);
+    
     if (isSubmitting) return;
 
     try {
@@ -92,6 +103,9 @@ export default function ProfileCompletion() {
         has_completed_profile: true,
         updated_at: new Date().toISOString(),
       };
+
+      // Log the update data before sending to Supabase
+      console.log("Update data being sent to Supabase:", updateData);
 
       const { error } = await supabase
         .from("profiles")
@@ -139,7 +153,13 @@ export default function ProfileCompletion() {
         <ProfileCompletionHeader />
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form 
+            onSubmit={(e) => {
+              console.log("Form submit event triggered");
+              form.handleSubmit(onSubmit)(e);
+            }} 
+            className="space-y-6"
+          >
             {userRole === "general_contractor" ? (
               <ContractorFormFields form={form} />
             ) : (
@@ -149,7 +169,7 @@ export default function ProfileCompletion() {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isSubmitting}
+              onClick={() => console.log("Submit button clicked")}
             >
               {isSubmitting ? "Saving..." : "Save and Continue"}
             </Button>

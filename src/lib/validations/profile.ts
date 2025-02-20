@@ -2,24 +2,56 @@
 import * as z from "zod";
 
 export const profileCompletionSchema = z.object({
-  company_name: z.string().min(1, "Company name is required").optional(),
-  company_address: z.string().min(1, "Company address is required").optional(),
-  license_number: z.string().min(1, "License number is required").optional(),
-  phone_number: z.string().min(10, "Phone number must be at least 10 digits"),
+  company_name: z.string().optional(),
+  company_address: z.string().optional(),
+  license_number: z.string().optional(),
+  phone_number: z.string().min(1, "Phone number is required"),
   website: z.string().url().optional().or(z.literal("")),
-  full_name: z.string().min(1, "Full name is required").optional(),
-  address: z.string().min(1, "Address is required").optional(),
-}).refine((data) => {
-  // Validate required fields based on presence of company-related fields
-  if (data.company_name || data.company_address || data.license_number) {
-    // All company fields must be filled if any are present
-    const hasAllCompanyFields = !!data.company_name && !!data.company_address && !!data.license_number;
-    return hasAllCompanyFields;
+  full_name: z.string().optional(),
+  address: z.string().optional(),
+}).superRefine((data, ctx) => {
+  // For contractors
+  const isContractor = data.company_name || data.company_address || data.license_number;
+  
+  if (isContractor) {
+    if (!data.company_name) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Company name is required for contractors",
+        path: ["company_name"],
+      });
+    }
+    if (!data.company_address) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Company address is required for contractors",
+        path: ["company_address"],
+      });
+    }
+    if (!data.license_number) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "License number is required for contractors",
+        path: ["license_number"],
+      });
+    }
+  } else {
+    // For homeowners
+    if (!data.full_name) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Full name is required for homeowners",
+        path: ["full_name"],
+      });
+    }
+    if (!data.address) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Address is required for homeowners",
+        path: ["address"],
+      });
+    }
   }
-  // If no company fields are present, validate customer fields
-  return !!data.full_name && !!data.address;
-}, {
-  message: "Please fill in all required fields for your user type",
 });
 
 export type ProfileCompletionFormData = z.infer<typeof profileCompletionSchema>;
