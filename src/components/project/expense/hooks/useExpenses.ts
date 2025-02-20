@@ -42,7 +42,7 @@ export function useExpenses(projectId: string) {
         .insert({
           name: data.name,
           amount: Number(data.amount),
-          amount_due: Number(data.amount),
+          amount_due: Number(data.amount), // Initialize amount_due with the full amount
           payee: data.payee,
           expense_date: data.expense_date,
           expense_type: data.expense_type,
