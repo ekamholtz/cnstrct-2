@@ -1,5 +1,5 @@
 
-import { Building2, CreditCard, MessageSquare, ChartBar } from "lucide-react";
+import { Building2, CreditCard, MessageSquare, ChartBar, ArrowDownToLine } from "lucide-react";
 
 export const Features = () => {
   const features = [
@@ -12,6 +12,11 @@ export const Features = () => {
       icon: CreditCard,
       title: "Automated Invoicing",
       description: "Generate and process invoices automatically, streamlining your payment workflows.",
+    },
+    {
+      icon: ArrowDownToLine,
+      title: "Flexible Vendor Payments",
+      description: "Send payments via email or text. Vendors choose their preferred method: ACH, instant card transfer, or printable check.",
     },
     {
       icon: MessageSquare,
