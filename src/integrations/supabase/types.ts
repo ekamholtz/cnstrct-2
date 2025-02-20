@@ -114,16 +114,12 @@ export type Database = {
           notes: string | null
           payee: string
           payment_status: Database["public"]["Enums"]["payment_status"]
-          payment_type:
-            | Database["public"]["Enums"]["expense_payment_method"]
-            | null
           project_id: string
           updated_at: string
-          vendor_email: string | null
         }
         Insert: {
           amount: number
-          amount_due?: number
+          amount_due: number
           contractor_id: string
           created_at?: string
           expense_date: string
@@ -133,12 +129,8 @@ export type Database = {
           notes?: string | null
           payee: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
-          payment_type?:
-            | Database["public"]["Enums"]["expense_payment_method"]
-            | null
           project_id: string
           updated_at?: string
-          vendor_email?: string | null
         }
         Update: {
           amount?: number
@@ -152,16 +144,19 @@ export type Database = {
           notes?: string | null
           payee?: string
           payment_status?: Database["public"]["Enums"]["payment_status"]
-          payment_type?:
-            | Database["public"]["Enums"]["expense_payment_method"]
-            | null
           project_id?: string
           updated_at?: string
-          vendor_email?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_expenses_project"
+            foreignKeyName: "expenses_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
@@ -350,22 +345,7 @@ export type Database = {
           vendor_email?: string | null
           vendor_phone?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_payments_expense"
-            columns: ["expense_id"]
-            isOneToOne: false
-            referencedRelation: "expenses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "payments_expense_id_fkey"
-            columns: ["expense_id"]
-            isOneToOne: false
-            referencedRelation: "expenses"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       profiles: {
         Row: {

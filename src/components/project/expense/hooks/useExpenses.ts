@@ -28,14 +28,6 @@ export function useExpenses(projectId: string) {
 
   const { mutateAsync: createExpense } = useMutation({
     mutationFn: async (data: ExpenseFormStage1Data & { payment_status: 'due' | 'paid' | 'partially_paid' }) => {
-      const { data: project, error: projectError } = await supabase
-        .from('projects')
-        .select('contractor_id')
-        .eq('id', data.project_id)
-        .single();
-
-      if (projectError) throw projectError;
-
       const { data: expense, error } = await supabase
         .from('expenses')
         .insert({
@@ -47,7 +39,6 @@ export function useExpenses(projectId: string) {
           expense_type: data.expense_type,
           notes: data.notes,
           project_id: data.project_id,
-          contractor_id: project.contractor_id,
           payment_status: data.payment_status
         })
         .select()
@@ -73,7 +64,6 @@ export function useExpenses(projectId: string) {
       expenseId: string;
       paymentData: PaymentDetailsData;
     }) => {
-      // First create the payment
       const { data: payment, error: paymentError } = await supabase
         .from('payments')
         .insert({
