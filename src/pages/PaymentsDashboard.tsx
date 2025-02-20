@@ -25,6 +25,8 @@ export default function PaymentsDashboard() {
           expense:expense_id (
             id,
             name,
+            amount,
+            payment_status,
             project:project_id (
               id,
               name

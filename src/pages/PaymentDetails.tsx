@@ -24,7 +24,11 @@ export default function PaymentDetails() {
             id,
             name,
             amount,
-            payment_status
+            payment_status,
+            project:project_id (
+              id,
+              name
+            )
           )
         `)
         .eq('id', paymentId)
@@ -36,11 +40,9 @@ export default function PaymentDetails() {
   });
 
   const handleBack = () => {
-    // If we have state with a previous path, go back to that path
     if (location.state?.from) {
       navigate(location.state.from);
     } else {
-      // Default to expense details if no previous path
       navigate(`/expenses/${payment?.expense_id}`);
     }
   };
@@ -154,6 +156,10 @@ export default function PaymentDetails() {
               <p className="text-gray-600">
                 <span className="font-medium">Status:</span>{' '}
                 <span className="capitalize">{payment.expense.payment_status}</span>
+              </p>
+              <p className="text-gray-600">
+                <span className="font-medium">Project:</span>{' '}
+                {payment.expense.project.name}
               </p>
             </div>
           </div>

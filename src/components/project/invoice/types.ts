@@ -22,3 +22,8 @@ export interface PaymentFormData {
   payment_method: "cc" | "check" | "transfer" | "cash";
   payment_date: Date;
 }
+
+export interface PaymentModalProps {
+  invoice: Invoice;
+  onSubmit: (data: PaymentFormData) => Promise<void>;
+}

@@ -9,6 +9,17 @@ export interface PaymentFilters {
   projectId?: string;
 }
 
+export interface ExpenseDetail {
+  id: string;
+  name: string;
+  amount: number;
+  payment_status: string;
+  project: {
+    id: string;
+    name: string;
+  };
+}
+
 export interface Payment {
   id: string;
   payment_date: string;
@@ -18,12 +29,5 @@ export interface Payment {
   vendor_phone?: string;
   created_at: string;
   updated_at: string;
-  expense: {
-    id: string;
-    name: string;
-    project: {
-      id: string;
-      name: string;
-    };
-  };
+  expense: ExpenseDetail;
 }
