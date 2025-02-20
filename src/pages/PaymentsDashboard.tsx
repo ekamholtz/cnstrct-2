@@ -18,15 +18,25 @@ export default function PaymentsDashboard() {
   const { data: payments, isLoading } = useQuery({
     queryKey: ['payments', filters],
     queryFn: async () => {
+      console.log('Fetching payments with filters:', filters);
+      
       let query = supabase
         .from('payments')
         .select(`
-          *,
+          id,
+          payment_type,
+          payment_date,
+          payment_amount,
+          vendor_email,
+          vendor_phone,
+          created_at,
+          updated_at,
           expense:expense_id (
             id,
             name,
             amount,
             payment_status,
+            project_id,
             project:project_id (
               id,
               name
@@ -34,6 +44,7 @@ export default function PaymentsDashboard() {
           )
         `);
 
+      // Apply filters
       if (filters.dateRange.from) {
         query = query.gte('payment_date', filters.dateRange.from.toISOString());
       }
@@ -43,12 +54,15 @@ export default function PaymentsDashboard() {
       if (filters.paymentType) {
         query = query.eq('payment_type', filters.paymentType);
       }
-      if (filters.projectId) {
-        query = query.eq('expense.project.id', filters.projectId);
-      }
 
       const { data, error } = await query;
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Error fetching payments:', error);
+        throw error;
+      }
+      
+      console.log('Fetched payments:', data);
       return data;
     },
   });
