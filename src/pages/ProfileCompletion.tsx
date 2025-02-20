@@ -37,13 +37,6 @@ export default function ProfileCompletion() {
     mode: "all"
   });
 
-  // Debug form state
-  console.log("Form values:", form.watch());
-  console.log("Form errors:", form.formState.errors);
-  console.log("Is form valid?", form.formState.isValid);
-  console.log("Is form dirty?", form.formState.isDirty);
-  console.log("User role:", userRole);
-
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -58,21 +51,8 @@ export default function ProfileCompletion() {
         .eq("id", session.user.id)
         .single();
 
-      console.log("Profile data:", profile);
-
       if (profile?.has_completed_profile) {
-        console.log("Profile is completed, routing to dashboard...");
-        // Route based on user role
-        if (profile.role === 'homeowner') {
-          console.log("Routing homeowner to client dashboard");
-          navigate("/client-dashboard", { replace: true });
-        } else if (profile.role === 'general_contractor') {
-          console.log("Routing contractor to dashboard");
-          navigate("/dashboard", { replace: true });
-        } else if (profile.role === 'admin') {
-          console.log("Routing admin to admin dashboard");
-          navigate("/admin", { replace: true });
-        }
+        routeBasedOnRole(profile.role);
         return;
       }
 
@@ -82,17 +62,35 @@ export default function ProfileCompletion() {
     checkSession();
   }, [navigate]);
 
+  // Separate function to handle role-based routing
+  const routeBasedOnRole = (role: UserRole) => {
+    console.log("Routing based on role:", role);
+    switch (role) {
+      case 'homeowner':
+        console.log("Routing homeowner to client dashboard");
+        navigate("/client-dashboard", { replace: true });
+        break;
+      case 'general_contractor':
+        console.log("Routing contractor to dashboard");
+        navigate("/dashboard", { replace: true });
+        break;
+      case 'admin':
+        console.log("Routing admin to admin dashboard");
+        navigate("/admin", { replace: true });
+        break;
+      default:
+        console.error("Unknown user role:", role);
+        navigate("/dashboard", { replace: true });
+    }
+  };
+
   const onSubmit = async (data: ProfileCompletionFormData) => {
-    // Debug submission attempt
-    console.log("Attempting to submit with data:", data);
-    
-    if (isSubmitting) return;
+    if (isSubmitting || !userRole) return;
 
     try {
       setIsSubmitting(true);
-      console.log("Form data being submitted:", data);
-
       const { data: { session } } = await supabase.auth.getSession();
+      
       if (!session) {
         toast({
           variant: "destructive",
@@ -109,44 +107,34 @@ export default function ProfileCompletion() {
         updated_at: new Date().toISOString(),
       };
 
-      // Log the update data before sending to Supabase
-      console.log("Update data being sent to Supabase:", updateData);
-
-      const { error } = await supabase
+      const { error: updateError } = await supabase
         .from("profiles")
         .update(updateData)
         .eq("id", session.user.id);
 
-      if (error) {
-        console.error("Profile update error:", error);
-        throw error;
-      }
+      if (updateError) throw updateError;
 
-      console.log("Profile updated successfully, userRole:", userRole);
+      // Verify the update was successful by fetching the updated profile
+      const { data: updatedProfile, error: fetchError } = await supabase
+        .from("profiles")
+        .select("role, has_completed_profile")
+        .eq("id", session.user.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      if (!updatedProfile.has_completed_profile) {
+        throw new Error("Profile update did not save correctly");
+      }
 
       toast({
         title: "Profile completed successfully!",
         description: "You will now be redirected to the dashboard.",
       });
 
-      // Ensure we handle all possible role cases
-      switch (userRole) {
-        case 'homeowner':
-          console.log("Redirecting homeowner to client dashboard");
-          navigate("/client-dashboard", { replace: true });
-          break;
-        case 'general_contractor':
-          console.log("Redirecting contractor to dashboard");
-          navigate("/dashboard", { replace: true });
-          break;
-        case 'admin':
-          console.log("Redirecting admin to admin dashboard");
-          navigate("/admin", { replace: true });
-          break;
-        default:
-          console.error("Unknown user role:", userRole);
-          navigate("/dashboard", { replace: true }); // Fallback to main dashboard
-      }
+      // Use the separate routing function
+      routeBasedOnRole(userRole);
+
     } catch (error: any) {
       console.error("Error updating profile:", error);
       toast({
@@ -169,10 +157,7 @@ export default function ProfileCompletion() {
 
         <Form {...form}>
           <form 
-            onSubmit={(e) => {
-              console.log("Form submit event triggered");
-              form.handleSubmit(onSubmit)(e);
-            }} 
+            onSubmit={form.handleSubmit(onSubmit)} 
             className="space-y-6"
           >
             {userRole === "general_contractor" ? (
