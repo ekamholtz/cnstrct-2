@@ -22,10 +22,10 @@ export default function PaymentsDashboard() {
         .from('payments')
         .select(`
           *,
-          expense:expenses(
+          expense:expense_id (
             id,
             name,
-            project:projects(
+            project:project_id (
               id,
               name
             )

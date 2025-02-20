@@ -93,10 +93,10 @@ export const useClientInvoices = () => {
           created_at,
           updated_at,
           milestone_id,
-          milestone:milestones!inner (
+          milestones!milestone_id (
             id,
             name,
-            project:projects!inner (
+            project:project_id (
               id,
               name
             )
@@ -126,9 +126,9 @@ export const useClientInvoices = () => {
         created_at: invoice.created_at,
         updated_at: invoice.updated_at,
         milestone_id: invoice.milestone_id,
-        milestone_name: invoice.milestone.name,
-        project_name: invoice.milestone.project.name,
-        project_id: invoice.milestone.project.id,
+        milestone_name: invoice.milestones.name,
+        project_name: invoice.milestones.project.name,
+        project_id: invoice.milestones.project.id,
         payment_method: null,
         payment_date: null,
         payment_reference: null,

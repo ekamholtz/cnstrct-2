@@ -14,14 +14,15 @@ export function useInvoices(projectId: string) {
     queryFn: async () => {
       console.log('Starting invoice fetch for project:', projectId);
       
-      // Direct query instead of RPC to ensure we get all fields
       const { data, error } = await supabase
         .from('invoices')
         .select(`
           *,
-          milestone:milestones(
+          milestone:milestone_id (
             name,
-            project:projects(name)
+            project:project_id (
+              name
+            )
           )
         `)
         .eq('project_id', projectId)

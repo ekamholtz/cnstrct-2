@@ -20,7 +20,7 @@ export default function PaymentDetails() {
         .from('payments')
         .select(`
           *,
-          expense:expenses(
+          expense:expense_id (
             id,
             name,
             amount,
