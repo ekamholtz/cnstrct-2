@@ -20,6 +20,7 @@ type UserRole = Database["public"]["Enums"]["user_role"];
 
 export default function ProfileCompletion() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -70,20 +71,33 @@ export default function ProfileCompletion() {
 
   const onSubmit = async (data: ProfileCompletionFormData) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      setIsSubmitting(true);
+      console.log("Form data being submitted:", data);
 
-      console.log("Updating profile with data:", data);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "No active session found. Please log in again.",
+        });
+        navigate("/auth");
+        return;
+      }
 
       const { error } = await supabase
         .from("profiles")
         .update({
           ...data,
           has_completed_profile: true,
+          updated_at: new Date().toISOString(),
         })
         .eq("id", session.user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Profile update error:", error);
+        throw error;
+      }
 
       console.log("Profile updated successfully");
 
@@ -107,6 +121,8 @@ export default function ProfileCompletion() {
         title: "Error",
         description: error.message || "Failed to update profile. Please try again.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -126,8 +142,12 @@ export default function ProfileCompletion() {
               <HomeownerFormFields form={form} />
             )}
 
-            <Button type="submit" className="w-full">
-              Save and Continue
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Saving..." : "Save and Continue"}
             </Button>
           </form>
         </Form>
