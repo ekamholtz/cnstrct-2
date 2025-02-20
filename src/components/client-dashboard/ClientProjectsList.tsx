@@ -37,6 +37,8 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
         navigate('/auth');
         return;
       }
+
+      console.log('Session found for user:', session.user.id);
     };
 
     checkAuth();
