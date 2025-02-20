@@ -38,11 +38,11 @@ export function useExpenses(projectId: string) {
 
       const amount = Number(data.amount);
 
-      // Create an array with a single expense object that includes all required fields
-      const expenseDataArray = [{
+      // Create a mutable expense object with all required fields
+      const expenseData = {
         name: data.name,
         amount,
-        amount_due: amount, // Add required amount_due field
+        amount_due: amount, // New expense always has amount_due equal to amount
         payee: data.payee,
         expense_date: data.expense_date,
         expense_type: data.expense_type,
@@ -50,11 +50,11 @@ export function useExpenses(projectId: string) {
         project_id: data.project_id,
         contractor_id: project.contractor_id,
         payment_status: data.payment_status
-      }] as const;  // Use const assertion to preserve literal types
+      };
 
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert(expenseDataArray)
+        .insert([expenseData]) // Pass array with mutable object
         .select()
         .single();
 
