@@ -26,9 +26,19 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
   const { toast } = useToast();
 
   const handleSimulatePayment = async () => {
+    if (!invoice?.id) {
+      console.error('Invalid invoice data:', invoice);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Invalid invoice data. Please try again.",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
-      console.log('Starting payment simulation for invoice:', invoice.id);
+      console.log('Starting payment simulation for invoice id:', invoice.id);
       
       const simulationDetails = {
         simulated_at: new Date().toISOString(),
@@ -36,19 +46,24 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
         invoice_number: invoice.invoice_number
       };
 
-      console.log('Simulation details:', simulationDetails);
-
-      const { error } = await supabase.rpc('simulate_invoice_payment', {
+      console.log('Calling simulate_invoice_payment with:', {
         invoice_id: invoice.id,
         simulation_details: simulationDetails
       });
+
+      // Call the RPC function
+      const { data, error } = await supabase
+        .rpc('simulate_invoice_payment', {
+          invoice_id: invoice.id,
+          simulation_details: simulationDetails
+        });
 
       if (error) {
         console.error('Payment simulation error:', error);
         throw error;
       }
 
-      console.log('Payment simulation completed successfully');
+      console.log('Payment simulation completed successfully:', data);
 
       toast({
         title: "Payment Successful",
