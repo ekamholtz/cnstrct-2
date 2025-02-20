@@ -34,8 +34,7 @@ export default function ProfileCompletion() {
       website: "",
       full_name: "",
       address: "",
-    },
-    mode: "onChange", // Enable real-time validation
+    }
   });
 
   useEffect(() => {
@@ -71,7 +70,7 @@ export default function ProfileCompletion() {
   }, [navigate]);
 
   const onSubmit = async (data: ProfileCompletionFormData) => {
-    if (isSubmitting) return; // Prevent double submission
+    if (isSubmitting) return;
 
     try {
       setIsSubmitting(true);
@@ -85,25 +84,6 @@ export default function ProfileCompletion() {
           description: "No active session found. Please log in again.",
         });
         navigate("/auth");
-        return;
-      }
-
-      // Validate form data based on user role
-      if (userRole === 'general_contractor' && (!data.company_name || !data.company_address || !data.license_number)) {
-        toast({
-          variant: "destructive",
-          title: "Missing Information",
-          description: "Please fill in all required contractor fields.",
-        });
-        return;
-      }
-
-      if (userRole === 'homeowner' && (!data.full_name || !data.address)) {
-        toast({
-          variant: "destructive",
-          title: "Missing Information",
-          description: "Please fill in all required homeowner fields.",
-        });
         return;
       }
 
@@ -159,11 +139,7 @@ export default function ProfileCompletion() {
         <ProfileCompletionHeader />
 
         <Form {...form}>
-          <form 
-            onSubmit={form.handleSubmit(onSubmit)} 
-            className="space-y-6"
-            noValidate // Let our custom validation handle it
-          >
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {userRole === "general_contractor" ? (
               <ContractorFormFields form={form} />
             ) : (
@@ -173,7 +149,7 @@ export default function ProfileCompletion() {
             <Button 
               type="submit" 
               className="w-full"
-              disabled={isSubmitting || !form.formState.isValid}
+              disabled={isSubmitting}
             >
               {isSubmitting ? "Saving..." : "Save and Continue"}
             </Button>
