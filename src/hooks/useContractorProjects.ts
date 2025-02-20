@@ -16,72 +16,52 @@ export function useContractorProjects() {
         throw new Error('No user found');
       }
 
-      // Get user's profile with role - single direct query
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+      try {
+        // First try a direct role check without using profiles table
+        const { data: projects, error: directProjectsError } = await supabase
+          .from('projects')
+          .select('id, name, status, address, created_at, contractor_id, client_id')
+          .eq('contractor_id', user.id)
+          .order('created_at', { ascending: false });
 
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        throw profileError;
-      }
+        if (!directProjectsError && projects && projects.length > 0) {
+          console.log('Found contractor projects directly:', projects);
+          return projects as Project[];
+        }
 
-      console.log('User profile:', profile);
-
-      // If user is a homeowner
-      if (profile?.role === 'homeowner') {
-        console.log('Fetching projects as homeowner');
-        
-        // Get the client record for this user - single direct query
+        // If no contractor projects found, try client projects
         const { data: clientData, error: clientError } = await supabase
           .from('clients')
           .select('id')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
 
-        if (clientError) {
-          console.error('Error fetching client:', clientError);
-          throw clientError;
+        if (!clientError && clientData) {
+          console.log('Found client record:', clientData);
+          
+          const { data: clientProjects, error: clientProjectsError } = await supabase
+            .from('projects')
+            .select('id, name, status, address, created_at, contractor_id, client_id')
+            .eq('client_id', clientData.id)
+            .order('created_at', { ascending: false });
+
+          if (clientProjectsError) {
+            console.error('Error fetching client projects:', clientProjectsError);
+            throw clientProjectsError;
+          }
+
+          console.log('Found client projects:', clientProjects);
+          return clientProjects as Project[];
         }
 
-        if (!clientData) {
-          console.log('No client record found');
-          return [];
-        }
+        // If no projects found in either case, return empty array
+        console.log('No projects found for user');
+        return [];
 
-        // Get projects for this client with a simple select
-        const { data: projects, error: projectsError } = await supabase
-          .from('projects')
-          .select('id, name, status, address, created_at, contractor_id, client_id')
-          .eq('client_id', clientData.id)
-          .order('created_at', { ascending: false });
-
-        if (projectsError) {
-          console.error('Error fetching client projects:', projectsError);
-          throw projectsError;
-        }
-
-        console.log('Client projects:', projects);
-        return projects as Project[];
+      } catch (error) {
+        console.error('Error in projects query:', error);
+        throw error;
       }
-
-      // For contractors and admins - simple direct query
-      console.log('Fetching projects as contractor/admin');
-      const { data: projects, error: projectsError } = await supabase
-        .from('projects')
-        .select('id, name, status, address, created_at, contractor_id, client_id')
-        .eq('contractor_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (projectsError) {
-        console.error('Error fetching contractor projects:', projectsError);
-        throw projectsError;
-      }
-
-      console.log('Contractor/admin projects:', projects);
-      return projects as Project[];
     },
     meta: {
       errorHandler: (error: Error) => {
