@@ -5,6 +5,7 @@ import { Features } from "@/components/landing/Features";
 import { Pricing } from "@/components/landing/Pricing";
 import { Footer } from "@/components/landing/Footer";
 import { Testimonials } from "@/components/landing/Testimonials";
+import { ChatConversation } from "@/components/landing/ChatConversation";
 import { useEffect } from "react";
 
 export default function Index() {
@@ -26,6 +27,7 @@ export default function Index() {
       <main className="flex-grow">
         <Hero />
         <Features />
+        <ChatConversation />
         <Testimonials />
         <Pricing />
       </main>
