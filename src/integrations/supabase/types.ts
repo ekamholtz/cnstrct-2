@@ -207,9 +207,7 @@ export type Database = {
           payment_date: string | null
           payment_gateway: string | null
           payment_method: string | null
-          payment_method_type:
-            | Database["public"]["Enums"]["payment_method_type"]
-            | null
+          payment_method_type: string | null
           payment_reference: string | null
           project_id: string
           simulation_data: Json | null
@@ -226,9 +224,7 @@ export type Database = {
           payment_date?: string | null
           payment_gateway?: string | null
           payment_method?: string | null
-          payment_method_type?:
-            | Database["public"]["Enums"]["payment_method_type"]
-            | null
+          payment_method_type?: string | null
           payment_reference?: string | null
           project_id: string
           simulation_data?: Json | null
@@ -245,9 +241,7 @@ export type Database = {
           payment_date?: string | null
           payment_gateway?: string | null
           payment_method?: string | null
-          payment_method_type?:
-            | Database["public"]["Enums"]["payment_method_type"]
-            | null
+          payment_method_type?: string | null
           payment_reference?: string | null
           project_id?: string
           simulation_data?: Json | null
@@ -256,7 +250,21 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "fk_invoices_project"
+            foreignKeyName: "invoices_contractor_id_fkey"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
