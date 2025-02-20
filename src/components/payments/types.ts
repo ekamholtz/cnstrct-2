@@ -22,9 +22,10 @@ export interface ExpenseDetail {
 
 export interface Payment {
   id: string;
+  expense_id: string;
+  payment_type: PaymentType;
   payment_date: string;
   payment_amount: number;
-  payment_type: PaymentType;
   vendor_email?: string;
   vendor_phone?: string;
   created_at: string;

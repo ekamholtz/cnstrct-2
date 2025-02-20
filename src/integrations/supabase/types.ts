@@ -345,7 +345,15 @@ export type Database = {
           vendor_email?: string | null
           vendor_phone?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payments_expense_id_fkey"
+            columns: ["expense_id"]
+            isOneToOne: false
+            referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -534,6 +542,7 @@ export type Database = {
       expense_type: "labor" | "materials" | "subcontractor" | "other"
       invoice_status: "pending_payment" | "paid" | "cancelled"
       milestone_status: "pending" | "completed"
+      payment_method: "cc" | "check" | "transfer" | "cash"
       payment_method_type: "cc" | "check" | "transfer" | "cash" | "simulated"
       payment_status: "due" | "partially_paid" | "paid"
       project_status: "draft" | "active" | "completed" | "cancelled"
