@@ -38,22 +38,8 @@ export function useExpenses(projectId: string) {
 
       const amount = Number(data.amount);
 
-      // Define the type of the expense data explicitly
-      type ExpenseInsert = {
-        name: string;
-        amount: number;
-        amount_due: number;
-        payee: string;
-        expense_date: string;
-        expense_type: "labor" | "materials" | "subcontractor" | "other";
-        notes: string;
-        project_id: string;
-        contractor_id: string;
-        payment_status: 'due' | 'paid' | 'partially_paid';
-      };
-
-      // Create the expense data object with the correct type
-      const expenseData: ExpenseInsert = {
+      // Create an object that exactly matches the database schema
+      const expenseData = {
         name: data.name,
         amount,
         amount_due: amount,
@@ -64,16 +50,22 @@ export function useExpenses(projectId: string) {
         project_id: data.project_id,
         contractor_id: project.contractor_id,
         payment_status: data.payment_status
-      };
+      } as const;
 
-      // Insert the expense data as an array with a single object
+      console.log('Inserting expense data:', expenseData);
+
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert([expenseData])
+        .insert(expenseData)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating expense:', error);
+        throw error;
+      }
+
+      console.log('Created expense:', expense);
       return expense;
     },
     onSuccess: () => {
