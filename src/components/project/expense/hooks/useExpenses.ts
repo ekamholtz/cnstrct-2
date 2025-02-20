@@ -50,11 +50,11 @@ export function useExpenses(projectId: string) {
         project_id: data.project_id,
         contractor_id: project.contractor_id,
         payment_status: data.payment_status
-      }];
+      }] as const;  // Use const assertion to preserve literal types
 
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert(expenseDataArray) // Pass the array directly
+        .insert(expenseDataArray)
         .select()
         .single();
 
