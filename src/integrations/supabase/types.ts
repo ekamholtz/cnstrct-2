@@ -151,15 +151,7 @@ export type Database = {
           updated_at?: string
           vendor_email?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "expenses_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       invitation_logs: {
         Row: {
@@ -254,13 +246,6 @@ export type Database = {
             referencedRelation: "milestones"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "invoices_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
         ]
       }
       milestones: {
@@ -294,15 +279,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["milestone_status"] | null
           updated_at?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "milestones_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       payments: {
         Row: {
@@ -432,10 +409,17 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "projects_client_id_fkey"
+            foreignKeyName: "fk_client"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_contractor"
+            columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
