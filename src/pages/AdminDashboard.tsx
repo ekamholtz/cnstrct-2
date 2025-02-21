@@ -24,6 +24,7 @@ const AdminDashboard = () => {
   const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
     queryKey: ['admin-stats'],
     queryFn: async () => {
+      console.log('Fetching admin stats...');
       const { data, error } = await supabase
         .from('admin_stats_cache')
         .select('*');
@@ -32,17 +33,27 @@ const AdminDashboard = () => {
         console.error('Error fetching admin stats:', error);
         throw error;
       }
+
+      console.log('Admin stats raw data:', data);
       
-      return data.reduce((acc, stat) => ({
-        ...acc,
-        [stat.stat_type]: stat.value
-      }), {} as AdminStats);
-    }
+      // Transform the data into the expected format
+      const transformedStats = data.reduce((acc, stat) => {
+        if (stat.stat_type && stat.value !== undefined) {
+          acc[stat.stat_type] = Number(stat.value);
+        }
+        return acc;
+      }, {} as AdminStats);
+
+      console.log('Transformed admin stats:', transformedStats);
+      return transformedStats;
+    },
+    refetchInterval: 30000 // Refresh every 30 seconds
   });
 
   const { data: recentActions, isLoading: actionsLoading } = useQuery({
     queryKey: ['admin-actions'],
     queryFn: async () => {
+      console.log('Fetching admin actions...');
       const { data, error } = await supabase
         .from('admin_actions')
         .select(`
@@ -57,19 +68,21 @@ const AdminDashboard = () => {
         throw error;
       }
 
+      console.log('Recent actions:', data);
       return data;
     }
   });
 
   const formatValue = (value: number | undefined, type: string) => {
-    if (value === undefined) return 'Loading...';
-    if (type === 'total_revenue') {
+    if (type === 'total_revenue' && typeof value === 'number') {
       return new Intl.NumberFormat('en-US', {
         style: 'currency',
         currency: 'USD'
       }).format(value);
     }
-    return new Intl.NumberFormat().format(value);
+    return typeof value === 'number' 
+      ? new Intl.NumberFormat().format(value)
+      : '0'; // Return '0' instead of 'Loading...'
   };
 
   const formatDate = (dateString: string) => {
@@ -90,19 +103,19 @@ const AdminDashboard = () => {
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-2">Total Users</h3>
             <p className="text-3xl font-bold">
-              {statsLoading ? 'Loading...' : formatValue(stats?.total_users, 'total_users')}
+              {formatValue(stats?.total_users, 'total_users')}
             </p>
           </Card>
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-2">Active Projects</h3>
             <p className="text-3xl font-bold">
-              {statsLoading ? 'Loading...' : formatValue(stats?.active_projects, 'active_projects')}
+              {formatValue(stats?.active_projects, 'active_projects')}
             </p>
           </Card>
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-2">Total Revenue</h3>
             <p className="text-3xl font-bold">
-              {statsLoading ? 'Loading...' : formatValue(stats?.total_revenue, 'total_revenue')}
+              {formatValue(stats?.total_revenue, 'total_revenue')}
             </p>
           </Card>
         </div>
