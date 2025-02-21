@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { Loader2 } from "lucide-react";
 
 type AdminStats = {
   total_users?: number;
@@ -21,7 +22,7 @@ type AdminAction = {
 }
 
 const AdminDashboard = () => {
-  const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
+  const { data: stats, isLoading: statsLoading, error: statsError } = useQuery<AdminStats>({
     queryKey: ['admin-stats'],
     queryFn: async () => {
       console.log('Fetching admin stats...');
@@ -50,7 +51,7 @@ const AdminDashboard = () => {
     refetchInterval: 30000 // Refresh every 30 seconds
   });
 
-  const { data: recentActions, isLoading: actionsLoading } = useQuery({
+  const { data: recentActions, isLoading: actionsLoading, error: actionsError } = useQuery({
     queryKey: ['admin-actions'],
     queryFn: async () => {
       console.log('Fetching admin actions...');
@@ -82,7 +83,7 @@ const AdminDashboard = () => {
     }
     return typeof value === 'number' 
       ? new Intl.NumberFormat().format(value)
-      : '0'; // Return '0' instead of 'Loading...'
+      : '0';
   };
 
   const formatDate = (dateString: string) => {
@@ -95,6 +96,20 @@ const AdminDashboard = () => {
     });
   };
 
+  if (statsError || actionsError) {
+    return (
+      <div className="flex flex-col min-h-screen bg-gray-50">
+        <AdminNav />
+        <div className="flex-1 container mx-auto p-6 mt-16">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+            <p className="font-semibold">Error loading dashboard data</p>
+            <p className="text-sm mt-1">{statsError?.message || actionsError?.message}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
       <AdminNav />
@@ -103,19 +118,31 @@ const AdminDashboard = () => {
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-2">Total Users</h3>
             <p className="text-3xl font-bold">
-              {formatValue(stats?.total_users, 'total_users')}
+              {statsLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              ) : (
+                formatValue(stats?.total_users, 'total_users')
+              )}
             </p>
           </Card>
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-2">Active Projects</h3>
             <p className="text-3xl font-bold">
-              {formatValue(stats?.active_projects, 'active_projects')}
+              {statsLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              ) : (
+                formatValue(stats?.active_projects, 'active_projects')
+              )}
             </p>
           </Card>
           <Card className="p-6">
             <h3 className="text-lg font-semibold mb-2">Total Revenue</h3>
             <p className="text-3xl font-bold">
-              {formatValue(stats?.total_revenue, 'total_revenue')}
+              {statsLoading ? (
+                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+              ) : (
+                formatValue(stats?.total_revenue, 'total_revenue')
+              )}
             </p>
           </Card>
         </div>
@@ -124,7 +151,9 @@ const AdminDashboard = () => {
           <h2 className="text-2xl font-bold mb-4">Recent Activity</h2>
           <Card className="p-6">
             {actionsLoading ? (
-              <p className="text-gray-500">Loading recent activity...</p>
+              <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+              </div>
             ) : recentActions && recentActions.length > 0 ? (
               <div className="space-y-4">
                 {recentActions.map((action) => (
@@ -149,7 +178,7 @@ const AdminDashboard = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500">No recent activity to display</p>
+              <p className="text-gray-500 text-center py-8">No recent activity to display</p>
             )}
           </Card>
         </div>
