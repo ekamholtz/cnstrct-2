@@ -477,6 +477,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_profile: {
+        Args: {
+          profile_id: string
+        }
+        Returns: boolean
+      }
       generate_invoice_number:
         | {
             Args: Record<PropertyKey, never>
