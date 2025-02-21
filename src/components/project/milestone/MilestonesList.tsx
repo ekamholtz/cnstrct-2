@@ -82,7 +82,7 @@ export function MilestonesList({
     }
   };
 
-  const isContractor = userRole === 'general_contractor' && !hideControls;
+  const isContractor = userRole === 'gc_admin' && !hideControls;
 
   return (
     <div>

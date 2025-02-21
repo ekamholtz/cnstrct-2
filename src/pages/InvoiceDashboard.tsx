@@ -1,3 +1,4 @@
+
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useSearchParams } from "react-router-dom";
@@ -63,7 +64,7 @@ export default function InvoiceDashboard() {
             </Link>
           </div>
 
-          {profile?.role === 'general_contractor' ? (
+          {profile?.role === 'gc_admin' ? (
             <div className="space-y-1">
               <p className="text-xl font-bold text-gray-700">{profile?.company_name || profile?.full_name}</p>
               <h1 className="text-2xl font-bold text-gray-900">Invoice Management</h1>
