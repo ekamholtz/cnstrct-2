@@ -24,6 +24,9 @@ export function usePermissions() {
       console.log('Fetching user permissions...');
 
       // First get the user's roles
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('Current user:', user?.id);
+
       const { data: userRoles, error: userRolesError } = await supabase
         .from('user_roles')
         .select(`
@@ -31,6 +34,7 @@ export function usePermissions() {
             name
           )
         `)
+        .eq('user_id', user?.id)
         .returns<UserRoleQueryResult[]>();
 
       if (userRolesError) {
@@ -39,7 +43,7 @@ export function usePermissions() {
       }
 
       if (!userRoles?.length) {
-        console.log('No roles found for user');
+        console.log('No roles found for user:', user?.id);
         return [];
       }
 
@@ -47,7 +51,7 @@ export function usePermissions() {
       console.log('User roles:', userRoleNames);
 
       // Then get all permissions and filter based on user's roles
-      const { data: permissions, error: permissionsError } = await supabase
+      const { data: allPermissions, error: permissionsError } = await supabase
         .from('permissions')
         .select(`
           feature_key,
@@ -57,7 +61,6 @@ export function usePermissions() {
             )
           )
         `)
-        .order('feature_key')
         .returns<PermissionQueryResult[]>();
 
       if (permissionsError) {
@@ -65,8 +68,10 @@ export function usePermissions() {
         throw permissionsError;
       }
 
+      console.log('All permissions:', allPermissions);
+
       // Filter permissions to only those the user has access to based on their roles
-      const userPermissions = permissions
+      const userPermissions = allPermissions
         .filter(permission => 
           permission.role_permissions.some(rp => 
             userRoleNames.includes(rp.role.name)
@@ -80,6 +85,7 @@ export function usePermissions() {
   });
 
   const hasPermission = (featureKey: string) => {
+    console.log('Checking permission:', featureKey, 'Current permissions:', userPermissions);
     if (!userPermissions) return false;
     return userPermissions.includes(featureKey);
   };
