@@ -94,6 +94,18 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAdmin = userRole === 'admin' || metadataRole === 'admin';
   console.log("Is admin user:", isAdmin, "User role:", userRole, "Metadata role:", metadataRole);
 
+  // Redirect from index page based on role
+  if (window.location.pathname === '/' || window.location.pathname === '/index') {
+    console.log("Redirecting from index based on role");
+    if (isAdmin) {
+      return <Navigate to="/admin" replace />;
+    } else if (userRole === 'homeowner') {
+      return <Navigate to="/client-dashboard" replace />;
+    } else {
+      return <Navigate to="/dashboard" replace />;
+    }
+  }
+
   // Force admin routing - if user is admin and not on admin route, redirect immediately
   if (isAdmin && !window.location.pathname.startsWith('/admin')) {
     console.log("Admin user detected - forcing redirect to admin dashboard");
@@ -106,15 +118,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (hasCompletedProfile === false && window.location.pathname !== '/profile-completion') {
       console.log("Redirecting to profile completion");
       return <Navigate to="/profile-completion" replace />;
-    }
-
-    // Route non-admin users to appropriate dashboard when on root path
-    if (window.location.pathname === '/') {
-      if (userRole === 'homeowner') {
-        return <Navigate to="/client-dashboard" replace />;
-      } else {
-        return <Navigate to="/dashboard" replace />;
-      }
     }
 
     // Protect role-specific dashboards for non-admin users
