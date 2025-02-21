@@ -5,14 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 type PermissionQueryResult = {
   feature_key: string;
   roles: {
-    roles: {
+    role: {
       name: string;
     };
   }[];
 }
 
 type UserRoleQueryResult = {
-  roles: {
+  role: {
     name: string;
   };
 }
@@ -25,8 +25,8 @@ export function usePermissions() {
         .from('permissions')
         .select(`
           feature_key,
-          roles!role_permissions (
-            roles!inner (
+          role_permissions!inner (
+            role:roles!inner (
               name
             )
           )
@@ -42,7 +42,7 @@ export function usePermissions() {
       const { data: userRoles } = await supabase
         .from('user_roles')
         .select(`
-          roles (
+          role:roles (
             name
           )
         `)
@@ -50,11 +50,11 @@ export function usePermissions() {
 
       if (!userRoles) return [];
 
-      const userRoleNames = userRoles.map(ur => ur.roles.name);
+      const userRoleNames = userRoles.map(ur => ur.role.name);
       
       // Filter permissions to only those the user has access to based on their roles
       return permissions.filter(permission => 
-        permission.roles.some(role => userRoleNames.includes(role.roles.name))
+        permission.roles.some(role => userRoleNames.includes(role.role.name))
       ).map(p => p.feature_key);
     },
   });
