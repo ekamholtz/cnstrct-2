@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { MainNav } from "@/components/navigation/MainNav";
@@ -10,6 +10,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -94,11 +95,13 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAdmin = userRole === 'admin' || metadataRole === 'admin';
   console.log("Is admin user:", isAdmin, "User role:", userRole, "Metadata role:", metadataRole);
 
-  // Redirect from index page based on role
-  if (window.location.pathname === '/' || window.location.pathname === '/index') {
-    console.log("Redirecting from index based on role");
+  // Handle authenticated users on index/root path
+  const isIndexPath = location.pathname === '/' || location.pathname === '/index';
+  if (session && isIndexPath) {
     if (isAdmin) {
       return <Navigate to="/admin" replace />;
+    } else if (!hasCompletedProfile) {
+      return <Navigate to="/profile-completion" replace />;
     } else if (userRole === 'homeowner') {
       return <Navigate to="/client-dashboard" replace />;
     } else {
@@ -106,27 +109,27 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  // Force admin routing - if user is admin and not on admin route, redirect immediately
-  if (isAdmin && !window.location.pathname.startsWith('/admin')) {
-    console.log("Admin user detected - forcing redirect to admin dashboard");
-    return <Navigate to="/admin" replace />;
-  }
-
-  // Non-admin handling below
-  if (!isAdmin) {
-    // Handle profile completion for non-admin users
-    if (hasCompletedProfile === false && window.location.pathname !== '/profile-completion') {
-      console.log("Redirecting to profile completion");
-      return <Navigate to="/profile-completion" replace />;
+  // Non-index path handling
+  if (!isIndexPath) {
+    // Force admin routing
+    if (isAdmin && !location.pathname.startsWith('/admin')) {
+      return <Navigate to="/admin" replace />;
     }
 
-    // Protect role-specific dashboards for non-admin users
-    if (userRole === 'homeowner' && window.location.pathname === '/dashboard') {
-      return <Navigate to="/client-dashboard" replace />;
-    }
+    // Non-admin handling
+    if (!isAdmin) {
+      // Profile completion check
+      if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
+        return <Navigate to="/profile-completion" replace />;
+      }
 
-    if (userRole === 'gc_admin' && window.location.pathname === '/client-dashboard') {
-      return <Navigate to="/dashboard" replace />;
+      // Dashboard protection
+      if (userRole === 'homeowner' && location.pathname === '/dashboard') {
+        return <Navigate to="/client-dashboard" replace />;
+      }
+      if (userRole === 'gc_admin' && location.pathname === '/client-dashboard') {
+        return <Navigate to="/dashboard" replace />;
+      }
     }
   }
 
