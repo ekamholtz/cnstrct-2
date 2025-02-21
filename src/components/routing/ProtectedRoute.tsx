@@ -20,9 +20,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
         if (session) {
           const { data, error } = await supabase
-            .from('profiles')
-            .select('has_completed_profile, role')
-            .eq('id', session.user.id)
+            .rpc('get_user_profile', { user_id: session.user.id })
             .single();
 
           console.log("Profile data:", data, "Error:", error);
@@ -87,21 +85,28 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Get current role from user metadata if available, fallback to profile role
-  const currentRole = session?.user?.user_metadata?.role || userRole;
+  const currentRole = userRole || session?.user?.user_metadata?.role;
+  console.log("Current role for routing:", currentRole);
   
   // Only redirect to role-specific dashboard if profile is completed and user is on root path
   if (hasCompletedProfile && window.location.pathname === '/') {
-    console.log("Redirecting based on role. Current role:", currentRole);
+    console.log("Redirecting based on role:", currentRole);
     
     if (currentRole === 'admin') {
       return <Navigate to="/admin" replace />;
     } else if (currentRole === 'homeowner') {
       console.log("Redirecting homeowner to client dashboard");
       return <Navigate to="/client-dashboard" replace />;
-    } else if (currentRole === 'general_contractor') {
+    } else if (currentRole === 'gc_admin') {
       console.log("Redirecting contractor to dashboard");
       return <Navigate to="/dashboard" replace />;
     }
+  }
+
+  // Prevent non-admins from accessing admin routes
+  if (!currentRole?.includes('admin') && window.location.pathname.startsWith('/admin')) {
+    console.log("Non-admin attempting to access admin route, redirecting to appropriate dashboard");
+    return <Navigate to={currentRole === 'homeowner' ? '/client-dashboard' : '/dashboard'} replace />;
   }
 
   // Prevent homeowners from accessing the GC dashboard
@@ -111,7 +116,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Prevent GCs from accessing the client dashboard
-  if (currentRole === 'general_contractor' && window.location.pathname === '/client-dashboard') {
+  if (currentRole === 'gc_admin' && window.location.pathname === '/client-dashboard') {
     console.log("GC attempting to access client dashboard, redirecting to GC dashboard");
     return <Navigate to="/dashboard" replace />;
   }
