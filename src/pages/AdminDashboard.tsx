@@ -19,6 +19,7 @@ type AdminAction = {
   action_type: string;
   details: any;
   created_at: string;
+  admin_name?: string; // Add this field for admin name
 }
 
 const AdminDashboard = () => {
@@ -55,22 +56,41 @@ const AdminDashboard = () => {
     queryKey: ['admin-actions'],
     queryFn: async () => {
       console.log('Fetching admin actions...');
-      const { data, error } = await supabase
+      // First get the admin actions
+      const { data: actions, error: actionsError } = await supabase
         .from('admin_actions')
-        .select(`
-          *,
-          admin:profiles(full_name)
-        `)
+        .select('*')
         .order('created_at', { ascending: false })
         .limit(5);
 
-      if (error) {
-        console.error('Error fetching admin actions:', error);
-        throw error;
+      if (actionsError) {
+        console.error('Error fetching admin actions:', actionsError);
+        throw actionsError;
       }
 
-      console.log('Recent actions:', data);
-      return data;
+      // Then fetch the admin names separately
+      const adminIds = actions.map(action => action.admin_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', adminIds);
+
+      if (profilesError) {
+        console.error('Error fetching admin profiles:', profilesError);
+        throw profilesError;
+      }
+
+      // Create a map of admin IDs to names
+      const adminNames = new Map(profiles.map(profile => [profile.id, profile.full_name]));
+
+      // Combine the data
+      const actionsWithNames = actions.map(action => ({
+        ...action,
+        admin_name: adminNames.get(action.admin_id) || 'Unknown Admin'
+      }));
+
+      console.log('Recent actions:', actionsWithNames);
+      return actionsWithNames;
     }
   });
 
@@ -162,7 +182,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="font-semibold">{action.action_type}</p>
                         <p className="text-sm text-gray-600">
-                          {action.admin?.full_name} - {action.entity_type}
+                          {action.admin_name} - {action.entity_type}
                         </p>
                       </div>
                       <span className="text-sm text-gray-500">
