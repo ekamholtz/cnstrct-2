@@ -21,13 +21,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { type UserProfile } from "./types";
+import { type UserProfile, type UserRole } from "./types";
 
 interface UserTableProps {
   users: UserProfile[];
   isLoading: boolean;
   updateUserStatus: (userId: string, newStatus: string) => Promise<void>;
-  updateUserRole: (userId: string, newRole: UserProfile['role']) => Promise<void>;
+  updateUserRole: (userId: string, newRole: UserRole) => Promise<void>;
   getStatusBadgeColor: (status: string) => string;
 }
 
@@ -38,6 +38,8 @@ export const UserTable = ({
   updateUserRole,
   getStatusBadgeColor,
 }: UserTableProps) => {
+  const availableRoles: UserRole[] = ['admin', 'gc_admin', 'project_manager', 'homeowner'];
+
   return (
     <Table>
       <TableHeader>
@@ -80,7 +82,7 @@ export const UserTable = ({
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="grid gap-4">
-                      {(['admin', 'general_contractor', 'homeowner'] as const).map((role) => (
+                      {availableRoles.map((role) => (
                         <Button
                           key={role}
                           variant={user.role === role ? "default" : "outline"}
