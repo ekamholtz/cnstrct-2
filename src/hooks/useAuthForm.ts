@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { createProfile, fetchUserProfile, handleLoginError } from "@/utils/authUtils";
-import type { LoginFormData, RegisterFormData } from "@/components/auth/authSchemas";
+import type { LoginFormData, RegisterFormData, UserRole } from "@/components/auth/authSchemas";
 
 export const useAuthForm = () => {
   const [loading, setLoading] = useState(false);
@@ -45,7 +45,7 @@ export const useAuthForm = () => {
         const newProfile = await createProfile(
           signInData.user.id, 
           signInData.user.user_metadata.full_name || '',
-          signInData.user.user_metadata.role || 'general_contractor'
+          signInData.user.user_metadata.role || 'gc_admin'
         );
         
         if (!newProfile.has_completed_profile) {
@@ -81,7 +81,7 @@ export const useAuthForm = () => {
     }
   };
 
-  const handleRegister = async (values: RegisterFormData, selectedRole: "general_contractor" | "homeowner") => {
+  const handleRegister = async (values: RegisterFormData, selectedRole: 'homeowner' | 'gc_admin') => {
     setLoading(true);
     try {
       console.log("Starting registration with:", {

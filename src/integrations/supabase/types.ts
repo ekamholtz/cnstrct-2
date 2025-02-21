@@ -363,6 +363,7 @@ export type Database = {
           company_name: string | null
           created_at: string
           full_name: string
+          gc_account_id: string | null
           has_completed_profile: boolean | null
           id: string
           license_number: string | null
@@ -378,6 +379,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           full_name?: string
+          gc_account_id?: string | null
           has_completed_profile?: boolean | null
           id: string
           license_number?: string | null
@@ -393,6 +395,7 @@ export type Database = {
           company_name?: string | null
           created_at?: string
           full_name?: string
+          gc_account_id?: string | null
           has_completed_profile?: boolean | null
           id?: string
           license_number?: string | null
@@ -401,7 +404,15 @@ export type Database = {
           updated_at?: string
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -411,6 +422,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          pm_user_id: string | null
           status: Database["public"]["Enums"]["project_status"]
           updated_at: string
         }
@@ -421,6 +433,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          pm_user_id?: string | null
           status: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
@@ -431,6 +444,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          pm_user_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
@@ -445,6 +459,13 @@ export type Database = {
           {
             foreignKeyName: "fk_contractor"
             columns: ["contractor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projects_pm_user_id_fkey"
+            columns: ["pm_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -487,6 +508,17 @@ export type Database = {
           project_name: string
           project_id: string
         }[]
+      }
+      handle_user_invitation: {
+        Args: {
+          inviter_id: string
+          user_email: string
+          user_full_name: string
+          user_phone: string
+          user_role: Database["public"]["Enums"]["user_role"]
+          invite_expires_in?: unknown
+        }
+        Returns: string
       }
       has_project_access: {
         Args: {
