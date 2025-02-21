@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -115,7 +114,7 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
   };
 
   const isHomeowner = userRole === 'homeowner';
-  const isContractor = userRole === 'general_contractor';
+  const isContractor = userRole === 'gc_admin';
 
   return (
     <div>

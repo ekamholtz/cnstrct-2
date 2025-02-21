@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -62,7 +61,6 @@ export default function ProfileCompletion() {
     checkSession();
   }, [navigate]);
 
-  // Separate function to handle role-based routing
   const routeBasedOnRole = (role: UserRole) => {
     console.log("Routing based on role:", role);
     switch (role) {
@@ -70,7 +68,7 @@ export default function ProfileCompletion() {
         console.log("Routing homeowner to client dashboard");
         navigate("/client-dashboard", { replace: true });
         break;
-      case 'general_contractor':
+      case 'gc_admin':
         console.log("Routing contractor to dashboard");
         navigate("/dashboard", { replace: true });
         break;
@@ -160,7 +158,7 @@ export default function ProfileCompletion() {
             onSubmit={form.handleSubmit(onSubmit)} 
             className="space-y-6"
           >
-            {userRole === "general_contractor" ? (
+            {userRole === "gc_admin" ? (
               <ContractorFormFields form={form} />
             ) : (
               <HomeownerFormFields form={form} />

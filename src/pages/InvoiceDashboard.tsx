@@ -1,4 +1,3 @@
-
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useSearchParams } from "react-router-dom";
@@ -48,6 +47,7 @@ export default function InvoiceDashboard() {
     },
   });
 
+  const isContractor = profile?.role === 'gc_admin';
   const dashboardRoute = profile?.role === 'homeowner' ? '/client-dashboard' : '/dashboard';
 
   return (
