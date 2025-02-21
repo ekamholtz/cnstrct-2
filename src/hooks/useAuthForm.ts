@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { createProfile, handleLoginError } from "@/utils/authUtils";
+import { createProfile } from "@/utils/authUtils";
 import type { LoginFormData, RegisterFormData } from "@/components/auth/authSchemas";
 
 export const useAuthForm = () => {
@@ -33,28 +33,30 @@ export const useAuthForm = () => {
 
       console.log("Sign in successful, fetching profile...");
       
+      // Use maybeSingle instead of single to avoid the "more than one row returned" error
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', signInData.user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
-        // If profile doesn't exist, create it
-        if (profileError.code === 'PGRST116') {
-          console.log("No profile found, creating one...");
-          const newProfile = await createProfile(
-            signInData.user.id,
-            signInData.user.user_metadata.full_name || '',
-            signInData.user.user_metadata.role || 'gc_admin'
-          );
-          
-          // Redirect to profile completion for new users
-          navigate("/profile-completion");
-          return;
-        }
         console.error("Error fetching profile:", profileError);
         throw profileError;
+      }
+
+      // If no profile exists, create one
+      if (!profile) {
+        console.log("No profile found, creating one...");
+        const newProfile = await createProfile(
+          signInData.user.id,
+          signInData.user.user_metadata.full_name || '',
+          signInData.user.user_metadata.role || 'gc_admin'
+        );
+        
+        // Redirect to profile completion for new users
+        navigate("/profile-completion");
+        return;
       }
 
       toast({
@@ -88,11 +90,10 @@ export const useAuthForm = () => {
         name: error.name,
         timestamp: new Date().toISOString()
       });
-      const errorMessage = handleLoginError(error);
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: errorMessage,
+        description: error.message,
       });
     } finally {
       setLoading(false);
@@ -165,11 +166,10 @@ export const useAuthForm = () => {
         name: error.name,
         timestamp: new Date().toISOString()
       });
-      const errorMessage = handleLoginError(error);
       toast({
         variant: "destructive",
         title: "Registration failed",
-        description: errorMessage,
+        description: error.message,
       });
     } finally {
       setLoading(false);
