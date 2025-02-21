@@ -4,12 +4,13 @@ import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { MainNav } from "@/components/navigation/MainNav";
+import { usePermissions } from "@/hooks/usePermissions";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const { hasPermission } = usePermissions();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -20,10 +21,10 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
         if (session) {
           const { data, error } = await supabase
-            .rpc('get_user_profile', { user_id: session.user.id })
+            .from('profiles')
+            .select('has_completed_profile')
+            .eq('id', session.user.id)
             .single();
-
-          console.log("Profile data:", data, "Error:", error);
 
           if (error) {
             console.error("Error fetching profile:", error);
@@ -31,27 +32,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             return;
           }
 
-          if (!data) {
-            console.log("No profile found, creating one...");
-            const { error: insertError } = await supabase
-              .from('profiles')
-              .insert({
-                id: session.user.id,
-                full_name: session.user.user_metadata.full_name || '',
-                role: session.user.user_metadata.role,
-                has_completed_profile: false,
-                address: '', // Required field, will be completed during profile completion
-              });
-
-            if (insertError) {
-              console.error("Error creating profile:", insertError);
-            }
-            setHasCompletedProfile(false);
-            setUserRole(session.user.user_metadata.role);
-          } else {
-            setHasCompletedProfile(data.has_completed_profile);
-            setUserRole(data.role);
-          }
+          setHasCompletedProfile(data.has_completed_profile);
         }
         setLoading(false);
       } catch (error) {
@@ -78,51 +59,46 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  // If profile is not completed, always redirect to profile completion
   if (hasCompletedProfile === false && window.location.pathname !== '/profile-completion') {
     console.log("Redirecting to profile completion");
     return <Navigate to="/profile-completion" replace />;
   }
 
-  // Get current role from user metadata if available, fallback to profile role
-  const currentRole = userRole || session?.user?.user_metadata?.role;
-  console.log("Current role for routing:", currentRole);
+  // Check admin access using new permission system
+  const isAdmin = hasPermission('admin.access');
   
-  // Only redirect to role-specific dashboard if profile is completed and user is on root path
-  if (hasCompletedProfile && window.location.pathname === '/') {
-    console.log("Redirecting based on role:", currentRole);
-    
-    if (currentRole === 'admin') {
-      return <Navigate to="/admin" replace />;
-    } else if (currentRole === 'homeowner') {
-      console.log("Redirecting homeowner to client dashboard");
-      return <Navigate to="/client-dashboard" replace />;
-    } else if (currentRole === 'gc_admin') {
-      console.log("Redirecting contractor to dashboard");
-      return <Navigate to="/dashboard" replace />;
+  // Determine dashboard route based on permissions
+  const getDashboardRoute = () => {
+    if (isAdmin) return '/admin';
+    if (hasPermission('projects.view')) {
+      // If they're a homeowner (only has view permissions)
+      if (!hasPermission('projects.manage')) return '/client-dashboard';
+      // If they're a GC or PM (has manage permissions)
+      return '/dashboard';
     }
-  }
+    return '/auth'; // Fallback
+  };
 
+  // Get current path
+  const currentPath = window.location.pathname;
+  
   // Prevent non-admins from accessing admin routes
-  if (!currentRole?.includes('admin') && window.location.pathname.startsWith('/admin')) {
-    console.log("Non-admin attempting to access admin route, redirecting to appropriate dashboard");
-    return <Navigate to={currentRole === 'homeowner' ? '/client-dashboard' : '/dashboard'} replace />;
+  if (!isAdmin && currentPath.startsWith('/admin')) {
+    return <Navigate to={getDashboardRoute()} replace />;
   }
 
   // Prevent homeowners from accessing the GC dashboard
-  if (currentRole === 'homeowner' && window.location.pathname === '/dashboard') {
-    console.log("Homeowner attempting to access GC dashboard, redirecting to client dashboard");
+  if (!hasPermission('projects.manage') && currentPath === '/dashboard') {
     return <Navigate to="/client-dashboard" replace />;
   }
 
   // Prevent GCs from accessing the client dashboard
-  if (currentRole === 'gc_admin' && window.location.pathname === '/client-dashboard') {
-    console.log("GC attempting to access client dashboard, redirecting to GC dashboard");
+  if (hasPermission('projects.manage') && currentPath === '/client-dashboard') {
     return <Navigate to="/dashboard" replace />;
   }
 
   // Wrap children with the appropriate navigation based on user role
-  const Navigation = currentRole === 'admin' ? AdminNav : MainNav;
+  const Navigation = isAdmin ? AdminNav : MainNav;
   
   return (
     <>
