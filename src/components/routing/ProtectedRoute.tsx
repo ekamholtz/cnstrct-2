@@ -19,6 +19,16 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         setSession(session);
 
         if (session) {
+          // First check metadata for admin role
+          const isAdminInMetadata = session.user.user_metadata.role === 'admin';
+          if (isAdminInMetadata) {
+            console.log("Admin role found in metadata");
+            setUserRole('admin');
+            setHasCompletedProfile(true); // Admins don't need profile completion
+            setLoading(false);
+            return;
+          }
+
           const { data, error } = await supabase
             .rpc('get_user_profile', { user_id: session.user.id })
             .single();
@@ -33,7 +43,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
           if (!data) {
             console.log("No profile found, creating one...");
-            // Use the role from user metadata for new profiles
             const roleFromMetadata = session.user.user_metadata.role;
             const { error: insertError } = await supabase
               .from('profiles')
@@ -52,7 +61,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             setUserRole(roleFromMetadata);
           } else {
             setHasCompletedProfile(data.has_completed_profile);
-            // For existing profiles, prioritize the stored role
             setUserRole(data.role);
           }
         }
@@ -81,27 +89,29 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  if (hasCompletedProfile === false && window.location.pathname !== '/profile-completion') {
+  // Check for admin status from either metadata or profile
+  const metadataRole = session?.user?.user_metadata?.role;
+  const isAdmin = userRole === 'admin' || metadataRole === 'admin';
+  console.log("Is admin user:", isAdmin, "User role:", userRole, "Metadata role:", metadataRole);
+
+  // Admin users skip profile completion
+  if (!isAdmin && hasCompletedProfile === false && window.location.pathname !== '/profile-completion') {
     console.log("Redirecting to profile completion");
     return <Navigate to="/profile-completion" replace />;
   }
 
-  // Get current role - prioritize profile role over metadata
-  const currentRole = userRole || session?.user?.user_metadata?.role;
-  console.log("Current role for routing:", currentRole);
+  // Immediate routing for admin users
+  if (isAdmin && window.location.pathname !== '/admin') {
+    console.log("Admin user detected - routing to admin dashboard");
+    return <Navigate to="/admin" replace />;
+  }
 
-  // Check if user is an admin
-  const isAdmin = currentRole === 'admin';
-  console.log("Is admin user:", isAdmin);
-  
   // Route to appropriate dashboard when on root path
   if (hasCompletedProfile && window.location.pathname === '/') {
-    console.log("Routing to dashboard for role:", currentRole);
-    
+    console.log("Routing to dashboard for role:", userRole);
     if (isAdmin) {
-      console.log("Routing admin to admin dashboard");
       return <Navigate to="/admin" replace />;
-    } else if (currentRole === 'homeowner') {
+    } else if (userRole === 'homeowner') {
       return <Navigate to="/client-dashboard" replace />;
     } else {
       return <Navigate to="/dashboard" replace />;
@@ -111,15 +121,15 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Protect admin routes
   if (!isAdmin && window.location.pathname.startsWith('/admin')) {
     console.log("Non-admin attempting to access admin route");
-    return <Navigate to={currentRole === 'homeowner' ? '/client-dashboard' : '/dashboard'} replace />;
+    return <Navigate to={userRole === 'homeowner' ? '/client-dashboard' : '/dashboard'} replace />;
   }
 
   // Protect role-specific dashboards
-  if (currentRole === 'homeowner' && window.location.pathname === '/dashboard') {
+  if (userRole === 'homeowner' && window.location.pathname === '/dashboard') {
     return <Navigate to="/client-dashboard" replace />;
   }
 
-  if (currentRole === 'gc_admin' && window.location.pathname === '/client-dashboard') {
+  if (userRole === 'gc_admin' && window.location.pathname === '/client-dashboard') {
     return <Navigate to="/dashboard" replace />;
   }
 
