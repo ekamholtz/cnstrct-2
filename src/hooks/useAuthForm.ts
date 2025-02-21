@@ -33,7 +33,6 @@ export const useAuthForm = () => {
 
       console.log("Sign in successful, fetching profile...");
       
-      // Fetch profile directly without a separate utility function
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -41,6 +40,19 @@ export const useAuthForm = () => {
         .single();
 
       if (profileError) {
+        // If profile doesn't exist, create it
+        if (profileError.code === 'PGRST116') {
+          console.log("No profile found, creating one...");
+          const newProfile = await createProfile(
+            signInData.user.id,
+            signInData.user.user_metadata.full_name || '',
+            signInData.user.user_metadata.role || 'gc_admin'
+          );
+          
+          // Redirect to profile completion for new users
+          navigate("/profile-completion");
+          return;
+        }
         console.error("Error fetching profile:", profileError);
         throw profileError;
       }
@@ -50,18 +62,22 @@ export const useAuthForm = () => {
         description: "You have successfully signed in.",
       });
 
-      // Handle navigation based on profile status and role
+      // Handle navigation based on profile status
       if (!profile.has_completed_profile) {
         navigate("/profile-completion");
         return;
       }
 
-      if (profile.role === 'admin') {
-        navigate("/admin");
-      } else if (profile.role === 'homeowner') {
-        navigate("/client-dashboard");
-      } else {
-        navigate("/dashboard");
+      // Navigate based on role
+      switch (profile.role) {
+        case 'admin':
+          navigate("/admin");
+          break;
+        case 'homeowner':
+          navigate("/client-dashboard");
+          break;
+        default:
+          navigate("/dashboard");
       }
 
     } catch (error: any) {
@@ -116,7 +132,6 @@ export const useAuthForm = () => {
 
       console.log("Registration successful, creating profile...");
 
-      // Create profile after successful registration
       await createProfile(
         signUpData.user.id,
         values.fullName,
