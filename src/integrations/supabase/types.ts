@@ -490,6 +490,12 @@ export type Database = {
         }
         Returns: string
       }
+      has_profile_access: {
+        Args: {
+          profile_id: string
+        }
+        Returns: boolean
+      }
       has_project_access: {
         Args: {
           project_id: string
