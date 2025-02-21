@@ -94,43 +94,37 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAdmin = userRole === 'admin' || metadataRole === 'admin';
   console.log("Is admin user:", isAdmin, "User role:", userRole, "Metadata role:", metadataRole);
 
-  // Admin users skip profile completion
-  if (!isAdmin && hasCompletedProfile === false && window.location.pathname !== '/profile-completion') {
-    console.log("Redirecting to profile completion");
-    return <Navigate to="/profile-completion" replace />;
-  }
-
-  // Immediate routing for admin users
-  if (isAdmin && window.location.pathname !== '/admin') {
-    console.log("Admin user detected - routing to admin dashboard");
+  // Force admin routing - if user is admin and not on admin route, redirect immediately
+  if (isAdmin && !window.location.pathname.startsWith('/admin')) {
+    console.log("Admin user detected - forcing redirect to admin dashboard");
     return <Navigate to="/admin" replace />;
   }
 
-  // Route to appropriate dashboard when on root path
-  if (hasCompletedProfile && window.location.pathname === '/') {
-    console.log("Routing to dashboard for role:", userRole);
-    if (isAdmin) {
-      return <Navigate to="/admin" replace />;
-    } else if (userRole === 'homeowner') {
+  // Non-admin handling below
+  if (!isAdmin) {
+    // Handle profile completion for non-admin users
+    if (hasCompletedProfile === false && window.location.pathname !== '/profile-completion') {
+      console.log("Redirecting to profile completion");
+      return <Navigate to="/profile-completion" replace />;
+    }
+
+    // Route non-admin users to appropriate dashboard when on root path
+    if (window.location.pathname === '/') {
+      if (userRole === 'homeowner') {
+        return <Navigate to="/client-dashboard" replace />;
+      } else {
+        return <Navigate to="/dashboard" replace />;
+      }
+    }
+
+    // Protect role-specific dashboards for non-admin users
+    if (userRole === 'homeowner' && window.location.pathname === '/dashboard') {
       return <Navigate to="/client-dashboard" replace />;
-    } else {
+    }
+
+    if (userRole === 'gc_admin' && window.location.pathname === '/client-dashboard') {
       return <Navigate to="/dashboard" replace />;
     }
-  }
-
-  // Protect admin routes
-  if (!isAdmin && window.location.pathname.startsWith('/admin')) {
-    console.log("Non-admin attempting to access admin route");
-    return <Navigate to={userRole === 'homeowner' ? '/client-dashboard' : '/dashboard'} replace />;
-  }
-
-  // Protect role-specific dashboards
-  if (userRole === 'homeowner' && window.location.pathname === '/dashboard') {
-    return <Navigate to="/client-dashboard" replace />;
-  }
-
-  if (userRole === 'gc_admin' && window.location.pathname === '/client-dashboard') {
-    return <Navigate to="/dashboard" replace />;
   }
 
   // Select appropriate navigation component
