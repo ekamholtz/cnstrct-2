@@ -2,6 +2,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+type UserPermissionsResult = {
+  feature_key: string;
+}[];
+
 export function usePermissions() {
   const { data: userPermissions } = useQuery({
     queryKey: ['user-permissions'],
@@ -17,17 +21,29 @@ export function usePermissions() {
 
       // Use the security definer function to get permissions
       const { data: permissions, error } = await supabase
-        .rpc('get_user_permissions', {
-          user_id: user.id
-        });
+        .from('permissions')
+        .select('feature_key')
+        .filter('id', 'in', (
+          supabase
+            .from('role_permissions')
+            .select('permission_id')
+            .filter('role_id', 'in', (
+              supabase
+                .from('user_roles')
+                .select('role_id')
+                .eq('user_id', user.id)
+            ))
+        ))
+        .returns<UserPermissionsResult>();
 
       if (error) {
         console.error('Error fetching permissions:', error);
         throw error;
       }
 
-      console.log('User permissions:', permissions);
-      return permissions || [];
+      const featureKeys = permissions?.map(p => p.feature_key) || [];
+      console.log('User permissions:', featureKeys);
+      return featureKeys;
     },
   });
 

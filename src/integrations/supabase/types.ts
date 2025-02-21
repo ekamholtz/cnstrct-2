@@ -707,6 +707,14 @@ export type Database = {
           project_id: string
         }[]
       }
+      get_user_permissions: {
+        Args: {
+          user_id: string
+        }
+        Returns: {
+          feature_key: string
+        }[]
+      }
       get_user_profile: {
         Args: {
           user_id: string
