@@ -2,6 +2,21 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+type PermissionQueryResult = {
+  feature_key: string;
+  roles: {
+    roles: {
+      name: string;
+    };
+  }[];
+}
+
+type UserRoleQueryResult = {
+  roles: {
+    name: string;
+  };
+}
+
 export function usePermissions() {
   const { data: userPermissions } = useQuery({
     queryKey: ['user-permissions'],
@@ -16,7 +31,8 @@ export function usePermissions() {
             )
           )
         `)
-        .order('feature_key');
+        .order('feature_key')
+        .returns<PermissionQueryResult[]>();
 
       if (error) {
         console.error('Error fetching permissions:', error);
@@ -29,7 +45,8 @@ export function usePermissions() {
           roles (
             name
           )
-        `);
+        `)
+        .returns<UserRoleQueryResult[]>();
 
       if (!userRoles) return [];
 
