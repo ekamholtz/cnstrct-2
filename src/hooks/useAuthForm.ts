@@ -3,8 +3,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { createProfile, fetchUserProfile, handleLoginError } from "@/utils/authUtils";
-import type { LoginFormData, RegisterFormData, UserRole } from "@/components/auth/authSchemas";
+import { createProfile, handleLoginError } from "@/utils/authUtils";
+import type { LoginFormData, RegisterFormData } from "@/components/auth/authSchemas";
 
 export const useAuthForm = () => {
   const [loading, setLoading] = useState(false);
@@ -33,31 +33,33 @@ export const useAuthForm = () => {
 
       console.log("Sign in successful, fetching profile...");
       
-      const profile = await fetchUserProfile(signInData.user.id);
-      
+      // Fetch profile directly without a separate utility function
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', signInData.user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        throw profileError;
+      }
+
       toast({
         title: "Welcome back!",
         description: "You have successfully signed in.",
       });
 
-      if (!profile) {
-        console.log("No profile found, creating one...");
-        const newProfile = await createProfile(
-          signInData.user.id, 
-          signInData.user.user_metadata.full_name || '',
-          signInData.user.user_metadata.role || 'gc_admin'
-        );
-        
-        if (!newProfile.has_completed_profile) {
-          navigate("/profile-completion");
-          return;
-        }
-      }
-      
-      if (profile?.role === 'admin') {
-        navigate("/admin");
-      } else if (!profile?.has_completed_profile) {
+      // Handle navigation based on profile status and role
+      if (!profile.has_completed_profile) {
         navigate("/profile-completion");
+        return;
+      }
+
+      if (profile.role === 'admin') {
+        navigate("/admin");
+      } else if (profile.role === 'homeowner') {
+        navigate("/client-dashboard");
       } else {
         navigate("/dashboard");
       }
