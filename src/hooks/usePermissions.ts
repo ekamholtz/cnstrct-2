@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 type PermissionQueryResult = {
   feature_key: string;
-  roles: {
+  role_permissions: {
     role: {
       name: string;
     };
@@ -21,7 +21,33 @@ export function usePermissions() {
   const { data: userPermissions } = useQuery({
     queryKey: ['user-permissions'],
     queryFn: async () => {
-      const { data: permissions, error } = await supabase
+      console.log('Fetching user permissions...');
+
+      // First get the user's roles
+      const { data: userRoles, error: userRolesError } = await supabase
+        .from('user_roles')
+        .select(`
+          role:roles (
+            name
+          )
+        `)
+        .returns<UserRoleQueryResult[]>();
+
+      if (userRolesError) {
+        console.error('Error fetching user roles:', userRolesError);
+        throw userRolesError;
+      }
+
+      if (!userRoles?.length) {
+        console.log('No roles found for user');
+        return [];
+      }
+
+      const userRoleNames = userRoles.map(ur => ur.role.name);
+      console.log('User roles:', userRoleNames);
+
+      // Then get all permissions and filter based on user's roles
+      const { data: permissions, error: permissionsError } = await supabase
         .from('permissions')
         .select(`
           feature_key,
@@ -34,28 +60,22 @@ export function usePermissions() {
         .order('feature_key')
         .returns<PermissionQueryResult[]>();
 
-      if (error) {
-        console.error('Error fetching permissions:', error);
-        throw error;
+      if (permissionsError) {
+        console.error('Error fetching permissions:', permissionsError);
+        throw permissionsError;
       }
 
-      const { data: userRoles } = await supabase
-        .from('user_roles')
-        .select(`
-          role:roles (
-            name
-          )
-        `)
-        .returns<UserRoleQueryResult[]>();
-
-      if (!userRoles) return [];
-
-      const userRoleNames = userRoles.map(ur => ur.role.name);
-      
       // Filter permissions to only those the user has access to based on their roles
-      return permissions.filter(permission => 
-        permission.roles.some(role => userRoleNames.includes(role.role.name))
-      ).map(p => p.feature_key);
+      const userPermissions = permissions
+        .filter(permission => 
+          permission.role_permissions.some(rp => 
+            userRoleNames.includes(rp.role.name)
+          )
+        )
+        .map(p => p.feature_key);
+
+      console.log('User permissions:', userPermissions);
+      return userPermissions;
     },
   });
 
