@@ -488,17 +488,6 @@ export type Database = {
           project_id: string
         }[]
       }
-      handle_user_invitation: {
-        Args: {
-          inviter_id: string
-          user_email: string
-          user_full_name: string
-          user_phone: string
-          user_role: Database["public"]["Enums"]["user_role"]
-          invite_expires_in?: unknown
-        }
-        Returns: string
-      }
       has_project_access: {
         Args: {
           project_id: string
@@ -546,11 +535,7 @@ export type Database = {
       payment_method_type: "cc" | "check" | "transfer" | "cash" | "simulated"
       payment_status: "due" | "partially_paid" | "paid"
       project_status: "draft" | "active" | "completed" | "cancelled"
-      user_role:
-        | "general_contractor"
-        | "homeowner"
-        | "admin"
-        | "project_manager"
+      user_role: "admin" | "gc_admin" | "project_manager" | "homeowner"
     }
     CompositeTypes: {
       [_ in never]: never
