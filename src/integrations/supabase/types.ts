@@ -479,6 +479,27 @@ export type Database = {
           project_id: string
         }[]
       }
+      get_user_profile: {
+        Args: {
+          user_id: string
+        }
+        Returns: {
+          account_status: string
+          address: string | null
+          bio: string | null
+          company_name: string | null
+          created_at: string
+          full_name: string
+          gc_account_id: string | null
+          has_completed_profile: boolean | null
+          id: string
+          license_number: string | null
+          phone_number: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string
+          website: string | null
+        }[]
+      }
       handle_user_invitation: {
         Args: {
           inviter_id: string
@@ -489,12 +510,6 @@ export type Database = {
           invite_expires_in?: unknown
         }
         Returns: string
-      }
-      has_profile_access: {
-        Args: {
-          profile_id: string
-        }
-        Returns: boolean
       }
       has_project_access: {
         Args: {

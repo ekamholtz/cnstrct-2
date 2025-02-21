@@ -33,12 +33,9 @@ export const useAuthForm = () => {
 
       console.log("Sign in successful, fetching profile...");
       
-      // Use maybeSingle instead of single to avoid the "more than one row returned" error
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', signInData.user.id)
-        .maybeSingle();
+        .rpc('get_user_profile', { user_id: signInData.user.id })
+        .single();
 
       if (profileError) {
         console.error("Error fetching profile:", profileError);
