@@ -19,11 +19,27 @@ export function usePermissions() {
       }
       console.log('Current user:', user.id);
 
+      // First check if user has admin role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
+      }
+
+      // If user is admin, grant all permissions
+      if (profile.role === 'admin') {
+        return ['admin.access', 'projects.manage', 'projects.view'];
+      }
+
       const { data: permissions, error } = await supabase
         .rpc('get_user_permissions', {
           user_id: user.id
-        })
-        .returns<UserPermissionsResult>();
+        });
 
       if (error) {
         console.error('Error fetching permissions:', error);
