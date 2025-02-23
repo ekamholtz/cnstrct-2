@@ -12,56 +12,30 @@ import { supabase } from "@/integrations/supabase/client";
 
 export default function Index() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setIsAuthenticated(true);
-        // Use RPC call instead of direct query to avoid recursion
-        const { data, error } = await supabase
-          .rpc('get_user_profile', { user_id: session.user.id });
-        
-        if (error) {
-          console.error("Error fetching profile:", error);
-          return;
-        }
-        // Access the first item in the array
-        setUserRole(data?.[0]?.role || null);
-      } else {
-        setIsAuthenticated(false);
-      }
+      setIsAuthenticated(!!session);
     };
     checkAuth();
 
-    // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        setIsAuthenticated(false);
-        setUserRole(null);
-      }
+      setIsAuthenticated(!!session);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  // If authenticated, redirect based on role
-  if (isAuthenticated && userRole) {
-    console.log("Redirecting authenticated user with role:", userRole);
-    if (userRole === 'homeowner') {
-      return <Navigate to="/client-dashboard" replace />;
-    } else if (userRole === 'gc_admin') {
-      return <Navigate to="/dashboard" replace />;
-    } else if (userRole === 'admin') {
-      return <Navigate to="/admin" replace />;
-    }
+  // If authenticated, redirect to dashboard
+  // Let ProtectedRoute handle the specific role-based routing
+  if (isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   // Show landing page only if not authenticated
   if (isAuthenticated === false) {
     useEffect(() => {
-      // Load Stripe Pricing Table script
       const script = document.createElement('script');
       script.src = 'https://js.stripe.com/v3/pricing-table.js';
       script.async = true;
