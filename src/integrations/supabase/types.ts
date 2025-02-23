@@ -794,6 +794,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_gc_admin_of: {
+        Args: {
+          profile_id: string
+        }
+        Returns: boolean
+      }
       simulate_invoice_payment: {
         Args: {
           invoice_id: string

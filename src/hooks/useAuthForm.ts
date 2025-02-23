@@ -33,37 +33,17 @@ export const useAuthForm = () => {
 
       console.log("Sign in successful, fetching profile...");
       
-      // Use a direct query with our new RLS policies
+      // First, try to fetch the profile using maybeSingle() to avoid errors
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role, has_completed_profile')
         .eq('id', signInData.user.id)
-        .single();
+        .maybeSingle();
 
-      if (profileError) {
-        // Log the error for debugging
+      // If there's an error that's not just "no profile found", throw it
+      if (profileError && profileError.code !== 'PGRST116') {
         console.error("Error fetching profile:", profileError);
-        
-        // Check if profile doesn't exist and create one if needed
-        const { data: checkProfile, error: checkError } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('id', signInData.user.id)
-          .single();
-          
-        if (!checkProfile && !checkError) {
-          console.log("No profile found, creating one...");
-          await createProfile(
-            signInData.user.id,
-            signInData.user.user_metadata.full_name || '',
-            signInData.user.user_metadata.role || 'gc_admin'
-          );
-          
-          navigate("/profile-completion");
-          return;
-        } else {
-          throw profileError;
-        }
+        throw profileError;
       }
 
       // If no profile exists, create one
