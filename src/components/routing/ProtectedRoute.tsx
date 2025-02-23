@@ -41,8 +41,10 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           // Check if user is trying to access incorrect dashboard
           const currentPath = location.pathname;
 
-          // Redirect based on role if on wrong dashboard
-          if (data.role === 'homeowner' && currentPath === '/dashboard') {
+          // Route to correct dashboard based on role
+          if (data.role === 'admin' && currentPath === '/dashboard') {
+            return <Navigate to="/admin" replace />;
+          } else if (data.role === 'homeowner' && currentPath === '/dashboard') {
             return <Navigate to="/client-dashboard" replace />;
           } else if (data.role === 'gc_admin' && currentPath === '/client-dashboard') {
             return <Navigate to="/dashboard" replace />;
@@ -100,6 +102,11 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Prevent non-admins from accessing admin routes
   if (!isAdmin && location.pathname.startsWith('/admin')) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // If user is admin and on /dashboard, redirect to /admin
+  if (isAdmin && location.pathname === '/dashboard') {
+    return <Navigate to="/admin" replace />;
   }
 
   // Wrap children with the appropriate navigation based on user role
