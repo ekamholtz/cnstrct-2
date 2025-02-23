@@ -33,6 +33,7 @@ export const useAuthForm = () => {
 
       console.log("Sign in successful, fetching profile...");
       
+      // Use a direct query with our new RLS policies
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role, has_completed_profile')
@@ -40,8 +41,29 @@ export const useAuthForm = () => {
         .single();
 
       if (profileError) {
+        // Log the error for debugging
         console.error("Error fetching profile:", profileError);
-        throw profileError;
+        
+        // Check if profile doesn't exist and create one if needed
+        const { data: checkProfile, error: checkError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', signInData.user.id)
+          .single();
+          
+        if (!checkProfile && !checkError) {
+          console.log("No profile found, creating one...");
+          await createProfile(
+            signInData.user.id,
+            signInData.user.user_metadata.full_name || '',
+            signInData.user.user_metadata.role || 'gc_admin'
+          );
+          
+          navigate("/profile-completion");
+          return;
+        } else {
+          throw profileError;
+        }
       }
 
       // If no profile exists, create one
