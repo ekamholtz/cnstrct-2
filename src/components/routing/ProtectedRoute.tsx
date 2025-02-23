@@ -67,15 +67,9 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Check admin access using permission system first
+  // Check admin access using permission system
   const isAdmin = hasPermission('admin.access');
   console.log("Checking admin status:", { isAdmin, userRole, currentPath: location.pathname });
-
-  // Only redirect to /admin if we're at root or dashboard
-  if (isAdmin && (location.pathname === '/' || location.pathname === '/dashboard')) {
-    console.log("Admin user detected, redirecting to /admin");
-    return <Navigate to="/admin" replace />;
-  }
 
   if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
     console.log("Redirecting to profile completion");
@@ -83,8 +77,11 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Handle non-admin dashboard redirects
-  if (location.pathname === '/dashboard' && userRole === 'homeowner') {
-    return <Navigate to="/client-dashboard" replace />;
+  if (!isAdmin && location.pathname === '/dashboard') {
+    if (userRole === 'homeowner') {
+      return <Navigate to="/client-dashboard" replace />;
+    }
+    // Let other non-admin roles stay on dashboard
   }
 
   // Prevent non-admins from accessing admin routes
@@ -92,14 +89,20 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Handle index route redirects based on role
+  // Handle index route redirects
   if (location.pathname === '/') {
-    console.log("On index page, redirecting based on role:", userRole);
-    if (userRole === 'homeowner') {
+    if (isAdmin) {
+      return <Navigate to="/admin" replace />;
+    } else if (userRole === 'homeowner') {
       return <Navigate to="/client-dashboard" replace />;
     } else if (userRole === 'gc_admin') {
       return <Navigate to="/dashboard" replace />;
     }
+  }
+
+  // Handle dashboard to admin redirect only once
+  if (isAdmin && location.pathname === '/dashboard') {
+    return <Navigate to="/admin" replace />;
   }
 
   // Wrap children with the appropriate navigation based on user role
