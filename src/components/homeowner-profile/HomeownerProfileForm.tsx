@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react"; // Added useEffect import
 import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,13 +15,38 @@ import type { Database } from "@/integrations/supabase/types";
 
 interface HomeownerProfileFormProps {
   profile: any;
-  userRole: string;
-  onProfileUpdated: () => void;
+  isEditing?: boolean; // Added isEditing prop
+  onCancel?: () => void; // Added onCancel prop
+  onSave?: () => void; // Added onSave prop
 }
 
-export function HomeownerProfileForm({ profile, userRole, onProfileUpdated }: HomeownerProfileFormProps) {
+export function HomeownerProfileForm({ 
+  profile, 
+  isEditing = false,
+  onCancel,
+  onSave
+}: HomeownerProfileFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const [userRole, setUserRole] = useState<string>('');
+
+  // Get user role on mount
+  useEffect(() => {
+    const getUserRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+        if (data) {
+          setUserRole(data.role);
+        }
+      }
+    };
+    getUserRole();
+  }, []);
 
   // Initialize form with profile data
   const form = useForm<ProfileFormValues>({
@@ -112,7 +137,7 @@ export function HomeownerProfileForm({ profile, userRole, onProfileUpdated }: Ho
         description: "Your profile has been updated.",
       });
 
-      onProfileUpdated();
+      onSave?.();
     } catch (error: any) {
       console.error('Error updating profile:', error);
       toast({
@@ -128,11 +153,18 @@ export function HomeownerProfileForm({ profile, userRole, onProfileUpdated }: Ho
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <CommonFormFields form={form} />
+        <CommonFormFields form={form} profile={profile} />
         {userRole !== 'homeowner' && <ContractorFormFields form={form} />}
-        <Button type="submit" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? "Saving..." : "Save Profile"}
-        </Button>
+        <div className="flex justify-end gap-4">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Cancel
+            </Button>
+          )}
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? "Saving..." : "Save Profile"}
+          </Button>
+        </div>
       </form>
     </Form>
   );
