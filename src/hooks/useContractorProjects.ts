@@ -20,21 +20,8 @@ export function useContractorProjects() {
 
       console.log('Fetching projects for user:', user.id);
 
-      // First, get the user's profile to determine their role
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, gc_account_id')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        throw profileError;
-      }
-
-      console.log('User profile:', profile);
-
-      let projectsQuery = supabase
+      // First get the current user's role directly from session
+      const { data: projects, error: projectsError } = await supabase
         .from('projects')
         .select(`
           *,
@@ -49,37 +36,8 @@ export function useContractorProjects() {
             amount,
             status
           )
-        `);
-
-      // Apply filters based on user role
-      if (profile.role === 'gc_admin') {
-        projectsQuery = projectsQuery.eq('contractor_id', user.id);
-      } else if (profile.role === 'project_manager') {
-        projectsQuery = projectsQuery.eq('pm_user_id', user.id);
-      } else if (profile.role === 'admin') {
-        // Admin can see all projects
-      } else {
-        // For other roles (like homeowner), check client association
-        const { data: clientData, error: clientError } = await supabase
-          .from('clients')
-          .select('id')
-          .eq('user_id', user.id)
-          .single();
-
-        if (clientError) {
-          console.error('Error fetching client data:', clientError);
-          throw clientError;
-        }
-
-        if (clientData) {
-          projectsQuery = projectsQuery.eq('client_id', clientData.id);
-        }
-      }
-
-      // Add ordering
-      projectsQuery = projectsQuery.order('created_at', { ascending: false });
-
-      const { data: projects, error: projectsError } = await projectsQuery;
+        `)
+        .or(`contractor_id.eq.${user.id},pm_user_id.eq.${user.id}`);
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);
