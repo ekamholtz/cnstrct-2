@@ -31,25 +31,22 @@ export const useLogin = () => {
         throw new Error("Login failed - no user data returned");
       }
 
-      console.log("Sign in successful, fetching profile...");
+      console.log("Sign in successful, checking profile...");
       
-      const { data: profile, error: profileError } = await supabase
+      // First check if a profile exists
+      const { data: profile } = await supabase
         .from('profiles')
-        .select('role, has_completed_profile')
+        .select('id, role, has_completed_profile')
         .eq('id', signInData.user.id)
         .maybeSingle();
 
-      if (profileError && profileError.code !== 'PGRST116') {
-        console.error("Error fetching profile:", profileError);
-        throw profileError;
-      }
-
       if (!profile) {
         console.log("No profile found, creating one...");
+        const userMetadata = signInData.user.user_metadata;
         await createProfile(
           signInData.user.id,
-          signInData.user.user_metadata.full_name || '',
-          signInData.user.user_metadata.role || 'gc_admin'
+          userMetadata?.full_name || '',
+          userMetadata?.role || 'gc_admin'
         );
         
         navigate("/profile-completion");
@@ -103,4 +100,3 @@ export const useLogin = () => {
     handleLogin
   };
 };
-

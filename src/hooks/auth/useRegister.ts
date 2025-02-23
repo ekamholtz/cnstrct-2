@@ -42,14 +42,25 @@ export const useRegister = () => {
         throw new Error("Registration failed - no user data returned");
       }
 
-      console.log("Registration successful, creating profile...");
+      console.log("Registration successful, ensuring profile exists...");
 
-      await createProfile(
-        signUpData.user.id,
-        values.fullName,
-        selectedRole
-      );
+      // First check if profile already exists
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', signUpData.user.id)
+        .maybeSingle();
 
+      if (!existingProfile) {
+        console.log("Creating new profile...");
+        await createProfile(
+          signUpData.user.id,
+          values.fullName,
+          selectedRole
+        );
+      }
+
+      // Automatically sign in after registration
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
@@ -90,4 +101,3 @@ export const useRegister = () => {
     handleRegister
   };
 };
-
