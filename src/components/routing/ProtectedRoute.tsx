@@ -53,7 +53,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, [location]);
+  }, []);  // Removed location dependency to prevent loops
 
   if (loading) {
     return (
@@ -81,7 +81,13 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Handle root route redirects only
+  // Check if admin is trying to access dashboard
+  if (isAdmin && location.pathname === '/dashboard') {
+    console.log("Admin accessing dashboard, redirecting to admin");
+    return <Navigate to="/admin" replace />;
+  }
+
+  // Handle root route redirects
   if (location.pathname === '/') {
     if (isAdmin) {
       return <Navigate to="/admin" replace />;
