@@ -67,22 +67,26 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
+  // Check admin access using permission system first
+  const isAdmin = hasPermission('admin.access');
+  console.log("Checking admin status:", { isAdmin, userRole, currentPath: location.pathname });
+
+  // Handle admin redirects first
+  if (isAdmin || userRole === 'admin') {
+    if (location.pathname === '/dashboard') {
+      console.log("Admin user detected, redirecting to /admin");
+      return <Navigate to="/admin" replace />;
+    }
+  }
+
   if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
     console.log("Redirecting to profile completion");
     return <Navigate to="/profile-completion" replace />;
   }
 
-  // Check admin access using permission system
-  const isAdmin = hasPermission('admin.access');
-
-  // Handle dashboard redirects based on role
-  if (location.pathname === '/dashboard') {
-    console.log("On dashboard, checking role:", userRole, "isAdmin:", isAdmin);
-    if (isAdmin || userRole === 'admin') {
-      return <Navigate to="/admin" replace />;
-    } else if (userRole === 'homeowner') {
-      return <Navigate to="/client-dashboard" replace />;
-    }
+  // Handle non-admin dashboard redirects
+  if (location.pathname === '/dashboard' && userRole === 'homeowner') {
+    return <Navigate to="/client-dashboard" replace />;
   }
 
   // Prevent non-admins from accessing admin routes
