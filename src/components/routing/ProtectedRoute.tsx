@@ -113,6 +113,9 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   } else if (currentPath === '/client-dashboard' && userRole !== 'homeowner') {
     // Protect client-dashboard route
     redirectTo = '/dashboard';
+  } else if (currentPath === '/dashboard' && userRole === 'homeowner') {
+    // Redirect homeowners away from /dashboard
+    redirectTo = '/client-dashboard';
   } else if (currentPath === '/') {
     if (isAdmin) {
       redirectTo = '/admin';
@@ -121,6 +124,9 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     } else if (userRole === 'gc_admin' || userRole === 'project_manager') {
       redirectTo = '/dashboard';
     }
+  } else if (isAdmin && !currentPath.startsWith('/admin')) {
+    // Always redirect admins to admin routes
+    redirectTo = '/admin';
   }
 
   if (redirectTo) {
