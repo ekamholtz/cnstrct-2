@@ -197,6 +197,36 @@ export type Database = {
           },
         ]
       }
+      gc_companies: {
+        Row: {
+          address: string | null
+          company_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       homeowners: {
         Row: {
           address: string | null
