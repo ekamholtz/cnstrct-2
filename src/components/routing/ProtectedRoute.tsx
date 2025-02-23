@@ -4,15 +4,17 @@ import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { MainNav } from "@/components/navigation/MainNav";
-import { usePermissions } from "@/hooks/usePermissions";
 import { Loader2 } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type UserRole = Database['public']['Enums']['user_role'];
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
   useEffect(() => {
@@ -108,16 +110,17 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     redirectTo = '/profile-completion';
   } else if (currentPath.startsWith('/admin') && !isAdmin) {
     redirectTo = '/dashboard';
+  } else if (currentPath === '/client-dashboard' && userRole !== 'homeowner') {
+    // Protect client-dashboard route
+    redirectTo = '/dashboard';
   } else if (currentPath === '/') {
     if (isAdmin) {
       redirectTo = '/admin';
     } else if (userRole === 'homeowner') {
       redirectTo = '/client-dashboard';
-    } else {
+    } else if (userRole === 'gc_admin' || userRole === 'project_manager') {
       redirectTo = '/dashboard';
     }
-  } else if (isAdmin && !currentPath.startsWith('/admin')) {
-    redirectTo = '/admin';
   }
 
   if (redirectTo) {
