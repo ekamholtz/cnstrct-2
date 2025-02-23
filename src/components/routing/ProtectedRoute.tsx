@@ -11,6 +11,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const { hasPermission } = usePermissions();
   const location = useLocation();
 
@@ -35,32 +36,16 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           }
 
           setHasCompletedProfile(data.has_completed_profile);
-          
-          // If we're on the index page, redirect based on role
-          if (location.pathname === '/') {
-            if (data.role === 'homeowner') {
-              window.location.href = '/client-dashboard';
-              return;
-            } else if (data.role === 'gc_admin') {
-              window.location.href = '/dashboard';
-              return;
-            } else if (data.role === 'admin') {
-              window.location.href = '/admin';
-              return;
-            }
-          }
+          setUserRole(data.role);
 
           // Check if user is trying to access incorrect dashboard
           const currentPath = location.pathname;
-          const userRole = data.role;
 
           // Redirect based on role if on wrong dashboard
-          if (userRole === 'homeowner' && currentPath === '/dashboard') {
-            window.location.href = '/client-dashboard';
-            return;
-          } else if (userRole === 'gc_admin' && currentPath === '/client-dashboard') {
-            window.location.href = '/dashboard';
-            return;
+          if (data.role === 'homeowner' && currentPath === '/dashboard') {
+            return <Navigate to="/client-dashboard" replace />;
+          } else if (data.role === 'gc_admin' && currentPath === '/client-dashboard') {
+            return <Navigate to="/dashboard" replace />;
           }
         }
         setLoading(false);
@@ -95,6 +80,18 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
     console.log("Redirecting to profile completion");
     return <Navigate to="/profile-completion" replace />;
+  }
+
+  // Handle index route redirects based on role
+  if (location.pathname === '/') {
+    console.log("On index page, redirecting based on role:", userRole);
+    if (userRole === 'homeowner') {
+      return <Navigate to="/client-dashboard" replace />;
+    } else if (userRole === 'gc_admin') {
+      return <Navigate to="/dashboard" replace />;
+    } else if (userRole === 'admin') {
+      return <Navigate to="/admin" replace />;
+    }
   }
 
   // Check admin access using permission system
