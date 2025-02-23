@@ -48,7 +48,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
               });
             
             if (mounted && permissions) {
-              setIsAdmin(permissions.includes('admin.access'));
+              setIsAdmin(permissions.some(p => p.feature_key === 'admin.access'));
             }
           }
         }
