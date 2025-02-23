@@ -19,22 +19,35 @@ export default function Index() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         setIsAuthenticated(true);
-        // Get user role
-        const { data } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
+        // Use RPC call instead of direct query to avoid recursion
+        const { data, error } = await supabase
+          .rpc('get_user_profile', { user_id: session.user.id });
+        
+        if (error) {
+          console.error("Error fetching profile:", error);
+          return;
+        }
         setUserRole(data?.role || null);
       } else {
         setIsAuthenticated(false);
       }
     };
     checkAuth();
+
+    // Subscribe to auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setIsAuthenticated(false);
+        setUserRole(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   // If authenticated, redirect based on role
   if (isAuthenticated && userRole) {
+    console.log("Redirecting authenticated user with role:", userRole);
     if (userRole === 'homeowner') {
       return <Navigate to="/client-dashboard" replace />;
     } else if (userRole === 'gc_admin') {
