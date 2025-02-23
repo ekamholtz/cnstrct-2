@@ -18,24 +18,15 @@ export function usePermissions() {
         return [];
       }
       console.log('Current user:', user.id);
+      console.log('User metadata:', user.user_metadata);
 
-      // First check if user has admin role
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('Error fetching profile:', profileError);
-        throw profileError;
-      }
-
-      // If user is admin, grant all permissions
-      if (profile.role === 'admin') {
+      // First check if user has admin role from metadata
+      if (user.user_metadata?.role === 'admin') {
+        console.log('User is admin based on metadata');
         return ['admin.access', 'projects.manage', 'projects.view'];
       }
 
+      // If not admin in metadata, check profiles table
       const { data: permissions, error } = await supabase
         .rpc('get_user_permissions', {
           user_id: user.id
