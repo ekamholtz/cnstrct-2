@@ -33,24 +33,28 @@ export const useLogin = () => {
 
       console.log("Sign in successful, checking profile...");
       
-      // First check if a profile exists
-      const { data: profile } = await supabase
+      // Check if profile exists using single query
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('id, role, has_completed_profile')
+        .select('role, has_completed_profile')
         .eq('id', signInData.user.id)
-        .maybeSingle();
+        .single();
 
-      if (!profile) {
-        console.log("No profile found, creating one...");
-        const userMetadata = signInData.user.user_metadata;
-        await createProfile(
-          signInData.user.id,
-          userMetadata?.full_name || '',
-          userMetadata?.role || 'gc_admin'
-        );
-        
-        navigate("/profile-completion");
-        return;
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+        // If no profile exists, create one
+        if (profileError.code === 'PGRST116') {
+          const userMetadata = signInData.user.user_metadata;
+          await createProfile(
+            signInData.user.id,
+            userMetadata?.full_name || '',
+            userMetadata?.role || 'gc_admin'
+          );
+          
+          navigate("/profile-completion");
+          return;
+        }
+        throw profileError;
       }
 
       toast({
@@ -63,6 +67,7 @@ export const useLogin = () => {
         return;
       }
 
+      // Route based on role
       switch (profile.role) {
         case 'admin':
           navigate("/admin");

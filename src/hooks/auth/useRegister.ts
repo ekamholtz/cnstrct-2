@@ -42,23 +42,14 @@ export const useRegister = () => {
         throw new Error("Registration failed - no user data returned");
       }
 
-      console.log("Registration successful, ensuring profile exists...");
+      console.log("Registration successful, creating profile...");
 
-      // First check if profile already exists
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', signUpData.user.id)
-        .maybeSingle();
-
-      if (!existingProfile) {
-        console.log("Creating new profile...");
-        await createProfile(
-          signUpData.user.id,
-          values.fullName,
-          selectedRole
-        );
-      }
+      // Create profile directly - our RLS policies will handle permissions
+      await createProfile(
+        signUpData.user.id,
+        values.fullName,
+        selectedRole
+      );
 
       // Automatically sign in after registration
       const { error: signInError } = await supabase.auth.signInWithPassword({
