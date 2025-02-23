@@ -11,6 +11,7 @@ import { CommonFormFields } from "./components/CommonFormFields";
 import { ContractorFormFields } from "./components/ContractorFormFields";
 import { profileSchema, type ProfileFormValues } from "./types";
 import type { Homeowner } from "@/types/homeowner";
+import type { Database } from "@/integrations/supabase/types";
 
 interface HomeownerProfileFormProps {
   profile: any;
@@ -50,17 +51,13 @@ export function HomeownerProfileForm({
       if (userRole !== 'homeowner') return null;
 
       const { data, error } = await supabase
-        .from("homeowners")
-        .select("*")
-        .eq("profile_id", profile.id)
-        .single();
+        .from('homeowners')
+        .select('*')
+        .eq('profile_id', profile.id)
+        .maybeSingle();
 
-      if (error) {
-        if (error.code === 'PGRST116') return null; // No data found
-        throw error;
-      }
-
-      return data;
+      if (error) throw error;
+      return data as Homeowner | null;
     },
     enabled: userRole === 'homeowner'
   });
@@ -98,23 +95,27 @@ export function HomeownerProfileForm({
 
       // Update homeowner data if applicable
       if (userRole === 'homeowner') {
-        const homeownerUpdate = {
+        const homeownerUpdate: Database['public']['Tables']['homeowners']['Insert'] = {
           address: data.address,
           phone: data.phone_number,
           profile_id: profile.id,
           user_id: profile.id
         };
 
-        const { error: homeownerError } = homeownerData
-          ? await supabase
-              .from("homeowners")
-              .update(homeownerUpdate)
-              .eq("profile_id", profile.id)
-          : await supabase
-              .from("homeowners")
-              .insert([homeownerUpdate]);
+        if (homeownerData) {
+          const { error: homeownerError } = await supabase
+            .from('homeowners')
+            .update(homeownerUpdate)
+            .eq('profile_id', profile.id);
 
-        if (homeownerError) throw homeownerError;
+          if (homeownerError) throw homeownerError;
+        } else {
+          const { error: homeownerError } = await supabase
+            .from('homeowners')
+            .insert([homeownerUpdate]);
+
+          if (homeownerError) throw homeownerError;
+        }
       }
 
       toast({
