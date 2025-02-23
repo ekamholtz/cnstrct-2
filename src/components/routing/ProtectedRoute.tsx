@@ -36,6 +36,20 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
           setHasCompletedProfile(data.has_completed_profile);
           
+          // If we're on the index page, redirect based on role
+          if (location.pathname === '/') {
+            if (data.role === 'homeowner') {
+              window.location.href = '/client-dashboard';
+              return;
+            } else if (data.role === 'gc_admin') {
+              window.location.href = '/dashboard';
+              return;
+            } else if (data.role === 'admin') {
+              window.location.href = '/admin';
+              return;
+            }
+          }
+
           // Check if user is trying to access incorrect dashboard
           const currentPath = location.pathname;
           const userRole = data.role;
