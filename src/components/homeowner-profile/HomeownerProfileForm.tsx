@@ -28,9 +28,7 @@ export function HomeownerProfileForm({
   const { data: userRole } = useQuery({
     queryKey: ["user-role"],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No user found");
 
       const { data, error } = await supabase
@@ -44,12 +42,30 @@ export function HomeownerProfileForm({
     },
   });
 
+  // Fetch homeowner data if the user is a homeowner
+  const { data: homeownerData } = useQuery({
+    queryKey: ["homeowner-data", profile.id],
+    queryFn: async () => {
+      if (userRole !== 'homeowner') return null;
+
+      const { data, error } = await supabase
+        .from("homeowners")
+        .select("*")
+        .eq("profile_id", profile.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: userRole === 'homeowner'
+  });
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       full_name: profile.full_name || "",
-      address: profile.address || "",
-      phone_number: profile.phone_number || "",
+      address: homeownerData?.address || "",
+      phone_number: homeownerData?.phone || "",
       bio: profile.bio || "",
       company_name: profile.company_name || "",
       license_number: profile.license_number || "",
@@ -59,12 +75,42 @@ export function HomeownerProfileForm({
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      const { error } = await supabase
+      // Update profile data
+      const { error: profileError } = await supabase
         .from("profiles")
-        .update(data)
+        .update({
+          full_name: data.full_name,
+          bio: data.bio,
+          ...(userRole === 'gc_admin' ? {
+            company_name: data.company_name,
+            license_number: data.license_number,
+            website: data.website,
+          } : {})
+        })
         .eq("id", profile.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update homeowner data if applicable
+      if (userRole === 'homeowner') {
+        const homeownerUpdate = {
+          address: data.address,
+          phone: data.phone_number,
+          profile_id: profile.id,
+          user_id: profile.id // Since profile.id is the user's id
+        };
+
+        const { error: homeownerError } = homeownerData
+          ? await supabase
+              .from("homeowners")
+              .update(homeownerUpdate)
+              .eq("profile_id", profile.id)
+          : await supabase
+              .from("homeowners")
+              .insert([homeownerUpdate]);
+
+        if (homeownerError) throw homeownerError;
+      }
 
       toast({
         title: "Profile updated",
@@ -82,7 +128,7 @@ export function HomeownerProfileForm({
   };
 
   if (!isEditing) {
-    return <ProfileViewMode profile={profile} userRole={userRole} />;
+    return <ProfileViewMode profile={profile} userRole={userRole} homeownerData={homeownerData} />;
   }
 
   return (

@@ -1,13 +1,15 @@
 
 import { format } from "date-fns";
 import { UserRole } from "@/components/auth/authSchemas";
+import type { Homeowner } from "@/types/homeowner";
 
 interface ProfileViewModeProps {
   profile: any;
   userRole: UserRole;
+  homeownerData?: Homeowner | null;
 }
 
-export function ProfileViewMode({ profile, userRole }: ProfileViewModeProps) {
+export function ProfileViewMode({ profile, userRole, homeownerData }: ProfileViewModeProps) {
   const renderField = (label: string, value: string) => (
     <div className="mb-4">
       <div className="text-sm font-medium text-gray-500 mb-1">{label}</div>
@@ -20,9 +22,12 @@ export function ProfileViewMode({ profile, userRole }: ProfileViewModeProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {renderField("Full Name", profile.full_name)}
         {renderField("Email", profile.email)}
-        {renderField("Phone Number", profile.phone_number)}
-        {renderField("Address", profile.address)}
-        {userRole === "gc_admin" && (
+        {userRole === "homeowner" ? (
+          <>
+            {renderField("Phone Number", homeownerData?.phone || "")}
+            {renderField("Address", homeownerData?.address || "")}
+          </>
+        ) : (
           <>
             {renderField("Company Name", profile.company_name)}
             {renderField("License Number", profile.license_number)}
