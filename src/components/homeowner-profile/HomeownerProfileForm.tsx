@@ -1,12 +1,12 @@
 
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
-import { Button } from "@/components/ui/button";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { ProfileViewMode } from "./components/ProfileViewMode";
 import { CommonFormFields } from "./components/CommonFormFields";
 import { ContractorFormFields } from "./components/ContractorFormFields";
 import { profileSchema, type ProfileFormValues } from "./types";
@@ -15,38 +15,31 @@ import type { Database } from "@/integrations/supabase/types";
 
 interface HomeownerProfileFormProps {
   profile: any;
-  isEditing: boolean;
-  onCancel: () => void;
-  onSave: () => void;
+  userRole: string;
+  onProfileUpdated: () => void;
 }
 
-export function HomeownerProfileForm({
-  profile,
-  isEditing,
-  onCancel,
-  onSave,
-}: HomeownerProfileFormProps) {
+export function HomeownerProfileForm({ profile, userRole, onProfileUpdated }: HomeownerProfileFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const { data: userRole } = useQuery({
-    queryKey: ["user-role"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("No user found");
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (error) throw error;
-      return data.role;
+  // Initialize form with profile data
+  const form = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      full_name: profile.full_name || "",
+      company_name: profile.company_name || "",
+      license_number: profile.license_number || "",
+      phone_number: "",
+      address: "",
+      website: profile.website || "",
+      bio: profile.bio || "",
     },
   });
 
-  // Fetch homeowner data if the user is a homeowner
-  const { data: homeownerData } = useQuery<Homeowner | null>({
-    queryKey: ["homeowner-data", profile.id],
+  // Fetch homeowner data if applicable
+  const { data: homeownerData } = useQuery({
+    queryKey: ['homeowner-profile', profile.id],
     queryFn: async () => {
       if (userRole !== 'homeowner') return null;
 
@@ -62,34 +55,30 @@ export function HomeownerProfileForm({
     enabled: userRole === 'homeowner'
   });
 
-  const form = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      full_name: profile.full_name || "",
-      address: homeownerData?.address || "",
-      phone_number: homeownerData?.phone || "",
-      bio: profile.bio || "",
-      company_name: profile.company_name || "",
-      license_number: profile.license_number || "",
-      website: profile.website || "",
-    },
-  });
+  // Update form when homeowner data is loaded
+  useEffect(() => {
+    if (homeownerData) {
+      form.setValue("address", homeownerData.address || "");
+      form.setValue("phone_number", homeownerData.phone || "");
+    }
+  }, [homeownerData, form]);
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      // Update profile data
+      setIsSubmitting(true);
+
+      // Update profile
       const { error: profileError } = await supabase
-        .from("profiles")
+        .from('profiles')
         .update({
           full_name: data.full_name,
+          company_name: data.company_name,
+          license_number: data.license_number,
+          website: data.website,
           bio: data.bio,
-          ...(userRole === 'gc_admin' ? {
-            company_name: data.company_name,
-            license_number: data.license_number,
-            website: data.website,
-          } : {})
+          has_completed_profile: true,
         })
-        .eq("id", profile.id);
+        .eq('id', profile.id);
 
       if (profileError) throw profileError;
 
@@ -119,40 +108,31 @@ export function HomeownerProfileForm({
       }
 
       toast({
-        title: "Profile updated",
-        description: "Your profile has been successfully updated.",
+        title: "Success",
+        description: "Your profile has been updated.",
       });
 
-      onSave();
+      onProfileUpdated();
     } catch (error: any) {
+      console.error('Error updating profile:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to update profile",
+        description: "Failed to update profile. Please try again.",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  if (!isEditing) {
-    return <ProfileViewMode profile={profile} userRole={userRole} homeownerData={homeownerData} />;
-  }
-
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="bg-white shadow rounded-lg p-6 space-y-6"
-      >
-        <CommonFormFields form={form} profile={profile} />
-
-        {userRole === "gc_admin" && <ContractorFormFields form={form} />}
-
-        <div className="flex justify-end space-x-4 pt-4">
-          <Button type="button" variant="outline" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit">Save Changes</Button>
-        </div>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+        <CommonFormFields form={form} />
+        {userRole !== 'homeowner' && <ContractorFormFields form={form} />}
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? "Saving..." : "Save Profile"}
+        </Button>
       </form>
     </Form>
   );

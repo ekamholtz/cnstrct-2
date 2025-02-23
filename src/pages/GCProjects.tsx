@@ -19,11 +19,16 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ProjectCreationForm from "@/components/projects/ProjectCreationForm";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useNavigate } from "react-router-dom";
 
 export default function GCProjects() {
   const { data: projects = [], isLoading: loading, error, refetch } = useContractorProjects();
   const { toast } = useToast();
-
+  const { hasPermission } = usePermissions();
+  const navigate = useNavigate();
+  
+  // Check if user has permission to view contractor projects
   const { data: profile } = useQuery({
     queryKey: ['contractor-profile'],
     queryFn: async () => {
@@ -32,7 +37,7 @@ export default function GCProjects() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('company_name')
+        .select('company_name, role')
         .eq('id', user.id)
         .single();
 
@@ -40,6 +45,14 @@ export default function GCProjects() {
       return data;
     },
   });
+
+  useEffect(() => {
+    // Redirect if user doesn't have contractor role
+    if (profile && profile.role !== 'gc_admin' && !hasPermission('admin.access')) {
+      navigate('/client-dashboard');
+      return;
+    }
+  }, [profile, hasPermission, navigate]);
 
   // Handle error with useEffect to avoid render issues
   useEffect(() => {
