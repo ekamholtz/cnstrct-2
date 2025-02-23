@@ -8,20 +8,22 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { Loader2 } from "lucide-react";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  const { hasPermission, isLoading: permissionsLoading } = usePermissions();
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const { hasPermission } = usePermissions();
-  const location = useLocation();
 
   useEffect(() => {
+    let mounted = true;
+
     const checkSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        console.log("Current session:", session);
-        setSession(session);
-
+        
+        if (!mounted) return;
+        
         if (session) {
           const { data, error } = await supabase
             .from('profiles')
@@ -29,33 +31,40 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             .eq('id', session.user.id)
             .single();
 
+          if (!mounted) return;
+
           if (error) {
             console.error("Error fetching profile:", error);
-            setLoading(false);
-            return;
+          } else {
+            setHasCompletedProfile(data.has_completed_profile);
+            setUserRole(data.role);
           }
-
-          setHasCompletedProfile(data.has_completed_profile);
-          setUserRole(data.role);
+          setSession(session);
         }
-        setLoading(false);
       } catch (error) {
         console.error("Error in checkSession:", error);
-        setLoading(false);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
     };
 
     checkSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("Auth state changed:", session);
-      setSession(session);
+      if (mounted) {
+        setSession(session);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  if (loading) {
+  if (loading || permissionsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
@@ -68,40 +77,39 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   const isAdmin = hasPermission('admin.access');
-  console.log("Route check:", { 
-    isAdmin, 
-    userRole, 
-    path: location.pathname, 
-    hasCompletedProfile 
+  const currentPath = location.pathname;
+
+  // Debugging information
+  console.log("Route check:", {
+    isAdmin,
+    userRole,
+    path: currentPath,
+    hasCompletedProfile
   });
 
-  // Profile completion check takes precedence
-  if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
-    return <Navigate to="/profile-completion" replace />;
-  }
+  // Define a single redirect based on conditions
+  let redirectTo: string | null = null;
 
-  // Admin route protection - prevent non-admins from accessing admin routes
-  if (location.pathname.startsWith('/admin') && !isAdmin) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  // Root route handling
-  if (location.pathname === '/') {
+  if (hasCompletedProfile === false && currentPath !== '/profile-completion') {
+    redirectTo = '/profile-completion';
+  } else if (currentPath.startsWith('/admin') && !isAdmin) {
+    redirectTo = '/dashboard';
+  } else if (currentPath === '/') {
     if (isAdmin) {
-      return <Navigate to="/admin" replace />;
+      redirectTo = '/admin';
+    } else if (userRole === 'homeowner') {
+      redirectTo = '/client-dashboard';
+    } else {
+      redirectTo = '/dashboard';
     }
-    if (userRole === 'homeowner') {
-      return <Navigate to="/client-dashboard" replace />;
-    }
-    return <Navigate to="/dashboard" replace />;
+  } else if (isAdmin && !currentPath.startsWith('/admin')) {
+    redirectTo = '/admin';
   }
 
-  // Admin should only be able to access /admin and its subroutes
-  if (isAdmin && !location.pathname.startsWith('/admin')) {
-    return <Navigate to="/admin" replace />;
+  if (redirectTo) {
+    return <Navigate to={redirectTo} replace />;
   }
 
-  // Wrap children with the appropriate navigation based on user role
   const Navigation = isAdmin ? AdminNav : MainNav;
   
   return (
