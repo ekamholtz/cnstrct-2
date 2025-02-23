@@ -20,8 +20,21 @@ export function useContractorProjects() {
 
       console.log('Fetching projects for user:', user.id);
 
-      // First get the current user's role directly from session
-      const { data: projects, error: projectsError } = await supabase
+      // First get the user's profile to determine their role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
+      }
+
+      console.log('User profile:', profile);
+
+      let projectsQuery = supabase
         .from('projects')
         .select(`
           *,
@@ -36,8 +49,31 @@ export function useContractorProjects() {
             amount,
             status
           )
-        `)
-        .or(`contractor_id.eq.${user.id},pm_user_id.eq.${user.id}`);
+        `);
+
+      // Apply filters based on user role
+      if (profile?.role === 'gc_admin') {
+        projectsQuery = projectsQuery.eq('contractor_id', user.id);
+      } else if (profile?.role === 'project_manager') {
+        projectsQuery = projectsQuery.eq('pm_user_id', user.id);
+      } else if (profile?.role === 'admin') {
+        // Admin can see all projects
+      } else if (profile?.role === 'homeowner') {
+        // For homeowners, check client association
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (clientData) {
+          projectsQuery = projectsQuery.eq('client_id', clientData.id);
+        } else {
+          return []; // Return empty array if no client data found
+        }
+      }
+
+      const { data: projects, error: projectsError } = await projectsQuery;
 
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);
