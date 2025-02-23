@@ -81,12 +81,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Redirect admins to admin dashboard when on /dashboard
-  if (isAdmin && location.pathname === '/dashboard') {
-    return <Navigate to="/admin" replace />;
-  }
-
-  // Handle root route redirects
+  // Handle root route redirects only
   if (location.pathname === '/') {
     if (isAdmin) {
       return <Navigate to="/admin" replace />;
