@@ -197,6 +197,44 @@ export type Database = {
           },
         ]
       }
+      homeowners: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string
+          phone: string | null
+          profile_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          phone?: string | null
+          profile_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          phone?: string | null
+          profile_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homeowners_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitation_logs: {
         Row: {
           created_at: string | null
@@ -411,7 +449,6 @@ export type Database = {
       profiles: {
         Row: {
           account_status: string
-          address: string | null
           bio: string | null
           company_name: string | null
           created_at: string
@@ -420,14 +457,12 @@ export type Database = {
           has_completed_profile: boolean | null
           id: string
           license_number: string | null
-          phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string
           website: string | null
         }
         Insert: {
           account_status?: string
-          address?: string | null
           bio?: string | null
           company_name?: string | null
           created_at?: string
@@ -436,14 +471,12 @@ export type Database = {
           has_completed_profile?: boolean | null
           id: string
           license_number?: string | null
-          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
           website?: string | null
         }
         Update: {
           account_status?: string
-          address?: string | null
           bio?: string | null
           company_name?: string | null
           created_at?: string
@@ -452,7 +485,6 @@ export type Database = {
           has_completed_profile?: boolean | null
           id?: string
           license_number?: string | null
-          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
           website?: string | null
@@ -721,7 +753,6 @@ export type Database = {
         }
         Returns: {
           account_status: string
-          address: string | null
           bio: string | null
           company_name: string | null
           created_at: string
@@ -730,7 +761,6 @@ export type Database = {
           has_completed_profile: boolean | null
           id: string
           license_number: string | null
-          phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string
           website: string | null

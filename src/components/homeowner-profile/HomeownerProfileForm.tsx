@@ -10,6 +10,7 @@ import { ProfileViewMode } from "./components/ProfileViewMode";
 import { CommonFormFields } from "./components/CommonFormFields";
 import { ContractorFormFields } from "./components/ContractorFormFields";
 import { profileSchema, type ProfileFormValues } from "./types";
+import type { Homeowner } from "@/types/homeowner";
 
 interface HomeownerProfileFormProps {
   profile: any;
@@ -43,7 +44,7 @@ export function HomeownerProfileForm({
   });
 
   // Fetch homeowner data if the user is a homeowner
-  const { data: homeownerData } = useQuery({
+  const { data: homeownerData } = useQuery<Homeowner | null>({
     queryKey: ["homeowner-data", profile.id],
     queryFn: async () => {
       if (userRole !== 'homeowner') return null;
@@ -54,7 +55,11 @@ export function HomeownerProfileForm({
         .eq("profile_id", profile.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === 'PGRST116') return null; // No data found
+        throw error;
+      }
+
       return data;
     },
     enabled: userRole === 'homeowner'
@@ -97,7 +102,7 @@ export function HomeownerProfileForm({
           address: data.address,
           phone: data.phone_number,
           profile_id: profile.id,
-          user_id: profile.id // Since profile.id is the user's id
+          user_id: profile.id
         };
 
         const { error: homeownerError } = homeownerData
