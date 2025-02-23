@@ -20,6 +20,26 @@ export function useContractorProjects() {
 
       console.log('Fetching projects for user:', user.id);
 
+      // Get user's profile with company info
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          gc_companies (
+            id,
+            company_name,
+            contact_email,
+            contact_phone
+          )
+        `)
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        throw profileError;
+      }
+
       // Single query to get projects with related data
       // RLS policies will automatically filter based on user role and access
       const { data: projects, error: projectsError } = await supabase

@@ -484,6 +484,7 @@ export type Database = {
           created_at: string
           full_name: string
           gc_account_id: string | null
+          gc_company_id: string | null
           has_completed_profile: boolean | null
           id: string
           license_number: string | null
@@ -498,6 +499,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           gc_account_id?: string | null
+          gc_company_id?: string | null
           has_completed_profile?: boolean | null
           id: string
           license_number?: string | null
@@ -512,6 +514,7 @@ export type Database = {
           created_at?: string
           full_name?: string
           gc_account_id?: string | null
+          gc_company_id?: string | null
           has_completed_profile?: boolean | null
           id?: string
           license_number?: string | null
@@ -525,6 +528,13 @@ export type Database = {
             columns: ["gc_account_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: false
+            referencedRelation: "gc_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -792,6 +802,7 @@ export type Database = {
           created_at: string
           full_name: string
           gc_account_id: string | null
+          gc_company_id: string | null
           has_completed_profile: boolean | null
           id: string
           license_number: string | null
