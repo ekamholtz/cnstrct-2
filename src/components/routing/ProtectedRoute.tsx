@@ -53,7 +53,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);  // Removed location dependency to prevent loops
+  }, []);
 
   if (loading) {
     return (
@@ -67,35 +67,38 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Check admin access using permission system
   const isAdmin = hasPermission('admin.access');
-  console.log("Checking admin status:", { isAdmin, userRole, currentPath: location.pathname });
+  console.log("Route check:", { 
+    isAdmin, 
+    userRole, 
+    path: location.pathname, 
+    hasCompletedProfile 
+  });
 
+  // Profile completion check takes precedence
   if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
-    console.log("Redirecting to profile completion");
     return <Navigate to="/profile-completion" replace />;
   }
 
-  // Prevent non-admins from accessing admin routes
-  if (!isAdmin && location.pathname.startsWith('/admin')) {
+  // Admin route protection - prevent non-admins from accessing admin routes
+  if (location.pathname.startsWith('/admin') && !isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Check if admin is trying to access dashboard
-  if (isAdmin && location.pathname === '/dashboard') {
-    console.log("Admin accessing dashboard, redirecting to admin");
-    return <Navigate to="/admin" replace />;
-  }
-
-  // Handle root route redirects
+  // Root route handling
   if (location.pathname === '/') {
     if (isAdmin) {
       return <Navigate to="/admin" replace />;
-    } else if (userRole === 'homeowner') {
-      return <Navigate to="/client-dashboard" replace />;
-    } else {
-      return <Navigate to="/dashboard" replace />;
     }
+    if (userRole === 'homeowner') {
+      return <Navigate to="/client-dashboard" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  // Admin should only be able to access /admin and its subroutes
+  if (isAdmin && !location.pathname.startsWith('/admin')) {
+    return <Navigate to="/admin" replace />;
   }
 
   // Wrap children with the appropriate navigation based on user role
