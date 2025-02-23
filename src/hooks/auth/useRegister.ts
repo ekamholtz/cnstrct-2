@@ -26,6 +26,7 @@ export const useRegister = () => {
         options: {
           data: {
             full_name: values.fullName,
+            // The role should match exactly with the user_role enum in the database
             role: selectedRole,
           },
           emailRedirectTo: `${window.location.origin}/auth`
