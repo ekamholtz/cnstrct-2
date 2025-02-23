@@ -34,7 +34,9 @@ export const useAuthForm = () => {
       console.log("Sign in successful, fetching profile...");
       
       const { data: profile, error: profileError } = await supabase
-        .rpc('get_user_profile', { user_id: signInData.user.id })
+        .from('profiles')
+        .select('role, has_completed_profile')
+        .eq('id', signInData.user.id)
         .single();
 
       if (profileError) {
@@ -45,13 +47,12 @@ export const useAuthForm = () => {
       // If no profile exists, create one
       if (!profile) {
         console.log("No profile found, creating one...");
-        const newProfile = await createProfile(
+        await createProfile(
           signInData.user.id,
           signInData.user.user_metadata.full_name || '',
           signInData.user.user_metadata.role || 'gc_admin'
         );
         
-        // Redirect to profile completion for new users
         navigate("/profile-completion");
         return;
       }
@@ -74,6 +75,9 @@ export const useAuthForm = () => {
           break;
         case 'homeowner':
           navigate("/client-dashboard");
+          break;
+        case 'gc_admin':
+          navigate("/dashboard");
           break;
         default:
           navigate("/dashboard");

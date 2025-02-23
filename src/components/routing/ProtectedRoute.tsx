@@ -1,16 +1,18 @@
 
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { MainNav } from "@/components/navigation/MainNav";
 import { usePermissions } from "@/hooks/usePermissions";
+import { Loader2 } from "lucide-react";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
   const { hasPermission } = usePermissions();
+  const location = useLocation();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -22,7 +24,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         if (session) {
           const { data, error } = await supabase
             .from('profiles')
-            .select('has_completed_profile')
+            .select('has_completed_profile, role')
             .eq('id', session.user.id)
             .single();
 
@@ -33,6 +35,19 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           }
 
           setHasCompletedProfile(data.has_completed_profile);
+          
+          // Check if user is trying to access incorrect dashboard
+          const currentPath = location.pathname;
+          const userRole = data.role;
+
+          // Redirect based on role if on wrong dashboard
+          if (userRole === 'homeowner' && currentPath === '/dashboard') {
+            window.location.href = '/client-dashboard';
+            return;
+          } else if (userRole === 'gc_admin' && currentPath === '/client-dashboard') {
+            window.location.href = '/dashboard';
+            return;
+          }
         }
         setLoading(false);
       } catch (error) {
@@ -49,51 +64,30 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [location]);
 
   if (loading) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+      </div>
+    );
   }
 
   if (!session) {
     return <Navigate to="/auth" replace />;
   }
 
-  if (hasCompletedProfile === false && window.location.pathname !== '/profile-completion') {
+  if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
     console.log("Redirecting to profile completion");
     return <Navigate to="/profile-completion" replace />;
   }
 
-  // Check admin access using new permission system
+  // Check admin access using permission system
   const isAdmin = hasPermission('admin.access');
   
-  // Determine dashboard route based on permissions
-  const getDashboardRoute = () => {
-    if (isAdmin) return '/admin';
-    if (hasPermission('projects.view')) {
-      // If they're a homeowner (only has view permissions)
-      if (!hasPermission('projects.manage')) return '/client-dashboard';
-      // If they're a GC or PM (has manage permissions)
-      return '/dashboard';
-    }
-    return '/auth'; // Fallback
-  };
-
-  // Get current path
-  const currentPath = window.location.pathname;
-  
   // Prevent non-admins from accessing admin routes
-  if (!isAdmin && currentPath.startsWith('/admin')) {
-    return <Navigate to={getDashboardRoute()} replace />;
-  }
-
-  // Prevent homeowners from accessing the GC dashboard
-  if (!hasPermission('projects.manage') && currentPath === '/dashboard') {
-    return <Navigate to="/client-dashboard" replace />;
-  }
-
-  // Prevent GCs from accessing the client dashboard
-  if (hasPermission('projects.manage') && currentPath === '/client-dashboard') {
+  if (!isAdmin && location.pathname.startsWith('/admin')) {
     return <Navigate to="/dashboard" replace />;
   }
 
