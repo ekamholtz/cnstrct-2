@@ -71,12 +71,10 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const isAdmin = hasPermission('admin.access');
   console.log("Checking admin status:", { isAdmin, userRole, currentPath: location.pathname });
 
-  // Handle admin redirects first
-  if (isAdmin || userRole === 'admin') {
-    if (location.pathname === '/dashboard') {
-      console.log("Admin user detected, redirecting to /admin");
-      return <Navigate to="/admin" replace />;
-    }
+  // Only redirect to /admin if we're at root or dashboard
+  if (isAdmin && (location.pathname === '/' || location.pathname === '/dashboard')) {
+    console.log("Admin user detected, redirecting to /admin");
+    return <Navigate to="/admin" replace />;
   }
 
   if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
@@ -101,8 +99,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       return <Navigate to="/client-dashboard" replace />;
     } else if (userRole === 'gc_admin') {
       return <Navigate to="/dashboard" replace />;
-    } else if (userRole === 'admin') {
-      return <Navigate to="/admin" replace />;
     }
   }
 
