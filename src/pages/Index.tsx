@@ -27,7 +27,8 @@ export default function Index() {
           console.error("Error fetching profile:", error);
           return;
         }
-        setUserRole(data?.role || null);
+        // Access the first item in the array
+        setUserRole(data?.[0]?.role || null);
       } else {
         setIsAuthenticated(false);
       }
