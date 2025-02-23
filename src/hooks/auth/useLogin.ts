@@ -32,28 +32,27 @@ export const useLogin = () => {
       }
 
       console.log("Sign in successful, checking profile...");
-      
-      // Check if profile exists using single query
+
+      // Using a simpler query to avoid recursion
       const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, has_completed_profile')
-        .eq('id', signInData.user.id)
-        .single();
+        .rpc('get_user_profile', { user_id: signInData.user.id })
+        .maybeSingle();
+
+      if (!profile) {
+        console.log("No profile found, creating one...");
+        const userMetadata = signInData.user.user_metadata;
+        await createProfile(
+          signInData.user.id,
+          userMetadata?.full_name || '',
+          userMetadata?.role || 'gc_admin'
+        );
+        
+        navigate("/profile-completion");
+        return;
+      }
 
       if (profileError) {
         console.error("Error fetching profile:", profileError);
-        // If no profile exists, create one
-        if (profileError.code === 'PGRST116') {
-          const userMetadata = signInData.user.user_metadata;
-          await createProfile(
-            signInData.user.id,
-            userMetadata?.full_name || '',
-            userMetadata?.role || 'gc_admin'
-          );
-          
-          navigate("/profile-completion");
-          return;
-        }
         throw profileError;
       }
 
