@@ -111,10 +111,12 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Prevent homeowners from accessing GC-specific routes
-  if (currentRole === 'homeowner' && 
-      (location.pathname === '/dashboard' || location.pathname === '/invoices')) {
-    console.log("Homeowner attempting to access GC routes, redirecting to client dashboard");
-    return <Navigate to="/client-dashboard" replace />;
+  if (currentRole === 'homeowner') {
+    const restrictedRoutes = ['/dashboard', '/invoices', '/invoice'];
+    if (restrictedRoutes.includes(location.pathname)) {
+      console.log("Homeowner attempting to access GC routes, redirecting to client dashboard");
+      return <Navigate to="/client-dashboard" replace />;
+    }
   }
 
   // Prevent GCs from accessing client-specific routes
