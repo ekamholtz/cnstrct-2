@@ -18,6 +18,10 @@ type AdminAction = {
   action_type: string;
   details: any;
   created_at: string;
+  admin: {
+    id: string;
+    full_name: string;
+  } | null;
 }
 
 const AdminDashboard = () => {
@@ -40,20 +44,18 @@ const AdminDashboard = () => {
     }
   });
 
-  const { data: recentActions, isLoading: actionsLoading } = useQuery({
+  const { data: recentActions, isLoading: actionsLoading } = useQuery<AdminAction[]>({
     queryKey: ['admin-actions'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('admin_actions')
         .select(`
-          id,
-          entity_type,
-          entity_id,
-          action_type,
-          details,
-          created_at,
-          admin:profiles(id, full_name)`
-        )
+          *,
+          admin:profiles (
+            id,
+            full_name
+          )
+        `)
         .order('created_at', { ascending: false })
         .limit(5);
 
