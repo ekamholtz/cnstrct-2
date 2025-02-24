@@ -1,11 +1,11 @@
+
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { MainNav } from "@/components/navigation/MainNav";
 import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectInvoices } from "@/components/project/invoice/ProjectInvoices";
-import { ProjectMilestones } from "@/components/project/milestone/ProjectMilestones";
-import { ProjectExpenses } from "@/components/project/expenses/ProjectExpenses";
+import { MilestonesList } from "@/components/project/MilestonesList";
 import { supabase } from "@/integrations/supabase/client";
 
 const ProjectNotFound = () => (
@@ -99,8 +99,10 @@ const ProjectDashboard = () => {
             <ProjectInvoices projectId={projectId} />
           </div>
           <div>
-            <ProjectMilestones projectId={projectId} />
-            <ProjectExpenses projectId={projectId} />
+            <MilestonesList 
+              milestones={data.milestones || []} 
+              onMarkComplete={(id) => console.log('Mark complete:', id)} 
+            />
           </div>
         </div>
       </div>
