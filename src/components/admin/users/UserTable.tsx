@@ -1,4 +1,3 @@
-
 import { UserCog } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -80,7 +79,7 @@ export const UserTable = ({
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <div className="grid gap-4">
-                      {(['admin', 'general_contractor', 'homeowner'] as const).map((role) => (
+                      {(['admin', 'gc_admin', 'homeowner', 'project_manager'] as const).map((role) => (
                         <Button
                           key={role}
                           variant={user.role === role ? "default" : "outline"}

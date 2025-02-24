@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -101,7 +100,7 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
           {renderField("Email", profile.email)}
           {renderField("Phone Number", profile.phone_number)}
           {renderField("Address", profile.address)}
-          {userRole === "general_contractor" && (
+          {userRole === "gc_admin" && (
             <>
               {renderField("Company Name", profile.company_name)}
               {renderField("License Number", profile.license_number)}
@@ -165,7 +164,7 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
           )}
         />
 
-        {userRole === "general_contractor" && (
+        {userRole === "gc_admin" && (
           <>
             <FormField
               control={form.control}

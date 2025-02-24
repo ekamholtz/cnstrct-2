@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -81,7 +80,7 @@ export const useAuthForm = () => {
     }
   };
 
-  const handleRegister = async (values: RegisterFormData, selectedRole: "general_contractor" | "homeowner") => {
+  const handleRegister = async (values: RegisterFormData, selectedRole: "gc_admin" | "homeowner") => {
     setLoading(true);
     try {
       console.log("Starting registration with:", {
@@ -114,14 +113,12 @@ export const useAuthForm = () => {
 
       console.log("Registration successful, creating profile...");
 
-      // Create profile after successful registration
       await createProfile(
         signUpData.user.id,
         values.fullName,
         selectedRole
       );
 
-      // Automatically sign in after registration
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
@@ -137,7 +134,6 @@ export const useAuthForm = () => {
         description: "Please complete your profile to get started.",
       });
 
-      // Redirect to profile completion
       navigate("/profile-completion");
 
     } catch (error: any) {

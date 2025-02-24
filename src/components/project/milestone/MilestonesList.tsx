@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -82,7 +81,7 @@ export function MilestonesList({
     }
   };
 
-  const isContractor = userRole === 'general_contractor' && !hideControls;
+  const isGeneralContractor = userRole === 'gc_admin';
 
   return (
     <div>
@@ -93,7 +92,7 @@ export function MilestonesList({
             <MilestoneCard
               key={milestone.id}
               milestone={milestone}
-              isContractor={isContractor}
+              isContractor={isGeneralContractor}
               onMarkComplete={onMarkComplete}
               onUndoCompletion={handleUndoCompletion}
             />

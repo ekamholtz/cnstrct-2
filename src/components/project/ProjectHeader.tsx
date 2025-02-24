@@ -1,4 +1,3 @@
-
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Building2, Edit } from "lucide-react";
@@ -62,7 +61,7 @@ export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) 
     refetch();
   };
 
-  const isGeneralContractor = userRole === 'general_contractor';
+  const isGeneralContractor = userRole === 'gc_admin';
   const isAdmin = userRole === 'admin';
 
   // Determine the back link based on user role

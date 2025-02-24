@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -14,7 +13,6 @@ import { ContractorFormFields } from "@/components/profile-completion/Contractor
 import { HomeownerFormFields } from "@/components/profile-completion/HomeownerFormFields";
 import { ProfileCompletionFooter } from "@/components/profile-completion/ProfileCompletionFooter";
 
-// Import the user_role type from Supabase generated types
 import type { Database } from "@/integrations/supabase/types";
 type UserRole = Database["public"]["Enums"]["user_role"];
 
@@ -62,7 +60,6 @@ export default function ProfileCompletion() {
     checkSession();
   }, [navigate]);
 
-  // Separate function to handle role-based routing
   const routeBasedOnRole = (role: UserRole) => {
     console.log("Routing based on role:", role);
     switch (role) {
@@ -70,7 +67,7 @@ export default function ProfileCompletion() {
         console.log("Routing homeowner to client dashboard");
         navigate("/client-dashboard", { replace: true });
         break;
-      case 'general_contractor':
+      case 'gc_admin':
         console.log("Routing contractor to dashboard");
         navigate("/dashboard", { replace: true });
         break;
@@ -114,7 +111,6 @@ export default function ProfileCompletion() {
 
       if (updateError) throw updateError;
 
-      // Verify the update was successful by fetching the updated profile
       const { data: updatedProfile, error: fetchError } = await supabase
         .from("profiles")
         .select("role, has_completed_profile")
@@ -132,7 +128,6 @@ export default function ProfileCompletion() {
         description: "You will now be redirected to the dashboard.",
       });
 
-      // Use the separate routing function
       routeBasedOnRole(userRole);
 
     } catch (error: any) {
@@ -147,7 +142,6 @@ export default function ProfileCompletion() {
     }
   };
 
-  // Only render form for contractors and homeowners, not admins
   if (!userRole || userRole === 'admin') return null;
 
   return (
@@ -160,7 +154,7 @@ export default function ProfileCompletion() {
             onSubmit={form.handleSubmit(onSubmit)} 
             className="space-y-6"
           >
-            {userRole === "general_contractor" ? (
+            {userRole === "gc_admin" ? (
               <ContractorFormFields form={form} />
             ) : (
               <HomeownerFormFields form={form} />
