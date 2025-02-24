@@ -6,9 +6,3 @@ export interface Milestone {
   amount: number | null;
   status: 'pending' | 'in_progress' | 'completed';
 }
-
-export interface MilestoneStatus {
-  status: string;
-  color: string;
-  label: string;
-}

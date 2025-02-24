@@ -1,4 +1,6 @@
 
+import { Button } from "@/components/ui/button";
+import { Undo } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,16 +12,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Undo } from "lucide-react";
+import { useState } from "react";
 
 interface UndoCompletionDialogProps {
-  onUndo: () => void;
+  milestoneId: string;
+  onConfirm: (id: string) => void;
 }
 
-export function UndoCompletionDialog({ onUndo }: UndoCompletionDialogProps) {
+export function UndoCompletionDialog({ milestoneId, onConfirm }: UndoCompletionDialogProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   return (
-    <AlertDialog>
+    <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
       <AlertDialogTrigger asChild>
         <Button
           variant="outline"
@@ -40,7 +44,12 @@ export function UndoCompletionDialog({ onUndo }: UndoCompletionDialogProps) {
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={onUndo}>
+          <AlertDialogAction
+            onClick={() => {
+              onConfirm(milestoneId);
+              setIsOpen(false);
+            }}
+          >
             Confirm
           </AlertDialogAction>
         </AlertDialogFooter>

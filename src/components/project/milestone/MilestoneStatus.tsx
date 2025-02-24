@@ -1,11 +1,9 @@
 
-import { MilestoneStatus as MilestoneStatusType } from "@/components/projects/types";
-
-interface MilestoneStatusBadgeProps {
-  status: MilestoneStatusType;
+interface MilestoneStatusProps {
+  status: 'pending' | 'in_progress' | 'completed';
 }
 
-export function MilestoneStatusBadge({ status }: MilestoneStatusBadgeProps) {
+export function MilestoneStatus({ status }: MilestoneStatusProps) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending':
