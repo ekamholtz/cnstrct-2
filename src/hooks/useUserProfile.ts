@@ -2,6 +2,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { useEffect, useState } from "react";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
 
@@ -17,10 +18,25 @@ type Profile = {
 
 export function useUserProfile() {
   const queryClient = useQueryClient();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const {
     data: profile,
-    isLoading,
+    isLoading: profileLoading,
     error,
   } = useQuery({
     queryKey: ["user-profile"],
@@ -54,21 +70,19 @@ export function useUserProfile() {
       console.log("Profile data:", data);
       return data;
     },
-    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    enabled: isAuthenticated === true,
+    staleTime: 1000 * 60 * 5,
     retry: 2,
-    refetchOnMount: true, // Add this to ensure we always have fresh data
-    refetchOnWindowFocus: false, // Disable refetch on window focus to prevent unnecessary requests
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
   });
 
-  // Subscribe to auth state changes to invalidate profile cache
-  supabase.auth.onAuthStateChange((event, session) => {
-    console.log("Auth state changed:", event, session?.user?.id);
-    queryClient.invalidateQueries({ queryKey: ["user-profile"] });
-  });
+  const isLoading = profileLoading || isAuthenticated === null;
 
   return {
     profile,
     isLoading,
     error,
+    isAuthenticated
   };
 }
