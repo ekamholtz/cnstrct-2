@@ -72,10 +72,12 @@ export function MainNav() {
                        profile?.role === 'platform_admin' ? '/admin/projects' :
                        '/gc-projects';
 
+  const invoicesRoute = profile?.role === 'homeowner' ? '/client-invoices' : '/invoices';
+
   const navItems = [
     { label: "Home", path: homeRoute, icon: Home },
     { label: "Projects", path: projectsRoute, icon: Grid },
-    { label: "Invoices", path: "/invoices", icon: FileText },
+    { label: "Invoices", path: invoicesRoute, icon: FileText },
     { label: "Expenses", path: "/expenses", icon: DollarSign },
     { label: "Payments", path: "/payments", icon: DollarSign },
     { label: "Profile", path: "/profile", icon: User },
