@@ -15,27 +15,47 @@ export function useInvoices(projectId: string) {
       console.log('Starting invoice fetch for project:', projectId);
       
       const { data, error } = await supabase
-        .rpc('get_project_invoices', { p_id: projectId });
+        .from('invoices')
+        .select(`
+          *,
+          milestone:milestone_id (
+            name,
+            project:project_id (
+              name
+            )
+          )
+        `)
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: true });
 
       if (error) {
         console.error('Error fetching invoices:', error);
         throw error;
       }
 
-      console.log('Fetched invoices:', {
-        projectId,
-        invoiceCount: data?.length,
-        invoices: data
-      });
+      // Transform the data to match the Invoice type
+      const transformedData: Invoice[] = (data || []).map(invoice => ({
+        id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        amount: invoice.amount,
+        status: invoice.status as Invoice['status'],
+        created_at: invoice.created_at,
+        milestone_id: invoice.milestone_id,
+        milestone_name: invoice.milestone?.name || '',
+        project_name: invoice.milestone?.project?.name || '',
+        project_id: invoice.project_id,
+        payment_method: invoice.payment_method as Invoice['payment_method'],
+        payment_date: invoice.payment_date || null,
+        payment_reference: invoice.payment_reference || null,
+        payment_gateway: invoice.payment_gateway || null,
+        simulation_data: invoice.simulation_data,
+        updated_at: invoice.updated_at
+      }));
 
-      return data as Invoice[];
+      return transformedData;
     },
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  // Set up real-time subscription for invoices
   useEffect(() => {
     console.log('Setting up real-time subscription for project invoices:', {
       projectId
