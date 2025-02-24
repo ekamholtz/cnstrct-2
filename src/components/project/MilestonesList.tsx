@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -56,23 +55,30 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
 
   const completeMilestoneMutation = useMutation({
     mutationFn: async (milestoneId: string) => {
-      // First update the milestone status
       const { data: milestone, error: milestoneError } = await supabase
         .from('milestones')
         .update({ status: 'completed' })
         .eq('id', milestoneId)
-        .select('project_id, amount, name')
+        .select(`
+          project_id, 
+          amount, 
+          name,
+          project:project_id (
+            contractor_id
+          )
+        `)
         .single();
 
       if (milestoneError) throw milestoneError;
+      if (!milestone?.project?.contractor_id) throw new Error('No contractor found for project');
 
-      // Then create an invoice for the milestone
       const { error: invoiceError } = await supabase
         .from('invoices')
         .insert({
           milestone_id: milestoneId,
           amount: milestone.amount,
           project_id: milestone.project_id,
+          contractor_id: milestone.project.contractor_id,
           invoice_number: await generateInvoiceNumber(milestoneId),
           status: 'pending_payment'
         });
@@ -100,7 +106,6 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
 
   const handleUndoCompletion = async (milestoneId: string) => {
     try {
-      // First check if there's a paid invoice
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
         .select('status')
@@ -118,7 +123,6 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
         return;
       }
 
-      // If no paid invoice, proceed with undo
       const { data, error } = await supabase.rpc('undo_milestone_completion', {
         milestone_id_param: milestoneId
       });
@@ -260,7 +264,6 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
   );
 }
 
-// Helper function to generate invoice number
 async function generateInvoiceNumber(milestoneId: string): Promise<string> {
   const { data, error } = await supabase.rpc('generate_invoice_number', {
     milestone_id: milestoneId
