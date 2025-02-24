@@ -23,14 +23,15 @@ export function usePaymentDetailsForm({
   const form = useForm<PaymentDetailsData>({
     resolver: zodResolver(paymentDetailsSchema),
     defaultValues: {
-      payment_type: undefined,
+      payment_method_code: undefined,
       payment_date: new Date().toISOString().split('T')[0],
-      payment_amount: amountDue.toString(),
+      amount: amountDue.toString(),
+      notes: "",
     },
   });
 
   const handleSubmit = async (data: PaymentDetailsData) => {
-    const paymentAmount = Number(data.payment_amount);
+    const paymentAmount = Number(data.amount);
     
     if (paymentAmount > amountDue) {
       setShowErrorAlert(true);

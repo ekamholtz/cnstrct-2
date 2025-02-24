@@ -35,7 +35,7 @@ export function PartialPaymentConfirmDialog({
             The payment amount is less than the total expense amount. Would you like to save this as a partial payment?
             {pendingData && (
               <p className="mt-2">
-                Remaining balance will be: ${(expenseAmount - Number(pendingData.payment_amount)).toFixed(2)}
+                Remaining balance will be: ${(expenseAmount - Number(pendingData.amount)).toFixed(2)}
               </p>
             )}
           </AlertDialogDescription>

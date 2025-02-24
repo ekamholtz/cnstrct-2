@@ -12,14 +12,14 @@ export function PaymentTypeField({ form }: PaymentTypeFieldProps) {
   return (
     <FormField
       control={form.control}
-      name="payment_type"
+      name="payment_method_code"
       render={({ field }) => (
         <FormItem>
-          <FormLabel>Payment Type</FormLabel>
+          <FormLabel>Payment Method</FormLabel>
           <Select onValueChange={field.onChange} defaultValue={field.value}>
             <FormControl>
               <SelectTrigger>
-                <SelectValue placeholder="Select payment type" />
+                <SelectValue placeholder="Select payment method" />
               </SelectTrigger>
             </FormControl>
             <SelectContent>

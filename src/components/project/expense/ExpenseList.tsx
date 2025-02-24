@@ -28,7 +28,7 @@ interface ExpenseListProps {
 export function ExpenseList({ expenses, loading, showProjectName }: ExpenseListProps) {
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const totalPaid = expenses.reduce((sum, exp) => {
-    return sum + (exp.payments?.reduce((pSum, p) => pSum + p.payment_amount, 0) ?? 0);
+    return sum + (exp.payments?.reduce((pSum, p) => pSum + p.amount, 0) ?? 0);
   }, 0);
 
   if (loading) {
@@ -109,7 +109,7 @@ export function ExpenseList({ expenses, loading, showProjectName }: ExpenseListP
                     </span>
                     {expense.payments && expense.payments.length > 0 && (
                       <div className="text-sm text-green-600">
-                        Paid: ${expense.payments.reduce((sum, p) => sum + p.payment_amount, 0).toLocaleString()}
+                        Paid: ${expense.payments.reduce((sum, p) => sum + p.amount, 0).toLocaleString()}
                       </div>
                     )}
                   </div>
@@ -157,10 +157,10 @@ export function ExpenseList({ expenses, loading, showProjectName }: ExpenseListP
                                     <div className="flex items-center gap-2">
                                       <CreditCard className="h-4 w-4 text-gray-500" />
                                       <span className="font-medium">
-                                        ${payment.payment_amount.toLocaleString()}
+                                        ${payment.amount.toLocaleString()}
                                       </span>
                                       <span className="text-gray-500">
-                                        via {payment.payment_type.toUpperCase()}
+                                        via {payment.payment_method_code.toUpperCase()}
                                       </span>
                                     </div>
                                     <div className="flex items-center gap-2 text-gray-500">

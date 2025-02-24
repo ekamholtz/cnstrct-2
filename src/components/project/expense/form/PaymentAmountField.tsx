@@ -13,7 +13,7 @@ export function PaymentAmountField({ form, amountDue }: PaymentAmountFieldProps)
   return (
     <FormField
       control={form.control}
-      name="payment_amount"
+      name="amount"
       render={({ field }) => (
         <FormItem>
           <FormLabel>Payment Amount</FormLabel>

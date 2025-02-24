@@ -1,6 +1,8 @@
 
 import { z } from "zod";
-import type { Payment } from "@/components/payments/types";
+import type { Payment as BasePayment } from "@/components/payments/types";
+
+export type { Payment } from "@/components/payments/types";
 
 export const expenseFormStage1Schema = z.object({
   name: z.string().min(1, "Expense description is required"),
@@ -18,11 +20,11 @@ export const expenseFormStage1Schema = z.object({
 
 export const paymentDetailsSchema = z.object({
   payment_method_code: z.enum(["cc", "check", "transfer", "cash"], {
-    required_error: "Payment type is required",
+    required_error: "Payment method is required",
   }),
   payment_date: z.string().min(1, "Payment date is required"),
   amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Payment amount must be a positive number",
+    message: "Amount must be a positive number",
   }),
   notes: z.string().optional()
 });
@@ -47,5 +49,5 @@ export interface Expense {
   project?: {
     name: string;
   };
-  payments?: Payment[];
+  payments?: BasePayment[];
 }
