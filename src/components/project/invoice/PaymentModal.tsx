@@ -89,7 +89,7 @@ export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
           <AlertDialogDescription>
             Enter payment details for invoice #{invoice.invoice_number}
           </AlertDialogDescription>
-        </AlertHeader>
+        </AlertDialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
