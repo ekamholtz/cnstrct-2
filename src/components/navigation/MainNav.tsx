@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -71,7 +72,7 @@ export function MainNav() {
                        profile?.role === 'platform_admin' ? '/admin/projects' :
                        '/gc-projects';
 
-  const invoicesRoute = profile?.role === 'homeowner' ? '/client-invoices' : '/invoices';
+  const invoicesRoute = profile?.role === 'homeowner' ? '/client-invoices' : '/invoice';
 
   const navItems = [
     { label: "Home", path: homeRoute, icon: Home },
