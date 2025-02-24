@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -66,40 +65,45 @@ export default function ProfileCompletion() {
         }
 
         console.log("Session found, user ID:", session.user.id);
+        console.log("Full session data:", session);
 
-        // First try to get the role from user metadata
-        const userRole = session.user.user_metadata.role as UserRole;
-        console.log("Role from user metadata:", userRole);
+        // Try both approaches to get the role
+        const userMetadataRole = session.user.user_metadata?.role;
+        console.log("Role from metadata:", userMetadataRole);
 
-        if (!userRole) {
-          // If no role in metadata, try to fetch from profiles table
-          console.log("Fetching profile data...");
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("role, has_completed_profile")
-            .eq("id", session.user.id)
-            .maybeSingle();
+        // Always fetch the profile to ensure we have the latest data
+        console.log("Fetching profile data...");
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role, has_completed_profile")
+          .eq("id", session.user.id)
+          .maybeSingle();
 
-          if (profileError) {
-            console.error("Profile fetch error:", profileError);
-            throw profileError;
-          }
+        if (profileError) {
+          console.error("Profile fetch error:", profileError);
+          throw profileError;
+        }
 
-          console.log("Profile data:", profile);
+        console.log("Profile data:", profile);
 
-          if (profile?.has_completed_profile) {
-            console.log("Profile already completed, routing based on role...");
-            routeBasedOnRole(profile.role);
-            return;
-          }
+        // Use profile role if available, fallback to metadata role
+        const effectiveRole = (profile?.role || userMetadataRole) as UserRole;
+        console.log("Effective role:", effectiveRole);
 
-          if (mounted) {
-            setUserRole(profile?.role || null);
-          }
-        } else {
-          if (mounted) {
-            setUserRole(userRole);
-          }
+        if (!effectiveRole) {
+          console.error("No role found in either profile or metadata");
+          throw new Error("Unable to determine user role");
+        }
+
+        if (profile?.has_completed_profile) {
+          console.log("Profile already completed, routing based on role...");
+          routeBasedOnRole(effectiveRole);
+          return;
+        }
+
+        if (mounted) {
+          setUserRole(effectiveRole);
+          console.log("User role set to:", effectiveRole);
         }
 
       } catch (error) {
@@ -150,6 +154,8 @@ export default function ProfileCompletion() {
 
     try {
       setIsSubmitting(true);
+      console.log("Starting profile update with data:", data);
+
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -180,28 +186,12 @@ export default function ProfileCompletion() {
         throw updateError;
       }
 
-      // Verify the update was successful
-      const { data: updatedProfile, error: fetchError } = await supabase
-        .from("profiles")
-        .select("role, has_completed_profile")
-        .eq("id", session.user.id)
-        .maybeSingle();
-
-      if (fetchError) {
-        console.error("Error verifying profile update:", fetchError);
-        throw fetchError;
-      }
-
-      if (!updatedProfile?.has_completed_profile) {
-        throw new Error("Profile update did not save correctly");
-      }
-
+      console.log("Profile updated successfully");
       toast({
         title: "Profile completed successfully!",
         description: "You will now be redirected to the dashboard.",
       });
 
-      // Use the separate routing function
       routeBasedOnRole(userRole);
 
     } catch (error: any) {
