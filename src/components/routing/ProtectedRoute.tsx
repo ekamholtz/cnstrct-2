@@ -104,7 +104,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  // Prevent homeowners from accessing the GC dashboard and invoice routes
+  // Prevent homeowners from accessing GC-specific routes
   if (currentRole === 'homeowner' && 
       (window.location.pathname === '/dashboard' || window.location.pathname === '/invoices')) {
     console.log("Homeowner attempting to access GC routes, redirecting to client dashboard");
