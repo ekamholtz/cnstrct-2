@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { MainNav } from "@/components/navigation/MainNav";
@@ -10,6 +10,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const location = useLocation();
 
   useEffect(() => {
     const checkSession = async () => {
@@ -81,7 +82,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // If profile is not completed, always redirect to profile completion
-  if (hasCompletedProfile === false && window.location.pathname !== '/profile-completion') {
+  if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
     console.log("Redirecting to profile completion");
     return <Navigate to="/profile-completion" replace />;
   }
@@ -89,31 +90,36 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Get current role from user metadata if available, fallback to profile role
   const currentRole = session?.user?.user_metadata?.role || userRole;
   
-  // Only redirect to role-specific dashboard if profile is completed and user is on root path
-  if (hasCompletedProfile && window.location.pathname === '/') {
-    console.log("Redirecting based on role. Current role:", currentRole);
+  console.log("Current path:", location.pathname);
+  console.log("Current role:", currentRole);
+  console.log("Has completed profile:", hasCompletedProfile);
+
+  // If we're on the root path and the profile is completed, redirect to appropriate dashboard
+  if (hasCompletedProfile && location.pathname === '/') {
+    console.log("On root path, redirecting to appropriate dashboard");
     
-    if (currentRole === 'admin') {
-      return <Navigate to="/admin" replace />;
-    } else if (currentRole === 'homeowner') {
-      console.log("Redirecting homeowner to client dashboard");
-      return <Navigate to="/client-dashboard" replace />;
-    } else if (currentRole === 'general_contractor') {
-      console.log("Redirecting contractor to dashboard");
-      return <Navigate to="/dashboard" replace />;
+    // Don't redirect if we're trying to go somewhere else (check state)
+    if (!location.state?.navigating) {
+      if (currentRole === 'admin') {
+        return <Navigate to="/admin" replace />;
+      } else if (currentRole === 'homeowner') {
+        return <Navigate to="/client-dashboard" replace />;
+      } else if (currentRole === 'general_contractor' || currentRole === 'gc_admin') {
+        return <Navigate to="/dashboard" replace />;
+      }
     }
   }
 
   // Prevent homeowners from accessing GC-specific routes
   if (currentRole === 'homeowner' && 
-      (window.location.pathname === '/dashboard' || window.location.pathname === '/invoices')) {
+      (location.pathname === '/dashboard' || location.pathname === '/invoices')) {
     console.log("Homeowner attempting to access GC routes, redirecting to client dashboard");
     return <Navigate to="/client-dashboard" replace />;
   }
 
   // Prevent GCs from accessing client-specific routes
   if ((currentRole === 'general_contractor' || currentRole === 'gc_admin') && 
-      window.location.pathname.startsWith('/client-')) {
+      location.pathname.startsWith('/client-')) {
     console.log("GC attempting to access client pages, redirecting to GC dashboard");
     return <Navigate to="/dashboard" replace />;
   }
