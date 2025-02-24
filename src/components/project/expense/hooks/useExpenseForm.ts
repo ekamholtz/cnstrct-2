@@ -47,6 +47,7 @@ export function useExpenseForm({
         toast({
           title: "Success",
           description: "Expense saved as due",
+          variant: "default",
         });
       } else if (action === 'save_as_paid') {
         setStage1Data(data);
@@ -60,7 +61,7 @@ export function useExpenseForm({
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to save expense. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to save expense. Please try again.",
       });
     } finally {
       setIsProcessing(false);
@@ -68,13 +69,17 @@ export function useExpenseForm({
   };
 
   const handlePaymentSimulation = async (simulationData: any) => {
-    if (!stage1Data) return;
+    if (!stage1Data) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No expense data found. Please try again.",
+      });
+      return;
+    }
 
     try {
       setIsProcessing(true);
-      
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
       
       await onSubmit(stage1Data, 'paid', {
         payment_method_code: 'transfer',
@@ -88,6 +93,7 @@ export function useExpenseForm({
       setStage1Data(null);
       
       toast({
+        variant: "default",
         title: "Success",
         description: "Payment processed successfully",
       });
@@ -96,7 +102,7 @@ export function useExpenseForm({
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to process payment. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
       });
     } finally {
       setIsProcessing(false);

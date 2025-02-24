@@ -35,6 +35,11 @@ export function usePaymentDetailsForm({
     
     if (paymentAmount > amountDue) {
       setShowErrorAlert(true);
+      toast({
+        variant: "destructive",
+        title: "Invalid Amount",
+        description: `Payment amount cannot exceed ${amountDue.toFixed(2)}`,
+      });
       return;
     }
 
@@ -47,12 +52,17 @@ export function usePaymentDetailsForm({
     try {
       setIsProcessing(true);
       await onSubmit(data, false);
+      toast({
+        variant: "default",
+        title: "Success",
+        description: "Payment processed successfully",
+      });
     } catch (error) {
       console.error("Error processing payment:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to process payment. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
       });
     } finally {
       setIsProcessing(false);
@@ -60,17 +70,29 @@ export function usePaymentDetailsForm({
   };
 
   const handlePartialPaymentConfirm = async () => {
-    if (!pendingData) return;
+    if (!pendingData) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No payment data found. Please try again.",
+      });
+      return;
+    }
     
     try {
       setIsProcessing(true);
       await onSubmit(pendingData, true);
+      toast({
+        variant: "default",
+        title: "Success",
+        description: "Partial payment processed successfully",
+      });
     } catch (error) {
       console.error("Error processing partial payment:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to process partial payment. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to process partial payment. Please try again.",
       });
     } finally {
       setIsProcessing(false);
