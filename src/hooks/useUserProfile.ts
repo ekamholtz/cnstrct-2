@@ -27,7 +27,13 @@ export function useUserProfile() {
     queryFn: async (): Promise<Profile | null> => {
       console.log("Fetching user profile...");
       
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error("Session fetch error:", sessionError);
+        throw sessionError;
+      }
+      
       if (!session?.user) {
         console.log("No session found");
         return null;
@@ -36,7 +42,7 @@ export function useUserProfile() {
       console.log("Session found, fetching profile...");
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
+        .select()
         .eq("id", session.user.id)
         .maybeSingle();
 
@@ -50,10 +56,13 @@ export function useUserProfile() {
     },
     staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
     retry: 2,
+    refetchOnMount: true, // Add this to ensure we always have fresh data
+    refetchOnWindowFocus: false, // Disable refetch on window focus to prevent unnecessary requests
   });
 
   // Subscribe to auth state changes to invalidate profile cache
-  supabase.auth.onAuthStateChange(() => {
+  supabase.auth.onAuthStateChange((event, session) => {
+    console.log("Auth state changed:", event, session?.user?.id);
     queryClient.invalidateQueries({ queryKey: ["user-profile"] });
   });
 
