@@ -47,7 +47,6 @@ export function useInvoiceDetails(invoiceId: string | undefined) {
         updated_at: data.updated_at,
         milestone_id: data.milestone_id,
         project_id: data.project_id,
-        contractor_id: data.contractor_id,
         payment_method: validatePaymentMethod(data.payment_method),
         payment_date: data.payment_date,
         payment_reference: data.payment_reference,
