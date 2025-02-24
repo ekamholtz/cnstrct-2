@@ -1,6 +1,7 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ExpenseFormStage1Data, Expense, Payment, PaymentDetailsData } from "../components/project/expense/types";
+import type { ExpenseFormStage1Data, Expense, PaymentDetailsData } from "../components/project/expense/types";
 import { useToast } from "@/hooks/use-toast";
 
 export function useExpenses(projectId: string) {
@@ -21,7 +22,7 @@ export function useExpenses(projectId: string) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as (Expense & { project?: { name: string }, payments: Payment[] })[];
+      return data as (Expense & { project: { name: string }, payments: any[] })[];
     },
   });
 
@@ -35,21 +36,24 @@ export function useExpenses(projectId: string) {
 
       if (projectError) throw projectError;
 
-      const expenseData = {
+      const amount = Number(data.amount);
+
+      const newExpense = {
         name: data.name,
-        amount: Number(data.amount),
+        amount,
+        amount_due: amount,
         payee: data.payee,
         expense_date: data.expense_date,
         expense_type: data.expense_type,
-        notes: data.notes,
+        notes: data.notes || '',
         project_id: data.project_id,
         contractor_id: project.contractor_id,
-        payment_status: data.payment_status as 'due' | 'paid' | 'partially_paid'
+        payment_status: data.payment_status
       };
 
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert(expenseData)
+        .insert([newExpense])
         .select()
         .single();
 
@@ -66,33 +70,30 @@ export function useExpenses(projectId: string) {
   });
 
   const { mutateAsync: createPayment } = useMutation({
-    mutationFn: async ({ 
-      expenseId, 
-      paymentData 
-    }: { 
-      expenseId: string;
-      paymentData: PaymentDetailsData;
-    }) => {
+    mutationFn: async ({ expenseId, paymentData }: { expenseId: string; paymentData: PaymentDetailsData }) => {
       const { data: expense, error: expenseError } = await supabase
         .from('expenses')
-        .select('amount, payments(payment_amount)')
+        .select('amount, payments(amount)')
         .eq('id', expenseId)
         .single();
 
       if (expenseError) throw expenseError;
 
-      const totalPaid = (expense.payments || []).reduce((sum, p) => sum + p.payment_amount, 0);
-      const newPaymentAmount = Number(paymentData.payment_amount);
+      const totalPaid = (expense.payments || []).reduce((sum, p) => sum + p.amount, 0);
+      const newPaymentAmount = Number(paymentData.amount);
       const newTotalPaid = totalPaid + newPaymentAmount;
       const paymentStatus = newTotalPaid >= expense.amount ? 'paid' as const : 'partially_paid' as const;
 
       const { data: payment, error: paymentError } = await supabase
         .from('payments')
         .insert({
+          direction: 'outgoing',
           expense_id: expenseId,
-          payment_type: paymentData.payment_type,
+          payment_method_code: paymentData.payment_method_code,
           payment_date: paymentData.payment_date,
-          payment_amount: newPaymentAmount
+          amount: newPaymentAmount,
+          notes: paymentData.notes,
+          status: 'completed'
         })
         .select()
         .single();

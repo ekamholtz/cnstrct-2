@@ -36,7 +36,7 @@ export function PaymentsSection({ payments }: PaymentsSectionProps) {
                 Amount
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Contact Details
+                Reference
               </th>
             </tr>
           </thead>
@@ -61,7 +61,7 @@ export function PaymentsSection({ payments }: PaymentsSectionProps) {
                     state={{ from: '/expenses' }}
                     className="block"
                   >
-                    {payment.payment_type}
+                    {payment.payment_method_code}
                   </Link>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -70,7 +70,7 @@ export function PaymentsSection({ payments }: PaymentsSectionProps) {
                     state={{ from: '/expenses' }}
                     className="block"
                   >
-                    ${payment.payment_amount.toFixed(2)}
+                    ${payment.amount.toFixed(2)}
                   </Link>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -79,12 +79,7 @@ export function PaymentsSection({ payments }: PaymentsSectionProps) {
                     state={{ from: '/expenses' }}
                     className="block"
                   >
-                    {payment.vendor_email && (
-                      <div>Email: {payment.vendor_email}</div>
-                    )}
-                    {payment.vendor_phone && (
-                      <div>Phone: {payment.vendor_phone}</div>
-                    )}
+                    {payment.notes || "-"}
                   </Link>
                 </td>
               </tr>

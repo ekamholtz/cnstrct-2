@@ -77,9 +77,9 @@ export function useExpenseForm({
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       await onSubmit(stage1Data, 'paid', {
-        payment_type: 'transfer',
+        payment_method_code: 'transfer',
         payment_date: new Date().toISOString().split('T')[0],
-        payment_amount: simulationData.payment_amount,
+        amount: simulationData.amount,
       });
       
       form.reset();
