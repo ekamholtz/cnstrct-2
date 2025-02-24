@@ -1,88 +1,17 @@
 
-import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { MainNav } from "@/components/navigation/MainNav";
 import { Loader2 } from "lucide-react";
-import type { Database } from "@/integrations/supabase/types";
-
-type UserRole = Database['public']['Enums']['user_role'];
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
-  const [session, setSession] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const { profile, isLoading } = useUserProfile();
+  const currentPath = location.pathname;
 
-  useEffect(() => {
-    let mounted = true;
-
-    const checkSession = async () => {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        if (!mounted) return;
-        
-        if (currentSession) {
-          setSession(currentSession);
-
-          // Get profile data with role and completion status
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('has_completed_profile, role')
-            .eq('id', currentSession.user.id)
-            .maybeSingle();
-
-          if (!mounted) return;
-
-          if (profileError) {
-            console.error("Error fetching profile:", profileError);
-          } else if (profileData) {
-            setHasCompletedProfile(profileData.has_completed_profile);
-            setUserRole(profileData.role);
-            
-            // Get admin permission using RPC call
-            const { data: permissions } = await supabase
-              .rpc('get_user_permissions', { 
-                user_id: currentSession.user.id 
-              });
-            
-            if (mounted && permissions) {
-              setIsAdmin(permissions.some(p => p.feature_key === 'admin.access'));
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error in checkSession:", error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      if (!mounted) return;
-      
-      if (newSession !== session) {
-        setSession(newSession);
-        setLoading(true);
-        await checkSession();
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
@@ -90,51 +19,46 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!session) {
+  // If no profile, redirect to auth
+  if (!profile) {
     return <Navigate to="/auth" replace />;
   }
-
-  const currentPath = location.pathname;
-
-  // Debugging information
-  console.log("Route check:", {
-    isAdmin,
-    userRole,
-    path: currentPath,
-    hasCompletedProfile
-  });
 
   // Define a single redirect based on conditions
   let redirectTo: string | null = null;
 
-  if (hasCompletedProfile === false && currentPath !== '/profile-completion') {
-    redirectTo = '/profile-completion';
-  } else if (currentPath.startsWith('/admin') && !isAdmin) {
-    redirectTo = '/dashboard';
-  } else if (currentPath === '/client-dashboard' && userRole !== 'homeowner') {
-    // Protect client-dashboard route
-    redirectTo = '/dashboard';
-  } else if (currentPath === '/dashboard' && userRole === 'homeowner') {
-    // Redirect homeowners away from /dashboard
-    redirectTo = '/client-dashboard';
-  } else if (currentPath === '/') {
-    if (isAdmin) {
-      redirectTo = '/admin';
-    } else if (userRole === 'homeowner') {
-      redirectTo = '/client-dashboard';
-    } else if (userRole === 'gc_admin' || userRole === 'project_manager') {
-      redirectTo = '/dashboard';
+  // Special handling for /profile-completion route
+  if (currentPath === '/profile-completion') {
+    // If on profile completion page and profile is completed, redirect to appropriate dashboard
+    if (profile.has_completed_profile) {
+      redirectTo = profile.role === 'admin' ? '/admin' : 
+                  profile.role === 'homeowner' ? '/client-dashboard' : 
+                  '/dashboard';
     }
-  } else if (isAdmin && !currentPath.startsWith('/admin')) {
-    // Always redirect admins to admin routes
-    redirectTo = '/admin';
+    // If on profile completion and profile not completed, allow access
+  } else {
+    // For all other routes
+    if (!profile.has_completed_profile) {
+      // Redirect to profile completion if profile not completed
+      redirectTo = '/profile-completion';
+    } else if (currentPath.startsWith('/admin') && profile.role !== 'admin') {
+      redirectTo = '/dashboard';
+    } else if (currentPath === '/client-dashboard' && profile.role !== 'homeowner') {
+      redirectTo = '/dashboard';
+    } else if (currentPath === '/dashboard' && profile.role === 'homeowner') {
+      redirectTo = '/client-dashboard';
+    } else if (currentPath === '/') {
+      redirectTo = profile.role === 'admin' ? '/admin' :
+                  profile.role === 'homeowner' ? '/client-dashboard' :
+                  '/dashboard';
+    }
   }
 
   if (redirectTo) {
     return <Navigate to={redirectTo} replace />;
   }
 
-  const Navigation = isAdmin ? AdminNav : MainNav;
+  const Navigation = profile.role === 'admin' ? AdminNav : MainNav;
   
   return (
     <>

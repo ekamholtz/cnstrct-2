@@ -1,35 +1,76 @@
 
-import { useEffect } from "react";
-import { useProfileCompletion } from "@/hooks/useProfileCompletion";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { ProfileCompletionHeader } from "@/components/profile-completion/ProfileCompletionHeader";
 import { ProfileCompletionForm } from "@/components/profile-completion/ProfileCompletionForm";
 import { ProfileCompletionFooter } from "@/components/profile-completion/ProfileCompletionFooter";
 import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import type { Database } from "@/integrations/supabase/types";
+
+type UserRole = Database["public"]["Enums"]["user_role"];
 
 export default function ProfileCompletion() {
-  const {
-    userRole,
-    isSubmitting,
-    isLoading,
-    checkSession,
-    updateProfile
-  } = useProfileCompletion();
+  const { profile, isLoading } = useUserProfile();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  useEffect(() => {
-    let mounted = true;
+  const routeBasedOnRole = (role: UserRole) => {
+    switch (role) {
+      case 'homeowner':
+        navigate("/client-dashboard", { replace: true });
+        break;
+      case 'gc_admin':
+      case 'project_manager':
+        navigate("/dashboard", { replace: true });
+        break;
+      case 'admin':
+        navigate("/admin", { replace: true });
+        break;
+      default:
+        navigate("/dashboard", { replace: true });
+    }
+  };
 
-    const initializeProfile = async () => {
-      if (mounted) {
-        await checkSession();
-      }
-    };
+  const updateProfile = async (data: any) => {
+    if (isSubmitting || !profile?.role) return;
 
-    initializeProfile();
+    try {
+      setIsSubmitting(true);
+      console.log("Updating profile with data:", data);
 
-    return () => {
-      mounted = false;
-    };
-  }, [checkSession]);
+      const { error: updateError } = await supabase
+        .from("profiles")
+        .update({
+          ...data,
+          has_completed_profile: true,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", profile.id);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Profile completed successfully!",
+        description: "You will now be redirected to the dashboard.",
+      });
+
+      routeBasedOnRole(profile.role);
+
+    } catch (error: any) {
+      console.error("Error updating profile:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update profile. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -40,7 +81,7 @@ export default function ProfileCompletion() {
   }
 
   // Only render form for contractors and homeowners, not admins
-  if (!userRole || userRole === 'admin') {
+  if (!profile?.role || profile.role === 'admin') {
     console.log("No user role or admin role detected, rendering null");
     return null;
   }
@@ -51,7 +92,7 @@ export default function ProfileCompletion() {
         <ProfileCompletionHeader />
         
         <ProfileCompletionForm
-          userRole={userRole}
+          userRole={profile.role}
           isSubmitting={isSubmitting}
           onSubmit={updateProfile}
         />
