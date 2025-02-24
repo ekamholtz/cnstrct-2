@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,44 +44,49 @@ const AdminDashboard = () => {
     }
   });
 
-  const { data: recentActions, isLoading: actionsLoading } = useQuery<AdminAction[]>({
+  const { data: adminActions } = useQuery({
     queryKey: ['admin-actions'],
     queryFn: async () => {
-      const { data: actionsData, error } = await supabase
+      const { data, error } = await supabase
         .from('admin_actions')
         .select(`
-          id,
-          admin_id,
-          entity_type,
-          entity_id,
-          action_type,
-          details,
-          created_at,
-          admin_profile:profiles (
+          *,
+          admin_profile:admin_id(
             id,
             full_name,
-            account_status,
-            bio,
-            company_name,
-            created_at,
-            gc_account_id,
-            gc_company_id,
-            has_completed_profile,
-            license_number,
             role,
+            account_status,
+            company_name,
+            bio,
+            website,
+            license_number,
+            created_at,
             updated_at,
-            website
+            has_completed_profile,
+            gc_account_id
           )
         `)
-        .order('created_at', { ascending: false })
-        .limit(5);
+        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching admin actions:', error);
-        throw error;
-      }
+      if (error) throw error;
 
-      return (actionsData || []) as AdminAction[];
+      return (data || []).map(action => ({
+        ...action,
+        admin_profile: action.admin_profile || {
+          id: '',
+          full_name: '',
+          role: 'platform_admin',
+          account_status: '',
+          company_name: '',
+          bio: '',
+          website: '',
+          license_number: '',
+          created_at: '',
+          updated_at: '',
+          has_completed_profile: false,
+          gc_account_id: ''
+        }
+      })) as AdminAction[];
     }
   });
 
@@ -135,11 +139,9 @@ const AdminDashboard = () => {
         <div className="mt-8">
           <h2 className="text-2xl font-bold mb-4">Recent Activity</h2>
           <Card className="p-6">
-            {actionsLoading ? (
-              <p className="text-gray-500">Loading recent activity...</p>
-            ) : recentActions && recentActions.length > 0 ? (
+            {adminActions && adminActions.length > 0 ? (
               <div className="space-y-4">
-                {recentActions.map((action) => (
+                {adminActions.map((action) => (
                   <div key={action.id} className="border-b last:border-0 pb-4 last:pb-0">
                     <div className="flex justify-between items-start">
                       <div>

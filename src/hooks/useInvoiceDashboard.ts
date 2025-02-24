@@ -24,7 +24,26 @@ export function useInvoiceDashboard() {
 
       if (error) throw error;
 
-      return (data || []) as Invoice[];
+      // Transform the data to match the Invoice type
+      const transformedData = (data || []).map(invoice => ({
+        id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        amount: invoice.amount,
+        status: invoice.status,
+        created_at: invoice.created_at,
+        milestone_id: invoice.milestone_id,
+        milestone_name: invoice.milestone?.name || '',
+        project_name: invoice.milestone?.project?.name || '',
+        project_id: invoice.project_id,
+        payment_method: invoice.payment_method,
+        payment_date: invoice.payment_date,
+        payment_reference: invoice.payment_reference,
+        payment_gateway: invoice.payment_gateway,
+        simulation_data: invoice.simulation_data,
+        updated_at: invoice.updated_at
+      }));
+
+      return transformedData;
     }
   });
 }

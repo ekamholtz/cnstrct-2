@@ -14,7 +14,7 @@ interface AuthFormProps {
 }
 
 export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
-  const { loading, handleLogin, handleRegister } = useAuthForm();
+  const { isLoading, handleLogin, handleRegister } = useAuthForm();
   const { toast } = useToast();
 
   const handleForgotPassword = () => {
@@ -33,7 +33,7 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       });
       return;
     }
-    await handleRegister(values, selectedRole);
+    await handleRegister(values);
   };
 
   return (
@@ -66,14 +66,14 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       {isLogin ? (
         <LoginForm
           onSubmit={handleLogin}
-          loading={loading}
+          loading={isLoading}
           onForgotPassword={handleForgotPassword}
         />
       ) : (
         selectedRole && (
           <RegisterForm
             onSubmit={onRegisterSubmit}
-            loading={loading}
+            loading={isLoading}
             selectedRole={selectedRole}
           />
         )
