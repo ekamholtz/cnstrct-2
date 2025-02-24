@@ -70,6 +70,7 @@ export const useAuthForm = () => {
 
       console.log("Auth response:", authResponse);
 
+      // Query the profiles table to get the user's role
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('role')
@@ -81,14 +82,11 @@ export const useAuthForm = () => {
         throw profileError;
       }
 
-      if (!profileData) {
-        console.error("No profile found for user");
-        // Default to dashboard if no profile found
-        return { role: 'gc_admin' };
-      }
+      // If no profile is found, use the role from auth metadata or default to gc_admin
+      const role = profileData?.role || authResponse.user.user_metadata?.role || 'gc_admin';
+      console.log("Determined role:", role);
 
-      console.log("Profile data:", profileData);
-      return profileData;
+      return { role };
     },
     onSuccess: (data) => {
       setIsLoading(false);
@@ -97,12 +95,17 @@ export const useAuthForm = () => {
         description: "Login successful!",
       });
 
-      console.log("Navigating based on role:", data?.role);
-      if (data?.role === 'platform_admin') {
+      console.log("Navigating based on role:", data.role);
+      // Update navigation logic to handle gc_admin role correctly
+      if (data.role === 'platform_admin') {
         navigate('/admin');
-      } else if (data?.role === 'homeowner') {
+      } else if (data.role === 'homeowner') {
         navigate('/client-dashboard');
+      } else if (data.role === 'gc_admin' || data.role === 'general_contractor') {
+        navigate('/dashboard');
       } else {
+        // Default fallback
+        console.log("No specific role match, defaulting to dashboard");
         navigate('/dashboard');
       }
     },
