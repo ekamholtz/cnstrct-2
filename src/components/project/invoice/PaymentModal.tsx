@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -30,9 +31,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { PaymentFormData, PaymentModalProps } from "./types";
 import { paymentSchema } from "./schemas";
 import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+
   const form = useForm<PaymentFormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
@@ -40,10 +45,31 @@ export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
     },
   });
 
+  const markAsPaidMutation = useMutation({
+    mutationFn: async (data: PaymentFormData) => {
+      const { error } = await supabase
+        .from('invoices')
+        .update({
+          status: 'paid',
+          payment_method: data.payment_method,
+          payment_date: data.payment_date.toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', invoice.id);
+
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoice', invoice.id] });
+      queryClient.invalidateQueries({ queryKey: ['contractor-invoices'] });
+      setOpen(false);
+      form.reset();
+    },
+  });
+
   const handleSubmit = async (data: PaymentFormData) => {
-    await onSubmit(data);
-    setOpen(false);
-    form.reset();
+    await markAsPaidMutation.mutateAsync(data);
   };
 
   return (
@@ -63,7 +89,7 @@ export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
           <AlertDialogDescription>
             Enter payment details for invoice #{invoice.invoice_number}
           </AlertDialogDescription>
-        </AlertDialogHeader>
+        </AlertHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <FormField
