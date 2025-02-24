@@ -99,7 +99,31 @@ export function useInvoices(projectId: string) {
         payment_date
       });
 
-      const { error } = await supabase
+      // Get invoice details first
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('id', invoiceId)
+        .single();
+
+      if (invoiceError) throw invoiceError;
+
+      // Create payment record
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          invoice_id: invoiceId,
+          amount: invoice.amount,
+          direction: 'incoming',
+          payment_method_code: payment_method,
+          payment_date: payment_date.toISOString(),
+          status: 'completed'
+        });
+
+      if (paymentError) throw paymentError;
+
+      // Update invoice status
+      const { error: updateError } = await supabase
         .from('invoices')
         .update({
           status: 'paid',
@@ -110,13 +134,11 @@ export function useInvoices(projectId: string) {
         .eq('id', invoiceId)
         .single();
 
-      if (error) {
-        console.error('Error marking invoice as paid:', error);
-        throw error;
-      }
+      if (updateError) throw updateError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-invoices', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] }); // Invalidate payments query
       toast({
         title: "Success",
         description: "Invoice has been marked as paid",
