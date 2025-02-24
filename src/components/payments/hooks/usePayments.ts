@@ -1,18 +1,19 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Payment, PaymentFilters, CreatePaymentData } from "../types";
 import { useToast } from "@/hooks/use-toast";
+import type { PaymentFilters, Payment } from "../types";
 
-export function usePayments(filters: PaymentFilters) {
-  const queryClient = useQueryClient();
+export function usePayments() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Fetch payments with filters
   const { data: payments, isLoading } = useQuery({
-    queryKey: ['payments', filters],
+    queryKey: ['payments'],
     queryFn: async () => {
-      let query = supabase
+      console.log('Fetching payments');
+      
+      const { data, error } = await supabase
         .from('payments')
         .select(`
           *,
@@ -29,73 +30,90 @@ export function usePayments(filters: PaymentFilters) {
               name
             )
           )
-        `);
+        `)
+        .order('payment_date', { ascending: false });
 
-      // Apply filters
-      if (filters.direction) {
-        query = query.eq('direction', filters.direction);
-      }
-      if (filters.status) {
-        query = query.eq('status', filters.status);
-      }
-      if (filters.paymentMethodCode) {
-        query = query.eq('payment_method_code', filters.paymentMethodCode);
-      }
-      if (filters.dateRange.from) {
-        query = query.gte('payment_date', filters.dateRange.from.toISOString());
-      }
-      if (filters.dateRange.to) {
-        query = query.lte('payment_date', filters.dateRange.to.toISOString());
+      if (error) {
+        console.error('Error fetching payments:', error);
+        throw error;
       }
 
-      const { data, error } = await query;
-      
-      if (error) throw error;
       return data as Payment[];
     },
   });
 
-  // Create new payment
   const createPayment = useMutation({
-    mutationFn: async (data: CreatePaymentData) => {
-      const { error } = await supabase
-        .from('payments')
-        .insert([{
-          ...data,
-          direction: data.invoice_id ? 'incoming' : 'outgoing',
-          status: 'completed' // For now, we'll mark it as completed immediately
-        }]);
+    mutationFn: async ({
+      invoice_id,
+      amount,
+      payment_method_code,
+      payment_date,
+      notes
+    }: {
+      invoice_id: string;
+      amount: number;
+      payment_method_code: string;
+      payment_date: Date;
+      notes?: string;
+    }) => {
+      console.log('Creating payment record:', {
+        invoice_id,
+        amount,
+        payment_method_code,
+        payment_date
+      });
 
-      if (error) throw error;
+      // Create payment record
+      const { error: paymentError } = await supabase
+        .from('payments')
+        .insert({
+          invoice_id,
+          amount,
+          direction: 'incoming',
+          payment_method_code,
+          payment_date: payment_date.toISOString(),
+          status: 'completed',
+          notes
+        });
+
+      if (paymentError) {
+        console.error('Error creating payment:', paymentError);
+        throw paymentError;
+      }
+
+      // Update invoice status
+      const { error: updateError } = await supabase
+        .from('invoices')
+        .update({
+          status: 'paid',
+          payment_method: payment_method_code,
+          payment_date: payment_date.toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', invoice_id)
+        .single();
+
+      if (updateError) {
+        console.error('Error updating invoice:', updateError);
+        throw updateError;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['project-invoices'] });
       toast({
         title: "Success",
-        description: "Payment recorded successfully",
+        description: "Payment record has been created",
+        variant: "default",
       });
     },
     onError: (error) => {
-      console.error('Error creating payment:', error);
+      console.error('Error in createPayment mutation:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to record payment. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create payment record. Please try again.",
       });
-    },
-  });
-
-  // Get payment methods
-  const { data: paymentMethods } = useQuery({
-    queryKey: ['payment-methods'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('supported_payment_methods')
-        .select('*')
-        .eq('is_active', true);
-
-      if (error) throw error;
-      return data;
     },
   });
 
@@ -103,6 +121,5 @@ export function usePayments(filters: PaymentFilters) {
     payments,
     isLoading,
     createPayment: createPayment.mutateAsync,
-    paymentMethods,
   };
 }
