@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
@@ -43,13 +44,13 @@ export function useInvoices(projectId: string) {
         milestone_name: invoice.milestone?.name || '',
         project_name: invoice.milestone?.project?.name || '',
         project_id: invoice.project_id,
-        payment_method: invoice.payment_method,
+        payment_method: invoice.payment_method as Invoice['payment_method'],
         payment_date: invoice.payment_date,
         payment_reference: invoice.payment_reference,
         payment_gateway: invoice.payment_gateway,
         simulation_data: invoice.simulation_data,
         updated_at: invoice.updated_at
-      }));
+      })) as Invoice[];
 
       return transformedData;
     },
