@@ -406,6 +406,7 @@ export type Database = {
       profiles: {
         Row: {
           account_status: string
+          address: string | null
           bio: string | null
           company_name: string | null
           created_at: string | null
@@ -420,6 +421,7 @@ export type Database = {
         }
         Insert: {
           account_status?: string
+          address?: string | null
           bio?: string | null
           company_name?: string | null
           created_at?: string | null
@@ -434,6 +436,7 @@ export type Database = {
         }
         Update: {
           account_status?: string
+          address?: string | null
           bio?: string | null
           company_name?: string | null
           created_at?: string | null
