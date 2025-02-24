@@ -28,6 +28,15 @@ export function useInvoiceDetails(invoiceId: string | undefined) {
 
       if (error) throw error;
 
+      // Helper function to validate payment method
+      const validatePaymentMethod = (method: string | null): "cc" | "check" | "transfer" | "cash" | null => {
+        if (!method) return null;
+        if (["cc", "check", "transfer", "cash"].includes(method)) {
+          return method as "cc" | "check" | "transfer" | "cash";
+        }
+        return null;
+      };
+
       // Transform the data to match the Invoice type
       const transformedData: Invoice = {
         id: data.id,
@@ -39,7 +48,7 @@ export function useInvoiceDetails(invoiceId: string | undefined) {
         milestone_id: data.milestone_id,
         project_id: data.project_id,
         contractor_id: data.contractor_id,
-        payment_method: data.payment_method,
+        payment_method: validatePaymentMethod(data.payment_method),
         payment_date: data.payment_date,
         payment_reference: data.payment_reference,
         payment_gateway: data.payment_gateway,
