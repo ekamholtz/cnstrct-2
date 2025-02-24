@@ -15,8 +15,8 @@ export type Database = {
           end_date: string | null
           gc_account_id: string | null
           id: string
-          start_date: string
-          status: Database["public"]["Enums"]["subscription_status"]
+          start_date: string | null
+          status: Database["public"]["Enums"]["subscription_status"] | null
           tier_id: string | null
           updated_at: string | null
         }
@@ -25,8 +25,8 @@ export type Database = {
           end_date?: string | null
           gc_account_id?: string | null
           id?: string
-          start_date?: string
-          status?: Database["public"]["Enums"]["subscription_status"]
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
           tier_id?: string | null
           updated_at?: string | null
         }
@@ -35,19 +35,12 @@ export type Database = {
           end_date?: string | null
           gc_account_id?: string | null
           id?: string
-          start_date?: string
-          status?: Database["public"]["Enums"]["subscription_status"]
+          start_date?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
           tier_id?: string | null
           updated_at?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "account_subscriptions_gc_account_id_fkey"
-            columns: ["gc_account_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "account_subscriptions_tier_id_fkey"
             columns: ["tier_id"]
@@ -61,7 +54,7 @@ export type Database = {
         Row: {
           action_type: string
           admin_id: string
-          created_at: string
+          created_at: string | null
           details: Json | null
           entity_id: string
           entity_type: string
@@ -70,7 +63,7 @@ export type Database = {
         Insert: {
           action_type: string
           admin_id: string
-          created_at?: string
+          created_at?: string | null
           details?: Json | null
           entity_id: string
           entity_type: string
@@ -79,7 +72,7 @@ export type Database = {
         Update: {
           action_type?: string
           admin_id?: string
-          created_at?: string
+          created_at?: string | null
           details?: Json | null
           entity_id?: string
           entity_type?: string
@@ -111,32 +104,32 @@ export type Database = {
       clients: {
         Row: {
           address: string
-          created_at: string
+          created_at: string | null
           email: string
           id: string
           name: string
           phone_number: string | null
-          updated_at: string
+          updated_at: string | null
           user_id: string | null
         }
         Insert: {
           address: string
-          created_at?: string
+          created_at?: string | null
           email: string
           id?: string
           name: string
           phone_number?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Update: {
           address?: string
-          created_at?: string
+          created_at?: string | null
           email?: string
           id?: string
           name?: string
           phone_number?: string | null
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string | null
         }
         Relationships: []
@@ -146,46 +139,46 @@ export type Database = {
           amount: number
           amount_due: number
           contractor_id: string
-          created_at: string
+          created_at: string | null
           expense_date: string
-          expense_type: Database["public"]["Enums"]["expense_type"]
+          expense_type: Database["public"]["Enums"]["expense_type"] | null
           id: string
           name: string
           notes: string | null
           payee: string
-          payment_status: Database["public"]["Enums"]["payment_status"]
+          payment_status: Database["public"]["Enums"]["payment_status"] | null
           project_id: string
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           amount: number
           amount_due?: number
           contractor_id: string
-          created_at?: string
+          created_at?: string | null
           expense_date: string
-          expense_type?: Database["public"]["Enums"]["expense_type"]
+          expense_type?: Database["public"]["Enums"]["expense_type"] | null
           id?: string
           name: string
           notes?: string | null
           payee: string
-          payment_status?: Database["public"]["Enums"]["payment_status"]
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           project_id: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           amount?: number
           amount_due?: number
           contractor_id?: string
-          created_at?: string
+          created_at?: string | null
           expense_date?: string
-          expense_type?: Database["public"]["Enums"]["expense_type"]
+          expense_type?: Database["public"]["Enums"]["expense_type"] | null
           id?: string
           name?: string
           notes?: string | null
           payee?: string
-          payment_status?: Database["public"]["Enums"]["payment_status"]
+          payment_status?: Database["public"]["Enums"]["payment_status"] | null
           project_id?: string
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -197,152 +190,54 @@ export type Database = {
           },
         ]
       }
-      gc_companies: {
-        Row: {
-          address: string | null
-          company_name: string
-          contact_email: string | null
-          contact_phone: string | null
-          created_at: string
-          id: string
-          updated_at: string
-        }
-        Insert: {
-          address?: string | null
-          company_name: string
-          contact_email?: string | null
-          contact_phone?: string | null
-          created_at?: string
-          id?: string
-          updated_at?: string
-        }
-        Update: {
-          address?: string | null
-          company_name?: string
-          contact_email?: string | null
-          contact_phone?: string | null
-          created_at?: string
-          id?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      homeowners: {
-        Row: {
-          address: string | null
-          created_at: string | null
-          id: string
-          phone: string | null
-          profile_id: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          address?: string | null
-          created_at?: string | null
-          id?: string
-          phone?: string | null
-          profile_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          address?: string | null
-          created_at?: string | null
-          id?: string
-          phone?: string | null
-          profile_id?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "homeowners_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      invitation_logs: {
-        Row: {
-          created_at: string | null
-          details: Json | null
-          event_type: string
-          id: string
-          invited_by: string | null
-          profile_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          details?: Json | null
-          event_type: string
-          id?: string
-          invited_by?: string | null
-          profile_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          details?: Json | null
-          event_type?: string
-          id?: string
-          invited_by?: string | null
-          profile_id?: string | null
-        }
-        Relationships: []
-      }
       invoices: {
         Row: {
           amount: number
           contractor_id: string
-          created_at: string
+          created_at: string | null
           id: string
           invoice_number: string
           milestone_id: string
           payment_date: string | null
           payment_gateway: string | null
           payment_method: string | null
-          payment_method_type: string | null
           payment_reference: string | null
           project_id: string
           simulation_data: Json | null
-          status: Database["public"]["Enums"]["invoice_status"]
-          updated_at: string
+          status: Database["public"]["Enums"]["invoice_status"] | null
+          updated_at: string | null
         }
         Insert: {
           amount: number
           contractor_id: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           invoice_number: string
           milestone_id: string
           payment_date?: string | null
           payment_gateway?: string | null
           payment_method?: string | null
-          payment_method_type?: string | null
           payment_reference?: string | null
           project_id: string
           simulation_data?: Json | null
-          status?: Database["public"]["Enums"]["invoice_status"]
-          updated_at?: string
+          status?: Database["public"]["Enums"]["invoice_status"] | null
+          updated_at?: string | null
         }
         Update: {
           amount?: number
           contractor_id?: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           invoice_number?: string
           milestone_id?: string
           payment_date?: string | null
           payment_gateway?: string | null
           payment_method?: string | null
-          payment_method_type?: string | null
           payment_reference?: string | null
           project_id?: string
           simulation_data?: Json | null
-          status?: Database["public"]["Enums"]["invoice_status"]
-          updated_at?: string
+          status?: Database["public"]["Enums"]["invoice_status"] | null
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -364,33 +259,33 @@ export type Database = {
       milestones: {
         Row: {
           amount: number
-          created_at: string
+          created_at: string | null
           description: string | null
           id: string
           name: string
           project_id: string
           status: Database["public"]["Enums"]["milestone_status"] | null
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           amount: number
-          created_at?: string
+          created_at?: string | null
           description?: string | null
           id?: string
           name: string
           project_id: string
           status?: Database["public"]["Enums"]["milestone_status"] | null
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           amount?: number
-          created_at?: string
+          created_at?: string | null
           description?: string | null
           id?: string
           name?: string
           project_id?: string
           status?: Database["public"]["Enums"]["milestone_status"] | null
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
@@ -404,38 +299,38 @@ export type Database = {
       }
       payments: {
         Row: {
-          created_at: string
+          created_at: string | null
           expense_id: string
           id: string
           payment_amount: number
           payment_date: string
           payment_type: Database["public"]["Enums"]["expense_payment_method"]
           simulation_data: Json | null
-          updated_at: string
+          updated_at: string | null
           vendor_email: string | null
           vendor_phone: string | null
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           expense_id: string
           id?: string
           payment_amount: number
           payment_date: string
           payment_type: Database["public"]["Enums"]["expense_payment_method"]
           simulation_data?: Json | null
-          updated_at?: string
+          updated_at?: string | null
           vendor_email?: string | null
           vendor_phone?: string | null
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           expense_id?: string
           id?: string
           payment_amount?: number
           payment_date?: string
           payment_type?: Database["public"]["Enums"]["expense_payment_method"]
           simulation_data?: Json | null
-          updated_at?: string
+          updated_at?: string | null
           vendor_email?: string | null
           vendor_phone?: string | null
         }
@@ -449,196 +344,94 @@ export type Database = {
           },
         ]
       }
-      permissions: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          feature_key: string
-          id: string
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          feature_key: string
-          id?: string
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          feature_key?: string
-          id?: string
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
       profiles: {
         Row: {
           account_status: string
           bio: string | null
           company_name: string | null
-          created_at: string
+          created_at: string | null
           full_name: string
           gc_account_id: string | null
-          gc_company_id: string | null
           has_completed_profile: boolean | null
           id: string
           license_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
-          updated_at: string
+          updated_at: string | null
           website: string | null
         }
         Insert: {
           account_status?: string
           bio?: string | null
           company_name?: string | null
-          created_at?: string
-          full_name?: string
+          created_at?: string | null
+          full_name: string
           gc_account_id?: string | null
-          gc_company_id?: string | null
           has_completed_profile?: boolean | null
           id: string
           license_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
-          updated_at?: string
+          updated_at?: string | null
           website?: string | null
         }
         Update: {
           account_status?: string
           bio?: string | null
           company_name?: string | null
-          created_at?: string
+          created_at?: string | null
           full_name?: string
           gc_account_id?: string | null
-          gc_company_id?: string | null
           has_completed_profile?: boolean | null
           id?: string
           license_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
-          updated_at?: string
+          updated_at?: string | null
           website?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "profiles_gc_account_id_fkey"
-            columns: ["gc_account_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "profiles_gc_company_id_fkey"
-            columns: ["gc_company_id"]
-            isOneToOne: false
-            referencedRelation: "gc_companies"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       projects: {
         Row: {
           address: string
           client_id: string | null
           contractor_id: string
-          created_at: string
+          created_at: string | null
           id: string
           name: string
           pm_user_id: string | null
           status: Database["public"]["Enums"]["project_status"]
-          updated_at: string
+          updated_at: string | null
         }
         Insert: {
           address: string
           client_id?: string | null
           contractor_id: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           name: string
           pm_user_id?: string | null
           status: Database["public"]["Enums"]["project_status"]
-          updated_at?: string
+          updated_at?: string | null
         }
         Update: {
           address?: string
           client_id?: string | null
           contractor_id?: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           name?: string
           pm_user_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
-          updated_at?: string
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "fk_client"
+            foreignKeyName: "projects_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
-      }
-      role_permissions: {
-        Row: {
-          created_at: string | null
-          permission_id: string
-          role_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          permission_id: string
-          role_id: string
-        }
-        Update: {
-          created_at?: string | null
-          permission_id?: string
-          role_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "role_permissions_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "permissions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "role_permissions_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      roles: {
-        Row: {
-          created_at: string | null
-          description: string | null
-          id: string
-          name: string
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name: string
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          description?: string | null
-          id?: string
-          name?: string
-          updated_at?: string | null
-        }
-        Relationships: []
       }
       subscription_tiers: {
         Row: {
@@ -688,50 +481,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "tier_features_permission_id_fkey"
-            columns: ["permission_id"]
-            isOneToOne: false
-            referencedRelation: "permissions"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "tier_features_tier_id_fkey"
             columns: ["tier_id"]
             isOneToOne: false
             referencedRelation: "subscription_tiers"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      user_roles: {
-        Row: {
-          created_at: string | null
-          role_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          role_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          role_id?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "user_roles_role_id_fkey"
-            columns: ["role_id"]
-            isOneToOne: false
-            referencedRelation: "roles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "user_roles_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -770,27 +523,6 @@ export type Database = {
             }
             Returns: string
           }
-      get_project_invoices: {
-        Args: {
-          p_id: string
-        }
-        Returns: {
-          id: string
-          invoice_number: string
-          amount: number
-          status: Database["public"]["Enums"]["invoice_status"]
-          created_at: string
-          updated_at: string
-          payment_method: string
-          payment_date: string
-          payment_reference: string
-          payment_gateway: string
-          milestone_id: string
-          milestone_name: string
-          project_name: string
-          project_id: string
-        }[]
-      }
       get_user_permissions: {
         Args: {
           user_id: string
@@ -798,37 +530,6 @@ export type Database = {
         Returns: {
           feature_key: string
         }[]
-      }
-      get_user_profile: {
-        Args: {
-          user_id: string
-        }
-        Returns: {
-          account_status: string
-          bio: string | null
-          company_name: string | null
-          created_at: string
-          full_name: string
-          gc_account_id: string | null
-          gc_company_id: string | null
-          has_completed_profile: boolean | null
-          id: string
-          license_number: string | null
-          role: Database["public"]["Enums"]["user_role"] | null
-          updated_at: string
-          website: string | null
-        }[]
-      }
-      handle_user_invitation: {
-        Args: {
-          inviter_id: string
-          user_email: string
-          user_full_name: string
-          user_phone: string
-          user_role: Database["public"]["Enums"]["user_role"]
-          invite_expires_in?: unknown
-        }
-        Returns: string
       }
       has_permission: {
         Args: {
@@ -889,7 +590,7 @@ export type Database = {
       payment_status: "due" | "partially_paid" | "paid"
       project_status: "draft" | "active" | "completed" | "cancelled"
       subscription_status: "active" | "cancelled" | "past_due" | "trialing"
-      user_role: "admin" | "gc_admin" | "project_manager" | "homeowner"
+      user_role: "platform_admin" | "gc_admin" | "project_manager" | "homeowner"
     }
     CompositeTypes: {
       [_ in never]: never

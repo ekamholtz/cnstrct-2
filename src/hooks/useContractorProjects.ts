@@ -20,10 +20,25 @@ export function useContractorProjects() {
 
       console.log('Fetching projects for user:', user.id);
 
-      // Simplified query that relies on RLS policy
+      // Query relies on RLS policy to filter projects
       const { data: projects, error: projectsError } = await supabase
         .from('projects')
-        .select('*, clients(*)')
+        .select(`
+          *,
+          clients (
+            id,
+            name,
+            email,
+            address,
+            phone_number
+          ),
+          milestones (
+            id,
+            name,
+            amount,
+            status
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (projectsError) {
