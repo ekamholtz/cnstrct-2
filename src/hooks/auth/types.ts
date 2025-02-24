@@ -6,4 +6,3 @@ export type UseAuthReturn = {
   handleLogin: (values: LoginFormData) => Promise<void>;
   handleRegister: (values: RegisterFormData, selectedRole: 'homeowner' | 'gc_admin') => Promise<void>;
 };
-

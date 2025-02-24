@@ -5,13 +5,16 @@ import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { createProfile } from "@/utils/authUtils";
 import type { RegisterFormData } from "@/components/auth/authSchemas";
+import type { Database } from "@/integrations/supabase/types";
+
+type UserRole = Database['public']['Enums']['user_role'];
 
 export const useRegister = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleRegister = async (values: RegisterFormData, selectedRole: 'homeowner' | 'gc_admin') => {
+  const handleRegister = async (values: RegisterFormData, selectedRole: UserRole) => {
     setLoading(true);
     try {
       console.log("Starting registration with:", {
@@ -26,7 +29,6 @@ export const useRegister = () => {
         options: {
           data: {
             full_name: values.fullName,
-            // The role should match exactly with the user_role enum in the database
             role: selectedRole,
           },
           emailRedirectTo: `${window.location.origin}/auth`
