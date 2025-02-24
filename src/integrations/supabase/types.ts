@@ -751,6 +751,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      check_is_gc_admin_no_recursion: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       generate_invoice_number:
         | {
             Args: Record<PropertyKey, never>
