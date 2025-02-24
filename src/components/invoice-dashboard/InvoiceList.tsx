@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -12,17 +12,29 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const InvoiceList = () => {
-  const { data: invoices, isLoading } = useQuery({
-    queryKey: ['invoices'],
+  const { toast } = useToast();
+
+  const { data: invoices, isLoading, error } = useQuery({
+    queryKey: ['contractor-invoices'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
       const { data, error } = await supabase
         .from('invoices')
-        .select('*')
+        .select(`
+          *,
+          milestone:milestone_id (
+            name,
+            project:project_id (
+              name
+            )
+          )
+        `)
         .eq('contractor_id', user.id)
         .order('created_at', { ascending: false });
 
@@ -31,10 +43,24 @@ export const InvoiceList = () => {
     },
   });
 
+  // Handle error with useEffect to avoid render issues
+  useEffect(() => {
+    if (error) {
+      console.error('Error fetching invoices:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load invoices. Please try again.",
+      });
+    }
+  }, [error, toast]);
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="space-y-3">
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
+        <Skeleton className="h-20 w-full" />
       </div>
     );
   }
@@ -45,6 +71,8 @@ export const InvoiceList = () => {
         <TableHeader>
           <TableRow>
             <TableHead>Invoice Number</TableHead>
+            <TableHead>Project</TableHead>
+            <TableHead>Milestone</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Amount</TableHead>
             <TableHead>Status</TableHead>
@@ -54,6 +82,8 @@ export const InvoiceList = () => {
           {invoices?.map((invoice) => (
             <TableRow key={invoice.id}>
               <TableCell>{invoice.invoice_number}</TableCell>
+              <TableCell>{invoice.milestone?.project?.name}</TableCell>
+              <TableCell>{invoice.milestone?.name}</TableCell>
               <TableCell>
                 {format(new Date(invoice.created_at), 'MMM dd, yyyy')}
               </TableCell>
