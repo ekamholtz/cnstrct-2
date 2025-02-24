@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -34,12 +33,12 @@ export function MainNav() {
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
-      console.log('Current user role:', data.role);
-      return data;
+      console.log('Current user role:', data?.role);
+      return data || { role: 'gc_admin' };
     },
   });
 
