@@ -9,7 +9,7 @@ import type { LoginFormData, RegisterFormData } from "./authSchemas";
 
 interface AuthFormProps {
   isLogin: boolean;
-  selectedRole: "gc_admin" | "homeowner" | null;
+  selectedRole: "general_contractor" | "homeowner" | null;
   onBack: () => void;
 }
 
@@ -58,7 +58,7 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
           {isLogin
             ? "Sign in to your account"
             : `Register as a ${
-                selectedRole === "gc_admin" ? "General Contractor" : "Homeowner"
+                selectedRole === "general_contractor" ? "General Contractor" : "Homeowner"
               }`}
         </p>
       </div>

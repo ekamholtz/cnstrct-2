@@ -1,169 +1,235 @@
 
-import { useState, useEffect } from "react"; // Added useEffect import
-import { useQuery } from "@tanstack/react-query";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form } from "@/components/ui/form";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { CommonFormFields } from "./components/CommonFormFields";
-import { ContractorFormFields } from "./components/ContractorFormFields";
-import { profileSchema, type ProfileFormValues } from "./types";
-import type { Homeowner } from "@/types/homeowner";
-import type { Database } from "@/integrations/supabase/types";
+import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+
+const profileSchema = z.object({
+  full_name: z.string().min(1, "Full name is required"),
+  address: z.string().min(1, "Address is required"),
+  phone_number: z.string().optional(),
+  bio: z.string().optional(),
+  company_name: z.string().optional(),
+  license_number: z.string().optional(),
+  website: z.string().url().optional().or(z.literal("")),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 interface HomeownerProfileFormProps {
   profile: any;
-  isEditing?: boolean; // Added isEditing prop
-  onCancel?: () => void; // Added onCancel prop
-  onSave?: () => void; // Added onSave prop
+  isEditing: boolean;
+  onCancel: () => void;
+  onSave: () => void;
 }
 
-export function HomeownerProfileForm({ 
-  profile, 
-  isEditing = false,
-  onCancel,
-  onSave
-}: HomeownerProfileFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: HomeownerProfileFormProps) {
   const { toast } = useToast();
-  const [userRole, setUserRole] = useState<string>('');
-
-  // Get user role on mount
-  useEffect(() => {
-    const getUserRole = async () => {
+  const { data: userRole } = useQuery({
+    queryKey: ['user-role'],
+    queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', user.id)
-          .single();
-        if (data) {
-          setUserRole(data.role);
-        }
-      }
-    };
-    getUserRole();
-  }, []);
+      if (!user) throw new Error('No user found');
 
-  // Initialize form with profile data
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data.role;
+    },
+  });
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       full_name: profile.full_name || "",
+      address: profile.address || "",
+      phone_number: profile.phone_number || "",
+      bio: profile.bio || "",
       company_name: profile.company_name || "",
       license_number: profile.license_number || "",
-      phone_number: "",
-      address: "",
       website: profile.website || "",
-      bio: profile.bio || "",
     },
   });
-
-  // Fetch homeowner data if applicable
-  const { data: homeownerData } = useQuery({
-    queryKey: ['homeowner-profile', profile.id],
-    queryFn: async () => {
-      if (userRole !== 'homeowner') return null;
-
-      const { data, error } = await supabase
-        .from('homeowners')
-        .select('*')
-        .eq('profile_id', profile.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as Homeowner | null;
-    },
-    enabled: userRole === 'homeowner'
-  });
-
-  // Update form when homeowner data is loaded
-  useEffect(() => {
-    if (homeownerData) {
-      form.setValue("address", homeownerData.address || "");
-      form.setValue("phone_number", homeownerData.phone || "");
-    }
-  }, [homeownerData, form]);
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      setIsSubmitting(true);
+      const { error } = await supabase
+        .from("profiles")
+        .update(data)
+        .eq("id", profile.id);
 
-      // Update profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: data.full_name,
-          company_name: data.company_name,
-          license_number: data.license_number,
-          website: data.website,
-          bio: data.bio,
-          has_completed_profile: true,
-        })
-        .eq('id', profile.id);
-
-      if (profileError) throw profileError;
-
-      // Update homeowner data if applicable
-      if (userRole === 'homeowner') {
-        const homeownerUpdate: Database['public']['Tables']['homeowners']['Insert'] = {
-          address: data.address,
-          phone: data.phone_number,
-          profile_id: profile.id,
-          user_id: profile.id
-        };
-
-        if (homeownerData) {
-          const { error: homeownerError } = await supabase
-            .from('homeowners')
-            .update(homeownerUpdate)
-            .eq('profile_id', profile.id);
-
-          if (homeownerError) throw homeownerError;
-        } else {
-          const { error: homeownerError } = await supabase
-            .from('homeowners')
-            .insert([homeownerUpdate]);
-
-          if (homeownerError) throw homeownerError;
-        }
-      }
+      if (error) throw error;
 
       toast({
-        title: "Success",
-        description: "Your profile has been updated.",
+        title: "Profile updated",
+        description: "Your profile has been successfully updated.",
       });
 
-      onSave?.();
+      onSave();
     } catch (error: any) {
-      console.error('Error updating profile:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: error.message || "Failed to update profile",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
+  const renderField = (label: string, value: string) => (
+    <div className="mb-4">
+      <div className="text-sm font-medium text-gray-500 mb-1">{label}</div>
+      <div className="text-gray-900">{value || "Not provided"}</div>
+    </div>
+  );
+
+  if (!isEditing) {
+    return (
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {renderField("Full Name", profile.full_name)}
+          {renderField("Email", profile.email)}
+          {renderField("Phone Number", profile.phone_number)}
+          {renderField("Address", profile.address)}
+          {userRole === "general_contractor" && (
+            <>
+              {renderField("Company Name", profile.company_name)}
+              {renderField("License Number", profile.license_number)}
+              {renderField("Website", profile.website)}
+            </>
+          )}
+          {renderField("About", profile.bio)}
+          {renderField("Member Since", profile.join_date ? format(new Date(profile.join_date), 'MMMM dd, yyyy') : 'Not available')}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <CommonFormFields form={form} profile={profile} />
-        {userRole !== 'homeowner' && <ContractorFormFields form={form} />}
-        <div className="flex justify-end gap-4">
-          {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="bg-white shadow rounded-lg p-6 space-y-6">
+        <FormField
+          control={form.control}
+          name="full_name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Full Name*</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : "Save Profile"}
+        />
+
+        <div className="space-y-2">
+          <FormLabel>Email</FormLabel>
+          <Input value={profile.email} disabled />
+        </div>
+
+        <FormField
+          control={form.control}
+          name="phone_number"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone Number</FormLabel>
+              <FormControl>
+                <Input {...field} type="tel" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="address"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Address*</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        {userRole === "general_contractor" && (
+          <>
+            <FormField
+              control={form.control}
+              name="company_name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Name</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="license_number"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>License Number</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="url" placeholder="https://" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </>
+        )}
+
+        <FormField
+          control={form.control}
+          name="bio"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>About</FormLabel>
+              <FormControl>
+                <Textarea {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end space-x-4 pt-4">
+          <Button type="button" variant="outline" onClick={onCancel}>
+            Cancel
           </Button>
+          <Button type="submit">Save Changes</Button>
         </div>
       </form>
     </Form>

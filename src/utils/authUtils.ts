@@ -62,7 +62,7 @@ export const createProfile = async (userId: string, fullName: string, role: User
       .from('profiles')
       .select()
       .eq('id', userId)
-      .single();
+      .maybeSingle();
 
     if (checkError) {
       console.error("Error checking existing profile:", checkError);
@@ -96,6 +96,29 @@ export const createProfile = async (userId: string, fullName: string, role: User
     return newProfile;
   } catch (error) {
     console.error("Unexpected error in createProfile:", error);
+    throw error;
+  }
+};
+
+export const fetchUserProfile = async (userId: string) => {
+  console.log("Fetching profile for user:", userId);
+  
+  try {
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
+      throw profileError;
+    }
+
+    console.log("Profile fetch result:", { profile, userId });
+    return profile;
+  } catch (error) {
+    console.error("Unexpected error in fetchUserProfile:", error);
     throw error;
   }
 };

@@ -20,4 +20,5 @@ export const registerSchema = z
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
-export type UserRole = 'admin' | 'gc_admin' | 'project_manager' | 'homeowner';
+export type UserRole = "general_contractor" | "homeowner" | "admin";
+

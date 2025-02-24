@@ -19,6 +19,5 @@ export interface ClientProject {
   client_id?: string;
   created_at: string;
   updated_at: string;
-  pm_user_id?: string;
-  milestones: Milestone[];
+  milestones?: Milestone[];
 }

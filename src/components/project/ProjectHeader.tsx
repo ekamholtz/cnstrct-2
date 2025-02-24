@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Building2, Edit } from "lucide-react";
@@ -15,6 +16,7 @@ interface ProjectHeaderProps {
 export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) {
   const [showEditForm, setShowEditForm] = useState(false);
 
+  // Fetch user role
   const { data: userRole } = useQuery({
     queryKey: ['userRole'],
     queryFn: async () => {
@@ -31,6 +33,7 @@ export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) 
     }
   });
 
+  // Fetch project data including milestones
   const { data: projectData, refetch } = useQuery({
     queryKey: ['project-edit', projectId],
     queryFn: async () => {
@@ -59,9 +62,10 @@ export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) 
     refetch();
   };
 
-  const isGeneralContractor = userRole === 'gc_admin';
+  const isGeneralContractor = userRole === 'general_contractor';
   const isAdmin = userRole === 'admin';
 
+  // Determine the back link based on user role
   const backLink = isAdmin ? '/admin/projects' : '/dashboard';
 
   return (

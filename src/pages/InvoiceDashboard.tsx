@@ -48,7 +48,6 @@ export default function InvoiceDashboard() {
     },
   });
 
-  const isContractor = profile?.role === 'gc_admin';
   const dashboardRoute = profile?.role === 'homeowner' ? '/client-dashboard' : '/dashboard';
 
   return (
@@ -64,7 +63,7 @@ export default function InvoiceDashboard() {
             </Link>
           </div>
 
-          {profile?.role === 'gc_admin' ? (
+          {profile?.role === 'general_contractor' ? (
             <div className="space-y-1">
               <p className="text-xl font-bold text-gray-700">{profile?.company_name || profile?.full_name}</p>
               <h1 className="text-2xl font-bold text-gray-900">Invoice Management</h1>

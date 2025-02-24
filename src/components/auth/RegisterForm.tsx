@@ -15,7 +15,7 @@ import { registerSchema, type RegisterFormData } from "./authSchemas";
 interface RegisterFormProps {
   onSubmit: (values: RegisterFormData) => Promise<void>;
   loading: boolean;
-  selectedRole: "gc_admin" | "homeowner";
+  selectedRole: "general_contractor" | "homeowner";
 }
 
 export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormProps) => {
