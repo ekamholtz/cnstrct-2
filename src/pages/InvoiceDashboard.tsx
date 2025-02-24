@@ -1,10 +1,11 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/navigation/MainNav";
 import { Button } from "@/components/ui/button";
 import { PlusCircle } from "lucide-react";
-import { InvoiceList } from "@/components/invoice/InvoiceList";
+import { InvoiceList } from "@/components/invoice-dashboard/InvoiceList";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
