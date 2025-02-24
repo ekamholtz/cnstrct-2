@@ -19,12 +19,10 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!isAuthenticated) {
-    console.log("Not authenticated, redirecting to auth");
     return <Navigate to="/auth" replace />;
   }
 
   if (!profile && isAuthenticated) {
-    console.error("Authenticated but no profile found");
     return <Navigate to="/auth" replace />;
   }
 

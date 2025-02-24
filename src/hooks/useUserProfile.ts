@@ -1,8 +1,8 @@
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
 
@@ -17,64 +17,46 @@ type Profile = {
 };
 
 export function useUserProfile() {
-  const queryClient = useQueryClient();
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    };
-    checkAuth();
+  const checkSession = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
+  }, []);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+  useEffect(() => {
+    checkSession();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
       setIsAuthenticated(!!session);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [checkSession]);
 
-  const {
-    data: profile,
-    isLoading: profileLoading,
-    error,
-  } = useQuery({
+  const { data: profile, isLoading: profileLoading, error } = useQuery({
     queryKey: ["user-profile"],
-    queryFn: async (): Promise<Profile | null> => {
-      console.log("Fetching user profile...");
-      
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        console.error("Session fetch error:", sessionError);
-        throw sessionError;
-      }
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
       
       if (!session?.user) {
-        console.log("No session found");
         return null;
       }
 
-      console.log("Session found, fetching profile...");
       const { data, error } = await supabase
         .from("profiles")
         .select()
         .eq("id", session.user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error("Profile fetch error:", error);
-        throw error;
-      }
-
-      console.log("Profile data:", data);
+      if (error) throw error;
       return data;
     },
     enabled: isAuthenticated === true,
     staleTime: 1000 * 60 * 5,
     retry: 2,
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
   });
 
   const isLoading = profileLoading || isAuthenticated === null;
