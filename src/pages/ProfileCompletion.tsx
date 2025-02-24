@@ -76,16 +76,15 @@ const ProfileCompletion = () => {
         return;
       }
 
-      const profileData = {
-        full_name: data.fullName,
-        phone_number: data.phoneNumber,
-        address: data.address,
-        has_completed_profile: true,
-      };
-
+      // Update the profile with the correct column names
       const { error } = await supabase
         .from('profiles')
-        .update(profileData)
+        .update({
+          full_name: data.fullName,
+          phone_number: data.phoneNumber,
+          address: data.address,
+          has_completed_profile: true,
+        })
         .eq('id', user.id);
 
       if (error) {
