@@ -755,6 +755,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      check_profile_completion_no_recursion: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       generate_invoice_number:
         | {
             Args: Record<PropertyKey, never>

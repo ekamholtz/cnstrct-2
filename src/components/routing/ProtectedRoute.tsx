@@ -29,11 +29,12 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         if (currentSession) {
           setSession(currentSession);
 
+          // Get profile data with role and completion status
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('has_completed_profile, role')
             .eq('id', currentSession.user.id)
-            .single();
+            .maybeSingle();
 
           if (!mounted) return;
 
@@ -43,7 +44,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             setHasCompletedProfile(profileData.has_completed_profile);
             setUserRole(profileData.role);
             
-            // Check admin permission
+            // Get admin permission using RPC call
             const { data: permissions } = await supabase
               .rpc('get_user_permissions', { 
                 user_id: currentSession.user.id 
