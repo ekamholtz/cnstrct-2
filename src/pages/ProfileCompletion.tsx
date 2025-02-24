@@ -40,12 +40,22 @@ export default function ProfileCompletion() {
   });
 
   useEffect(() => {
+    let mounted = true;
+
     const checkSession = async () => {
       try {
+        console.log("Starting session check...");
         setIsLoading(true);
-        const { data: { session } } = await supabase.auth.getSession();
+        
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          throw sessionError;
+        }
         
         if (!session) {
+          console.log("No session found, redirecting to auth...");
           toast({
             variant: "destructive",
             title: "Session expired",
@@ -55,46 +65,62 @@ export default function ProfileCompletion() {
           return;
         }
 
-        console.log("Fetching profile data for user:", session.user.id);
+        console.log("Session found, user ID:", session.user.id);
 
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("role, has_completed_profile")
-          .eq("id", session.user.id)
-          .maybeSingle();
+        // First try to get the role from user metadata
+        const userRole = session.user.user_metadata.role as UserRole;
+        console.log("Role from user metadata:", userRole);
 
-        if (error) {
-          console.error("Error fetching profile:", error);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to load profile data. Please try again.",
-          });
-          return;
+        if (!userRole) {
+          // If no role in metadata, try to fetch from profiles table
+          console.log("Fetching profile data...");
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("role, has_completed_profile")
+            .eq("id", session.user.id)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error("Profile fetch error:", profileError);
+            throw profileError;
+          }
+
+          console.log("Profile data:", profile);
+
+          if (profile?.has_completed_profile) {
+            console.log("Profile already completed, routing based on role...");
+            routeBasedOnRole(profile.role);
+            return;
+          }
+
+          if (mounted) {
+            setUserRole(profile?.role || null);
+          }
+        } else {
+          if (mounted) {
+            setUserRole(userRole);
+          }
         }
-
-        console.log("Profile data:", profile);
-
-        if (profile?.has_completed_profile) {
-          routeBasedOnRole(profile.role);
-          return;
-        }
-
-        setUserRole(profile?.role || null);
 
       } catch (error) {
         console.error("Error in checkSession:", error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "An unexpected error occurred. Please try again.",
+          description: "Failed to load profile data. Please try again.",
         });
       } finally {
-        setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkSession();
+
+    return () => {
+      mounted = false;
+    };
   }, [navigate, toast]);
 
   const routeBasedOnRole = (role: UserRole) => {
@@ -199,7 +225,10 @@ export default function ProfileCompletion() {
   }
 
   // Only render form for contractors and homeowners, not admins
-  if (!userRole || userRole === 'admin') return null;
+  if (!userRole || userRole === 'admin') {
+    console.log("No user role or admin role detected, rendering null");
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
