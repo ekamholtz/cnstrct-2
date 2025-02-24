@@ -1,6 +1,7 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
@@ -34,21 +35,67 @@ interface MilestonesListProps {
 export function MilestonesList({ milestones, onMarkComplete, hideControls = false }: MilestonesListProps) {
   const [selectedMilestoneId, setSelectedMilestoneId] = useState<string | null>(null);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: userRole } = useQuery({
     queryKey: ['userRole'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      if (!user) throw new Error('No user found');
 
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
+      if (error) throw error;
       return data?.role;
     }
+  });
+
+  const completeMilestoneMutation = useMutation({
+    mutationFn: async (milestoneId: string) => {
+      // First update the milestone status
+      const { data: milestone, error: milestoneError } = await supabase
+        .from('milestones')
+        .update({ status: 'completed' })
+        .eq('id', milestoneId)
+        .select('project_id, amount, name')
+        .single();
+
+      if (milestoneError) throw milestoneError;
+
+      // Then create an invoice for the milestone
+      const { error: invoiceError } = await supabase
+        .from('invoices')
+        .insert({
+          milestone_id: milestoneId,
+          amount: milestone.amount,
+          project_id: milestone.project_id,
+          invoice_number: await generateInvoiceNumber(milestoneId),
+          status: 'pending_payment'
+        });
+
+      if (invoiceError) throw invoiceError;
+
+      return milestone;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['project-invoices'] });
+      toast({
+        title: "Success",
+        description: "Milestone marked as complete and invoice created",
+      });
+    },
+    onError: (error) => {
+      console.error('Error completing milestone:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to complete milestone. Please try again.",
+      });
+    },
   });
 
   const handleUndoCompletion = async (milestoneId: string) => {
@@ -117,6 +164,13 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
   const isGeneralContractor = userRole === 'gc_admin';
   const isContractor = userRole === 'gc_admin';
 
+  const handleMarkComplete = async (milestoneId: string) => {
+    await completeMilestoneMutation.mutateAsync(milestoneId);
+    if (onMarkComplete) {
+      onMarkComplete(milestoneId);
+    }
+  };
+
   return (
     <div>
       <h2 className="text-xl font-semibold text-gray-900 mb-4">Project Milestones</h2>
@@ -145,7 +199,7 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
                       <div className="flex gap-2">
                         {milestone.status !== 'completed' && (
                           <Button
-                            onClick={() => onMarkComplete(milestone.id)}
+                            onClick={() => handleMarkComplete(milestone.id)}
                             variant="outline"
                           >
                             Mark as Complete
@@ -204,4 +258,18 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
       </div>
     </div>
   );
+}
+
+// Helper function to generate invoice number
+async function generateInvoiceNumber(milestoneId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('generate_invoice_number', {
+    milestone_id: milestoneId
+  });
+  
+  if (error) {
+    console.error('Error generating invoice number:', error);
+    throw error;
+  }
+  
+  return data;
 }
