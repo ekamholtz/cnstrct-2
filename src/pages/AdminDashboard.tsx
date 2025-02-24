@@ -21,7 +21,7 @@ type AdminAction = {
   action_type: string;
   details: any;
   created_at: string;
-  profiles?: Profile | null;
+  admin_profile: Profile | null;
 }
 
 const AdminDashboard = () => {
@@ -51,10 +51,7 @@ const AdminDashboard = () => {
         .from('admin_actions')
         .select(`
           *,
-          profiles:admin_id (
-            id,
-            full_name
-          )
+          admin_profile:profiles!admin_id (*)
         `)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -64,7 +61,7 @@ const AdminDashboard = () => {
         throw error;
       }
 
-      return data as AdminAction[];
+      return data;
     }
   });
 
@@ -127,7 +124,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="font-semibold">{action.action_type}</p>
                         <p className="text-sm text-gray-600">
-                          {action.profiles?.full_name} - {action.entity_type}
+                          {action.admin_profile?.full_name} - {action.entity_type}
                         </p>
                       </div>
                       <span className="text-sm text-gray-500">
