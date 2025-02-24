@@ -32,32 +32,10 @@ export function useInvoices(projectId: string) {
         throw error;
       }
 
-      // Transform the data to match our Invoice type
-      const transformedData = data.map(invoice => ({
-        id: invoice.id,
-        invoice_number: invoice.invoice_number,
-        amount: invoice.amount,
-        status: invoice.status,
-        created_at: invoice.created_at,
-        milestone_id: invoice.milestone_id,
-        milestone_name: invoice.milestone.name,
-        project_name: invoice.milestone.project.name,
-        project_id: invoice.project_id,
-        payment_method: invoice.payment_method,
-        payment_date: invoice.payment_date,
-        payment_reference: invoice.payment_reference,
-        payment_gateway: invoice.payment_gateway,
-        payment_method_type: invoice.payment_method,
-        simulation_data: invoice.simulation_data,
-        updated_at: invoice.updated_at
-      })) as Invoice[];
-
-      console.log('Fetched and transformed invoices:', transformedData);
-      return transformedData;
+      return (data || []) as Invoice[];
     },
   });
 
-  // Set up real-time subscription for invoices
   useEffect(() => {
     console.log('Setting up real-time subscription for project invoices:', {
       projectId

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -10,8 +11,8 @@ export const useAuthForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const registerMutation = useMutation(
-    async (data: RegisterFormData) => {
+  const registerMutation = useMutation({
+    mutationFn: async (data: RegisterFormData) => {
       setIsLoading(true);
       const { error } = await supabase.auth.signUp({
         email: data.email,
@@ -27,29 +28,27 @@ export const useAuthForm = () => {
         throw error;
       }
     },
-    {
-      onSuccess: () => {
-        setIsLoading(false);
-        toast({
-          title: "Success",
-          description:
-            "Registration successful! Check your email to verify your account.",
-        });
-        navigate("/auth");
-      },
-      onError: (error: any) => {
-        setIsLoading(false);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message || "Failed to register. Please try again.",
-        });
-      },
-    }
-  );
+    onSuccess: () => {
+      setIsLoading(false);
+      toast({
+        title: "Success",
+        description:
+          "Registration successful! Check your email to verify your account.",
+      });
+      navigate("/auth");
+    },
+    onError: (error: any) => {
+      setIsLoading(false);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to register. Please try again.",
+      });
+    },
+  });
 
-  const loginMutation = useMutation(
-    async (data: LoginFormData) => {
+  const loginMutation = useMutation({
+    mutationFn: async (data: LoginFormData) => {
       setIsLoading(true);
       const { data: authResponse, error } = await supabase.auth.signInWithPassword({
         email: data.email,
@@ -76,37 +75,43 @@ export const useAuthForm = () => {
 
       return profileData;
     },
-    {
-      onSuccess: (data) => {
-        setIsLoading(false);
-        toast({
-          title: "Success",
-          description: "Login successful!",
-        });
+    onSuccess: (data) => {
+      setIsLoading(false);
+      toast({
+        title: "Success",
+        description: "Login successful!",
+      });
 
-        if (data?.role === 'platform_admin') {
-          navigate('/admin');
-        } else if (data?.role === 'homeowner') {
-          navigate('/client-dashboard');
-        }
-        else {
-          navigate('/dashboard');
-        }
-      },
-      onError: (error: any) => {
-        setIsLoading(false);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: error.message || "Failed to login. Please try again.",
-        });
-      },
-    }
-  );
+      if (data?.role === 'platform_admin') {
+        navigate('/admin');
+      } else if (data?.role === 'homeowner') {
+        navigate('/client-dashboard');
+      }
+      else {
+        navigate('/dashboard');
+      }
+    },
+    onError: (error: any) => {
+      setIsLoading(false);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to login. Please try again.",
+      });
+    },
+  });
+
+  const handleLogin = async (values: LoginFormData) => {
+    await loginMutation.mutateAsync(values);
+  };
+
+  const handleRegister = async (values: RegisterFormData) => {
+    await registerMutation.mutateAsync(values);
+  };
 
   return {
     isLoading,
-    register: registerMutation.mutateAsync,
-    login: loginMutation.mutateAsync,
+    handleLogin,
+    handleRegister,
   };
 };

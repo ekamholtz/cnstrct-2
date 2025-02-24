@@ -32,7 +32,16 @@ const ProjectDashboard = () => {
 
       const { data, error } = await supabase
         .from('projects')
-        .select('*')
+        .select(`
+          *,
+          milestones (
+            id,
+            name,
+            description,
+            amount,
+            status
+          )
+        `)
         .eq('id', projectId)
         .single();
 
