@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +26,7 @@ export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
             return;
           }
 
-          setIsAdmin(data?.role === 'admin');
+          setIsAdmin(data?.role === 'platform_admin');
         }
         setLoading(false);
       } catch (error) {

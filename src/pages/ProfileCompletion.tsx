@@ -1,177 +1,217 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Form } from "@/components/ui/form";
+import * as z from "zod";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { profileCompletionSchema } from "@/lib/validations/profile";
-import type { ProfileCompletionFormData } from "@/lib/validations/profile";
-import { ProfileCompletionHeader } from "@/components/profile-completion/ProfileCompletionHeader";
-import { ContractorFormFields } from "@/components/profile-completion/ContractorFormFields";
-import { HomeownerFormFields } from "@/components/profile-completion/HomeownerFormFields";
-import { ProfileCompletionFooter } from "@/components/profile-completion/ProfileCompletionFooter";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/components/ui/use-toast";
+import { MainNav } from "@/components/navigation/MainNav";
+import { supabase } from "@/integrations/supabase/client";
 
-import type { Database } from "@/integrations/supabase/types";
-type UserRole = Database["public"]["Enums"]["user_role"];
+const profileSchema = z.object({
+  fullName: z.string().min(2, {
+    message: "Full name must be at least 2 characters.",
+  }),
+  companyName: z.string().optional(),
+  website: z.string().url({ message: "Please enter a valid URL." }).optional(),
+  bio: z.string().optional(),
+  address: z.string().min(5, {
+    message: "Address must be at least 5 characters.",
+  }),
+  licenseNumber: z.string().optional(),
+});
 
-export default function ProfileCompletion() {
-  const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+type ProfileFormValues = z.infer<typeof profileSchema>;
+
+const ProfileCompletion = () => {
+  const [userRole, setUserRole] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const form = useForm<ProfileCompletionFormData>({
-    resolver: zodResolver(profileCompletionSchema),
-    defaultValues: {
-      company_name: "",
-      address: "",
-      license_number: "",
-      phone_number: "",
-      website: "",
-      full_name: "",
-    },
-    mode: "all"
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
   });
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
-        return;
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          navigate('/auth');
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching profile:", error);
+          return;
+        }
+
+        setUserRole(data?.role);
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
       }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, has_completed_profile")
-        .eq("id", session.user.id)
-        .single();
-
-      if (profile?.has_completed_profile) {
-        routeBasedOnRole(profile.role);
-        return;
-      }
-
-      setUserRole(profile?.role || null);
     };
 
-    checkSession();
+    fetchUserProfile();
   }, [navigate]);
 
-  const routeBasedOnRole = (role: UserRole) => {
-    console.log("Routing based on role:", role);
-    switch (role) {
-      case 'homeowner':
-        console.log("Routing homeowner to client dashboard");
-        navigate("/client-dashboard", { replace: true });
-        break;
-      case 'gc_admin':
-        console.log("Routing contractor to dashboard");
-        navigate("/dashboard", { replace: true });
-        break;
-      case 'admin':
-        console.log("Routing admin to admin dashboard");
-        navigate("/admin", { replace: true });
-        break;
-      default:
-        console.error("Unknown user role:", role);
-        navigate("/dashboard", { replace: true });
-    }
-  };
-
-  const onSubmit = async (data: ProfileCompletionFormData) => {
-    if (isSubmitting || !userRole) return;
-
+  const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
     try {
-      setIsSubmitting(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
+
+      const isAdmin = userRole === 'platform_admin';
+      const isGeneralContractor = userRole === 'gc_admin';
+
+      const profileData = {
+        full_name: data.fullName,
+        company_name: data.companyName,
+        website: data.website,
+        bio: data.bio,
+        address: data.address,
+        license_number: data.licenseNumber,
+        has_completed_profile: true,
+      };
+
+      const { error } = await supabase
+        .from('profiles')
+        .update(profileData)
+        .eq('id', user.id);
+
+      if (error) {
+        console.error("Error updating profile:", error);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "No active session found. Please log in again.",
+          description: "Failed to update profile. Please try again.",
         });
-        navigate("/auth");
         return;
       }
 
-      const updateData = {
-        ...data,
-        has_completed_profile: true,
-        updated_at: new Date().toISOString(),
-      };
-
-      const { error: updateError } = await supabase
-        .from("profiles")
-        .update(updateData)
-        .eq("id", session.user.id);
-
-      if (updateError) throw updateError;
-
-      const { data: updatedProfile, error: fetchError } = await supabase
-        .from("profiles")
-        .select("role, has_completed_profile")
-        .eq("id", session.user.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      if (!updatedProfile.has_completed_profile) {
-        throw new Error("Profile update did not save correctly");
-      }
-
       toast({
-        title: "Profile completed successfully!",
-        description: "You will now be redirected to the dashboard.",
+        title: "Success",
+        description: "Profile updated successfully!",
       });
 
-      routeBasedOnRole(userRole);
-
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
+      if (isAdmin) {
+        navigate('/admin');
+      } else if (isGeneralContractor) {
+        navigate('/dashboard');
+      } else {
+        navigate('/client-dashboard');
+      }
+    } catch (error) {
+      console.error("Error during form submission:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message || "Failed to update profile. Please try again.",
+        description: "An unexpected error occurred. Please try again.",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  if (!userRole || userRole === 'admin') return null;
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container max-w-2xl py-8">
-        <ProfileCompletionHeader />
+      <MainNav />
+      <div className="container mx-auto py-8 mt-16">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Complete Your Profile</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              <div>
+                <Label htmlFor="fullName">Full Name</Label>
+                <Input
+                  id="fullName"
+                  placeholder="John Doe"
+                  {...register("fullName")}
+                />
+                {errors.fullName && (
+                  <p className="text-red-500 text-sm">{errors.fullName.message}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="companyName">Company Name (Optional)</Label>
+                <Input
+                  id="companyName"
+                  placeholder="Acme Corp"
+                  {...register("companyName")}
+                />
+                {errors.companyName && (
+                  <p className="text-red-500 text-sm">{errors.companyName.message}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="website">Website (Optional)</Label>
+                <Input
+                  id="website"
+                  placeholder="https://acme.com"
+                  {...register("website")}
+                />
+                {errors.website && (
+                  <p className="text-red-500 text-sm">{errors.website.message}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="bio">Bio (Optional)</Label>
+                <Textarea
+                  id="bio"
+                  placeholder="Tell us a little about yourself"
+                  {...register("bio")}
+                />
+                {errors.bio && (
+                  <p className="text-red-500 text-sm">{errors.bio.message}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  placeholder="123 Main St, Anytown"
+                  {...register("address")}
+                />
+                {errors.address && (
+                  <p className="text-red-500 text-sm">{errors.address.message}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="licenseNumber">License Number (Optional)</Label>
+                <Input
+                  id="licenseNumber"
+                  placeholder="Enter your license number"
+                  {...register("licenseNumber")}
+                />
+                {errors.licenseNumber && (
+                  <p className="text-red-500 text-sm">{errors.licenseNumber.message}</p>
+                )}
+              </div>
 
-        <Form {...form}>
-          <form 
-            onSubmit={form.handleSubmit(onSubmit)} 
-            className="space-y-6"
-          >
-            {userRole === "gc_admin" ? (
-              <ContractorFormFields form={form} />
-            ) : (
-              <HomeownerFormFields form={form} />
-            )}
-
-            <Button 
-              type="submit" 
-              className="w-full"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? "Saving..." : "Save and Continue"}
-            </Button>
-          </form>
-        </Form>
-
-        <ProfileCompletionFooter />
+              <Button type="submit">Update Profile</Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-}
+};
+
+export default ProfileCompletion;

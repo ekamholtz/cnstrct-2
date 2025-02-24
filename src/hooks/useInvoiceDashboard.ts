@@ -1,110 +1,44 @@
 
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { Invoice, PaymentFormData } from "@/components/project/invoice/types";
+import { Invoice } from "@/components/project/invoice/types";
 
-export type InvoiceStatus = "pending_payment" | "paid" | "cancelled" | "all";
-
-export const useInvoiceDashboard = () => {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<InvoiceStatus>("all");
-  const { toast } = useToast();
-
-  const fetchInvoices = async () => {
-    try {
-      console.log("Fetching invoices for dashboard...");
+export function useInvoiceDashboard() {
+  return useQuery({
+    queryKey: ['invoices'],
+    queryFn: async () => {
       const { data, error } = await supabase
-        .rpc('get_project_invoices', { p_id: null });
-
-      if (error) throw error;
-
-      console.log("Invoices fetched for dashboard:", data);
-      setInvoices(data as Invoice[]);
-    } catch (error) {
-      console.error('Error fetching invoices:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load invoices. Please try again.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchInvoices();
-
-    const channel = supabase
-      .channel('invoice-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'invoices'
-        },
-        (payload) => {
-          console.log('Real-time update received in dashboard:', payload);
-          fetchInvoices();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [statusFilter]);
-
-  const handleMarkAsPaid = async (invoiceId: string, data: PaymentFormData) => {
-    try {
-      console.log('Marking invoice as paid in dashboard:', {
-        invoiceId,
-        payment_method: data.payment_method,
-        payment_date: data.payment_date
-      });
-
-      const { error } = await supabase
         .from('invoices')
-        .update({
-          status: 'paid',
-          payment_method: data.payment_method,
-          payment_date: data.payment_date.toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', invoiceId)
-        .single();
+        .select(`
+          *,
+          milestone:milestone_id (
+            name,
+            project:project_id (
+              name
+            )
+          )
+        `)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Invoice has been marked as paid",
-      });
-      
-      await fetchInvoices();
-    } catch (error) {
-      console.error('Error marking invoice as paid in dashboard:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to mark invoice as paid. Please try again.",
-      });
+      // Transform the data to match our Invoice type
+      return data.map(invoice => ({
+        id: invoice.id,
+        invoice_number: invoice.invoice_number,
+        amount: invoice.amount,
+        status: invoice.status,
+        created_at: invoice.created_at,
+        milestone_id: invoice.milestone_id,
+        milestone_name: invoice.milestone.name,
+        project_name: invoice.milestone.project.name,
+        project_id: invoice.project_id,
+        payment_method: invoice.payment_method,
+        payment_date: invoice.payment_date,
+        payment_reference: invoice.payment_reference,
+        payment_gateway: invoice.payment_gateway,
+        updated_at: invoice.updated_at
+      })) as Invoice[];
     }
-  };
-
-  const filteredInvoices = invoices.filter(invoice => {
-    if (statusFilter === "all") return true;
-    return invoice.status === statusFilter;
   });
-
-  return {
-    invoices: filteredInvoices,
-    loading,
-    statusFilter,
-    setStatusFilter,
-    handleMarkAsPaid,
-  };
-};
+}

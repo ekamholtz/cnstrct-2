@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -64,12 +63,12 @@ export function MainNav() {
     setIsMenuOpen(false);
   };
 
-  const homeRoute = profile?.role === 'admin' ? '/admin' : 
+  const homeRoute = profile?.role === 'platform_admin' ? '/admin' : 
                    profile?.role === 'homeowner' ? '/client-dashboard' : 
                    '/dashboard';
 
   const projectsRoute = profile?.role === 'homeowner' ? '/client-projects' : 
-                       profile?.role === 'admin' ? '/admin/projects' :
+                       profile?.role === 'platform_admin' ? '/admin/projects' :
                        '/gc-projects';
 
   const navItems = [

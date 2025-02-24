@@ -1,163 +1,112 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { createProfile, fetchUserProfile, handleLoginError } from "@/utils/authUtils";
-import type { LoginFormData, RegisterFormData } from "@/components/auth/authSchemas";
+import { RegisterFormData, LoginFormData } from "@/components/auth/authSchemas";
 
 export const useAuthForm = () => {
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const handleLogin = async (values: LoginFormData) => {
-    setLoading(true);
-    try {
-      console.log("Starting login process for:", values.email);
-      
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
-
-      if (signInError) {
-        console.error("Sign in error:", signInError);
-        throw signInError;
-      }
-
-      if (!signInData?.user) {
-        console.error("No user data returned from sign in");
-        throw new Error("Login failed - no user data returned");
-      }
-
-      console.log("Sign in successful, fetching profile...");
-      
-      const profile = await fetchUserProfile(signInData.user.id);
-      
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully signed in.",
-      });
-
-      if (!profile) {
-        console.log("No profile found, creating one...");
-        const newProfile = await createProfile(
-          signInData.user.id, 
-          signInData.user.user_metadata.full_name || '',
-          signInData.user.user_metadata.role || 'general_contractor'
-        );
-        
-        if (!newProfile.has_completed_profile) {
-          navigate("/profile-completion");
-          return;
-        }
-      }
-      
-      if (profile?.role === 'admin') {
-        navigate("/admin");
-      } else if (!profile?.has_completed_profile) {
-        navigate("/profile-completion");
-      } else {
-        navigate("/dashboard");
-      }
-
-    } catch (error: any) {
-      console.error("Login error details:", {
-        error,
-        message: error.message,
-        status: error.status,
-        name: error.name,
-        timestamp: new Date().toISOString()
-      });
-      const errorMessage = handleLoginError(error);
-      toast({
-        variant: "destructive",
-        title: "Login failed",
-        description: errorMessage,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRegister = async (values: RegisterFormData, selectedRole: "gc_admin" | "homeowner") => {
-    setLoading(true);
-    try {
-      console.log("Starting registration with:", {
-        email: values.email,
-        role: selectedRole,
-        fullName: values.fullName,
-      });
-
-      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
+  const registerMutation = useMutation(
+    async (data: RegisterFormData) => {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
         options: {
           data: {
-            full_name: values.fullName,
-            role: selectedRole,
+            full_name: data.fullName,
+            role: 'homeowner',
           },
-          emailRedirectTo: `${window.location.origin}/auth`
         },
       });
-
-      if (signUpError) {
-        console.error("Registration error:", signUpError);
-        throw signUpError;
+      if (error) {
+        throw error;
       }
-
-      if (!signUpData.user) {
-        console.error("No user data returned after registration");
-        throw new Error("Registration failed - no user data returned");
-      }
-
-      console.log("Registration successful, creating profile...");
-
-      await createProfile(
-        signUpData.user.id,
-        values.fullName,
-        selectedRole
-      );
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
-
-      if (signInError) {
-        console.error("Auto-login error:", signInError);
-        throw signInError;
-      }
-
-      toast({
-        title: "Welcome to CNSTRCT!",
-        description: "Please complete your profile to get started.",
-      });
-
-      navigate("/profile-completion");
-
-    } catch (error: any) {
-      console.error("Registration error details:", {
-        error,
-        message: error.message,
-        status: error.status,
-        name: error.name,
-        timestamp: new Date().toISOString()
-      });
-      const errorMessage = handleLoginError(error);
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: errorMessage,
-      });
-    } finally {
-      setLoading(false);
+    },
+    {
+      onSuccess: () => {
+        setIsLoading(false);
+        toast({
+          title: "Success",
+          description:
+            "Registration successful! Check your email to verify your account.",
+        });
+        navigate("/auth");
+      },
+      onError: (error: any) => {
+        setIsLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "Failed to register. Please try again.",
+        });
+      },
     }
-  };
+  );
+
+  const loginMutation = useMutation(
+    async (data: LoginFormData) => {
+      setIsLoading(true);
+      const { data: authResponse, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!authResponse?.user) {
+        throw new Error("Could not authenticate user");
+      }
+
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', authResponse.user.id)
+        .single();
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      return profileData;
+    },
+    {
+      onSuccess: (data) => {
+        setIsLoading(false);
+        toast({
+          title: "Success",
+          description: "Login successful!",
+        });
+
+        if (data?.role === 'platform_admin') {
+          navigate('/admin');
+        } else if (data?.role === 'homeowner') {
+          navigate('/client-dashboard');
+        }
+        else {
+          navigate('/dashboard');
+        }
+      },
+      onError: (error: any) => {
+        setIsLoading(false);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error.message || "Failed to login. Please try again.",
+        });
+      },
+    }
+  );
 
   return {
-    loading,
-    handleLogin,
-    handleRegister
+    isLoading,
+    register: registerMutation.mutateAsync,
+    login: loginMutation.mutateAsync,
   };
 };

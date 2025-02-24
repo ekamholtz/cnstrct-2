@@ -61,8 +61,8 @@ export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) 
     refetch();
   };
 
+  const isAdmin = userRole === 'platform_admin';
   const isGeneralContractor = userRole === 'gc_admin';
-  const isAdmin = userRole === 'admin';
 
   // Determine the back link based on user role
   const backLink = isAdmin ? '/admin/projects' : '/dashboard';
