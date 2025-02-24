@@ -14,6 +14,21 @@ export interface PaymentMethod {
   processor_config?: Record<string, any>;
 }
 
+export interface PaymentInvoiceDetails {
+  invoice_number: string;
+  amount: number;
+  project: {
+    name: string;
+  };
+}
+
+export interface PaymentExpenseDetails {
+  name: string;
+  project: {
+    name: string;
+  };
+}
+
 export interface Payment {
   id: string;
   direction: PaymentDirection;
@@ -31,6 +46,9 @@ export interface Payment {
   payment_date: string;
   created_at: string;
   updated_at: string;
+  // Join fields from the database query
+  invoice?: PaymentInvoiceDetails;
+  expense?: PaymentExpenseDetails;
 }
 
 export interface PaymentEvent {
@@ -57,4 +75,14 @@ export interface CreatePaymentData {
   notes?: string;
   invoice_id?: string;
   expense_id?: string;
+}
+
+// Extend the existing Expense type with payment information
+export interface PaymentDetails {
+  id: string;
+  payment_method_code: PaymentMethodCode;
+  payment_date: string;
+  amount: number;
+  notes?: string;
+  created_at: string;
 }

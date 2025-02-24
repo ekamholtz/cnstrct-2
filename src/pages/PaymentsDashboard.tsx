@@ -11,7 +11,9 @@ import type { PaymentFilters, Payment } from "@/components/payments/types";
 export default function PaymentsDashboard() {
   const [filters, setFilters] = useState<PaymentFilters>({
     dateRange: { from: undefined, to: undefined },
-    paymentType: undefined,
+    direction: undefined,
+    status: undefined,
+    paymentMethodCode: undefined,
     projectId: undefined,
   });
 
@@ -24,35 +26,55 @@ export default function PaymentsDashboard() {
         .from('payments')
         .select(`
           id,
-          payment_type,
+          direction,
+          amount,
+          payment_method_code,
+          status,
+          invoice_id,
+          expense_id,
+          payment_processor_id,
+          processor_transaction_id,
+          processor_metadata,
+          simulation_mode,
+          simulation_data,
+          notes,
           payment_date,
-          payment_amount,
-          vendor_email,
-          vendor_phone,
           created_at,
           updated_at,
-          expense:expense_id (
-            id,
-            name,
+          invoice:invoice_id (
+            invoice_number,
             amount,
-            payment_status,
-            project_id,
             project:project_id (
-              id,
+              name
+            )
+          ),
+          expense:expense_id (
+            name,
+            project:project_id (
               name
             )
           )
         `);
 
       // Apply filters
+      if (filters.direction) {
+        query = query.eq('direction', filters.direction);
+      }
+      if (filters.status) {
+        query = query.eq('status', filters.status);
+      }
+      if (filters.paymentMethodCode) {
+        query = query.eq('payment_method_code', filters.paymentMethodCode);
+      }
       if (filters.dateRange.from) {
         query = query.gte('payment_date', filters.dateRange.from.toISOString());
       }
       if (filters.dateRange.to) {
         query = query.lte('payment_date', filters.dateRange.to.toISOString());
       }
-      if (filters.paymentType) {
-        query = query.eq('payment_type', filters.paymentType);
+      if (filters.projectId) {
+        // Filter by project ID through either invoice or expense relationships
+        query = query.or(`invoice.project_id.eq.${filters.projectId},expense.project_id.eq.${filters.projectId}`);
       }
 
       const { data, error } = await query;
@@ -62,7 +84,6 @@ export default function PaymentsDashboard() {
         throw error;
       }
       
-      console.log('Fetched payments:', data);
       return data as Payment[];
     },
   });

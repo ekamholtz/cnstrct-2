@@ -102,14 +102,16 @@ export function PaymentsTable({ payments, isLoading }: PaymentsTableProps) {
                 </Badge>
               </TableCell>
               <TableCell>
-                {payment.invoice_id ? (
+                {payment.invoice_id && payment.invoice ? (
                   <span className="text-blue-600">
-                    Invoice #{payment.invoice?.invoice_number}
+                    Invoice #{payment.invoice.invoice_number}
+                  </span>
+                ) : payment.expense_id && payment.expense ? (
+                  <span className="text-purple-600">
+                    Expense: {payment.expense.name}
                   </span>
                 ) : (
-                  <span className="text-purple-600">
-                    Expense: {payment.expense?.name}
-                  </span>
+                  <span className="text-gray-500">-</span>
                 )}
               </TableCell>
               <TableCell className="text-gray-600">
