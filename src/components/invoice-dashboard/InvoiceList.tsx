@@ -14,10 +14,12 @@ import { Badge } from "@/components/ui/badge";
 import { format } from 'date-fns';
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from 'react-router-dom';
 
 export const InvoiceList = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: invoices, isLoading, error } = useQuery({
     queryKey: ['contractor-invoices'],
@@ -111,7 +113,11 @@ export const InvoiceList = () => {
         </TableHeader>
         <TableBody>
           {invoices?.map((invoice) => (
-            <TableRow key={invoice.id}>
+            <TableRow 
+              key={invoice.id}
+              className="cursor-pointer hover:bg-gray-50"
+              onClick={() => navigate(`/invoices/${invoice.id}`)}
+            >
               <TableCell>{invoice.invoice_number}</TableCell>
               <TableCell>{invoice.milestone?.project?.name}</TableCell>
               <TableCell>{invoice.milestone?.name}</TableCell>
