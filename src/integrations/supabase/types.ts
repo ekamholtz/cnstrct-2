@@ -415,6 +415,7 @@ export type Database = {
           has_completed_profile: boolean | null
           id: string
           license_number: string | null
+          phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string | null
           website: string | null
@@ -430,6 +431,7 @@ export type Database = {
           has_completed_profile?: boolean | null
           id: string
           license_number?: string | null
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
           website?: string | null
@@ -445,6 +447,7 @@ export type Database = {
           has_completed_profile?: boolean | null
           id?: string
           license_number?: string | null
+          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string | null
           website?: string | null

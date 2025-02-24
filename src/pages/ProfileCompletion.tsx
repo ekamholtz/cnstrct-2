@@ -11,8 +11,10 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { MainNav } from "@/components/navigation/MainNav";
 import { supabase } from "@/integrations/supabase/client";
+import { profileSchema } from "@/components/homeowner-profile/types";
 
-const profileSchema = z.object({
+// Define a specific schema for the profile completion form
+const profileCompletionSchema = z.object({
   fullName: z.string().min(2, {
     message: "Full name must be at least 2 characters.",
   }),
@@ -24,7 +26,7 @@ const profileSchema = z.object({
   }),
 });
 
-type ProfileFormValues = z.infer<typeof profileSchema>;
+type ProfileCompletionFormValues = z.infer<typeof profileCompletionSchema>;
 
 const ProfileCompletion = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -35,8 +37,8 @@ const ProfileCompletion = () => {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
+  } = useForm<ProfileCompletionFormValues>({
+    resolver: zodResolver(profileCompletionSchema),
   });
 
   useEffect(() => {
@@ -68,7 +70,7 @@ const ProfileCompletion = () => {
     fetchUserProfile();
   }, [navigate]);
 
-  const onSubmit = async (data: ProfileFormValues) => {
+  const onSubmit = async (formData: ProfileCompletionFormValues) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -76,15 +78,17 @@ const ProfileCompletion = () => {
         return;
       }
 
-      // Update the profile with the correct column names
+      // Transform form data to match database schema
+      const profileData = {
+        full_name: formData.fullName,
+        phone_number: formData.phoneNumber,
+        address: formData.address,
+        has_completed_profile: true
+      };
+
       const { error } = await supabase
         .from('profiles')
-        .update({
-          full_name: data.fullName,
-          phone_number: data.phoneNumber,
-          address: data.address,
-          has_completed_profile: true,
-        })
+        .update(profileData)
         .eq('id', user.id);
 
       if (error) {
