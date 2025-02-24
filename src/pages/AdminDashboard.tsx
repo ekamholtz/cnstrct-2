@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { Database } from "@/integrations/supabase/types";
+import { Json } from "@/integrations/supabase/types";
 
 type AdminStats = {
   total_users?: number;
@@ -19,9 +20,9 @@ type AdminAction = {
   entity_type: string;
   entity_id: string;
   action_type: string;
-  details: any;
+  details: Json;
   created_at: string;
-  admin_profile: Profile | null;
+  admin_profile?: Profile;
 }
 
 const AdminDashboard = () => {
@@ -47,11 +48,31 @@ const AdminDashboard = () => {
   const { data: recentActions, isLoading: actionsLoading } = useQuery<AdminAction[]>({
     queryKey: ['admin-actions'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: actionsData, error } = await supabase
         .from('admin_actions')
         .select(`
-          *,
-          admin_profile:profiles!admin_id (*)
+          id,
+          admin_id,
+          entity_type,
+          entity_id,
+          action_type,
+          details,
+          created_at,
+          admin_profile:profiles (
+            id,
+            full_name,
+            account_status,
+            bio,
+            company_name,
+            created_at,
+            gc_account_id,
+            gc_company_id,
+            has_completed_profile,
+            license_number,
+            role,
+            updated_at,
+            website
+          )
         `)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -61,7 +82,7 @@ const AdminDashboard = () => {
         throw error;
       }
 
-      return data;
+      return (actionsData || []) as AdminAction[];
     }
   });
 
