@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -93,6 +94,14 @@ export const AppRoutes = () => {
       />
       <Route
         path="/invoices"
+        element={
+          <ProtectedRoute>
+            <InvoiceDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/invoice"
         element={
           <ProtectedRoute>
             <InvoiceDashboard />
