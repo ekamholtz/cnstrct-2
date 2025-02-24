@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +13,7 @@ import { ProfileCompletionHeader } from "@/components/profile-completion/Profile
 import { ContractorFormFields } from "@/components/profile-completion/ContractorFormFields";
 import { HomeownerFormFields } from "@/components/profile-completion/HomeownerFormFields";
 import { ProfileCompletionFooter } from "@/components/profile-completion/ProfileCompletionFooter";
+import { Loader2 } from "lucide-react";
 
 // Import the user_role type from Supabase generated types
 import type { Database } from "@/integrations/supabase/types";
@@ -20,6 +22,7 @@ type UserRole = Database["public"]["Enums"]["user_role"];
 export default function ProfileCompletion() {
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -38,28 +41,61 @@ export default function ProfileCompletion() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        navigate("/auth");
-        return;
+      try {
+        setIsLoading(true);
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          toast({
+            variant: "destructive",
+            title: "Session expired",
+            description: "Please log in again",
+          });
+          navigate("/auth");
+          return;
+        }
+
+        console.log("Fetching profile data for user:", session.user.id);
+
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("role, has_completed_profile")
+          .eq("id", session.user.id)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error fetching profile:", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load profile data. Please try again.",
+          });
+          return;
+        }
+
+        console.log("Profile data:", profile);
+
+        if (profile?.has_completed_profile) {
+          routeBasedOnRole(profile.role);
+          return;
+        }
+
+        setUserRole(profile?.role || null);
+
+      } catch (error) {
+        console.error("Error in checkSession:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "An unexpected error occurred. Please try again.",
+        });
+      } finally {
+        setIsLoading(false);
       }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, has_completed_profile")
-        .eq("id", session.user.id)
-        .single();
-
-      if (profile?.has_completed_profile) {
-        routeBasedOnRole(profile.role);
-        return;
-      }
-
-      setUserRole(profile?.role || null);
     };
 
     checkSession();
-  }, [navigate]);
+  }, [navigate, toast]);
 
   const routeBasedOnRole = (role: UserRole) => {
     console.log("Routing based on role:", role);
@@ -69,7 +105,8 @@ export default function ProfileCompletion() {
         navigate("/client-dashboard", { replace: true });
         break;
       case 'gc_admin':
-        console.log("Routing contractor to dashboard");
+      case 'project_manager':
+        console.log("Routing contractor/PM to dashboard");
         navigate("/dashboard", { replace: true });
         break;
       case 'admin':
@@ -105,23 +142,31 @@ export default function ProfileCompletion() {
         updated_at: new Date().toISOString(),
       };
 
+      console.log("Updating profile with data:", updateData);
+
       const { error: updateError } = await supabase
         .from("profiles")
         .update(updateData)
         .eq("id", session.user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error("Error updating profile:", updateError);
+        throw updateError;
+      }
 
-      // Verify the update was successful by fetching the updated profile
+      // Verify the update was successful
       const { data: updatedProfile, error: fetchError } = await supabase
         .from("profiles")
         .select("role, has_completed_profile")
         .eq("id", session.user.id)
-        .single();
+        .maybeSingle();
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error("Error verifying profile update:", fetchError);
+        throw fetchError;
+      }
 
-      if (!updatedProfile.has_completed_profile) {
+      if (!updatedProfile?.has_completed_profile) {
         throw new Error("Profile update did not save correctly");
       }
 
@@ -145,6 +190,14 @@ export default function ProfileCompletion() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   // Only render form for contractors and homeowners, not admins
   if (!userRole || userRole === 'admin') return null;
 
@@ -158,7 +211,7 @@ export default function ProfileCompletion() {
             onSubmit={form.handleSubmit(onSubmit)} 
             className="space-y-6"
           >
-            {userRole === "gc_admin" ? (
+            {userRole === "gc_admin" || userRole === "project_manager" ? (
               <ContractorFormFields form={form} />
             ) : (
               <HomeownerFormFields form={form} />
