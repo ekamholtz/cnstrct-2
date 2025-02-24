@@ -9,9 +9,17 @@ export function useInvoiceDetails(invoiceId: string | undefined) {
     queryFn: async () => {
       if (!invoiceId) throw new Error('No invoice ID provided');
 
-      // Get invoice data using RPC function
       const { data, error } = await supabase
-        .rpc('get_project_invoices', { p_id: null })
+        .from('invoices')
+        .select(`
+          *,
+          milestone:milestones (
+            name,
+            project:project_id (
+              name
+            )
+          )
+        `)
         .eq('id', invoiceId)
         .maybeSingle();
 
@@ -26,8 +34,8 @@ export function useInvoiceDetails(invoiceId: string | undefined) {
         status: data.status,
         created_at: data.created_at,
         milestone_id: data.milestone_id,
-        milestone_name: data.milestone_name,
-        project_name: data.project_name,
+        milestone_name: data.milestone.name,
+        project_name: data.milestone.project.name,
         project_id: data.project_id,
         payment_method: data.payment_method as "cc" | "check" | "transfer" | "cash" | null,
         payment_date: data.payment_date,
