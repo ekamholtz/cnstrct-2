@@ -33,7 +33,6 @@ export function useInvoices(projectId: string) {
         throw error;
       }
 
-      // Transform the data to match the Invoice type
       const transformedData: Invoice[] = (data || []).map(invoice => ({
         id: invoice.id,
         invoice_number: invoice.invoice_number,
@@ -121,6 +120,7 @@ export function useInvoices(projectId: string) {
       toast({
         title: "Success",
         description: "Invoice has been marked as paid",
+        variant: "default",
       });
     },
     onError: (error) => {
@@ -128,7 +128,7 @@ export function useInvoices(projectId: string) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to mark invoice as paid. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to mark invoice as paid. Please try again.",
       });
     },
   });
