@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      account_subscriptions: {
+        Row: {
+          created_at: string | null
+          end_date: string | null
+          gc_account_id: string | null
+          id: string
+          start_date: string
+          status: Database["public"]["Enums"]["subscription_status"]
+          tier_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          end_date?: string | null
+          gc_account_id?: string | null
+          id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          tier_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          end_date?: string | null
+          gc_account_id?: string | null
+          id?: string
+          start_date?: string
+          status?: Database["public"]["Enums"]["subscription_status"]
+          tier_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_subscriptions_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_subscriptions_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_actions: {
         Row: {
           action_type: string
@@ -37,15 +85,7 @@ export type Database = {
           entity_type?: string
           id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "fk_admin_actions_admin"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       admin_stats_cache: {
         Row: {
@@ -149,17 +189,78 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "expenses_contractor_id_fkey"
-            columns: ["contractor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "expenses_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gc_companies: {
+        Row: {
+          address: string | null
+          company_name: string
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          company_name: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          company_name?: string
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      homeowners: {
+        Row: {
+          address: string | null
+          created_at: string | null
+          id: string
+          phone: string | null
+          profile_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          phone?: string | null
+          profile_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          address?: string | null
+          created_at?: string | null
+          id?: string
+          phone?: string | null
+          profile_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homeowners_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -244,13 +345,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "invoices_contractor_id_fkey"
-            columns: ["contractor_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "invoices_milestone_id_fkey"
             columns: ["milestone_id"]
@@ -355,53 +449,95 @@ export type Database = {
           },
         ]
       }
+      permissions: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          feature_key: string
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          feature_key: string
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          feature_key?: string
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           account_status: string
-          address: string | null
           bio: string | null
           company_name: string | null
           created_at: string
           full_name: string
+          gc_account_id: string | null
+          gc_company_id: string | null
           has_completed_profile: boolean | null
           id: string
           license_number: string | null
-          phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
           updated_at: string
           website: string | null
         }
         Insert: {
           account_status?: string
-          address?: string | null
           bio?: string | null
           company_name?: string | null
           created_at?: string
           full_name?: string
+          gc_account_id?: string | null
+          gc_company_id?: string | null
           has_completed_profile?: boolean | null
           id: string
           license_number?: string | null
-          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
           website?: string | null
         }
         Update: {
           account_status?: string
-          address?: string | null
           bio?: string | null
           company_name?: string | null
           created_at?: string
           full_name?: string
+          gc_account_id?: string | null
+          gc_company_id?: string | null
           has_completed_profile?: boolean | null
           id?: string
           license_number?: string | null
-          phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
           updated_at?: string
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profiles_gc_company_id_fkey"
+            columns: ["gc_company_id"]
+            isOneToOne: false
+            referencedRelation: "gc_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -411,6 +547,7 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          pm_user_id: string | null
           status: Database["public"]["Enums"]["project_status"]
           updated_at: string
         }
@@ -421,6 +558,7 @@ export type Database = {
           created_at?: string
           id?: string
           name: string
+          pm_user_id?: string | null
           status: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
@@ -431,6 +569,7 @@ export type Database = {
           created_at?: string
           id?: string
           name?: string
+          pm_user_id?: string | null
           status?: Database["public"]["Enums"]["project_status"]
           updated_at?: string
         }
@@ -442,9 +581,155 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          created_at: string | null
+          permission_id: string
+          role_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          permission_id: string
+          role_id: string
+        }
+        Update: {
+          created_at?: string | null
+          permission_id?: string
+          role_id?: string
+        }
+        Relationships: [
           {
-            foreignKeyName: "fk_contractor"
-            columns: ["contractor_id"]
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      subscription_tiers: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          price: number
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          price: number
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          price?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      tier_features: {
+        Row: {
+          created_at: string | null
+          permission_id: string
+          tier_id: string
+          usage_limit: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          permission_id: string
+          tier_id: string
+          usage_limit?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          permission_id?: string
+          tier_id?: string
+          usage_limit?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tier_features_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tier_features_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          role_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          role_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          role_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -456,6 +741,24 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
+      check_is_admin_no_recursion: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      check_is_gc_admin_no_recursion: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      check_profile_completion_no_recursion: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       generate_invoice_number:
         | {
             Args: Record<PropertyKey, never>
@@ -488,6 +791,34 @@ export type Database = {
           project_id: string
         }[]
       }
+      get_user_permissions: {
+        Args: {
+          user_id: string
+        }
+        Returns: {
+          feature_key: string
+        }[]
+      }
+      get_user_profile: {
+        Args: {
+          user_id: string
+        }
+        Returns: {
+          account_status: string
+          bio: string | null
+          company_name: string | null
+          created_at: string
+          full_name: string
+          gc_account_id: string | null
+          gc_company_id: string | null
+          has_completed_profile: boolean | null
+          id: string
+          license_number: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string
+          website: string | null
+        }[]
+      }
       handle_user_invitation: {
         Args: {
           inviter_id: string
@@ -499,6 +830,13 @@ export type Database = {
         }
         Returns: string
       }
+      has_permission: {
+        Args: {
+          user_id: string
+          feature_key: string
+        }
+        Returns: boolean
+      }
       has_project_access: {
         Args: {
           project_id: string
@@ -506,8 +844,12 @@ export type Database = {
         Returns: boolean
       }
       is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_gc_admin_of: {
         Args: {
-          user_id: string
+          profile_id: string
         }
         Returns: boolean
       }
@@ -546,11 +888,8 @@ export type Database = {
       payment_method_type: "cc" | "check" | "transfer" | "cash" | "simulated"
       payment_status: "due" | "partially_paid" | "paid"
       project_status: "draft" | "active" | "completed" | "cancelled"
-      user_role:
-        | "general_contractor"
-        | "homeowner"
-        | "admin"
-        | "project_manager"
+      subscription_status: "active" | "cancelled" | "past_due" | "trialing"
+      user_role: "admin" | "gc_admin" | "project_manager" | "homeowner"
     }
     CompositeTypes: {
       [_ in never]: never
