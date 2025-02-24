@@ -104,13 +104,14 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     }
   }
 
-  // Prevent homeowners from accessing the GC dashboard
-  if (currentRole === 'homeowner' && window.location.pathname === '/dashboard') {
-    console.log("Homeowner attempting to access GC dashboard, redirecting to client dashboard");
+  // Prevent homeowners from accessing the GC dashboard and invoice routes
+  if (currentRole === 'homeowner' && 
+      (window.location.pathname === '/dashboard' || window.location.pathname === '/invoices')) {
+    console.log("Homeowner attempting to access GC routes, redirecting to client dashboard");
     return <Navigate to="/client-dashboard" replace />;
   }
 
-  // Prevent GCs from accessing the client dashboard
+  // Prevent GCs from accessing client-specific routes
   if ((currentRole === 'general_contractor' || currentRole === 'gc_admin') && 
       window.location.pathname.startsWith('/client-')) {
     console.log("GC attempting to access client pages, redirecting to GC dashboard");
