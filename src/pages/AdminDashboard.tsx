@@ -3,12 +3,15 @@ import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
+import { Database } from "@/integrations/supabase/types";
 
 type AdminStats = {
   total_users?: number;
   active_projects?: number;
   total_revenue?: number;
 }
+
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 type AdminAction = {
   id: string;
@@ -18,10 +21,7 @@ type AdminAction = {
   action_type: string;
   details: any;
   created_at: string;
-  admin: {
-    id: string;
-    full_name: string;
-  } | null;
+  profiles?: Profile | null;
 }
 
 const AdminDashboard = () => {
@@ -51,7 +51,7 @@ const AdminDashboard = () => {
         .from('admin_actions')
         .select(`
           *,
-          admin:profiles (
+          profiles:admin_id (
             id,
             full_name
           )
@@ -64,7 +64,7 @@ const AdminDashboard = () => {
         throw error;
       }
 
-      return data;
+      return data as AdminAction[];
     }
   });
 
@@ -127,7 +127,7 @@ const AdminDashboard = () => {
                       <div>
                         <p className="font-semibold">{action.action_type}</p>
                         <p className="text-sm text-gray-600">
-                          {action.admin?.full_name} - {action.entity_type}
+                          {action.profiles?.full_name} - {action.entity_type}
                         </p>
                       </div>
                       <span className="text-sm text-gray-500">
