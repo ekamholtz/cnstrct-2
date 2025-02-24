@@ -74,11 +74,17 @@ export const useAuthForm = () => {
         .from('profiles')
         .select('role')
         .eq('id', authResponse.user.id)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error("Profile fetch error:", profileError);
         throw profileError;
+      }
+
+      if (!profileData) {
+        console.error("No profile found for user");
+        // Default to dashboard if no profile found
+        return { role: 'gc_admin' };
       }
 
       console.log("Profile data:", profileData);
