@@ -1,14 +1,13 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useForm, SubmitHandler } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { MainNav } from "@/components/navigation/MainNav";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,13 +16,12 @@ const profileSchema = z.object({
   fullName: z.string().min(2, {
     message: "Full name must be at least 2 characters.",
   }),
-  companyName: z.string().optional(),
-  website: z.string().url({ message: "Please enter a valid URL." }).optional(),
-  bio: z.string().optional(),
+  phoneNumber: z.string().min(5, {
+    message: "Please enter a valid phone number.",
+  }),
   address: z.string().min(5, {
     message: "Address must be at least 5 characters.",
   }),
-  licenseNumber: z.string().optional(),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -70,7 +68,7 @@ const ProfileCompletion = () => {
     fetchUserProfile();
   }, [navigate]);
 
-  const onSubmit: SubmitHandler<ProfileFormValues> = async (data) => {
+  const onSubmit = async (data: ProfileFormValues) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -78,16 +76,10 @@ const ProfileCompletion = () => {
         return;
       }
 
-      const isAdmin = userRole === 'platform_admin';
-      const isGeneralContractor = userRole === 'gc_admin';
-
       const profileData = {
         full_name: data.fullName,
-        company_name: data.companyName,
-        website: data.website,
-        bio: data.bio,
+        phone_number: data.phoneNumber,
         address: data.address,
-        license_number: data.licenseNumber,
         has_completed_profile: true,
       };
 
@@ -111,13 +103,7 @@ const ProfileCompletion = () => {
         description: "Profile updated successfully!",
       });
 
-      if (isAdmin) {
-        navigate('/admin');
-      } else if (isGeneralContractor) {
-        navigate('/dashboard');
-      } else {
-        navigate('/client-dashboard');
-      }
+      navigate('/client-dashboard');
     } catch (error) {
       console.error("Error during form submission:", error);
       toast({
@@ -149,39 +135,20 @@ const ProfileCompletion = () => {
                   <p className="text-red-500 text-sm">{errors.fullName.message}</p>
                 )}
               </div>
+              
               <div>
-                <Label htmlFor="companyName">Company Name (Optional)</Label>
+                <Label htmlFor="phoneNumber">Phone Number</Label>
                 <Input
-                  id="companyName"
-                  placeholder="Acme Corp"
-                  {...register("companyName")}
+                  id="phoneNumber"
+                  placeholder="(123) 456-7890"
+                  type="tel"
+                  {...register("phoneNumber")}
                 />
-                {errors.companyName && (
-                  <p className="text-red-500 text-sm">{errors.companyName.message}</p>
+                {errors.phoneNumber && (
+                  <p className="text-red-500 text-sm">{errors.phoneNumber.message}</p>
                 )}
               </div>
-              <div>
-                <Label htmlFor="website">Website (Optional)</Label>
-                <Input
-                  id="website"
-                  placeholder="https://acme.com"
-                  {...register("website")}
-                />
-                {errors.website && (
-                  <p className="text-red-500 text-sm">{errors.website.message}</p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="bio">Bio (Optional)</Label>
-                <Textarea
-                  id="bio"
-                  placeholder="Tell us a little about yourself"
-                  {...register("bio")}
-                />
-                {errors.bio && (
-                  <p className="text-red-500 text-sm">{errors.bio.message}</p>
-                )}
-              </div>
+
               <div>
                 <Label htmlFor="address">Address</Label>
                 <Input
@@ -191,17 +158,6 @@ const ProfileCompletion = () => {
                 />
                 {errors.address && (
                   <p className="text-red-500 text-sm">{errors.address.message}</p>
-                )}
-              </div>
-              <div>
-                <Label htmlFor="licenseNumber">License Number (Optional)</Label>
-                <Input
-                  id="licenseNumber"
-                  placeholder="Enter your license number"
-                  {...register("licenseNumber")}
-                />
-                {errors.licenseNumber && (
-                  <p className="text-red-500 text-sm">{errors.licenseNumber.message}</p>
                 )}
               </div>
 
