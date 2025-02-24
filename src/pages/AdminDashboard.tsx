@@ -46,8 +46,13 @@ const AdminDashboard = () => {
       const { data, error } = await supabase
         .from('admin_actions')
         .select(`
-          *,
-          admin:profiles(full_name)
+          id,
+          entity_type,
+          entity_id,
+          action_type,
+          details,
+          created_at,
+          admin:profiles(id, full_name)
         `)
         .order('created_at', { ascending: false })
         .limit(5);
