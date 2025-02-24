@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { Building, House } from "lucide-react";
 
 const Auth = () => {
-  const [selectedRole, setSelectedRole] = useState<"general_contractor" | "homeowner" | null>(null);
+  const [selectedRole, setSelectedRole] = useState<"gc_admin" | "homeowner" | null>(null);
   const [isLogin, setIsLogin] = useState(false);
   const navigate = useNavigate();
 
@@ -37,7 +38,7 @@ const Auth = () => {
                   variant="outline"
                   size="lg"
                   className="w-full bg-white hover:bg-gray-100"
-                  onClick={() => setSelectedRole("general_contractor")}
+                  onClick={() => setSelectedRole("gc_admin")}
                 >
                   <Building className="mr-2 h-5 w-5" />
                   Register as General Contractor

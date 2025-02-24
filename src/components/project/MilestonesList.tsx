@@ -115,7 +115,7 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
 
   const isHomeowner = userRole === 'homeowner';
   const isGeneralContractor = userRole === 'gc_admin';
-  const isContractor = userRole === 'general_contractor';
+  const isContractor = userRole === 'gc_admin';
 
   return (
     <div>

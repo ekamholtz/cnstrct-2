@@ -52,8 +52,8 @@ const AdminDashboard = () => {
           action_type,
           details,
           created_at,
-          admin:profiles(id, full_name)
-        `)
+          admin:profiles(id, full_name)`
+        )
         .order('created_at', { ascending: false })
         .limit(5);
 

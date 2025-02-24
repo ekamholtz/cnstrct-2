@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,7 @@ import { registerSchema, type RegisterFormData } from "./authSchemas";
 interface RegisterFormProps {
   onSubmit: (values: RegisterFormData) => Promise<void>;
   loading: boolean;
-  selectedRole: "general_contractor" | "homeowner";
+  selectedRole: "gc_admin" | "homeowner";
 }
 
 export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormProps) => {
@@ -27,6 +28,7 @@ export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormPr
       password: "",
       confirmPassword: "",
     },
+    mode: "all"
   });
 
   return (
