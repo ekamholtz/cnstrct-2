@@ -25,6 +25,7 @@ export const useAuthForm = () => {
         },
       });
       if (error) {
+        console.error("Registration error:", error);
         throw error;
       }
     },
@@ -39,6 +40,7 @@ export const useAuthForm = () => {
     },
     onError: (error: any) => {
       setIsLoading(false);
+      console.error("Registration error details:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -49,6 +51,7 @@ export const useAuthForm = () => {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
+      console.log("Attempting login for:", data.email);
       setIsLoading(true);
       const { data: authResponse, error } = await supabase.auth.signInWithPassword({
         email: data.email,
@@ -56,12 +59,16 @@ export const useAuthForm = () => {
       });
 
       if (error) {
+        console.error("Login error:", error);
         throw error;
       }
 
       if (!authResponse?.user) {
+        console.error("No user data returned");
         throw new Error("Could not authenticate user");
       }
+
+      console.log("Auth response:", authResponse);
 
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -70,9 +77,11 @@ export const useAuthForm = () => {
         .single();
 
       if (profileError) {
+        console.error("Profile fetch error:", profileError);
         throw profileError;
       }
 
+      console.log("Profile data:", profileData);
       return profileData;
     },
     onSuccess: (data) => {
@@ -82,17 +91,18 @@ export const useAuthForm = () => {
         description: "Login successful!",
       });
 
+      console.log("Navigating based on role:", data?.role);
       if (data?.role === 'platform_admin') {
         navigate('/admin');
       } else if (data?.role === 'homeowner') {
         navigate('/client-dashboard');
-      }
-      else {
+      } else {
         navigate('/dashboard');
       }
     },
     onError: (error: any) => {
       setIsLoading(false);
+      console.error("Login error details:", error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -102,10 +112,12 @@ export const useAuthForm = () => {
   });
 
   const handleLogin = async (values: LoginFormData) => {
+    console.log("Handle login called with:", values);
     await loginMutation.mutateAsync(values);
   };
 
   const handleRegister = async (values: RegisterFormData) => {
+    console.log("Handle register called with:", values);
     await registerMutation.mutateAsync(values);
   };
 
