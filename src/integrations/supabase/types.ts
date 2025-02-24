@@ -494,6 +494,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_invoice: {
+        Args: {
+          invoice_id: string
+        }
+        Returns: boolean
+      }
       check_is_admin: {
         Args: {
           user_id: string
