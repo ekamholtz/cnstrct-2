@@ -37,8 +37,6 @@ export function MainNav() {
         .maybeSingle();
 
       if (error) throw error;
-
-      console.log('Current user role:', data?.role);
       return data || { role: 'gc_admin' };
     },
   });
@@ -59,7 +57,10 @@ export function MainNav() {
   };
 
   const handleNavigation = (path: string) => {
-    console.log("Navigating to:", path);
+    console.log("MainNav - Navigating to:", path);
+    if (path === '/invoice' || path === '/invoices') {
+      console.log("MainNav - Invoice navigation triggered");
+    }
     navigate(path);
     setIsMenuOpen(false);
   };
@@ -72,7 +73,8 @@ export function MainNav() {
                        profile?.role === 'platform_admin' ? '/admin/projects' :
                        '/gc-projects';
 
-  const invoicesRoute = profile?.role === 'homeowner' ? '/client-invoices' : '/invoice';
+  // Simplified invoice route logic
+  const invoicesRoute = '/invoice';
 
   const navItems = [
     { label: "Home", path: homeRoute, icon: Home },
@@ -84,7 +86,12 @@ export function MainNav() {
     { label: "Help", path: "/help", icon: HelpCircle },
   ];
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => {
+    if (path === '/invoice') {
+      return location.pathname === '/invoice' || location.pathname === '/invoices';
+    }
+    return location.pathname === path;
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
