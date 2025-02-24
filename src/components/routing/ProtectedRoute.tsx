@@ -5,13 +5,30 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { MainNav } from "@/components/navigation/MainNav";
 import { Loader2 } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useEffect, useState } from "react";
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const { profile, isLoading } = useUserProfile();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const currentPath = location.pathname;
 
-  if (isLoading) {
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    checkAuth();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Show loading state while we're checking authentication and loading profile
+  if (isLoading || isAuthenticated === null) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
@@ -19,8 +36,15 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  // If no profile, redirect to auth
-  if (!profile) {
+  // If not authenticated, redirect to auth
+  if (!isAuthenticated) {
+    console.log("Not authenticated, redirecting to auth");
+    return <Navigate to="/auth" replace />;
+  }
+
+  // If authenticated but no profile, this means there's an error
+  if (!profile && isAuthenticated) {
+    console.error("Authenticated but no profile found");
     return <Navigate to="/auth" replace />;
   }
 
