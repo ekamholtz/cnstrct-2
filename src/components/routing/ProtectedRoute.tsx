@@ -111,8 +111,9 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   // Prevent GCs from accessing the client dashboard
-  if (currentRole === 'general_contractor' && window.location.pathname === '/client-dashboard') {
-    console.log("GC attempting to access client dashboard, redirecting to GC dashboard");
+  if ((currentRole === 'general_contractor' || currentRole === 'gc_admin') && 
+      window.location.pathname.startsWith('/client-')) {
+    console.log("GC attempting to access client pages, redirecting to GC dashboard");
     return <Navigate to="/dashboard" replace />;
   }
 
