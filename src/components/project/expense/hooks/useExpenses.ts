@@ -1,7 +1,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ExpenseFormStage1Data, Expense, Payment, PaymentDetailsData } from "../types";
+import type { ExpenseFormStage1Data, Expense, PaymentDetailsData } from "../types";
 import { useToast } from "@/hooks/use-toast";
 
 export function useExpenses(projectId: string) {
@@ -22,7 +22,7 @@ export function useExpenses(projectId: string) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as (Expense & { project?: { name: string }, payments: Payment[] })[];
+      return data as Expense[];
     },
   });
 
@@ -38,13 +38,10 @@ export function useExpenses(projectId: string) {
 
       const amount = Number(data.amount);
 
-      // Create the expense object and explicitly set amount_due to match amount
-      // The database trigger will handle this if not provided, but we'll include it
-      // to satisfy TypeScript
       const newExpense = {
         name: data.name,
         amount,
-        amount_due: amount, // Set explicitly to satisfy type checker
+        amount_due: amount,
         payee: data.payee,
         expense_date: data.expense_date,
         expense_type: data.expense_type,
@@ -54,20 +51,13 @@ export function useExpenses(projectId: string) {
         payment_status: data.payment_status
       };
 
-      console.log('Inserting expense data:', newExpense);
-
       const { data: expense, error } = await supabase
         .from('expenses')
         .insert([newExpense])
         .select()
         .single();
 
-      if (error) {
-        console.error('Error creating expense:', error);
-        throw error;
-      }
-
-      console.log('Created expense:', expense);
+      if (error) throw error;
       return expense;
     },
     onSuccess: () => {
@@ -80,28 +70,30 @@ export function useExpenses(projectId: string) {
   });
 
   const { mutateAsync: createPayment } = useMutation({
-    mutationFn: async ({ 
-      expenseId, 
-      paymentData 
-    }: { 
-      expenseId: string;
-      paymentData: PaymentDetailsData;
-    }) => {
-      const { data: payment, error: paymentError } = await supabase
+    mutationFn: async ({ expenseId, paymentData }: { expenseId: string; paymentData: PaymentDetailsData }) => {
+      const { data: expense, error: expenseError } = await supabase
+        .from('expenses')
+        .select('amount')
+        .eq('id', expenseId)
+        .single();
+
+      if (expenseError) throw expenseError;
+
+      const { data: payment, error } = await supabase
         .from('payments')
         .insert({
+          direction: 'outgoing',
           expense_id: expenseId,
-          payment_type: paymentData.payment_type,
+          payment_method_code: paymentData.payment_method_code,
           payment_date: paymentData.payment_date,
-          payment_amount: Number(paymentData.payment_amount),
-          vendor_email: paymentData.vendor_email || null,
-          vendor_phone: paymentData.vendor_phone || null
+          amount: Number(paymentData.amount),
+          notes: paymentData.notes,
+          status: 'completed'
         })
         .select()
         .single();
 
-      if (paymentError) throw paymentError;
-
+      if (error) throw error;
       return payment;
     },
     onSuccess: () => {

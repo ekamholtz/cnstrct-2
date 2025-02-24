@@ -1,5 +1,6 @@
 
 import { z } from "zod";
+import type { Payment } from "@/components/payments/types";
 
 export const expenseFormStage1Schema = z.object({
   name: z.string().min(1, "Expense description is required"),
@@ -16,15 +17,14 @@ export const expenseFormStage1Schema = z.object({
 });
 
 export const paymentDetailsSchema = z.object({
-  payment_type: z.enum(["cc", "check", "transfer", "cash"], {
+  payment_method_code: z.enum(["cc", "check", "transfer", "cash"], {
     required_error: "Payment type is required",
   }),
   payment_date: z.string().min(1, "Payment date is required"),
-  payment_amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+  amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Payment amount must be a positive number",
   }),
-  vendor_email: z.string().email("Invalid email").optional(),
-  vendor_phone: z.string().optional(),
+  notes: z.string().optional()
 });
 
 export type ExpenseFormStage1Data = z.infer<typeof expenseFormStage1Schema>;
@@ -37,25 +37,15 @@ export interface Expense {
   name: string;
   payee: string;
   amount: number;
-  amount_due?: number; // Made optional
+  amount_due: number;
   expense_date: string;
   expense_type: "labor" | "materials" | "subcontractor" | "other";
   payment_status: "due" | "partially_paid" | "paid";
   notes?: string;
   created_at: string;
   updated_at: string;
+  project?: {
+    name: string;
+  };
   payments?: Payment[];
-}
-
-export interface Payment {
-  id: string;
-  expense_id: string;
-  payment_type: "cc" | "check" | "transfer" | "cash";
-  payment_date: string;
-  payment_amount: number;
-  vendor_email?: string | null;
-  vendor_phone?: string | null;
-  simulation_data?: any;
-  created_at: string;
-  updated_at: string;
 }

@@ -96,8 +96,8 @@ export default function PaymentDetails() {
               </div>
               
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Payment Type</h3>
-                <p className="mt-1 text-gray-900 capitalize">{payment.payment_type}</p>
+                <h3 className="text-sm font-medium text-gray-500">Payment Method</h3>
+                <p className="mt-1 text-gray-900 capitalize">{payment.payment_method_code}</p>
               </div>
 
               <div>
@@ -108,23 +108,23 @@ export default function PaymentDetails() {
               </div>
 
               <div>
-                <h3 className="text-sm font-medium text-gray-500">Payment Amount</h3>
-                <p className="mt-1 text-gray-900">${payment.payment_amount.toFixed(2)}</p>
+                <h3 className="text-sm font-medium text-gray-500">Amount</h3>
+                <p className="mt-1 text-gray-900">${payment.amount.toFixed(2)}</p>
               </div>
+
+              {payment.status && (
+                <div>
+                  <h3 className="text-sm font-medium text-gray-500">Status</h3>
+                  <p className="mt-1 text-gray-900 capitalize">{payment.status}</p>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4">
-              {payment.vendor_email && (
+              {payment.notes && (
                 <div>
-                  <h3 className="text-sm font-medium text-gray-500">Vendor Email</h3>
-                  <p className="mt-1 text-gray-900">{payment.vendor_email}</p>
-                </div>
-              )}
-
-              {payment.vendor_phone && (
-                <div>
-                  <h3 className="text-sm font-medium text-gray-500">Vendor Phone</h3>
-                  <p className="mt-1 text-gray-900">{payment.vendor_phone}</p>
+                  <h3 className="text-sm font-medium text-gray-500">Notes</h3>
+                  <p className="mt-1 text-gray-900">{payment.notes}</p>
                 </div>
               )}
 
