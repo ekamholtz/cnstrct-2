@@ -42,8 +42,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
                 id: session.user.id,
                 full_name: session.user.user_metadata.full_name || '',
                 role: session.user.user_metadata.role,
-                has_completed_profile: true,
-                address: '',
+                has_completed_profile: true
               });
 
             if (insertError) {
@@ -92,20 +91,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     isInvoicePath: ['/invoice', '/invoices'].includes(location.pathname)
   });
 
-  // Always allow invoice access for appropriate roles
-  if (['/invoice', '/invoices'].includes(location.pathname)) {
-    console.log("Accessing invoice route");
-    if (currentRole === 'homeowner') {
-      return <Navigate to="/client-dashboard" replace />;
-    }
-    return (
-      <>
-        <MainNav />
-        {children}
-      </>
-    );
-  }
-
   // Handle profile completion check
   if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
     console.log("Redirecting to profile completion");
@@ -129,6 +114,12 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       location.pathname.startsWith('/client-')) {
     console.log("GC attempting to access client pages");
     return <Navigate to="/dashboard" replace />;
+  }
+
+  // Handle homeowner accessing GC routes
+  if (currentRole === 'homeowner' && 
+      ['/invoice', '/invoices'].includes(location.pathname)) {
+    return <Navigate to="/client-dashboard" replace />;
   }
 
   const Navigation = currentRole === 'admin' ? AdminNav : MainNav;

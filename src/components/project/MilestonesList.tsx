@@ -55,6 +55,9 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
 
   const completeMilestoneMutation = useMutation({
     mutationFn: async (milestoneId: string) => {
+      console.log("Starting milestone completion for:", milestoneId);
+
+      // 1. First update the milestone status
       const { data: milestone, error: milestoneError } = await supabase
         .from('milestones')
         .update({ status: 'completed' })
@@ -69,9 +72,31 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
         `)
         .single();
 
-      if (milestoneError) throw milestoneError;
-      if (!milestone?.project?.contractor_id) throw new Error('No contractor found for project');
+      if (milestoneError) {
+        console.error("Error updating milestone:", milestoneError);
+        throw milestoneError;
+      }
 
+      console.log("Milestone updated successfully:", milestone);
+
+      if (!milestone?.project?.contractor_id) {
+        throw new Error('No contractor found for project');
+      }
+
+      // 2. Generate invoice number
+      const { data: invoiceNumber, error: invoiceNumberError } = await supabase
+        .rpc('generate_invoice_number', {
+          milestone_id: milestoneId
+        });
+
+      if (invoiceNumberError) {
+        console.error("Error generating invoice number:", invoiceNumberError);
+        throw invoiceNumberError;
+      }
+
+      console.log("Generated invoice number:", invoiceNumber);
+
+      // 3. Create the invoice
       const { error: invoiceError } = await supabase
         .from('invoices')
         .insert({
@@ -79,12 +104,16 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
           amount: milestone.amount,
           project_id: milestone.project_id,
           contractor_id: milestone.project.contractor_id,
-          invoice_number: await generateInvoiceNumber(milestoneId),
+          invoice_number: invoiceNumber,
           status: 'pending_payment'
         });
 
-      if (invoiceError) throw invoiceError;
+      if (invoiceError) {
+        console.error("Error creating invoice:", invoiceError);
+        throw invoiceError;
+      }
 
+      console.log("Invoice created successfully");
       return milestone;
     },
     onSuccess: () => {
@@ -169,6 +198,7 @@ export function MilestonesList({ milestones, onMarkComplete, hideControls = fals
   const isContractor = userRole === 'gc_admin';
 
   const handleMarkComplete = async (milestoneId: string) => {
+    console.log("Attempting to mark milestone complete:", milestoneId);
     await completeMilestoneMutation.mutateAsync(milestoneId);
     if (onMarkComplete) {
       onMarkComplete(milestoneId);
