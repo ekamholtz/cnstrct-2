@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 
 type UserRole = Database["public"]["Enums"]["user_role"];
 
@@ -18,32 +18,47 @@ type Profile = {
 
 export function useUserProfile() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
-
-  const checkSession = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
-  }, []);
+  const [authChecked, setAuthChecked] = useState(false);
 
   useEffect(() => {
-    checkSession();
-    
+    let mounted = true;
+
+    const checkAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (mounted) {
+          setIsAuthenticated(!!session);
+          setAuthChecked(true);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        if (mounted) {
+          setIsAuthenticated(false);
+          setAuthChecked(true);
+        }
+      }
+    };
+
+    checkAuth();
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      setIsAuthenticated(!!session);
+      if (mounted) {
+        setIsAuthenticated(!!session);
+        setAuthChecked(true);
+      }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
-  }, [checkSession]);
+  }, []);
 
   const { data: profile, isLoading: profileLoading, error } = useQuery({
     queryKey: ["user-profile"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        return null;
-      }
+      if (!session?.user) return null;
 
       const { data, error } = await supabase
         .from("profiles")
@@ -54,17 +69,17 @@ export function useUserProfile() {
       if (error) throw error;
       return data;
     },
-    enabled: isAuthenticated === true,
+    enabled: isAuthenticated === true && authChecked,
     staleTime: 1000 * 60 * 5,
     retry: 2,
   });
 
-  const isLoading = profileLoading || isAuthenticated === null;
+  const isLoading = (profileLoading && isAuthenticated) || !authChecked;
 
   return {
     profile,
     isLoading,
     error,
-    isAuthenticated
+    isAuthenticated: authChecked ? isAuthenticated : null
   };
 }

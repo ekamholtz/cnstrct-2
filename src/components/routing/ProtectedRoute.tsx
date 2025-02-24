@@ -8,7 +8,6 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const { profile, isLoading, isAuthenticated } = useUserProfile();
-  const currentPath = location.pathname;
 
   if (isLoading) {
     return (
@@ -26,40 +25,31 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/auth" replace />;
   }
 
-  // Handle GC routing first, before any other checks
-  if (profile.role === 'gc_admin') {
-    // Always redirect GC to their projects page unless they're already there
-    if (currentPath !== '/gc-projects') {
-      return <Navigate to="/gc-projects" replace />;
-    }
-  } else {
-    // For non-GC users, apply the regular routing logic
-    let redirectTo: string | null = null;
+  // Special handling for GC users
+  if (profile.role === 'gc_admin' && location.pathname !== '/gc-projects') {
+    return <Navigate to="/gc-projects" replace />;
+  }
 
-    if (currentPath === '/profile-completion') {
-      if (profile.has_completed_profile) {
-        redirectTo = profile.role === 'admin' ? '/admin' : 
-                    profile.role === 'homeowner' ? '/client-dashboard' : 
-                    '/dashboard';
-      }
-    } else {
-      if (!profile.has_completed_profile) {
-        redirectTo = '/profile-completion';
-      } else if (currentPath.startsWith('/admin') && profile.role !== 'admin') {
-        redirectTo = '/dashboard';
-      } else if (currentPath === '/client-dashboard' && profile.role !== 'homeowner') {
-        redirectTo = '/dashboard';
-      } else if (currentPath === '/dashboard' && profile.role === 'homeowner') {
-        redirectTo = '/client-dashboard';
-      } else if (currentPath === '/') {
-        redirectTo = profile.role === 'admin' ? '/admin' :
-                    profile.role === 'homeowner' ? '/client-dashboard' :
-                    '/dashboard';
-      }
+  // Handle non-GC user routing
+  if (profile.role !== 'gc_admin') {
+    if (!profile.has_completed_profile && location.pathname !== '/profile-completion') {
+      return <Navigate to="/profile-completion" replace />;
     }
 
-    if (redirectTo) {
-      return <Navigate to={redirectTo} replace />;
+    if (profile.has_completed_profile && location.pathname === '/profile-completion') {
+      const redirectPath = 
+        profile.role === 'admin' ? '/admin' :
+        profile.role === 'homeowner' ? '/client-dashboard' :
+        '/dashboard';
+      return <Navigate to={redirectPath} replace />;
+    }
+
+    if (location.pathname === '/') {
+      const homePath = 
+        profile.role === 'admin' ? '/admin' :
+        profile.role === 'homeowner' ? '/client-dashboard' :
+        '/dashboard';
+      return <Navigate to={homePath} replace />;
     }
   }
 
