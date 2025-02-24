@@ -1,6 +1,6 @@
 
 import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
   Table,
@@ -17,6 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export const InvoiceList = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: invoices, isLoading, error } = useQuery({
     queryKey: ['contractor-invoices'],
@@ -42,6 +43,36 @@ export const InvoiceList = () => {
       return data;
     },
   });
+
+  // Set up real-time subscription
+  useEffect(() => {
+    console.log('Setting up real-time subscription for invoices');
+    
+    const channel = supabase
+      .channel('invoice-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all changes (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'invoices'
+        },
+        (payload) => {
+          console.log('Real-time update received:', payload);
+          // Invalidate the query to refetch data
+          queryClient.invalidateQueries({ queryKey: ['contractor-invoices'] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
+
+    // Cleanup subscription on unmount
+    return () => {
+      console.log('Cleaning up real-time subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   // Handle error with useEffect to avoid render issues
   useEffect(() => {

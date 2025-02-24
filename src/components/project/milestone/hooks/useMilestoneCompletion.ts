@@ -71,7 +71,9 @@ export function useMilestoneCompletion() {
       return milestone;
     },
     onSuccess: () => {
+      // Invalidate both project invoices and contractor invoices queries
       queryClient.invalidateQueries({ queryKey: ['project-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['contractor-invoices'] });
       toast({
         title: "Success",
         description: "Milestone marked as complete and invoice created",
