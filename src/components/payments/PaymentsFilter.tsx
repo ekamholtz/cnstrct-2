@@ -9,7 +9,7 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { PaymentFilters, PaymentType } from "./types";
+import { PaymentFilters, PaymentDirection, PaymentProcessingStatus, PaymentMethodCode } from "./types";
 
 interface PaymentsFilterProps {
   filters: PaymentFilters;
@@ -17,6 +17,19 @@ interface PaymentsFilterProps {
 }
 
 export function PaymentsFilter({ filters, onFiltersChange }: PaymentsFilterProps) {
+  const { data: paymentMethods } = useQuery({
+    queryKey: ['payment-methods'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('supported_payment_methods')
+        .select('*')
+        .eq('is_active', true);
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const { data: projects } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
@@ -29,22 +42,71 @@ export function PaymentsFilter({ filters, onFiltersChange }: PaymentsFilterProps
     },
   });
 
-  const handlePaymentTypeChange = (value: string) => {
-    onFiltersChange({
-      ...filters,
-      paymentType: value === "all" ? undefined : value as PaymentType
-    });
-  };
-
-  const handleProjectChange = (value: string) => {
-    onFiltersChange({
-      ...filters,
-      projectId: value === "all" ? undefined : value
-    });
-  };
-
   return (
     <div className="flex flex-col sm:flex-row gap-4">
+      <Select
+        value={filters.direction || "all"}
+        onValueChange={(value) => 
+          onFiltersChange({
+            ...filters,
+            direction: value === "all" ? undefined : value as PaymentDirection
+          })
+        }
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Payment Direction" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Directions</SelectItem>
+          <SelectItem value="incoming">Incoming</SelectItem>
+          <SelectItem value="outgoing">Outgoing</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={filters.status || "all"}
+        onValueChange={(value) => 
+          onFiltersChange({
+            ...filters,
+            status: value === "all" ? undefined : value as PaymentProcessingStatus
+          })
+        }
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Payment Status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Statuses</SelectItem>
+          <SelectItem value="pending">Pending</SelectItem>
+          <SelectItem value="processing">Processing</SelectItem>
+          <SelectItem value="completed">Completed</SelectItem>
+          <SelectItem value="failed">Failed</SelectItem>
+          <SelectItem value="refunded">Refunded</SelectItem>
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={filters.paymentMethodCode || "all"}
+        onValueChange={(value) => 
+          onFiltersChange({
+            ...filters,
+            paymentMethodCode: value === "all" ? undefined : value as PaymentMethodCode
+          })
+        }
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Payment Method" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All Methods</SelectItem>
+          {paymentMethods?.map((method) => (
+            <SelectItem key={method.code} value={method.code}>
+              {method.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -76,7 +138,10 @@ export function PaymentsFilter({ filters, onFiltersChange }: PaymentsFilterProps
             defaultMonth={filters.dateRange?.from}
             selected={filters.dateRange}
             onSelect={(range: DateRange | undefined) => 
-              onFiltersChange({ ...filters, dateRange: range || { from: undefined, to: undefined } })
+              onFiltersChange({
+                ...filters,
+                dateRange: range || { from: undefined, to: undefined }
+              })
             }
             numberOfMonths={2}
           />
@@ -84,24 +149,13 @@ export function PaymentsFilter({ filters, onFiltersChange }: PaymentsFilterProps
       </Popover>
 
       <Select
-        value={filters.paymentType || "all"}
-        onValueChange={handlePaymentTypeChange}
-      >
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Payment Type" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All Types</SelectItem>
-          <SelectItem value="cc">Credit Card</SelectItem>
-          <SelectItem value="check">Check</SelectItem>
-          <SelectItem value="transfer">Transfer</SelectItem>
-          <SelectItem value="cash">Cash</SelectItem>
-        </SelectContent>
-      </Select>
-
-      <Select
         value={filters.projectId || "all"}
-        onValueChange={handleProjectChange}
+        onValueChange={(value) => 
+          onFiltersChange({
+            ...filters,
+            projectId: value === "all" ? undefined : value
+          })
+        }
       >
         <SelectTrigger className="w-[250px]">
           <SelectValue placeholder="Select Project" />
@@ -120,7 +174,9 @@ export function PaymentsFilter({ filters, onFiltersChange }: PaymentsFilterProps
         variant="ghost"
         onClick={() => onFiltersChange({
           dateRange: { from: undefined, to: undefined },
-          paymentType: undefined,
+          direction: undefined,
+          status: undefined,
+          paymentMethodCode: undefined,
           projectId: undefined,
         })}
       >

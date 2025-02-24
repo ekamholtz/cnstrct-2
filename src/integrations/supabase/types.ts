@@ -297,50 +297,109 @@ export type Database = {
           },
         ]
       }
-      payments: {
+      payment_events: {
         Row: {
           created_at: string | null
-          expense_id: string
+          created_by: string | null
+          event_data: Json | null
+          event_type: string
           id: string
-          payment_amount: number
-          payment_date: string
-          payment_type: Database["public"]["Enums"]["expense_payment_method"]
-          simulation_data: Json | null
-          updated_at: string | null
-          vendor_email: string | null
-          vendor_phone: string | null
+          payment_id: string
         }
         Insert: {
           created_at?: string | null
-          expense_id: string
+          created_by?: string | null
+          event_data?: Json | null
+          event_type: string
           id?: string
-          payment_amount: number
-          payment_date: string
-          payment_type: Database["public"]["Enums"]["expense_payment_method"]
-          simulation_data?: Json | null
-          updated_at?: string | null
-          vendor_email?: string | null
-          vendor_phone?: string | null
+          payment_id: string
         }
         Update: {
           created_at?: string | null
-          expense_id?: string
+          created_by?: string | null
+          event_data?: Json | null
+          event_type?: string
           id?: string
-          payment_amount?: number
-          payment_date?: string
-          payment_type?: Database["public"]["Enums"]["expense_payment_method"]
+          payment_id?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string | null
+          direction: Database["public"]["Enums"]["payment_direction"]
+          expense_id: string | null
+          id: string
+          invoice_id: string | null
+          notes: string | null
+          payment_date: string
+          payment_method_code: string
+          payment_processor_id: string | null
+          processor_metadata: Json | null
+          processor_transaction_id: string | null
+          simulation_data: Json | null
+          simulation_mode: boolean | null
+          status: Database["public"]["Enums"]["payment_processing_status"]
+          updated_at: string | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          direction: Database["public"]["Enums"]["payment_direction"]
+          expense_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          payment_date: string
+          payment_method_code: string
+          payment_processor_id?: string | null
+          processor_metadata?: Json | null
+          processor_transaction_id?: string | null
           simulation_data?: Json | null
+          simulation_mode?: boolean | null
+          status?: Database["public"]["Enums"]["payment_processing_status"]
           updated_at?: string | null
-          vendor_email?: string | null
-          vendor_phone?: string | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          direction?: Database["public"]["Enums"]["payment_direction"]
+          expense_id?: string | null
+          id?: string
+          invoice_id?: string | null
+          notes?: string | null
+          payment_date?: string
+          payment_method_code?: string
+          payment_processor_id?: string | null
+          processor_metadata?: Json | null
+          processor_transaction_id?: string | null
+          simulation_data?: Json | null
+          simulation_mode?: boolean | null
+          status?: Database["public"]["Enums"]["payment_processing_status"]
+          updated_at?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "payments_expense_id_fkey"
+            foreignKeyName: "payments_expense_id_fkey1"
             columns: ["expense_id"]
             isOneToOne: false
             referencedRelation: "expenses"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_payment_method_code_fkey"
+            columns: ["payment_method_code"]
+            isOneToOne: false
+            referencedRelation: "supported_payment_methods"
+            referencedColumns: ["code"]
           },
         ]
       }
@@ -456,6 +515,39 @@ export type Database = {
           id?: string
           name?: string
           price?: number
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      supported_payment_methods: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          processor_config: Json | null
+          requires_processor: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          processor_config?: Json | null
+          requires_processor?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          processor_config?: Json | null
+          requires_processor?: boolean | null
           updated_at?: string | null
         }
         Relationships: []
@@ -591,8 +683,15 @@ export type Database = {
       expense_type: "labor" | "materials" | "subcontractor" | "other"
       invoice_status: "pending_payment" | "paid" | "cancelled"
       milestone_status: "pending" | "completed"
+      payment_direction: "incoming" | "outgoing"
       payment_method: "cc" | "check" | "transfer" | "cash"
       payment_method_type: "cc" | "check" | "transfer" | "cash" | "simulated"
+      payment_processing_status:
+        | "pending"
+        | "processing"
+        | "completed"
+        | "failed"
+        | "refunded"
       payment_status: "due" | "partially_paid" | "paid"
       project_status: "draft" | "active" | "completed" | "cancelled"
       subscription_status: "active" | "cancelled" | "past_due" | "trialing"
