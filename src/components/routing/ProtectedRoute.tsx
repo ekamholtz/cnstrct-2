@@ -28,7 +28,12 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   let redirectTo: string | null = null;
 
-  if (currentPath === '/profile-completion') {
+  // Direct GC to their dashboard after login, skipping profile completion
+  if (profile.role === 'gc_admin') {
+    if (currentPath === '/auth' || currentPath === '/') {
+      redirectTo = '/gc-projects';
+    }
+  } else if (currentPath === '/profile-completion') {
     if (profile.has_completed_profile) {
       redirectTo = profile.role === 'admin' ? '/admin' : 
                   profile.role === 'homeowner' ? '/client-dashboard' : 
