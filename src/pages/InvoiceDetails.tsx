@@ -5,7 +5,6 @@ import { Link, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
 import { InvoiceInformationCard } from "@/components/project/invoice/InvoiceInformationCard";
 import { PaymentDetailsCard } from "@/components/project/invoice/PaymentDetailsCard";
 import { useInvoiceDetails } from "@/components/project/invoice/hooks/useInvoiceDetails";
@@ -68,10 +67,13 @@ export default function InvoiceDetails() {
         </Link>
       </div>
 
-      <ClientPageHeader 
-        pageTitle={`Invoice #${invoiceData.invoice_number}`}
-        pageDescription="View invoice details and payment information"
-      />
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900">Invoice Details</h1>
+        <div className="mt-1">
+          <h2 className="text-xl font-semibold text-gray-700">Invoice #{invoiceData.invoice_number}</h2>
+          <p className="text-gray-600">View invoice details and payment information</p>
+        </div>
+      </div>
 
       <div className="grid gap-6">
         <InvoiceInformationCard invoice={invoiceData} isClient={isClient} />
