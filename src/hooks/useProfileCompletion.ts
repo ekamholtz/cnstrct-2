@@ -63,23 +63,28 @@ export const useProfileCompletion = () => {
     const normalizedEmail = userEmail.toLowerCase();
     console.log("Attempting to link client for email:", normalizedEmail);
     
-    // First, log the current state of the clients table for this email
-    const { data: allClients, error: checkError } = await supabase
+    // Try case-sensitive first
+    let { data: existingClient, error: clientError } = await supabase
       .from('clients')
       .select('*')
-      .eq('email', normalizedEmail);
-
-    if (checkError) {
-      console.error("Error checking clients table:", checkError);
-    } else {
-      console.log("Current clients matching email:", allClients);
-    }
-    
-    const { data: existingClient, error: clientError } = await supabase
-      .from('clients')
-      .select('*')
-      .eq('email', normalizedEmail)
+      .eq('email', userEmail)
       .maybeSingle();
+
+    // If no match, try case-insensitive
+    if (!existingClient) {
+      console.log("No exact match found, trying case-insensitive search");
+      const { data: allClients, error: checkError } = await supabase
+        .from('clients')
+        .select('*')
+        .ilike('email', normalizedEmail);
+
+      if (checkError) {
+        console.error("Error in case-insensitive search:", checkError);
+      } else if (allClients && allClients.length > 0) {
+        console.log("Found clients with case-insensitive match:", allClients);
+        existingClient = allClients[0];
+      }
+    }
 
     if (clientError) {
       console.error("Error checking existing client:", clientError);
@@ -98,10 +103,12 @@ export const useProfileCompletion = () => {
 
     console.log("Found existing client, attempting to link:", existingClient);
 
+    // Update both the user_id and normalize the email while we're at it
     const { data: updatedClient, error: updateError } = await supabase
       .from('clients')
       .update({ 
         user_id: userId,
+        email: normalizedEmail,
         updated_at: new Date().toISOString()
       })
       .eq('id', existingClient.id)
