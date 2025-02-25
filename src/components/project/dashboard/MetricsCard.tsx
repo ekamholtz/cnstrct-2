@@ -34,28 +34,6 @@ export function MetricsCard({
     secondary: '#4A5CCC',  // Lighter blue
   };
 
-  // Calculate percentages for the pie chart if there are breakdown items
-  const total = breakdownItems.reduce((sum, item) => sum + item.value, 0);
-  const firstPercentage = total > 0 ? (breakdownItems[0]?.value || 0) / total * 100 : 0;
-
-  // SVG paths for pie chart segments
-  const createPieSlice = (startAngle: number, endAngle: number) => {
-    // Convert angles to radians
-    const start = (startAngle - 90) * Math.PI / 180;
-    const end = (endAngle - 90) * Math.PI / 180;
-    
-    // Calculate points
-    const startX = Math.cos(start);
-    const startY = Math.sin(start);
-    const endX = Math.cos(end);
-    const endY = Math.sin(end);
-    
-    // Determine which arc to use
-    const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
-    
-    return `M 0 0 L ${startX} ${startY} A 1 1 0 ${largeArc} 1 ${endX} ${endY} Z`;
-  };
-
   return (
     <Card className="p-6 bg-white hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between mb-4">
@@ -68,41 +46,21 @@ export function MetricsCard({
         <Icon className="h-5 w-5 text-[#172b70]" />
       </div>
 
-      <div className="flex items-center justify-between">
-        {/* Budget/Payment Breakdown Text */}
-        {breakdownItems.length > 0 && (
-          <div className="space-y-1">
-            {breakdownItems.map((item, index) => (
-              <div key={index} className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: index === 0 ? colors.primary : colors.secondary }}>
-                  {item.label}
-                </span>
-                <span className="text-sm font-medium ml-4" style={{ color: index === 0 ? colors.primary : colors.secondary }}>
-                  ${item.value.toLocaleString()}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Breakdown Pie Chart for both Total Budget and Amount Paid cards */}
-        {(label === "Total Budget" || label === "Amount Paid") && breakdownItems.length > 0 && (
-          <div className="relative h-14 w-14 ml-4">
-            <svg viewBox="-1 -1 2 2" className="w-full h-full">
-              {/* Primary Slice (GC Budget or Paid to GC) */}
-              <path
-                d={createPieSlice(0, firstPercentage * 3.6)}
-                fill={colors.primary}
-              />
-              {/* Secondary Slice (Other Expenses or Other Payments) */}
-              <path
-                d={createPieSlice(firstPercentage * 3.6, 360)}
-                fill={colors.secondary}
-              />
-            </svg>
-          </div>
-        )}
-      </div>
+      {/* Budget/Payment Breakdown Text */}
+      {breakdownItems.length > 0 && (
+        <div className="space-y-1 mb-4">
+          {breakdownItems.map((item, index) => (
+            <div key={index} className="flex justify-between items-center">
+              <span className="text-sm" style={{ color: index === 0 ? colors.primary : colors.secondary }}>
+                {item.label}
+              </span>
+              <span className="text-sm font-medium" style={{ color: index === 0 ? colors.primary : colors.secondary }}>
+                ${item.value.toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {useCircularProgress ? (
         <div className="mt-4 relative h-12 w-12">
