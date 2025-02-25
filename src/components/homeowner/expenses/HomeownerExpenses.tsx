@@ -5,7 +5,7 @@ import { HomeownerExpenseList } from "./HomeownerExpenseList";
 import { HomeownerExpenseFormFields } from "./types";
 
 interface HomeownerExpensesProps {
-  projectId?: string;  // Make projectId optional
+  projectId: string;
 }
 
 export function HomeownerExpenses({ projectId }: HomeownerExpensesProps) {

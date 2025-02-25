@@ -1,10 +1,9 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { HomeownerExpense, HomeownerExpenseFormFields, PaymentDetailsData } from "../types";
 
-export function useHomeownerExpenses(projectId?: string) {
+export function useHomeownerExpenses(projectId: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -17,12 +16,8 @@ export function useHomeownerExpenses(projectId?: string) {
           *,
           project:projects(name)
         `)
+        .eq('project_id', projectId)
         .order('created_at', { ascending: false });
-
-      // Only filter by project if projectId is provided
-      if (projectId) {
-        query.eq('project_id', projectId);
-      }
 
       const { data, error } = await query;
 

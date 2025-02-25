@@ -1,4 +1,3 @@
-
 import { formatDistanceToNow } from "date-fns";
 import { DollarSign, Receipt } from "lucide-react";
 import { HomeownerExpense } from "./types";
@@ -20,7 +19,7 @@ import { StatusBadge } from "@/components/project/invoice/StatusBadge";
 interface HomeownerExpenseListProps {
   expenses: (HomeownerExpense & { project?: { name: string } })[];
   loading?: boolean;
-  projectId?: string;  // Make projectId optional
+  projectId: string;
 }
 
 export function HomeownerExpenseList({ expenses, loading, projectId }: HomeownerExpenseListProps) {
@@ -93,7 +92,6 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
             <TableRow>
               <TableHead>Expense Number</TableHead>
               <TableHead>Expense Name</TableHead>
-              <TableHead>Project</TableHead>
               <TableHead>Payee</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
@@ -108,7 +106,6 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
                   {expense.expense_number}
                 </TableCell>
                 <TableCell className="font-medium">{expense.name}</TableCell>
-                <TableCell>{expense.project?.name || 'N/A'}</TableCell>
                 <TableCell>{expense.payee}</TableCell>
                 <TableCell>
                   <div className="flex items-center">
@@ -133,7 +130,7 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
             ))}
             {expenses.length === 0 && (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-6 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-6 text-gray-500">
                   No expenses found. Click "Add Expense" to create one.
                 </TableCell>
               </TableRow>
