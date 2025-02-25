@@ -19,62 +19,65 @@ export function ContractorFinancialSummary() {
   } = useContractorFinancials(projectIds);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
-      <Link to="/invoices?status=paid" className="block">
+    <div className="bg-white rounded-lg shadow-sm p-6">
+      <h2 className="text-xl font-semibold text-[#172b70] mb-6">Financial Overview</h2>
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Link to="/invoices?status=paid" className="block">
+          <FinancialCard
+            icon={BadgeDollarSign}
+            iconColor="text-green-600"
+            bgColor="bg-green-100"
+            label="Paid Invoices"
+            amount={totalPaidInvoices}
+          />
+        </Link>
+
+        <Link to="/invoices?status=pending_payment" className="block">
+          <FinancialCard
+            icon={Clock}
+            iconColor="text-orange-600"
+            bgColor="bg-orange-100"
+            label="Pending Invoices"
+            amount={totalPendingInvoices}
+          />
+        </Link>
+
         <FinancialCard
-          icon={BadgeDollarSign}
-          iconColor="text-green-600"
-          bgColor="bg-green-100"
-          label="Paid Invoices"
-          amount={totalPaidInvoices}
+          icon={Package}
+          iconColor="text-purple-600"
+          bgColor="bg-purple-100"
+          label="Uninvoiced Amount"
+          amount={totalUninvoicedAmount}
         />
-      </Link>
 
-      <Link to="/invoices?status=pending_payment" className="block">
+        <Link to="/expenses" className="block">
+          <FinancialCard
+            icon={Receipt}
+            iconColor="text-red-600"
+            bgColor="bg-red-100"
+            label="Total Expenses"
+            amount={totalExpenses}
+          />
+        </Link>
+
         <FinancialCard
-          icon={Clock}
-          iconColor="text-orange-600"
-          bgColor="bg-orange-100"
-          label="Pending Invoices"
-          amount={totalPendingInvoices}
+          icon={Wallet}
+          iconColor="text-blue-600"
+          bgColor="bg-blue-100"
+          label="Net Profit"
+          amount={netProfit}
+          textColor={netProfit >= 0 ? 'text-blue-600' : 'text-red-600'}
         />
-      </Link>
 
-      <FinancialCard
-        icon={Package}
-        iconColor="text-purple-600"
-        bgColor="bg-purple-100"
-        label="Uninvoiced Amount"
-        amount={totalUninvoicedAmount}
-      />
-
-      <Link to="/expenses" className="block">
         <FinancialCard
-          icon={Receipt}
-          iconColor="text-red-600"
-          bgColor="bg-red-100"
-          label="Total Expenses"
-          amount={totalExpenses}
+          icon={TrendingUp}
+          iconColor="text-emerald-600"
+          bgColor="bg-emerald-100"
+          label="Net Cash Flow"
+          amount={netCashFlow}
+          textColor={netCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'}
         />
-      </Link>
-
-      <FinancialCard
-        icon={Wallet}
-        iconColor="text-blue-600"
-        bgColor="bg-blue-100"
-        label="Net Profit"
-        amount={netProfit}
-        textColor={netProfit >= 0 ? 'text-blue-600' : 'text-red-600'}
-      />
-
-      <FinancialCard
-        icon={TrendingUp}
-        iconColor="text-emerald-600"
-        bgColor="bg-emerald-100"
-        label="Net Cash Flow"
-        amount={netCashFlow}
-        textColor={netCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'}
-      />
+      </div>
     </div>
   );
 }
