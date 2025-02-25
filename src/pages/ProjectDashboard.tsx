@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -22,7 +23,7 @@ const ProjectDashboard = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
 
-  const { data: project, isLoading, error } = useQuery({
+  const { data: project, isLoading: isProjectLoading } = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -48,17 +49,27 @@ const ProjectDashboard = () => {
           invoices (
             id,
             amount,
-            status
+            status,
+            payment_date
           )
         `)
         .eq('id', projectId)
         .single();
 
-      if (error) {
-        console.error('Error fetching project:', error);
-        throw error;
-      }
+      if (error) throw error;
+      return data;
+    },
+  });
 
+  const { data: homeownerExpenses, isLoading: isExpensesLoading } = useQuery({
+    queryKey: ['homeowner-expenses', projectId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('homeowner_expenses')
+        .select('*')
+        .eq('project_id', projectId);
+
+      if (error) throw error;
       return data;
     },
   });
@@ -85,7 +96,7 @@ const ProjectDashboard = () => {
     }
   }, [projectId, navigate]);
 
-  if (isLoading) {
+  if (isProjectLoading || isExpensesLoading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#172b70]"></div>
@@ -100,20 +111,35 @@ const ProjectDashboard = () => {
     return <ProjectNotFound />;
   }
 
-  if (error) {
-    console.error('Error fetching project:', error);
-    return <ProjectNotFound />;
-  }
-
   if (!project) {
     return <ProjectNotFound />;
   }
 
-  const totalBudget = project.milestones?.reduce((sum, m) => sum + (m.amount || 0), 0) || 0;
-  const paidAmount = project.invoices?.filter(i => i.status === 'paid')
+  // Calculate GC budget (Total Contract Value)
+  const gcBudget = project.milestones?.reduce((sum, m) => sum + (m.amount || 0), 0) || 0;
+  
+  // Calculate Other Expenses (Total Homeowner Expenses)
+  const otherExpenses = homeownerExpenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+  
+  // Calculate Total Budget
+  const totalBudget = gcBudget + otherExpenses;
+
+  // Calculate Paid to GC
+  const paidToGC = project.invoices
+    ?.filter(i => i.status === 'paid')
     .reduce((sum, i) => sum + (i.amount || 0), 0) || 0;
+
+  // Calculate Other Payments
+  const otherPayments = homeownerExpenses
+    ?.filter(e => e.payment_status === 'paid')
+    .reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
+
+  // Calculate Total Amount Paid
+  const totalPaid = paidToGC + otherPayments;
+
+  // Calculate progress percentages
   const progressPercentage = calculateProjectCompletion(project.milestones || []);
-  const amountProgress = totalBudget > 0 ? (paidAmount / totalBudget) * 100 : 0;
+  const amountProgress = totalBudget > 0 ? (totalPaid / totalBudget) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
@@ -136,12 +162,20 @@ const ProjectDashboard = () => {
             icon={DollarSign}
             label="Total Budget"
             value={totalBudget}
+            breakdownItems={[
+              { label: 'GC Budget', value: gcBudget },
+              { label: 'Other Expenses', value: otherExpenses }
+            ]}
             progress={amountProgress}
           />
           <MetricsCard
             icon={Receipt}
             label="Amount Paid"
-            value={paidAmount}
+            value={totalPaid}
+            breakdownItems={[
+              { label: 'Paid to GC', value: paidToGC },
+              { label: 'Other Payments', value: otherPayments }
+            ]}
             progress={amountProgress}
           />
           <MetricsCard

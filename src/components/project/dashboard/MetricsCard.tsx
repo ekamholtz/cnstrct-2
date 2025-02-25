@@ -2,23 +2,27 @@
 import { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 interface MetricsCardProps {
   icon: LucideIcon;
   label: string;
   value: string | number;
+  breakdownItems?: {
+    label: string;
+    value: number;
+  }[];
   progress?: number;
   useCircularProgress?: boolean;
-  sublabel?: string;
 }
 
 export function MetricsCard({ 
   icon: Icon, 
   label, 
   value, 
+  breakdownItems = [],
   progress = 0,
   useCircularProgress = false,
-  sublabel 
 }: MetricsCardProps) {
   const formattedValue = typeof value === 'number' 
     ? `$${value.toLocaleString()}`
@@ -31,10 +35,17 @@ export function MetricsCard({
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
             {label}
           </p>
-          <p className="text-2xl font-bold text-[#172b70]">{formattedValue}</p>
-          {sublabel && (
-            <p className="text-sm text-gray-500">{sublabel}</p>
+          {breakdownItems.length > 0 && (
+            <div className="space-y-1 border-b border-gray-100 pb-2 mb-2">
+              {breakdownItems.map((item, index) => (
+                <div key={index} className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">{item.label}</span>
+                  <span className="text-sm font-medium">${item.value.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
           )}
+          <p className="text-2xl font-bold text-[#172b70]">{formattedValue}</p>
         </div>
         <Icon className="h-5 w-5 text-[#172b70]" />
       </div>
@@ -65,11 +76,12 @@ export function MetricsCard({
         </div>
       ) : (
         <div className="mt-4">
-          <Progress 
-            value={progress} 
-            className="h-2 bg-gray-100" 
-            indicatorClassName="bg-[#19db93]"
-          />
+          <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-[#19db93] transition-all"
+              style={{ width: `${progress}%` }}
+            />
+          </div>
           <div className="mt-1 text-xs text-gray-500 text-right">
             {progress}% Complete
           </div>
