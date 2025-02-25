@@ -2,59 +2,13 @@
 import { ClientProjectsList } from "@/components/client-dashboard/ClientProjectsList";
 import { ClientInvoiceSummary } from "@/components/client-dashboard/ClientInvoiceSummary";
 import { MainNav } from "@/components/navigation/MainNav";
-import { DollarSign, Receipt, Activity, MapPin } from "lucide-react";
-import { MetricsCard } from "@/components/project/dashboard/MetricsCard";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { ClientMetrics } from "@/components/client-dashboard/components/ClientMetrics";
+import { useClientMetrics } from "@/components/client-dashboard/hooks/useClientMetrics";
+import { calculateClientMetrics } from "@/components/client-dashboard/utils/calculations";
 
 export default function ClientDashboard() {
-  const { data: clientData } = useQuery({
-    queryKey: ['client-metrics'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('No user found');
-
-      // Get client details
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('full_name')
-        .eq('id', user.id)
-        .single();
-
-      // Get client's projects with their milestones and invoices
-      const { data: projects } = await supabase
-        .from('projects')
-        .select(`
-          *,
-          milestones (
-            id,
-            amount,
-            status
-          ),
-          invoices (
-            id,
-            amount,
-            status
-          )
-        `);
-
-      return {
-        profile: profileData,
-        projects: projects || []
-      };
-    }
-  });
-
-  // Calculate metrics
-  const totalBudget = clientData?.projects?.reduce((sum, project) => 
-    sum + (project.milestones?.reduce((mSum, m) => mSum + (m.amount || 0), 0) || 0), 0) || 0;
-
-  const totalPaid = clientData?.projects?.reduce((sum, project) => 
-    sum + (project.invoices?.reduce((iSum, inv) => 
-      inv.status === 'paid' ? iSum + (inv.amount || 0) : iSum, 0) || 0), 0) || 0;
-
-  const totalPending = totalBudget - totalPaid;
-  const progressPercentage = totalBudget > 0 ? Math.round((totalPaid / totalBudget) * 100) : 0;
+  const { data: clientData } = useClientMetrics();
+  const metrics = calculateClientMetrics(clientData?.projects);
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
@@ -73,34 +27,7 @@ export default function ClientDashboard() {
         </div>
 
         {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricsCard
-            icon={DollarSign}
-            label="Total Budget"
-            value={totalBudget}
-            breakdownItems={[
-              { label: 'Paid', value: totalPaid },
-              { label: 'Pending', value: totalPending }
-            ]}
-            progress={(totalPaid / totalBudget) * 100}
-          />
-          <MetricsCard
-            icon={Receipt}
-            label="Amount Paid"
-            value={totalPaid}
-            breakdownItems={[
-              { label: 'To Pay', value: totalPending }
-            ]}
-            progress={(totalPaid / totalBudget) * 100}
-          />
-          <MetricsCard
-            icon={Activity}
-            label="Progress"
-            value={`${progressPercentage}%`}
-            progress={progressPercentage}
-            useCircularProgress
-          />
-        </div>
+        <ClientMetrics {...metrics} />
 
         {/* Recent Projects */}
         <div className="bg-white rounded-lg shadow-sm p-6">
