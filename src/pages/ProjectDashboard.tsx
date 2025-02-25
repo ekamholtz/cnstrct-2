@@ -41,7 +41,10 @@ const ProjectDashboard = () => {
             name,
             description,
             amount,
-            status
+            status,
+            project_id,
+            created_at,
+            updated_at
           )
         `)
         .eq('id', projectId)
