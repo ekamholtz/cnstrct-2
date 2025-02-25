@@ -190,6 +190,69 @@ export type Database = {
           },
         ]
       }
+      homeowner_expenses: {
+        Row: {
+          amount: number
+          amount_due: number
+          created_at: string
+          expense_date: string
+          expense_type: Database["public"]["Enums"]["homeowner_expense_type"]
+          homeowner_id: string
+          id: string
+          name: string
+          notes: string | null
+          payee: string
+          payment_status: Database["public"]["Enums"]["homeowner_payment_status"]
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          amount_due: number
+          created_at?: string
+          expense_date: string
+          expense_type?: Database["public"]["Enums"]["homeowner_expense_type"]
+          homeowner_id: string
+          id?: string
+          name: string
+          notes?: string | null
+          payee: string
+          payment_status?: Database["public"]["Enums"]["homeowner_payment_status"]
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          amount_due?: number
+          created_at?: string
+          expense_date?: string
+          expense_type?: Database["public"]["Enums"]["homeowner_expense_type"]
+          homeowner_id?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          payee?: string
+          payment_status?: Database["public"]["Enums"]["homeowner_payment_status"]
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homeowner_expenses_homeowner_id_fkey"
+            columns: ["homeowner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homeowner_expenses_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invoices: {
         Row: {
           amount: number
@@ -687,6 +750,8 @@ export type Database = {
     Enums: {
       expense_payment_method: "cc" | "check" | "transfer" | "cash"
       expense_type: "labor" | "materials" | "subcontractor" | "other"
+      homeowner_expense_type: "labor" | "materials" | "subcontractor" | "other"
+      homeowner_payment_status: "due" | "partially_paid" | "paid"
       invoice_status: "pending_payment" | "paid" | "cancelled"
       milestone_status: "pending" | "completed"
       payment_direction: "incoming" | "outgoing"
