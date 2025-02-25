@@ -7,6 +7,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useState } from "react";
 import type { PaymentFilters, Payment } from "@/components/payments/types";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { MainNav } from "@/components/navigation/MainNav";
 
 export default function PaymentsDashboard() {
   const [filters, setFilters] = useState<PaymentFilters>({
@@ -73,7 +77,6 @@ export default function PaymentsDashboard() {
         query = query.lte('payment_date', filters.dateRange.to.toISOString());
       }
       if (filters.projectId) {
-        // Filter by project ID through either invoice or expense relationships
         query = query.or(`invoice.project_id.eq.${filters.projectId},expense.project_id.eq.${filters.projectId}`);
       }
 
@@ -89,18 +92,35 @@ export default function PaymentsDashboard() {
   });
 
   return (
-    <DashboardLayout>
-      <div className="space-y-8">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-gray-900">Payments Dashboard</h1>
+    <div className="min-h-screen bg-[#f5f7fa]">
+      <div className="bg-[#172b70] text-white">
+        <MainNav />
+      </div>
+      <div className="container mx-auto px-4 py-8 mt-16 space-y-8">
+        {/* Dashboard Header */}
+        <div className="bg-white rounded-lg p-6 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <Link to="/dashboard">
+              <Button variant="ghost" className="text-gray-600">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold text-[#172b70]">Payments Dashboard</h1>
+            <p className="text-gray-600">Track and manage all payment transactions</p>
+          </div>
         </div>
 
-        <Card className="p-6">
+        <Card className="p-6 shadow-sm border-0">
           <PaymentsFilter filters={filters} onFiltersChange={setFilters} />
         </Card>
 
-        <PaymentsTable payments={payments || []} isLoading={isLoading} />
+        <Card className="shadow-sm border-0">
+          <PaymentsTable payments={payments || []} isLoading={isLoading} />
+        </Card>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }

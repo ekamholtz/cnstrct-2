@@ -7,9 +7,11 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <MainNav />
-      <main className="container mx-auto px-4 py-8 mt-24">
+    <div className="min-h-screen bg-[#f5f7fa]">
+      <div className="bg-[#172b70] text-white">
+        <MainNav />
+      </div>
+      <main className="container mx-auto px-4 py-8 mt-16">
         {children}
       </main>
     </div>
