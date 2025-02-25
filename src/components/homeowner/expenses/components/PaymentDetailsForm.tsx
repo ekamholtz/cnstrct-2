@@ -24,6 +24,13 @@ const paymentSchema = z.object({
   notes: z.string().optional(),
 });
 
+type FormData = {
+  payment_method_code?: PaymentMethodCode;
+  payment_date?: string;
+  amount?: string;
+  notes?: string;
+};
+
 export function PaymentDetailsForm({
   expenseAmount,
   amountDue,
@@ -32,12 +39,7 @@ export function PaymentDetailsForm({
 }: PaymentDetailsFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<{
-    payment_method_code: PaymentMethodCode;
-    payment_date: string;
-    amount: string;
-    notes?: string;
-  }>({
+  const form = useForm<FormData>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       payment_method_code: undefined,
@@ -47,17 +49,18 @@ export function PaymentDetailsForm({
     },
   });
 
-  const handleSubmit = async (formData: {
-    payment_method_code: PaymentMethodCode;
-    payment_date: string;
-    amount: string;
-    notes?: string;
-  }) => {
+  const handleSubmit = async (formData: FormData) => {
+    if (!formData.payment_method_code || !formData.payment_date || !formData.amount) {
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const paymentData: PaymentDetailsData = {
-        ...formData,
+        payment_method_code: formData.payment_method_code,
+        payment_date: formData.payment_date,
         amount: Number(formData.amount),
+        notes: formData.notes
       };
       await onSubmit(paymentData);
     } catch (error) {
