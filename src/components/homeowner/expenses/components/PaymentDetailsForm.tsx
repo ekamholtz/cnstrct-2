@@ -8,7 +8,7 @@ import { PaymentDateField } from "@/components/project/expense/form/PaymentDateF
 import { PaymentAmountField } from "@/components/project/expense/form/PaymentAmountField";
 import { PaymentTypeField } from "@/components/project/expense/form/PaymentTypeField";
 import { useState } from "react";
-import { PaymentDetailsData } from "../types";
+import { PaymentDetailsData, PaymentMethodCode } from "../types";
 
 interface PaymentDetailsFormProps {
   expenseAmount: number;
@@ -18,7 +18,7 @@ interface PaymentDetailsFormProps {
 }
 
 const paymentSchema = z.object({
-  payment_method_code: z.string().min(1, "Payment method is required"),
+  payment_method_code: z.enum(["cc", "check", "transfer", "cash"] as const),
   payment_date: z.string().min(1, "Payment date is required"),
   amount: z.string().min(1, "Amount is required").transform((val) => Number(val)),
   notes: z.string().optional(),
@@ -32,20 +32,34 @@ export function PaymentDetailsForm({
 }: PaymentDetailsFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const form = useForm<PaymentDetailsData>({
+  const form = useForm<{
+    payment_method_code: PaymentMethodCode;
+    payment_date: string;
+    amount: string;
+    notes?: string;
+  }>({
     resolver: zodResolver(paymentSchema),
     defaultValues: {
       payment_method_code: undefined,
       payment_date: new Date().toISOString().split('T')[0],
-      amount: amountDue,
+      amount: amountDue.toString(),
       notes: "",
     },
   });
 
-  const handleSubmit = async (data: PaymentDetailsData) => {
+  const handleSubmit = async (formData: {
+    payment_method_code: PaymentMethodCode;
+    payment_date: string;
+    amount: string;
+    notes?: string;
+  }) => {
     try {
       setIsSubmitting(true);
-      await onSubmit(data);
+      const paymentData: PaymentDetailsData = {
+        ...formData,
+        amount: Number(formData.amount),
+      };
+      await onSubmit(paymentData);
     } catch (error) {
       console.error("Error processing payment:", error);
     } finally {

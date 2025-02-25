@@ -13,8 +13,10 @@ export type HomeownerExpenseFormFields = {
   project_id: string;
 }
 
+export type PaymentMethodCode = "cc" | "check" | "transfer" | "cash";
+
 export type PaymentDetailsData = {
-  payment_method_code: string;
+  payment_method_code: PaymentMethodCode;
   payment_date: string;
   amount: number;
   notes?: string;
