@@ -7,6 +7,7 @@ import { ProjectHeader } from "@/components/project/ProjectHeader";
 import { ProjectInvoices } from "@/components/project/invoice/ProjectInvoices";
 import { MilestonesList } from "@/components/project/MilestonesList";
 import { supabase } from "@/integrations/supabase/client";
+import { HomeownerExpenses } from "@/components/homeowner/expenses/HomeownerExpenses";
 
 const ProjectNotFound = () => (
   <div className="flex justify-center items-center h-full">
@@ -85,6 +86,8 @@ const ProjectDashboard = () => {
   }
 
   const isAdmin = userRole === 'platform_admin';
+  const isHomeowner = userRole === 'homeowner';
+
   if (!isAdmin && !data) {
     return <ProjectNotFound />;
   }
@@ -114,6 +117,11 @@ const ProjectDashboard = () => {
             />
           </div>
         </div>
+        {isHomeowner && (
+          <div className="mt-6">
+            <HomeownerExpenses projectId={projectId} />
+          </div>
+        )}
       </div>
     </div>
   );
