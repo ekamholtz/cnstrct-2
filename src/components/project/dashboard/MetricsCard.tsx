@@ -84,19 +84,22 @@ export function MetricsCard({
             />
           </svg>
           <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm font-medium">
-            {progress}%
+            {Math.round(progress)}%
           </span>
         </div>
       ) : (
         <div className="mt-4">
-          <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-            <div 
-              className="h-full transition-all"
-              style={{ 
-                width: `${progress}%`,
-                backgroundColor: colors.primary
-              }}
-            />
+          <div className="flex items-center gap-2">
+            <div className="h-2 flex-1 bg-gray-100 rounded-full overflow-hidden">
+              <div 
+                className="h-full transition-all"
+                style={{ 
+                  width: `${progress}%`,
+                  backgroundColor: colors.primary
+                }}
+              />
+            </div>
+            <span className="text-sm font-medium text-gray-600">{Math.round(progress)}%</span>
           </div>
         </div>
       )}
