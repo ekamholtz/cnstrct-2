@@ -65,7 +65,7 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
           <h2 className="text-2xl font-semibold">My Expenses</h2>
           <div className="flex items-center space-x-4">
             <span className="text-lg font-medium text-orange-600">
-              Due: ${totalDue.toLocaleString()}
+              Pending Payment: ${totalDue.toLocaleString()}
             </span>
             <div className="flex items-center space-x-2">
               <DollarSign className="h-5 w-5 text-gray-500" />
