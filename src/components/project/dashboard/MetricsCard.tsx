@@ -1,4 +1,3 @@
-
 import { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -38,75 +37,71 @@ export function MetricsCard({
   const total = breakdownItems.reduce((sum, item) => sum + item.value, 0);
   const firstPercentage = total > 0 ? (breakdownItems[0]?.value || 0) / total * 100 : 0;
 
-  // SVG path for the circular visualization
-  const createArc = (percentage: number) => {
-    const x = Math.cos(2 * Math.PI * percentage / 100);
-    const y = Math.sin(2 * Math.PI * percentage / 100);
-    return `M 0 -1 A 1 1 0 ${percentage > 50 ? 1 : 0} 1 ${x} ${y} L 0 0`;
+  // SVG paths for pie chart segments
+  const createPieSlice = (startAngle: number, endAngle: number) => {
+    // Convert angles to radians
+    const start = (startAngle - 90) * Math.PI / 180;
+    const end = (endAngle - 90) * Math.PI / 180;
+    
+    // Calculate points
+    const startX = Math.cos(start);
+    const startY = Math.sin(start);
+    const endX = Math.cos(end);
+    const endY = Math.sin(end);
+    
+    // Determine which arc to use
+    const largeArc = endAngle - startAngle <= 180 ? 0 : 1;
+    
+    return `M 0 0 L ${startX} ${startY} A 1 1 0 ${largeArc} 1 ${endX} ${endY} Z`;
   };
 
   return (
     <Card className="p-6 bg-white hover:shadow-lg transition-shadow">
-      <div className="flex items-start justify-between">
+      <div className="flex items-start justify-between mb-4">
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
             {label}
           </p>
-          {breakdownItems.length > 0 && (
-            <div className="space-y-1 border-b border-gray-100 pb-2 mb-2">
-              {breakdownItems.map((item, index) => (
-                <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm" style={{ color: index === 0 ? colors.gcBudget : colors.otherExpenses }}>
-                    {item.label}
-                  </span>
-                  <span className="text-sm font-medium" style={{ color: index === 0 ? colors.gcBudget : colors.otherExpenses }}>
-                    ${item.value.toLocaleString()}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
           <p className="text-2xl font-bold text-[#172b70]">{formattedValue}</p>
         </div>
         <Icon className="h-5 w-5 text-[#172b70]" />
       </div>
 
-      {/* Budget Breakdown Circle for Total Budget card */}
-      {label === "Total Budget" && breakdownItems.length > 0 && (
-        <div className="mt-4 flex justify-end mb-4">
-          <div className="relative h-16 w-16">
-            <svg
-              viewBox="-1.1 -1.1 2.2 2.2"
-              style={{ transform: 'rotate(-90deg)' }}
-              className="w-full h-full"
-            >
-              {/* Background circle */}
-              <circle
-                cx="0"
-                cy="0"
-                r="1"
-                fill="none"
-                stroke="#E5E7EB"
-                strokeWidth="0.1"
-              />
-              {/* First segment (GC Budget) */}
+      <div className="flex items-center justify-between">
+        {/* Budget Breakdown Text */}
+        {breakdownItems.length > 0 && (
+          <div className="space-y-1">
+            {breakdownItems.map((item, index) => (
+              <div key={index} className="flex justify-between items-center">
+                <span className="text-sm" style={{ color: index === 0 ? colors.gcBudget : colors.otherExpenses }}>
+                  {item.label}
+                </span>
+                <span className="text-sm font-medium ml-4" style={{ color: index === 0 ? colors.gcBudget : colors.otherExpenses }}>
+                  ${item.value.toLocaleString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Budget Breakdown Pie Chart for Total Budget card */}
+        {label === "Total Budget" && breakdownItems.length > 0 && (
+          <div className="relative h-14 w-14 ml-4">
+            <svg viewBox="-1 -1 2 2" className="w-full h-full">
+              {/* GC Budget Slice */}
               <path
-                d={createArc(firstPercentage)}
-                fill="none"
-                stroke={colors.gcBudget}
-                strokeWidth="0.1"
+                d={createPieSlice(0, firstPercentage * 3.6)}
+                fill={colors.gcBudget}
               />
-              {/* Second segment (Other Expenses) */}
+              {/* Other Expenses Slice */}
               <path
-                d={createArc(100)}
-                fill="none"
-                stroke={colors.otherExpenses}
-                strokeWidth="0.1"
+                d={createPieSlice(firstPercentage * 3.6, 360)}
+                fill={colors.otherExpenses}
               />
             </svg>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {useCircularProgress ? (
         <div className="mt-4 relative h-12 w-12">
