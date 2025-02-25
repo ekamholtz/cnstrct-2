@@ -32,12 +32,9 @@ export function ProjectInvoices({ projectId }: ProjectInvoicesProps) {
     await markAsPaid({ invoiceId, ...data });
   };
 
-  // Log the invoices data for debugging
-  console.log('Invoices data in ProjectInvoices:', invoices);
-
   return (
-    <div className="space-y-4">
-      <div className="space-y-2">
+    <div className="space-y-6 px-6 pb-6">
+      <div className="space-y-4">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl font-semibold">Project Invoices</h2>
           <div className="flex items-center space-x-4">
