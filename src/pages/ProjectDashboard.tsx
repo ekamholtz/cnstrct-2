@@ -2,13 +2,13 @@
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, Receipt, Activity, MapPin } from "lucide-react";
 import { MainNav } from "@/components/navigation/MainNav";
 import { supabase } from "@/integrations/supabase/client";
-import { MetricsCard } from "@/components/project/dashboard/MetricsCard";
-import { HorizontalMilestoneScroll } from "@/components/project/dashboard/HorizontalMilestoneScroll";
 import { TabbedContent } from "@/components/project/dashboard/TabbedContent";
 import { calculateProjectCompletion } from "@/utils/project-calculations";
+import { ProjectHeader } from "@/components/project/dashboard/ProjectHeader";
+import { ProjectMetrics } from "@/components/project/dashboard/ProjectMetrics";
+import { ProjectMilestones } from "@/components/project/dashboard/ProjectMilestones";
 
 const ProjectNotFound = () => (
   <div className="flex justify-center items-center h-full">
@@ -115,29 +115,17 @@ const ProjectDashboard = () => {
     return <ProjectNotFound />;
   }
 
-  // Calculate GC budget (Total Contract Value)
+  // Calculate metrics
   const gcBudget = project.milestones?.reduce((sum, m) => sum + (m.amount || 0), 0) || 0;
-  
-  // Calculate Other Expenses (Total Homeowner Expenses)
   const otherExpenses = homeownerExpenses?.reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
-  
-  // Calculate Total Budget
   const totalBudget = gcBudget + otherExpenses;
-
-  // Calculate Paid to GC
   const paidToGC = project.invoices
     ?.filter(i => i.status === 'paid')
     .reduce((sum, i) => sum + (i.amount || 0), 0) || 0;
-
-  // Calculate Other Payments
   const otherPayments = homeownerExpenses
     ?.filter(e => e.payment_status === 'paid')
     .reduce((sum, e) => sum + (e.amount || 0), 0) || 0;
-
-  // Calculate Total Amount Paid
   const totalPaid = paidToGC + otherPayments;
-
-  // Calculate progress percentages
   const progressPercentage = calculateProjectCompletion(project.milestones || []);
   const amountProgress = totalBudget > 0 ? (totalPaid / totalBudget) * 100 : 0;
 
@@ -147,53 +135,19 @@ const ProjectDashboard = () => {
         <MainNav />
       </div>
       <div className="container mx-auto px-4 py-8 mt-16 space-y-8">
-        {/* Project Header */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-[#172b70] mb-2">{project.name}</h1>
-          <div className="flex items-center text-gray-600">
-            <MapPin className="h-4 w-4 mr-2" />
-            <span>{project.address}</span>
-          </div>
-        </div>
-
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricsCard
-            icon={DollarSign}
-            label="Total Budget"
-            value={totalBudget}
-            breakdownItems={[
-              { label: 'GC Budget', value: gcBudget },
-              { label: 'Other Expenses', value: otherExpenses }
-            ]}
-            progress={amountProgress}
-          />
-          <MetricsCard
-            icon={Receipt}
-            label="Amount Paid"
-            value={totalPaid}
-            breakdownItems={[
-              { label: 'Paid to GC', value: paidToGC },
-              { label: 'Other Payments', value: otherPayments }
-            ]}
-            progress={amountProgress}
-          />
-          <MetricsCard
-            icon={Activity}
-            label="Progress"
-            value={`${progressPercentage}%`}
-            progress={progressPercentage}
-            useCircularProgress
-          />
-        </div>
-
-        {/* Milestones Section */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-[#172b70]">Project Milestones</h2>
-          <HorizontalMilestoneScroll milestones={project.milestones || []} />
-        </div>
-
-        {/* Tabbed Content */}
+        <ProjectHeader project={project} />
+        <ProjectMetrics 
+          project={project}
+          gcBudget={gcBudget}
+          otherExpenses={otherExpenses}
+          paidToGC={paidToGC}
+          otherPayments={otherPayments}
+          totalBudget={totalBudget}
+          totalPaid={totalPaid}
+          progressPercentage={progressPercentage}
+          amountProgress={amountProgress}
+        />
+        <ProjectMilestones milestones={project.milestones || []} />
         <div className="bg-white rounded-lg shadow-sm mt-8">
           <TabbedContent projectId={projectId} isHomeowner={isHomeowner} />
         </div>

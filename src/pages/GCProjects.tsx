@@ -1,6 +1,5 @@
 
 import { useToast } from "@/hooks/use-toast";
-import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProjectsList } from "@/components/dashboard/ProjectsList";
 import { useContractorProjects } from "@/hooks/useContractorProjects";
 import { useEffect } from "react";
@@ -9,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Plus } from "lucide-react";
+import { MainNav } from "@/components/navigation/MainNav";
 import {
   Dialog,
   DialogContent,
