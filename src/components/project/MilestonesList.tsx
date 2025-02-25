@@ -1,122 +1,60 @@
+import React from 'react';
+import { MilestoneCard } from './milestone/MilestoneCard';
+import { useMilestoneCompletion } from './milestone/hooks/useMilestoneCompletion';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
-import { Card, CardContent } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/components/ui/use-toast";
-import { MilestoneCard } from "./milestone/MilestoneCard";
-import { Milestone } from "./milestone/types";
-import { useMilestoneCompletion } from "./milestone/hooks/useMilestoneCompletion";
-
-interface MilestonesListProps {
-  milestones: Milestone[];
-  onMarkComplete: (id: string) => void;
-  hideControls?: boolean;
+export interface MilestonesListProps {
+  projectId: string; // Add projectId to props interface
 }
 
-export function MilestonesList({ 
-  milestones, 
-  onMarkComplete, 
-  hideControls = false 
-}: MilestonesListProps) {
-  const { toast } = useToast();
-  const completeMilestoneMutation = useMilestoneCompletion();
+export function MilestonesList({ projectId }: MilestonesListProps) {
+  const { completeMilestone, undoMilestone } = useMilestoneCompletion();
 
-  const { data: userRole } = useQuery({
-    queryKey: ['userRole'],
+  const { data: milestones, isLoading, error } = useQuery({
+    queryKey: ['milestones', projectId],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      const { data, error } = await supabase
+        .from('milestones')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false });
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
+      if (error) {
+        console.error('Error fetching milestones:', error);
+        throw error;
+      }
 
-      return data?.role;
-    }
+      return data;
+    },
   });
 
-  const handleUndoCompletion = async (milestoneId: string) => {
-    try {
-      const { data: invoice, error: invoiceError } = await supabase
-        .from('invoices')
-        .select('status')
-        .eq('milestone_id', milestoneId)
-        .maybeSingle();
+  if (isLoading) {
+    return <div>Loading milestones...</div>;
+  }
 
-      if (invoiceError) throw invoiceError;
+  if (error) {
+    return <div>Error: {error.message}</div>;
+  }
 
-      if (invoice?.status === 'paid') {
-        toast({
-          variant: "destructive",
-          title: "Cannot Undo Completion",
-          description: "This milestone cannot be reverted because its invoice has already been paid.",
-        });
-        return;
-      }
-
-      const { data, error } = await supabase.rpc('undo_milestone_completion', {
-        milestone_id_param: milestoneId
-      });
-
-      if (error) throw error;
-
-      if (data) {
-        toast({
-          title: "Success",
-          description: "Milestone has been reverted to pending status",
-        });
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to undo milestone completion. Please try again.",
-        });
-      }
-    } catch (error) {
-      console.error('Error undoing milestone completion:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to undo milestone completion. Please try again.",
-      });
-    }
+  const handleCompletion = async (milestoneId: string) => {
+    await completeMilestone(milestoneId);
   };
 
-  const isGeneralContractor = userRole === 'gc_admin';
-
-  const handleMarkComplete = async (milestoneId: string) => {
-    console.log("Attempting to mark milestone complete:", milestoneId);
-    await completeMilestoneMutation.mutateAsync(milestoneId);
-    if (onMarkComplete) {
-      onMarkComplete(milestoneId);
-    }
+  const handleUndo = async (milestoneId: string) => {
+    await undoMilestone(milestoneId);
   };
 
   return (
-    <div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-4">Project Milestones</h2>
-      <div className="space-y-4">
-        {milestones && milestones.length > 0 ? (
-          milestones.map((milestone) => (
-            <MilestoneCard
-              key={milestone.id}
-              milestone={milestone}
-              isContractor={isGeneralContractor}
-              onMarkComplete={handleMarkComplete}
-              onUndoCompletion={handleUndoCompletion}
-              hideControls={hideControls}
-            />
-          ))
-        ) : (
-          <Card>
-            <CardContent className="p-6 text-center text-gray-600">
-              No milestones found for this project.
-            </CardContent>
-          </Card>
-        )}
-      </div>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      {milestones?.map((milestone) => (
+        <MilestoneCard
+          key={milestone.id}
+          milestone={milestone}
+          onComplete={handleCompletion}
+          onUndo={handleUndo}
+        />
+      ))}
     </div>
   );
 }
