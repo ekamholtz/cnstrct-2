@@ -60,12 +60,25 @@ export const useProfileCompletion = () => {
   }, [navigate]);
 
   const linkClientToUser = async (userEmail: string, userId: string) => {
-    console.log("Attempting to link client:", { userEmail, userId });
+    const normalizedEmail = userEmail.toLowerCase();
+    console.log("Attempting to link client for email:", normalizedEmail);
+    
+    // First, log the current state of the clients table for this email
+    const { data: allClients, error: checkError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('email', normalizedEmail);
+
+    if (checkError) {
+      console.error("Error checking clients table:", checkError);
+    } else {
+      console.log("Current clients matching email:", allClients);
+    }
     
     const { data: existingClient, error: clientError } = await supabase
       .from('clients')
       .select('*')
-      .eq('email', userEmail.toLowerCase())
+      .eq('email', normalizedEmail)
       .maybeSingle();
 
     if (clientError) {
@@ -74,7 +87,7 @@ export const useProfileCompletion = () => {
     }
 
     if (!existingClient) {
-      console.log("No existing client found for email:", userEmail);
+      console.log("No existing client found for email:", normalizedEmail);
       return null;
     }
 
@@ -85,7 +98,7 @@ export const useProfileCompletion = () => {
 
     console.log("Found existing client, attempting to link:", existingClient);
 
-    const { error: updateError } = await supabase
+    const { data: updatedClient, error: updateError } = await supabase
       .from('clients')
       .update({ 
         user_id: userId,
@@ -100,14 +113,15 @@ export const useProfileCompletion = () => {
       throw new Error(`Failed to link client account: ${updateError.message}`);
     }
 
-    console.log("Successfully linked client to user");
-    return existingClient;
+    console.log("Successfully linked client. Updated record:", updatedClient);
+    return updatedClient;
   };
 
   const onSubmit = async (formData: ProfileCompletionFormValues) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log("No authenticated user found");
         navigate('/auth');
         return;
       }
@@ -125,7 +139,6 @@ export const useProfileCompletion = () => {
           title: "Warning",
           description: "Could not link existing client account. Please contact support.",
         });
-        // Don't return here - continue with profile update
       }
 
       // Transform form data to match database schema
