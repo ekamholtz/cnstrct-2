@@ -2,14 +2,13 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Undo } from "lucide-react";
-import { AlertDialog } from "@/components/ui/alert-dialog";
 import { MilestoneControls } from "./MilestoneControls";
 import { MilestoneStatus } from "./MilestoneStatus";
 import { Milestone } from "./types";
 
-interface MilestoneCardProps {
+export interface MilestoneCardProps {
   milestone: Milestone;
-  isContractor: boolean;
+  isContractor?: boolean;
   onMarkComplete: (id: string) => void;
   onUndoCompletion: (id: string) => void;
   hideControls?: boolean;
@@ -17,13 +16,13 @@ interface MilestoneCardProps {
 
 export function MilestoneCard({
   milestone,
-  isContractor,
+  isContractor = false,
   onMarkComplete,
   onUndoCompletion,
   hideControls = false
 }: MilestoneCardProps) {
   return (
-    <Card key={milestone.id}>
+    <Card>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
@@ -42,8 +41,8 @@ export function MilestoneCard({
             {!hideControls && isContractor && (
               <MilestoneControls
                 milestone={milestone}
-                onMarkComplete={onMarkComplete}
-                onUndoCompletion={onUndoCompletion}
+                onComplete={() => onMarkComplete(milestone.id)}
+                onUndo={() => onUndoCompletion(milestone.id)}
               />
             )}
           </div>

@@ -11,83 +11,48 @@ export function useMilestoneCompletion() {
     mutationFn: async (milestoneId: string) => {
       console.log("Starting milestone completion for:", milestoneId);
 
-      // 1. First update the milestone status
-      const { data: milestone, error: milestoneError } = await supabase
+      const { data: milestone, error } = await supabase
         .from('milestones')
         .update({ status: 'completed' })
         .eq('id', milestoneId)
-        .select(`
-          project_id, 
-          amount, 
-          name,
-          project:project_id (
-            contractor_id
-          )
-        `)
+        .select()
         .single();
 
-      if (milestoneError) {
-        console.error("Error updating milestone:", milestoneError);
-        throw milestoneError;
-      }
-
-      console.log("Milestone updated successfully:", milestone);
-
-      if (!milestone?.project?.contractor_id) {
-        throw new Error('No contractor found for project');
-      }
-
-      // 2. Generate invoice number
-      const { data: invoiceNumber, error: invoiceNumberError } = await supabase
-        .rpc('generate_invoice_number', {
-          milestone_id: milestoneId
-        });
-
-      if (invoiceNumberError) {
-        console.error("Error generating invoice number:", invoiceNumberError);
-        throw invoiceNumberError;
-      }
-
-      console.log("Generated invoice number:", invoiceNumber);
-
-      // 3. Create the invoice
-      const { error: invoiceError } = await supabase
-        .from('invoices')
-        .insert({
-          milestone_id: milestoneId,
-          amount: milestone.amount,
-          project_id: milestone.project_id,
-          contractor_id: milestone.project.contractor_id,
-          invoice_number: invoiceNumber,
-          status: 'pending_payment'
-        });
-
-      if (invoiceError) {
-        console.error("Error creating invoice:", invoiceError);
-        throw invoiceError;
-      }
-
-      console.log("Invoice created successfully");
+      if (error) throw error;
       return milestone;
     },
     onSuccess: () => {
-      // Invalidate both project invoices and contractor invoices queries
-      queryClient.invalidateQueries({ queryKey: ['project-invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['contractor-invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
       toast({
         title: "Success",
-        description: "Milestone marked as complete and invoice created",
+        description: "Milestone marked as complete",
       });
-    },
-    onError: (error) => {
-      console.error('Error completing milestone:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to complete milestone. Please try again.",
-      });
-    },
+    }
   });
 
-  return completeMilestoneMutation;
+  const undoMilestoneMutation = useMutation({
+    mutationFn: async (milestoneId: string) => {
+      const { data: milestone, error } = await supabase
+        .from('milestones')
+        .update({ status: 'pending' })
+        .eq('id', milestoneId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return milestone;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['milestones'] });
+      toast({
+        title: "Success",
+        description: "Milestone status reverted",
+      });
+    }
+  });
+
+  return {
+    completeMilestone: completeMilestoneMutation.mutateAsync,
+    undoMilestone: undoMilestoneMutation.mutateAsync,
+  };
 }
