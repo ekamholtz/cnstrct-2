@@ -2,7 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { HomeownerExpense, HomeownerExpenseFormData, PaymentDetailsData } from "../types";
+import { HomeownerExpense, HomeownerExpenseFormFields, PaymentDetailsData } from "../types";
 
 export function useHomeownerExpenses(projectId?: string) {
   const queryClient = useQueryClient();
@@ -36,7 +36,7 @@ export function useHomeownerExpenses(projectId?: string) {
   });
 
   const { mutateAsync: createExpense } = useMutation({
-    mutationFn: async (data: HomeownerExpenseFormData) => {
+    mutationFn: async (data: HomeownerExpenseFormFields) => {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user) throw new Error('No authenticated user');
 
@@ -51,7 +51,7 @@ export function useHomeownerExpenses(projectId?: string) {
         notes: data.notes || '',
         project_id: data.project_id,
         homeowner_id: session.session.user.id,
-        payment_status: 'due'
+        payment_status: 'due' as const
       };
 
       const { data: expense, error } = await supabase
@@ -89,7 +89,7 @@ export function useHomeownerExpenses(projectId?: string) {
       if (expenseError) throw expenseError;
 
       const newAmountDue = expense.amount_due - paymentData.amount;
-      const newStatus = newAmountDue <= 0 ? 'paid' : 'partially_paid';
+      const newStatus = newAmountDue <= 0 ? 'paid' as const : 'partially_paid' as const;
 
       const { data: updatedExpense, error } = await supabase
         .from('homeowner_expenses')

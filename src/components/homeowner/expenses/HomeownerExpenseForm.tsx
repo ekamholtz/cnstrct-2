@@ -12,14 +12,12 @@ import {
 } from "@/components/ui/dialog";
 import { Form } from "@/components/ui/form";
 import { Plus } from "lucide-react";
-import { HomeownerExpenseFormData } from "./types";
+import { HomeownerExpenseFormFields } from "./types";
 import { useState } from "react";
-import { ExpenseAmountField } from "@/components/project/expense/form/ExpenseAmountField";
-import { ExpenseNameField } from "@/components/project/expense/form/ExpenseNameField";
-import { ExpensePayeeField } from "@/components/project/expense/form/ExpensePayeeField";
-import { ExpenseDateField } from "@/components/project/expense/form/ExpenseDateField";
-import { ExpenseTypeField } from "@/components/project/expense/form/ExpenseTypeField";
-import { ExpenseNotesField } from "@/components/project/expense/form/ExpenseNotesField";
+import { Input } from "@/components/ui/input";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 
 const homeownerExpenseSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -33,14 +31,14 @@ const homeownerExpenseSchema = z.object({
 
 interface HomeownerExpenseFormProps {
   projectId: string;
-  onSubmit: (data: HomeownerExpenseFormData) => Promise<void>;
+  onSubmit: (data: HomeownerExpenseFormFields) => Promise<void>;
 }
 
 export function HomeownerExpenseForm({ projectId, onSubmit }: HomeownerExpenseFormProps) {
   const [open, setOpen] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const form = useForm<HomeownerExpenseFormData>({
+  const form = useForm<HomeownerExpenseFormFields>({
     resolver: zodResolver(homeownerExpenseSchema),
     defaultValues: {
       name: "",
@@ -53,7 +51,7 @@ export function HomeownerExpenseForm({ projectId, onSubmit }: HomeownerExpenseFo
     },
   });
 
-  const handleSubmit = async (data: HomeownerExpenseFormData) => {
+  const handleSubmit = async (data: HomeownerExpenseFormFields) => {
     try {
       setIsProcessing(true);
       await onSubmit(data);
@@ -80,12 +78,108 @@ export function HomeownerExpenseForm({ projectId, onSubmit }: HomeownerExpenseFo
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <ExpenseNameField form={form} />
-            <ExpenseAmountField form={form} />
-            <ExpensePayeeField form={form} />
-            <ExpenseDateField form={form} />
-            <ExpenseTypeField form={form} />
-            <ExpenseNotesField form={form} />
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Expense Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter expense name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="amount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Amount</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Enter amount"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="payee"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payee</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter payee name" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="expense_date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      {...field}
+                      value={field.value || ''}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="expense_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Expense Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select expense type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="labor">Labor</SelectItem>
+                      <SelectItem value="materials">Materials</SelectItem>
+                      <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Enter any additional notes"
+                      className="resize-none"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <div className="flex justify-end space-x-2 pt-4">
               <Button

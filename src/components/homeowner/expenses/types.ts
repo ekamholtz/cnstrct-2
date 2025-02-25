@@ -3,7 +3,7 @@ import { Database } from "@/integrations/supabase/types";
 
 export type HomeownerExpense = Database["public"]["Tables"]["homeowner_expenses"]["Row"];
 
-export interface HomeownerExpenseFormData {
+export type HomeownerExpenseFormFields = {
   name: string;
   amount: string;
   payee: string;
@@ -13,7 +13,7 @@ export interface HomeownerExpenseFormData {
   project_id: string;
 }
 
-export interface PaymentDetailsData {
+export type PaymentDetailsData = {
   payment_method_code: string;
   payment_date: string;
   amount: number;
