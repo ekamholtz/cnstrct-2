@@ -23,11 +23,11 @@ export default function ExpenseDashboard() {
         <MainNav />
       </div>
       <div className="container mx-auto px-4 py-8 mt-16 space-y-8">
-        {/* Header */}
+        {/* Project Header */}
         <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-[#172b70] mb-2">My Expenses Dashboard</h1>
-          <div className="text-gray-600">
-            Manage and track all your project-related expenses
+          <h1 className="text-2xl font-bold text-[#172b70] mb-2">My Expenses</h1>
+          <div className="flex items-center text-gray-600">
+            <span>Manage and track expenses across all your projects</span>
           </div>
         </div>
 
@@ -35,7 +35,7 @@ export default function ExpenseDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <MetricsCard
             icon={DollarSign}
-            label="Total Expenses"
+            label="Total Budget"
             value={totalExpenses}
             breakdownItems={[
               { label: 'Paid', value: paidExpenses },
@@ -45,7 +45,7 @@ export default function ExpenseDashboard() {
           />
           <MetricsCard
             icon={Receipt}
-            label="Payment Status"
+            label="Amount Paid"
             value={paidExpenses}
             breakdownItems={[
               { label: 'To Pay', value: pendingExpenses }
@@ -54,7 +54,7 @@ export default function ExpenseDashboard() {
           />
           <MetricsCard
             icon={Activity}
-            label="Completion Rate"
+            label="Progress"
             value={`${progressPercentage}%`}
             progress={progressPercentage}
             useCircularProgress
