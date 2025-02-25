@@ -196,6 +196,7 @@ export type Database = {
           amount_due: number
           created_at: string
           expense_date: string
+          expense_number: string
           expense_type: Database["public"]["Enums"]["homeowner_expense_type"]
           homeowner_id: string
           id: string
@@ -211,6 +212,7 @@ export type Database = {
           amount_due: number
           created_at?: string
           expense_date: string
+          expense_number: string
           expense_type?: Database["public"]["Enums"]["homeowner_expense_type"]
           homeowner_id: string
           id?: string
@@ -226,6 +228,7 @@ export type Database = {
           amount_due?: number
           created_at?: string
           expense_date?: string
+          expense_number?: string
           expense_type?: Database["public"]["Enums"]["homeowner_expense_type"]
           homeowner_id?: string
           id?: string
