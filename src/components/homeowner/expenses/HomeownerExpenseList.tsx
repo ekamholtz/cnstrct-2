@@ -1,13 +1,21 @@
 
 import { formatDistanceToNow } from "date-fns";
-import { DollarSign, Calendar, Receipt } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { DollarSign, Receipt } from "lucide-react";
 import { HomeownerExpense } from "./types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HomeownerExpenseActions } from "./components/HomeownerExpenseActions";
 import { useHomeownerExpenses } from "./hooks/useHomeownerExpenses";
 import { PaymentDetailsData } from "./types";
+import { Progress } from "@/components/ui/progress";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { StatusBadge } from "@/components/project/invoice/StatusBadge";
 
 interface HomeownerExpenseListProps {
   expenses: (HomeownerExpense & { project?: { name: string } })[];
@@ -24,29 +32,11 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
     return (
       <div className="space-y-4">
         {[1, 2, 3].map((i) => (
-          <Card key={i}>
-            <CardHeader>
-              <Skeleton className="h-4 w-1/3" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-4 w-full" />
-            </CardContent>
-          </Card>
+          <Skeleton key={i} className="h-16 w-full" />
         ))}
       </div>
     );
   }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return 'bg-green-500';
-      case 'partially_paid':
-        return 'bg-yellow-500';
-      default:
-        return 'bg-red-500';
-    }
-  };
 
   const handlePaymentSubmit = async (expenseId: string, paymentData: PaymentDetailsData) => {
     await updatePaymentStatus({ expenseId, paymentData });
@@ -65,97 +55,85 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
     await updatePaymentStatus({ expenseId, paymentData });
   };
 
+  const paidExpenses = expenses?.filter(exp => exp.payment_status === "paid").length || 0;
+  const progressPercentage = expenses.length > 0 ? (paidExpenses / expenses.length) * 100 : 0;
+
   return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 className="text-2xl font-semibold">My Expenses</h2>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="flex items-center space-x-2">
-            <DollarSign className="h-5 w-5 text-gray-500" />
-            <span className="text-lg font-medium">
-              Total: ${totalExpenses.toLocaleString()}
-            </span>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Receipt className="h-5 w-5 text-red-500" />
-            <span className="text-lg font-medium text-red-600">
+    <div className="space-y-6 px-6 pb-6">
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-semibold">My Expenses</h2>
+          <div className="flex items-center space-x-4">
+            <span className="text-lg font-medium text-orange-600">
               Due: ${totalDue.toLocaleString()}
             </span>
+            <div className="flex items-center space-x-2">
+              <DollarSign className="h-5 w-5 text-gray-500" />
+              <span className="text-lg font-medium">
+                Total: ${totalExpenses.toLocaleString()}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <div className="grid gap-4">
-        {expenses?.map((expense) => (
-          <Card key={expense.id}>
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <CardTitle className="text-lg">{expense.name}</CardTitle>
-                    <Badge 
-                      className={`${getStatusColor(expense.payment_status)} text-white`}
-                    >
-                      {expense.payment_status.replace('_', ' ')}
-                    </Badge>
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Paid to: {expense.payee}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="font-semibold text-lg">
-                    ${expense.amount.toLocaleString()}
-                  </div>
-                  {expense.amount_due > 0 && (
-                    <div className="text-sm text-red-600">
-                      Due: ${expense.amount_due.toLocaleString()}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                <div className="flex items-center space-x-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>
-                    {formatDistanceToNow(new Date(expense.expense_date), { addSuffix: true })}
-                  </span>
-                </div>
-                {expense.project && (
-                  <div className="flex items-center space-x-1">
-                    <span>Project: {expense.project.name}</span>
-                  </div>
-                )}
-                <div>
-                  <span className="font-medium">Type:</span>{" "}
-                  {expense.expense_type}
-                </div>
-                {expense.notes && (
-                  <div className="col-span-2 mt-2">
-                    <span className="font-medium">Notes:</span>{" "}
-                    {expense.notes}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4">
-                <HomeownerExpenseActions
-                  expense={expense}
-                  onPaymentSubmit={(data) => handlePaymentSubmit(expense.id, data)}
-                  onPaymentSimulate={(data) => handlePaymentSimulation(expense.id, data)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-
-        {(!expenses || expenses.length === 0) && (
-          <div className="text-center text-gray-500 py-8">
-            No expenses found. Click "Add Expense" to create one.
+        <div className="space-y-1">
+          <div className="flex justify-between text-sm text-gray-600">
+            <span>Payment Progress</span>
+            <span>{paidExpenses} of {expenses.length} expenses paid</span>
           </div>
-        )}
+          <Progress 
+            value={progressPercentage} 
+            className="h-2 bg-yellow-100 [&>div]:bg-green-500" 
+          />
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Expense Name</TableHead>
+              <TableHead>Payee</TableHead>
+              <TableHead>Amount</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {expenses.map((expense) => (
+              <TableRow key={expense.id}>
+                <TableCell className="font-medium">{expense.name}</TableCell>
+                <TableCell>{expense.payee}</TableCell>
+                <TableCell>
+                  <div className="flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1 text-gray-500" />
+                    {expense.amount.toLocaleString()}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <StatusBadge status={expense.payment_status === "paid" ? "paid" : "pending_payment"} />
+                </TableCell>
+                <TableCell>
+                  {formatDistanceToNow(new Date(expense.expense_date), { addSuffix: true })}
+                </TableCell>
+                <TableCell className="text-right">
+                  <HomeownerExpenseActions
+                    expense={expense}
+                    onPaymentSubmit={(data) => handlePaymentSubmit(expense.id, data)}
+                    onPaymentSimulate={(data) => handlePaymentSimulation(expense.id, data)}
+                  />
+                </TableCell>
+              </TableRow>
+            ))}
+            {expenses.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-6 text-gray-500">
+                  No expenses found. Click "Add Expense" to create one.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
     </div>
   );
