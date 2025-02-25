@@ -5,13 +5,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { HomeownerExpense } from "./types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { HomeownerExpenseActions } from "./components/HomeownerExpenseActions";
+import { useHomeownerExpenses } from "./hooks/useHomeownerExpenses";
+import { PaymentDetailsData } from "./types";
 
 interface HomeownerExpenseListProps {
   expenses: (HomeownerExpense & { project?: { name: string } })[];
   loading?: boolean;
+  projectId: string;
 }
 
-export function HomeownerExpenseList({ expenses, loading }: HomeownerExpenseListProps) {
+export function HomeownerExpenseList({ expenses, loading, projectId }: HomeownerExpenseListProps) {
+  const { updatePaymentStatus } = useHomeownerExpenses(projectId);
   const totalExpenses = expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
   const totalDue = expenses?.reduce((sum, exp) => sum + exp.amount_due, 0) || 0;
 
@@ -41,6 +46,23 @@ export function HomeownerExpenseList({ expenses, loading }: HomeownerExpenseList
       default:
         return 'bg-red-500';
     }
+  };
+
+  const handlePaymentSubmit = async (expenseId: string, paymentData: PaymentDetailsData) => {
+    await updatePaymentStatus({ expenseId, paymentData });
+  };
+
+  const handlePaymentSimulation = async (
+    expenseId: string, 
+    data: { payment_amount: string; payee_email?: string; payee_phone?: string }
+  ) => {
+    const paymentData: PaymentDetailsData = {
+      payment_method_code: 'transfer',
+      payment_date: new Date().toISOString().split('T')[0],
+      amount: Number(data.payment_amount),
+      notes: `Simulated payment. Contact: ${data.payee_email || ''} ${data.payee_phone || ''}`
+    };
+    await updatePaymentStatus({ expenseId, paymentData });
   };
 
   return (
@@ -108,7 +130,7 @@ export function HomeownerExpenseList({ expenses, loading }: HomeownerExpenseList
                 )}
                 <div>
                   <span className="font-medium">Type:</span>{" "}
-                  {expense.expense_type.toUpperCase()}
+                  {expense.expense_type}
                 </div>
                 {expense.notes && (
                   <div className="col-span-2 mt-2">
@@ -116,6 +138,14 @@ export function HomeownerExpenseList({ expenses, loading }: HomeownerExpenseList
                     {expense.notes}
                   </div>
                 )}
+              </div>
+
+              <div className="mt-4">
+                <HomeownerExpenseActions
+                  expense={expense}
+                  onPaymentSubmit={(data) => handlePaymentSubmit(expense.id, data)}
+                  onPaymentSimulate={(data) => handlePaymentSimulation(expense.id, data)}
+                />
               </div>
             </CardContent>
           </Card>

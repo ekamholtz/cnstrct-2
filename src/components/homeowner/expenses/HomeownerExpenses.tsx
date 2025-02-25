@@ -27,6 +27,7 @@ export function HomeownerExpenses({ projectId }: HomeownerExpensesProps) {
       <HomeownerExpenseList
         expenses={expenses || []}
         loading={isLoading}
+        projectId={projectId}
       />
     </div>
   );
