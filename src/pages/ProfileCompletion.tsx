@@ -13,7 +13,6 @@ import { MainNav } from "@/components/navigation/MainNav";
 import { supabase } from "@/integrations/supabase/client";
 import { profileSchema } from "@/components/homeowner-profile/types";
 
-// Define a specific schema for the profile completion form
 const profileCompletionSchema = z.object({
   fullName: z.string().min(2, {
     message: "Full name must be at least 2 characters.",
@@ -106,7 +105,16 @@ const ProfileCompletion = () => {
         description: "Profile updated successfully!",
       });
 
-      navigate('/client-dashboard');
+      // Immediately route to the appropriate dashboard based on user role
+      if (userRole === 'homeowner') {
+        navigate('/client-dashboard');
+      } else if (userRole === 'general_contractor' || userRole === 'gc_admin') {
+        navigate('/dashboard');
+      } else {
+        // Default to client dashboard if role is unclear
+        navigate('/client-dashboard');
+      }
+
     } catch (error) {
       console.error("Error during form submission:", error);
       toast({
