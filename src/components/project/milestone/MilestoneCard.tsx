@@ -1,7 +1,5 @@
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Undo } from "lucide-react";
 import { MilestoneControls } from "./MilestoneControls";
 import { MilestoneStatus } from "./MilestoneStatus";
 import { Milestone } from "./types";
@@ -41,8 +39,8 @@ export function MilestoneCard({
             {!hideControls && isContractor && (
               <MilestoneControls
                 milestone={milestone}
-                onComplete={() => onMarkComplete(milestone.id)}
-                onUndo={() => onUndoCompletion(milestone.id)}
+                onMarkComplete={onMarkComplete}
+                onUndoCompletion={onUndoCompletion}
               />
             )}
           </div>
