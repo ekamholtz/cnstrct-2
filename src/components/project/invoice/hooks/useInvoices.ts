@@ -33,6 +33,8 @@ export function useInvoices(projectId: string) {
         throw error;
       }
 
+      console.log('Raw invoices data:', data);
+
       const transformedData: Invoice[] = (data || []).map(invoice => ({
         id: invoice.id,
         invoice_number: invoice.invoice_number,
@@ -51,6 +53,7 @@ export function useInvoices(projectId: string) {
         updated_at: invoice.updated_at
       }));
 
+      console.log('Transformed invoices data:', transformedData);
       return transformedData;
     },
   });
@@ -93,7 +96,7 @@ export function useInvoices(projectId: string) {
     }: { 
       invoiceId: string;
     } & PaymentFormData) => {
-      console.log('Marking invoice as paid:', {
+      console.log("Marking invoice as paid:", {
         invoiceId,
         payment_method,
         payment_date
@@ -138,7 +141,7 @@ export function useInvoices(projectId: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-invoices', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['payments'] }); // Invalidate payments query
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
       toast({
         title: "Success",
         description: "Invoice has been marked as paid",
