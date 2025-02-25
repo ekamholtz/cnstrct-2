@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -23,7 +22,7 @@ const ProjectDashboard = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
 
-  const { data, isLoading, error } = useQuery({
+  const { data: project, isLoading, error } = useQuery({
     queryKey: ['project', projectId],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -45,6 +44,11 @@ const ProjectDashboard = () => {
             project_id,
             created_at,
             updated_at
+          ),
+          invoices (
+            id,
+            amount,
+            status
           )
         `)
         .eq('id', projectId)
@@ -92,7 +96,7 @@ const ProjectDashboard = () => {
   const isAdmin = userRole === 'platform_admin';
   const isHomeowner = userRole === 'homeowner';
 
-  if (!isAdmin && !data) {
+  if (!isAdmin && !project) {
     return <ProjectNotFound />;
   }
 
@@ -101,15 +105,15 @@ const ProjectDashboard = () => {
     return <ProjectNotFound />;
   }
 
-  if (!data) {
+  if (!project) {
     return <ProjectNotFound />;
   }
 
-  const totalBudget = data.milestones?.reduce((sum, m) => sum + (m.amount || 0), 0) || 0;
-  const completedAmount = data.milestones?.reduce((sum, m) => 
-    m.status === 'completed' ? sum + (m.amount || 0) : sum, 0) || 0;
-  const progressPercentage = calculateProjectCompletion(data.milestones || []);
-  const amountProgress = totalBudget > 0 ? (completedAmount / totalBudget) * 100 : 0;
+  const totalBudget = project.milestones?.reduce((sum, m) => sum + (m.amount || 0), 0) || 0;
+  const paidAmount = project.invoices?.filter(i => i.status === 'paid')
+    .reduce((sum, i) => sum + (i.amount || 0), 0) || 0;
+  const progressPercentage = calculateProjectCompletion(project.milestones || []);
+  const amountProgress = totalBudget > 0 ? (paidAmount / totalBudget) * 100 : 0;
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
@@ -119,10 +123,10 @@ const ProjectDashboard = () => {
       <div className="container mx-auto px-4 py-8 mt-16 space-y-8">
         {/* Project Header */}
         <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-[#172b70] mb-2">{data.name}</h1>
+          <h1 className="text-2xl font-bold text-[#172b70] mb-2">{project.name}</h1>
           <div className="flex items-center text-gray-600">
             <MapPin className="h-4 w-4 mr-2" />
-            <span>{data.address}</span>
+            <span>{project.address}</span>
           </div>
         </div>
 
@@ -131,13 +135,13 @@ const ProjectDashboard = () => {
           <MetricsCard
             icon={DollarSign}
             label="Total Budget"
-            value={`$${totalBudget.toLocaleString()}`}
+            value={totalBudget}
             progress={amountProgress}
           />
           <MetricsCard
             icon={Receipt}
             label="Amount Paid"
-            value={`$${completedAmount.toLocaleString()}`}
+            value={paidAmount}
             progress={amountProgress}
           />
           <MetricsCard
@@ -152,7 +156,7 @@ const ProjectDashboard = () => {
         {/* Milestones Section */}
         <div className="space-y-4">
           <h2 className="text-xl font-semibold text-[#172b70]">Project Milestones</h2>
-          <HorizontalMilestoneScroll milestones={data.milestones || []} />
+          <HorizontalMilestoneScroll milestones={project.milestones || []} />
         </div>
 
         {/* Tabbed Content */}

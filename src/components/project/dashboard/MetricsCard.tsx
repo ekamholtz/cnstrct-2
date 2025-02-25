@@ -20,12 +20,18 @@ export function MetricsCard({
   useCircularProgress = false,
   sublabel 
 }: MetricsCardProps) {
+  const formattedValue = typeof value === 'number' 
+    ? `$${value.toLocaleString()}`
+    : value;
+
   return (
     <Card className="p-6 bg-white hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between">
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">{label}</p>
-          <p className="text-2xl font-bold text-[#172b70]">{value}</p>
+          <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
+            {label}
+          </p>
+          <p className="text-2xl font-bold text-[#172b70]">{formattedValue}</p>
           {sublabel && (
             <p className="text-sm text-gray-500">{sublabel}</p>
           )}
@@ -59,7 +65,14 @@ export function MetricsCard({
         </div>
       ) : (
         <div className="mt-4">
-          <Progress value={progress} className="h-1" />
+          <Progress 
+            value={progress} 
+            className="h-2 bg-gray-100" 
+            indicatorClassName="bg-[#19db93]"
+          />
+          <div className="mt-1 text-xs text-gray-500 text-right">
+            {progress}% Complete
+          </div>
         </div>
       )}
     </Card>
