@@ -63,29 +63,31 @@ export function MetricsCard({
       )}
 
       {useCircularProgress ? (
-        <div className="mt-4 relative h-12 w-12">
-          <svg className="w-full h-full" viewBox="0 0 36 36">
-            <path
-              d="M18 2.0845
-                a 15.9155 15.9155 0 0 1 0 31.831
-                a 15.9155 15.9155 0 0 1 0 -31.831"
-              fill="none"
-              stroke="#eee"
-              strokeWidth="3"
-            />
-            <path
-              d="M18 2.0845
-                a 15.9155 15.9155 0 0 1 0 31.831
-                a 15.9155 15.9155 0 0 1 0 -31.831"
-              fill="none"
-              stroke={colors.primary}
-              strokeWidth="3"
-              strokeDasharray={`${progress}, 100`}
-            />
-          </svg>
-          <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-sm font-medium">
-            {Math.round(progress)}%
-          </span>
+        <div className="flex justify-center mt-6">
+          <div className="relative h-24 w-24">
+            <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+              <path
+                d="M18 2.0845
+                  a 15.9155 15.9155 0 0 1 0 31.831
+                  a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke="#eee"
+                strokeWidth="3"
+              />
+              <path
+                d="M18 2.0845
+                  a 15.9155 15.9155 0 0 1 0 31.831
+                  a 15.9155 15.9155 0 0 1 0 -31.831"
+                fill="none"
+                stroke={colors.primary}
+                strokeWidth="3"
+                strokeDasharray={`${progress}, 100`}
+              />
+            </svg>
+            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-medium text-[#172b70]">
+              {Math.round(progress)}%
+            </span>
+          </div>
         </div>
       ) : (
         <div className="mt-4">
