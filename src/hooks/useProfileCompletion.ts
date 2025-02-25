@@ -59,6 +59,41 @@ export const useProfileCompletion = () => {
     fetchUserProfile();
   }, [navigate]);
 
+  const linkClientToUser = async (userEmail: string, userId: string) => {
+    console.log("Attempting to link client:", { userEmail, userId });
+    
+    const { data: existingClient, error: clientError } = await supabase
+      .from('clients')
+      .select('*')
+      .eq('email', userEmail.toLowerCase())
+      .maybeSingle();
+
+    if (clientError) {
+      console.error("Error checking existing client:", clientError);
+      throw new Error("Failed to check client information");
+    }
+
+    if (!existingClient) {
+      console.log("No existing client found for email:", userEmail);
+      return null;
+    }
+
+    console.log("Found existing client:", existingClient);
+
+    const { error: updateError } = await supabase
+      .from('clients')
+      .update({ user_id: userId })
+      .eq('id', existingClient.id);
+
+    if (updateError) {
+      console.error("Error updating client:", updateError);
+      throw new Error("Failed to link client account");
+    }
+
+    console.log("Successfully linked client to user");
+    return existingClient;
+  };
+
   const onSubmit = async (formData: ProfileCompletionFormValues) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -67,39 +102,16 @@ export const useProfileCompletion = () => {
         return;
       }
 
-      // First, check if there's an existing client with this email
-      const { data: existingClient, error: clientError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('email', user.email)
-        .maybeSingle();
-
-      if (clientError) {
-        console.error("Error checking existing client:", clientError);
+      // First try to link the client
+      try {
+        await linkClientToUser(user.email!, user.id);
+      } catch (error) {
+        console.error("Error in client linking:", error);
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "Failed to check client information. Please try again.",
+          title: "Warning",
+          description: "Could not link existing client account. Continuing with profile update.",
         });
-        return;
-      }
-
-      // If we found a matching client, update their user_id
-      if (existingClient) {
-        const { error: updateClientError } = await supabase
-          .from('clients')
-          .update({ user_id: user.id })
-          .eq('id', existingClient.id);
-
-        if (updateClientError) {
-          console.error("Error linking client:", updateClientError);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to link client account. Please try again.",
-          });
-          return;
-        }
       }
 
       // Transform form data to match database schema
@@ -110,13 +122,13 @@ export const useProfileCompletion = () => {
         has_completed_profile: true
       };
 
-      const { error } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update(profileData)
         .eq('id', user.id);
 
-      if (error) {
-        console.error("Error updating profile:", error);
+      if (profileError) {
+        console.error("Error updating profile:", profileError);
         toast({
           variant: "destructive",
           title: "Error",
@@ -130,13 +142,12 @@ export const useProfileCompletion = () => {
         description: "Profile updated successfully!",
       });
 
-      // Immediately route to the appropriate dashboard based on user role
+      // Route based on user role
       if (userRole === 'homeowner') {
         navigate('/client-dashboard');
       } else if (userRole === 'general_contractor' || userRole === 'gc_admin') {
         navigate('/dashboard');
       } else {
-        // Default to client dashboard if role is unclear
         navigate('/client-dashboard');
       }
 
