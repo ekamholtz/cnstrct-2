@@ -78,16 +78,26 @@ export const useProfileCompletion = () => {
       return null;
     }
 
-    console.log("Found existing client:", existingClient);
+    if (existingClient.user_id === userId) {
+      console.log("Client already linked to this user");
+      return existingClient;
+    }
+
+    console.log("Found existing client, attempting to link:", existingClient);
 
     const { error: updateError } = await supabase
       .from('clients')
-      .update({ user_id: userId })
-      .eq('id', existingClient.id);
+      .update({ 
+        user_id: userId,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', existingClient.id)
+      .select()
+      .single();
 
     if (updateError) {
       console.error("Error updating client:", updateError);
-      throw new Error("Failed to link client account");
+      throw new Error(`Failed to link client account: ${updateError.message}`);
     }
 
     console.log("Successfully linked client to user");
@@ -102,16 +112,20 @@ export const useProfileCompletion = () => {
         return;
       }
 
+      console.log("Starting profile completion for user:", user.email);
+
       // First try to link the client
       try {
-        await linkClientToUser(user.email!, user.id);
+        const linkedClient = await linkClientToUser(user.email!, user.id);
+        console.log("Client linking result:", linkedClient);
       } catch (error) {
         console.error("Error in client linking:", error);
         toast({
           variant: "destructive",
           title: "Warning",
-          description: "Could not link existing client account. Continuing with profile update.",
+          description: "Could not link existing client account. Please contact support.",
         });
+        // Don't return here - continue with profile update
       }
 
       // Transform form data to match database schema
@@ -119,7 +133,8 @@ export const useProfileCompletion = () => {
         full_name: formData.fullName,
         phone_number: formData.phoneNumber,
         address: formData.address,
-        has_completed_profile: true
+        has_completed_profile: true,
+        updated_at: new Date().toISOString()
       };
 
       const { error: profileError } = await supabase
