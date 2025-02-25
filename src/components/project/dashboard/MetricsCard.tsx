@@ -41,6 +41,10 @@ export function MetricsCard({
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
             {label}
           </p>
+          {/* Only show the value if it's not a circular progress card */}
+          {!useCircularProgress && (
+            <p className="text-2xl font-bold text-[#172b70]">{formattedValue}</p>
+          )}
         </div>
         <Icon className="h-5 w-5 text-[#172b70]" />
       </div>
