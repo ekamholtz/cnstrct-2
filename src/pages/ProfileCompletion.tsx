@@ -77,6 +77,41 @@ const ProfileCompletion = () => {
         return;
       }
 
+      // First, check if there's an existing client with this email
+      const { data: existingClient, error: clientError } = await supabase
+        .from('clients')
+        .select('*')
+        .eq('email', user.email)
+        .maybeSingle();
+
+      if (clientError) {
+        console.error("Error checking existing client:", clientError);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to check client information. Please try again.",
+        });
+        return;
+      }
+
+      // If we found a matching client, update their user_id
+      if (existingClient) {
+        const { error: updateClientError } = await supabase
+          .from('clients')
+          .update({ user_id: user.id })
+          .eq('id', existingClient.id);
+
+        if (updateClientError) {
+          console.error("Error linking client:", updateClientError);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to link client account. Please try again.",
+          });
+          return;
+        }
+      }
+
       // Transform form data to match database schema
       const profileData = {
         full_name: formData.fullName,
