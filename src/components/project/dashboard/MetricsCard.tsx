@@ -28,6 +28,23 @@ export function MetricsCard({
     ? `$${value.toLocaleString()}`
     : value;
 
+  // Colors for the budget visualization
+  const colors = {
+    gcBudget: '#4F46E5', // Indigo
+    otherExpenses: '#EC4899', // Pink
+  };
+
+  // Calculate percentages for the pie chart if there are breakdown items
+  const total = breakdownItems.reduce((sum, item) => sum + item.value, 0);
+  const firstPercentage = total > 0 ? (breakdownItems[0]?.value || 0) / total * 100 : 0;
+
+  // SVG path for the circular visualization
+  const createArc = (percentage: number) => {
+    const x = Math.cos(2 * Math.PI * percentage / 100);
+    const y = Math.sin(2 * Math.PI * percentage / 100);
+    return `M 0 -1 A 1 1 0 ${percentage > 50 ? 1 : 0} 1 ${x} ${y} L 0 0`;
+  };
+
   return (
     <Card className="p-6 bg-white hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between">
@@ -39,8 +56,12 @@ export function MetricsCard({
             <div className="space-y-1 border-b border-gray-100 pb-2 mb-2">
               {breakdownItems.map((item, index) => (
                 <div key={index} className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">{item.label}</span>
-                  <span className="text-sm font-medium">${item.value.toLocaleString()}</span>
+                  <span className="text-sm" style={{ color: index === 0 ? colors.gcBudget : colors.otherExpenses }}>
+                    {item.label}
+                  </span>
+                  <span className="text-sm font-medium" style={{ color: index === 0 ? colors.gcBudget : colors.otherExpenses }}>
+                    ${item.value.toLocaleString()}
+                  </span>
                 </div>
               ))}
             </div>
@@ -49,6 +70,44 @@ export function MetricsCard({
         </div>
         <Icon className="h-5 w-5 text-[#172b70]" />
       </div>
+
+      {/* Budget Breakdown Circle for Total Budget card */}
+      {label === "Total Budget" && breakdownItems.length > 0 && (
+        <div className="mt-4 flex justify-end mb-4">
+          <div className="relative h-16 w-16">
+            <svg
+              viewBox="-1.1 -1.1 2.2 2.2"
+              style={{ transform: 'rotate(-90deg)' }}
+              className="w-full h-full"
+            >
+              {/* Background circle */}
+              <circle
+                cx="0"
+                cy="0"
+                r="1"
+                fill="none"
+                stroke="#E5E7EB"
+                strokeWidth="0.1"
+              />
+              {/* First segment (GC Budget) */}
+              <path
+                d={createArc(firstPercentage)}
+                fill="none"
+                stroke={colors.gcBudget}
+                strokeWidth="0.1"
+              />
+              {/* Second segment (Other Expenses) */}
+              <path
+                d={createArc(100)}
+                fill="none"
+                stroke={colors.otherExpenses}
+                strokeWidth="0.1"
+              />
+            </svg>
+          </div>
+        </div>
+      )}
+
       {useCircularProgress ? (
         <div className="mt-4 relative h-12 w-12">
           <svg className="w-full h-full" viewBox="0 0 36 36">
@@ -78,12 +137,12 @@ export function MetricsCard({
         <div className="mt-4">
           <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
             <div 
-              className="h-full bg-[#19db93] transition-all"
-              style={{ width: `${progress}%` }}
+              className="h-full transition-all"
+              style={{ 
+                width: `${progress}%`,
+                backgroundColor: label === "Total Budget" ? colors.gcBudget : '#19db93'
+              }}
             />
-          </div>
-          <div className="mt-1 text-xs text-gray-500 text-right">
-            {progress}% Complete
           </div>
         </div>
       )}
