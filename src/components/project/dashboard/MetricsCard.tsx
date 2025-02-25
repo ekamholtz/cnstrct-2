@@ -1,3 +1,4 @@
+
 import { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -27,10 +28,10 @@ export function MetricsCard({
     ? `$${value.toLocaleString()}`
     : value;
 
-  // Colors for the budget visualization
+  // Colors for the budget and payment visualizations - using brand colors
   const colors = {
-    gcBudget: '#4F46E5', // Indigo
-    otherExpenses: '#EC4899', // Pink
+    primary: '#172b70',    // Navy blue (brand primary)
+    secondary: '#4A5CCC',  // Lighter blue
   };
 
   // Calculate percentages for the pie chart if there are breakdown items
@@ -68,15 +69,15 @@ export function MetricsCard({
       </div>
 
       <div className="flex items-center justify-between">
-        {/* Budget Breakdown Text */}
+        {/* Budget/Payment Breakdown Text */}
         {breakdownItems.length > 0 && (
           <div className="space-y-1">
             {breakdownItems.map((item, index) => (
               <div key={index} className="flex justify-between items-center">
-                <span className="text-sm" style={{ color: index === 0 ? colors.gcBudget : colors.otherExpenses }}>
+                <span className="text-sm" style={{ color: index === 0 ? colors.primary : colors.secondary }}>
                   {item.label}
                 </span>
-                <span className="text-sm font-medium ml-4" style={{ color: index === 0 ? colors.gcBudget : colors.otherExpenses }}>
+                <span className="text-sm font-medium ml-4" style={{ color: index === 0 ? colors.primary : colors.secondary }}>
                   ${item.value.toLocaleString()}
                 </span>
               </div>
@@ -84,19 +85,19 @@ export function MetricsCard({
           </div>
         )}
 
-        {/* Budget Breakdown Pie Chart for Total Budget card */}
-        {label === "Total Budget" && breakdownItems.length > 0 && (
+        {/* Breakdown Pie Chart for both Total Budget and Amount Paid cards */}
+        {(label === "Total Budget" || label === "Amount Paid") && breakdownItems.length > 0 && (
           <div className="relative h-14 w-14 ml-4">
             <svg viewBox="-1 -1 2 2" className="w-full h-full">
-              {/* GC Budget Slice */}
+              {/* Primary Slice (GC Budget or Paid to GC) */}
               <path
                 d={createPieSlice(0, firstPercentage * 3.6)}
-                fill={colors.gcBudget}
+                fill={colors.primary}
               />
-              {/* Other Expenses Slice */}
+              {/* Secondary Slice (Other Expenses or Other Payments) */}
               <path
                 d={createPieSlice(firstPercentage * 3.6, 360)}
-                fill={colors.otherExpenses}
+                fill={colors.secondary}
               />
             </svg>
           </div>
@@ -119,7 +120,7 @@ export function MetricsCard({
                 a 15.9155 15.9155 0 0 1 0 31.831
                 a 15.9155 15.9155 0 0 1 0 -31.831"
               fill="none"
-              stroke="#19db93"
+              stroke={colors.primary}
               strokeWidth="3"
               strokeDasharray={`${progress}, 100`}
             />
@@ -135,7 +136,7 @@ export function MetricsCard({
               className="h-full transition-all"
               style={{ 
                 width: `${progress}%`,
-                backgroundColor: label === "Total Budget" ? colors.gcBudget : '#19db93'
+                backgroundColor: colors.primary
               }}
             />
           </div>
