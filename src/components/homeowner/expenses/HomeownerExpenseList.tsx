@@ -1,5 +1,6 @@
+
 import { formatDistanceToNow } from "date-fns";
-import { DollarSign, Receipt } from "lucide-react";
+import { DollarSign } from "lucide-react";
 import { HomeownerExpense } from "./types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { HomeownerExpenseActions } from "./components/HomeownerExpenseActions";
@@ -19,11 +20,17 @@ import { StatusBadge } from "@/components/project/invoice/StatusBadge";
 interface HomeownerExpenseListProps {
   expenses: (HomeownerExpense & { project?: { name: string } })[];
   loading?: boolean;
-  projectId: string;
+  projectId?: string;
+  showProject?: boolean;  // New prop to control project column visibility
 }
 
-export function HomeownerExpenseList({ expenses, loading, projectId }: HomeownerExpenseListProps) {
-  const { updatePaymentStatus } = useHomeownerExpenses(projectId);
+export function HomeownerExpenseList({ 
+  expenses, 
+  loading, 
+  projectId,
+  showProject = false 
+}: HomeownerExpenseListProps) {
+  const { updatePaymentStatus } = useHomeownerExpenses(projectId || "");
   const totalExpenses = expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
   const totalDue = expenses?.reduce((sum, exp) => sum + exp.amount_due, 0) || 0;
 
@@ -92,6 +99,7 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
             <TableRow>
               <TableHead>Expense Number</TableHead>
               <TableHead>Expense Name</TableHead>
+              {showProject && <TableHead>Project</TableHead>}
               <TableHead>Payee</TableHead>
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
@@ -106,6 +114,9 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
                   {expense.expense_number}
                 </TableCell>
                 <TableCell className="font-medium">{expense.name}</TableCell>
+                {showProject && (
+                  <TableCell>{expense.project?.name || 'N/A'}</TableCell>
+                )}
                 <TableCell>{expense.payee}</TableCell>
                 <TableCell>
                   <div className="flex items-center">
@@ -130,7 +141,10 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
             ))}
             {expenses.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-6 text-gray-500">
+                <TableCell 
+                  colSpan={showProject ? 8 : 7} 
+                  className="text-center py-6 text-gray-500"
+                >
                   No expenses found. Click "Add Expense" to create one.
                 </TableCell>
               </TableRow>
