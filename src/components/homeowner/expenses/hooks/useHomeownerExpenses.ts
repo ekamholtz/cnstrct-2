@@ -19,6 +19,7 @@ export function useHomeownerExpenses(projectId?: string) {
         `)
         .order('created_at', { ascending: false });
 
+      // Only filter by project if projectId is provided
       if (projectId) {
         query.eq('project_id', projectId);
       }
