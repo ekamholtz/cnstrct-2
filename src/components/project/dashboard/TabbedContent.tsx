@@ -12,9 +12,19 @@ export function TabbedContent({ projectId, isHomeowner }: TabbedContentProps) {
   return (
     <Tabs defaultValue="invoices" className="w-full">
       <TabsList className="w-full bg-white border-b">
-        <TabsTrigger value="invoices" className="flex-1">Invoices</TabsTrigger>
+        <TabsTrigger 
+          value="invoices" 
+          className="flex-1 data-[state=active]:text-[#172b70] data-[state=active]:border-b-2 data-[state=active]:border-[#ff6b24]"
+        >
+          Invoices
+        </TabsTrigger>
         {isHomeowner && (
-          <TabsTrigger value="expenses" className="flex-1">My Expenses</TabsTrigger>
+          <TabsTrigger 
+            value="expenses" 
+            className="flex-1 data-[state=active]:text-[#172b70] data-[state=active]:border-b-2 data-[state=active]:border-[#ff6b24]"
+          >
+            My Expenses
+          </TabsTrigger>
         )}
       </TabsList>
       <TabsContent value="invoices" className="mt-6">

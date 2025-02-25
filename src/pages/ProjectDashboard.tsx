@@ -109,10 +109,13 @@ const ProjectDashboard = () => {
   const completedAmount = data.milestones?.reduce((sum, m) => 
     m.status === 'completed' ? sum + (m.amount || 0) : sum, 0) || 0;
   const progressPercentage = calculateProjectCompletion(data.milestones || []);
+  const amountProgress = totalBudget > 0 ? (completedAmount / totalBudget) * 100 : 0;
 
   return (
-    <div className="min-h-screen bg-[#F1F0FB]">
-      <MainNav />
+    <div className="min-h-screen bg-[#f5f7fa]">
+      <div className="bg-[#172b70] text-white">
+        <MainNav />
+      </div>
       <div className="container mx-auto px-4 py-8 mt-16 space-y-8">
         {/* Project Header */}
         <div className="bg-white rounded-lg p-6 shadow-sm">
@@ -129,16 +132,20 @@ const ProjectDashboard = () => {
             icon={DollarSign}
             label="Total Budget"
             value={`$${totalBudget.toLocaleString()}`}
+            progress={amountProgress}
           />
           <MetricsCard
             icon={Receipt}
             label="Amount Paid"
             value={`$${completedAmount.toLocaleString()}`}
+            progress={amountProgress}
           />
           <MetricsCard
             icon={Activity}
             label="Progress"
             value={`${progressPercentage}%`}
+            progress={progressPercentage}
+            useCircularProgress
           />
         </div>
 
@@ -149,7 +156,7 @@ const ProjectDashboard = () => {
         </div>
 
         {/* Tabbed Content */}
-        <div className="bg-white rounded-lg shadow-sm">
+        <div className="bg-white rounded-lg shadow-sm mt-8">
           <TabbedContent projectId={projectId} isHomeowner={isHomeowner} />
         </div>
       </div>
