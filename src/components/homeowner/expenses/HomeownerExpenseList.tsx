@@ -91,6 +91,7 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>Expense Number</TableHead>
               <TableHead>Expense Name</TableHead>
               <TableHead>Payee</TableHead>
               <TableHead>Amount</TableHead>
@@ -102,6 +103,9 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
           <TableBody>
             {expenses.map((expense) => (
               <TableRow key={expense.id}>
+                <TableCell className="font-mono text-sm">
+                  {expense.expense_number}
+                </TableCell>
                 <TableCell className="font-medium">{expense.name}</TableCell>
                 <TableCell>{expense.payee}</TableCell>
                 <TableCell>
@@ -127,7 +131,7 @@ export function HomeownerExpenseList({ expenses, loading, projectId }: Homeowner
             ))}
             {expenses.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-6 text-gray-500">
+                <TableCell colSpan={7} className="text-center py-6 text-gray-500">
                   No expenses found. Click "Add Expense" to create one.
                 </TableCell>
               </TableRow>
