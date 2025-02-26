@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MainNav } from "@/components/navigation/MainNav";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { DateRangeFilter } from "@/components/shared/filters/DateRangeFilter";
 import { ProjectFilter } from "@/components/shared/filters/ProjectFilter";
 import { HomeownerExpenseList } from "@/components/homeowner/expenses/HomeownerExpenseList";
 import { ExpenseForm } from "@/components/project/expense/ExpenseForm";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -31,6 +32,8 @@ interface ExpenseFilters {
 }
 
 export default function ExpenseDashboard() {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [filters, setFilters] = useState<ExpenseFilters>({
     dateRange: undefined,
     status: "all",
@@ -72,6 +75,48 @@ export default function ExpenseDashboard() {
     },
   });
 
+  const handleCreateExpense = async (
+    data: any,
+    status: 'due' | 'paid' | 'partially_paid',
+    paymentDetails?: any
+  ) => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No authenticated user');
+
+      const { data: newExpense, error } = await supabase
+        .from('homeowner_expenses')
+        .insert({
+          ...data,
+          homeowner_id: user.id,
+          payment_status: status,
+          amount_due: data.amount
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Invalidate and refetch
+      await queryClient.invalidateQueries({ queryKey: ['expenses'] });
+
+      toast({
+        title: "Success",
+        description: "Expense created successfully",
+      });
+
+      return newExpense;
+    } catch (error) {
+      console.error('Error creating expense:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create expense. Please try again.",
+      });
+      throw error;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
       <div className="bg-[#172b70] text-white">
@@ -87,7 +132,7 @@ export default function ExpenseDashboard() {
                 Back to Dashboard
               </Button>
             </Link>
-            <ExpenseForm onSubmit={() => {}} defaultProjectId={filters.projectId !== 'all' ? filters.projectId : undefined}>
+            <ExpenseForm onSubmit={handleCreateExpense} defaultProjectId={filters.projectId !== 'all' ? filters.projectId : undefined}>
               <Button className="bg-[#9b87f5] hover:bg-[#7E69AB]">
                 <Plus className="mr-2 h-4 w-4" />
                 Create New Expense
