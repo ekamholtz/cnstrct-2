@@ -67,7 +67,7 @@ export const useProfileCompletion = () => {
     let { data: existingClient, error: clientError } = await supabase
       .from('clients')
       .select('*')
-      .eq('email', userEmail)
+      .eq('email', normalizedEmail)
       .maybeSingle();
 
     // If no match, try case-insensitive
@@ -91,9 +91,27 @@ export const useProfileCompletion = () => {
       throw new Error("Failed to check client information");
     }
 
+    // If no existing client, create a new one
     if (!existingClient) {
-      console.log("No existing client found for email:", normalizedEmail);
-      return null;
+      console.log("No existing client found, creating new client");
+      const { data: newClient, error: createError } = await supabase
+        .from('clients')
+        .insert({
+          email: normalizedEmail,
+          user_id: userId,
+          name: form.getValues().fullName,
+          address: form.getValues().address,
+          phone_number: form.getValues().phoneNumber,
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error("Error creating new client:", createError);
+        throw new Error("Failed to create new client");
+      }
+
+      return newClient;
     }
 
     if (existingClient.user_id === userId) {
@@ -109,6 +127,9 @@ export const useProfileCompletion = () => {
       .update({ 
         user_id: userId,
         email: normalizedEmail,
+        name: form.getValues().fullName,
+        address: form.getValues().address,
+        phone_number: form.getValues().phoneNumber,
         updated_at: new Date().toISOString()
       })
       .eq('id', existingClient.id)
@@ -135,20 +156,7 @@ export const useProfileCompletion = () => {
 
       console.log("Starting profile completion for user:", user.email);
 
-      // First try to link the client
-      try {
-        const linkedClient = await linkClientToUser(user.email!, user.id);
-        console.log("Client linking result:", linkedClient);
-      } catch (error) {
-        console.error("Error in client linking:", error);
-        toast({
-          variant: "destructive",
-          title: "Warning",
-          description: "Could not link existing client account. Please contact support.",
-        });
-      }
-
-      // Transform form data to match database schema
+      // First update the profile
       const profileData = {
         full_name: formData.fullName,
         phone_number: formData.phoneNumber,
@@ -170,6 +178,21 @@ export const useProfileCompletion = () => {
           description: "Failed to update profile. Please try again.",
         });
         return;
+      }
+
+      // If user is a homeowner, link or create client record
+      if (userRole === 'homeowner') {
+        try {
+          await linkClientToUser(user.email!, user.id);
+        } catch (error) {
+          console.error("Error in client linking:", error);
+          toast({
+            variant: "destructive",
+            title: "Warning",
+            description: "Could not link client account. Please contact support.",
+          });
+          // Don't return here, still navigate to dashboard
+        }
       }
 
       toast({
