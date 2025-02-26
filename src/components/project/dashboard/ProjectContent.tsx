@@ -5,12 +5,14 @@ import { ProjectInvoices } from "../ProjectInvoices";
 import { ProjectExpenses } from "../ProjectExpenses";
 import { MilestonesList } from "../MilestonesList";
 import { ProjectFinancialOverview } from "../ProjectFinancialOverview";
+import type { Expense } from "../expense/types";
 
 interface ProjectContentProps {
   projectId: string;
+  expenses: Expense[];
 }
 
-export function ProjectContent({ projectId }: ProjectContentProps) {
+export function ProjectContent({ projectId, expenses }: ProjectContentProps) {
   useEffect(() => {
     console.log("ProjectContent mounted with projectId:", projectId);
   }, [projectId]);
@@ -31,7 +33,7 @@ export function ProjectContent({ projectId }: ProjectContentProps) {
           <ProjectInvoices projectId={projectId} />
         </TabsContent>
         <TabsContent value="expenses">
-          <ProjectExpenses projectId={projectId} />
+          <ProjectExpenses projectId={projectId} expenses={expenses} />
         </TabsContent>
       </Tabs>
     </div>
