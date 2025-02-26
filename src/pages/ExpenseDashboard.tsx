@@ -1,15 +1,17 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MainNav } from "@/components/navigation/MainNav";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Plus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
 import { DateRangeFilter } from "@/components/shared/filters/DateRangeFilter";
 import { ProjectFilter } from "@/components/shared/filters/ProjectFilter";
 import { HomeownerExpenseList } from "@/components/homeowner/expenses/HomeownerExpenseList";
+import { ExpenseForm } from "@/components/project/expense/ExpenseForm";
 import {
   Select,
   SelectContent,
@@ -85,6 +87,12 @@ export default function ExpenseDashboard() {
                 Back to Dashboard
               </Button>
             </Link>
+            <ExpenseForm onSubmit={() => {}} defaultProjectId={filters.projectId !== 'all' ? filters.projectId : undefined}>
+              <Button className="bg-[#9b87f5] hover:bg-[#7E69AB]">
+                <Plus className="mr-2 h-4 w-4" />
+                Create New Expense
+              </Button>
+            </ExpenseForm>
           </div>
           <div className="space-y-1">
             <h1 className="text-2xl font-bold text-[#172b70]">Expenses Dashboard</h1>
