@@ -25,7 +25,9 @@ export function GCTabbedContent({ projectId }: GCTabbedContentProps) {
         </TabsTrigger>
       </TabsList>
       <TabsContent value="invoices" className="mt-6">
-        <ProjectInvoices projectId={projectId} />
+        <div className="px-6">
+          <ProjectInvoices projectId={projectId} />
+        </div>
       </TabsContent>
       <TabsContent value="expenses" className="mt-6">
         <ProjectExpenses projectId={projectId} />

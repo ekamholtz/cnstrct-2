@@ -4,6 +4,7 @@ import { ExpenseList } from "./expense/ExpenseList";
 import { useExpenses } from "./expense/hooks/useExpenses";
 import type { ExpenseFormStage1Data, PaymentDetailsData } from "./expense/types";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 interface ProjectExpensesProps {
   projectId: string;
@@ -12,6 +13,7 @@ interface ProjectExpensesProps {
 export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
   const { expenses, isLoading, createExpense, createPayment } = useExpenses(projectId);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const handleCreateExpense = async (
     data: ExpenseFormStage1Data, 
@@ -32,6 +34,10 @@ export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
           paymentData: paymentDetails
         });
       }
+
+      // Invalidate relevant queries to trigger a refresh
+      queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
+      
     } catch (error) {
       console.error('Error creating expense:', error);
       toast({
@@ -51,8 +57,8 @@ export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end">
+    <div className="px-6 py-4">
+      <div className="flex justify-end mb-4">
         <ExpenseForm onSubmit={handleCreateExpense} defaultProjectId={projectId} />
       </div>
       <ExpenseList expenses={expenses ?? []} />
