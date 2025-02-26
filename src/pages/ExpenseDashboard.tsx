@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
 import { DateRangeFilter } from "@/components/shared/filters/DateRangeFilter";
 import { ProjectFilter } from "@/components/shared/filters/ProjectFilter";
+import { Expense } from "@/components/project/expense/types";
 import {
   Select,
   SelectContent,
@@ -19,11 +20,14 @@ import {
 } from "@/components/ui/select";
 import { HomeownerExpenseList } from "@/components/homeowner/expenses/HomeownerExpenseList";
 
+type ExpenseStatus = "due" | "partially_paid" | "paid" | "all";
+type ExpenseType = "labor" | "materials" | "subcontractor" | "other" | "all";
+
 interface ExpenseFilters {
   dateRange: DateRange | undefined;
-  status: string;
+  status: ExpenseStatus;
   projectId: string;
-  expenseType: string;
+  expenseType: ExpenseType;
 }
 
 export default function ExpenseDashboard() {
@@ -64,9 +68,28 @@ export default function ExpenseDashboard() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as Expense[];
     },
   });
+
+  // Transform expenses to match HomeownerExpenseList expected format
+  const transformedExpenses = expenses?.map(expense => ({
+    id: expense.id,
+    amount: expense.amount,
+    amount_due: expense.amount_due,
+    expense_date: expense.expense_date,
+    expense_type: expense.expense_type,
+    payment_status: expense.payment_status,
+    created_at: expense.created_at,
+    updated_at: expense.updated_at || expense.created_at,
+    payee: expense.payee,
+    notes: expense.notes,
+    expense_number: expense.id, // Using ID as expense number since we don't have one
+    name: expense.name,
+    project_id: expense.project_id,
+    homeowner_id: expense.contractor_id, // Using contractor_id as homeowner_id
+    project: expense.project
+  })) || [];
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
@@ -95,7 +118,7 @@ export default function ExpenseDashboard() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Select
               value={filters.expenseType}
-              onValueChange={(value) => setFilters({ ...filters, expenseType: value })}
+              onValueChange={(value: ExpenseType) => setFilters({ ...filters, expenseType: value })}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Expense Type" />
@@ -111,7 +134,7 @@ export default function ExpenseDashboard() {
 
             <Select
               value={filters.status}
-              onValueChange={(value) => setFilters({ ...filters, status: value })}
+              onValueChange={(value: ExpenseStatus) => setFilters({ ...filters, status: value })}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Payment Status" />
@@ -151,7 +174,7 @@ export default function ExpenseDashboard() {
         {/* Expense List */}
         <Card className="shadow-sm border-0">
           <HomeownerExpenseList
-            expenses={expenses || []}
+            expenses={transformedExpenses}
             loading={isLoading}
             showProject={true}
           />

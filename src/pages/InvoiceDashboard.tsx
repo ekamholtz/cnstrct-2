@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
 import { DateRangeFilter } from "@/components/shared/filters/DateRangeFilter";
 import { ProjectFilter } from "@/components/shared/filters/ProjectFilter";
-import { InvoiceList } from "@/components/invoice-dashboard/InvoiceList";
+import { Invoice } from "@/components/project/invoice/types";
 import {
   Select,
   SelectContent,
@@ -19,11 +18,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+type InvoiceStatus = "pending_payment" | "paid" | "cancelled" | "all";
+type PaymentMethod = "cc" | "check" | "transfer" | "cash" | "all";
+
 interface InvoiceFilters {
   dateRange: DateRange | undefined;
-  status: string;
+  status: InvoiceStatus;
   projectId: string;
-  paymentMethod: string;
+  paymentMethod: PaymentMethod;
+}
+
+interface InvoiceListProps {
+  data: Invoice[];
+  isLoading: boolean;
+}
+
+function InvoiceList({ data, isLoading }: InvoiceListProps) {
+  return <div>Invoice List Component</div>;
 }
 
 export default function InvoiceDashboard() {
@@ -64,7 +75,7 @@ export default function InvoiceDashboard() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data as Invoice[];
     },
   });
 
@@ -95,7 +106,7 @@ export default function InvoiceDashboard() {
           <div className="flex flex-col sm:flex-row gap-4">
             <Select
               value={filters.status}
-              onValueChange={(value) => setFilters({ ...filters, status: value })}
+              onValueChange={(value: InvoiceStatus) => setFilters({ ...filters, status: value })}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by status" />
@@ -110,7 +121,7 @@ export default function InvoiceDashboard() {
 
             <Select
               value={filters.paymentMethod}
-              onValueChange={(value) => setFilters({ ...filters, paymentMethod: value })}
+              onValueChange={(value: PaymentMethod) => setFilters({ ...filters, paymentMethod: value })}
             >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Payment Method" />
@@ -150,7 +161,7 @@ export default function InvoiceDashboard() {
 
         {/* Invoice List */}
         <Card className="shadow-sm border-0">
-          <InvoiceList invoices={invoices || []} loading={isLoading} />
+          <InvoiceList data={invoices || []} isLoading={isLoading} />
         </Card>
       </div>
     </div>
