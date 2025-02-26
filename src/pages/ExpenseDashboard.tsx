@@ -1,21 +1,72 @@
 
-import { useAllHomeownerExpenses } from "@/components/homeowner/expenses/hooks/useAllHomeownerExpenses";
-import { HomeownerExpenseList } from "@/components/homeowner/expenses/HomeownerExpenseList";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { MainNav } from "@/components/navigation/MainNav";
-import { DollarSign, Receipt, Activity } from "lucide-react";
-import { MetricsCard } from "@/components/project/dashboard/MetricsCard";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { DateRange } from "react-day-picker";
+import { DateRangeFilter } from "@/components/shared/filters/DateRangeFilter";
+import { ProjectFilter } from "@/components/shared/filters/ProjectFilter";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { HomeownerExpenseList } from "@/components/homeowner/expenses/HomeownerExpenseList";
+
+interface ExpenseFilters {
+  dateRange: DateRange | undefined;
+  status: string;
+  projectId: string;
+  expenseType: string;
+}
 
 export default function ExpenseDashboard() {
-  const { expenses, isLoading } = useAllHomeownerExpenses();
+  const [filters, setFilters] = useState<ExpenseFilters>({
+    dateRange: undefined,
+    status: "all",
+    projectId: "all",
+    expenseType: "all"
+  });
 
-  // Calculate metrics
-  const totalExpenses = expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
-  const paidExpenses = expenses?.reduce((sum, exp) => 
-    exp.payment_status === "paid" ? sum + exp.amount : sum, 0) || 0;
-  const pendingExpenses = totalExpenses - paidExpenses;
-  const progressPercentage = totalExpenses > 0 
-    ? Math.round((paidExpenses / totalExpenses) * 100) 
-    : 0;
+  const { data: expenses, isLoading } = useQuery({
+    queryKey: ['expenses', filters],
+    queryFn: async () => {
+      let query = supabase
+        .from('expenses')
+        .select(`
+          *,
+          project:project_id (
+            name
+          )
+        `);
+
+      if (filters.status !== 'all') {
+        query = query.eq('payment_status', filters.status);
+      }
+      if (filters.projectId !== 'all') {
+        query = query.eq('project_id', filters.projectId);
+      }
+      if (filters.expenseType !== 'all') {
+        query = query.eq('expense_type', filters.expenseType);
+      }
+      if (filters.dateRange?.from) {
+        query = query.gte('expense_date', filters.dateRange.from.toISOString());
+      }
+      if (filters.dateRange?.to) {
+        query = query.lte('expense_date', filters.dateRange.to.toISOString());
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
@@ -23,52 +74,88 @@ export default function ExpenseDashboard() {
         <MainNav />
       </div>
       <div className="container mx-auto px-4 py-8 mt-16 space-y-8">
-        {/* Project Header */}
+        {/* Dashboard Header */}
         <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-[#172b70] mb-2">My Expenses</h1>
-          <div className="flex items-center text-gray-600">
-            <span>Manage and track expenses across all your projects</span>
+          <div className="flex items-center justify-between mb-4">
+            <Link to="/dashboard">
+              <Button variant="ghost" className="text-gray-600">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Dashboard
+              </Button>
+            </Link>
+          </div>
+          <div className="space-y-1">
+            <h1 className="text-2xl font-bold text-[#172b70]">Expenses Dashboard</h1>
+            <p className="text-gray-600">Track and manage all project expenses</p>
           </div>
         </div>
 
-        {/* Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <MetricsCard
-            icon={DollarSign}
-            label="Total Budget"
-            value={totalExpenses}
-            breakdownItems={[
-              { label: 'Paid', value: paidExpenses },
-              { label: 'Pending', value: pendingExpenses }
-            ]}
-            progress={(paidExpenses / totalExpenses) * 100}
-          />
-          <MetricsCard
-            icon={Receipt}
-            label="Amount Paid"
-            value={paidExpenses}
-            breakdownItems={[
-              { label: 'To Pay', value: pendingExpenses }
-            ]}
-            progress={(paidExpenses / totalExpenses) * 100}
-          />
-          <MetricsCard
-            icon={Activity}
-            label="Progress"
-            value={`${progressPercentage}%`}
-            progress={progressPercentage}
-            useCircularProgress
-          />
-        </div>
+        {/* Filters */}
+        <Card className="p-6 shadow-sm border-0">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <Select
+              value={filters.expenseType}
+              onValueChange={(value) => setFilters({ ...filters, expenseType: value })}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Expense Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="labor">Labor</SelectItem>
+                <SelectItem value="materials">Materials</SelectItem>
+                <SelectItem value="subcontractor">Subcontractor</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
 
-        {/* Expenses List */}
-        <div className="bg-white rounded-lg shadow-sm">
+            <Select
+              value={filters.status}
+              onValueChange={(value) => setFilters({ ...filters, status: value })}
+            >
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Payment Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="due">Due</SelectItem>
+                <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <DateRangeFilter
+              dateRange={filters.dateRange}
+              onDateRangeChange={(range) => setFilters({ ...filters, dateRange: range })}
+            />
+
+            <ProjectFilter
+              value={filters.projectId}
+              onChange={(value) => setFilters({ ...filters, projectId: value })}
+            />
+
+            <Button
+              variant="ghost"
+              onClick={() => setFilters({
+                dateRange: undefined,
+                status: "all",
+                projectId: "all",
+                expenseType: "all"
+              })}
+            >
+              Reset Filters
+            </Button>
+          </div>
+        </Card>
+
+        {/* Expense List */}
+        <Card className="shadow-sm border-0">
           <HomeownerExpenseList
             expenses={expenses || []}
             loading={isLoading}
             showProject={true}
           />
-        </div>
+        </Card>
       </div>
     </div>
   );
