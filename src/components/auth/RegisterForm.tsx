@@ -27,13 +27,22 @@ export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormPr
       email: "",
       password: "",
       confirmPassword: "",
+      role: selectedRole, // Ensure role is set from prop
     },
     mode: "all"
   });
 
+  const handleSubmit = async (values: RegisterFormData) => {
+    // Ensure the role is included in the submission
+    await onSubmit({
+      ...values,
+      role: selectedRole, // Explicitly include the selected role
+    });
+  };
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="fullName"
