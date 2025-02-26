@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { MainNav } from "@/components/navigation/MainNav";
 import { supabase } from "@/integrations/supabase/client";
 import { TabbedContent } from "@/components/project/dashboard/TabbedContent";
+import { GCTabbedContent } from "@/components/project/dashboard/GCTabbedContent";
 import { calculateProjectCompletion } from "@/utils/project-calculations";
 import { ProjectHeader } from "@/components/project/dashboard/ProjectHeader";
 import { ProjectMetrics } from "@/components/project/dashboard/ProjectMetrics";
@@ -106,6 +107,7 @@ const ProjectDashboard = () => {
 
   const isAdmin = userRole === 'platform_admin';
   const isHomeowner = userRole === 'homeowner';
+  const isGC = userRole === 'gc_admin';
 
   if (!isAdmin && !project) {
     return <ProjectNotFound />;
@@ -149,7 +151,11 @@ const ProjectDashboard = () => {
         />
         <ProjectMilestones milestones={project.milestones || []} />
         <div className="bg-white rounded-lg shadow-sm mt-8">
-          <TabbedContent projectId={projectId} isHomeowner={isHomeowner} />
+          {isHomeowner ? (
+            <TabbedContent projectId={projectId} isHomeowner={isHomeowner} />
+          ) : isGC || isAdmin ? (
+            <GCTabbedContent projectId={projectId} />
+          ) : null}
         </div>
       </div>
     </div>
