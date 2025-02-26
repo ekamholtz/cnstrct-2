@@ -1,7 +1,7 @@
 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { ExpenseForm } from "@/components/project/expense/ExpenseForm";
 import type { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
 
@@ -24,24 +24,10 @@ export function DashboardHeader({ onCreateExpense, defaultProjectId }: Dashboard
             Back to Dashboard
           </Button>
         </Link>
-        <div>
-          <Button 
-            className="bg-[#9b87f5] hover:bg-[#7E69AB]"
-            onClick={() => {
-              const expenseForm = document.getElementById('create-expense-button');
-              if (expenseForm) {
-                expenseForm.click();
-              }
-            }}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Create New Expense
-          </Button>
-          <ExpenseForm 
-            onSubmit={onCreateExpense}
-            defaultProjectId={defaultProjectId}
-          />
-        </div>
+        <ExpenseForm 
+          onSubmit={onCreateExpense}
+          defaultProjectId={defaultProjectId}
+        />
       </div>
       <div className="space-y-1">
         <h1 className="text-2xl font-bold text-[#172b70]">Expenses Dashboard</h1>
