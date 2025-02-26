@@ -139,15 +139,21 @@ export default function ExpenseDashboard() {
               </Button>
             </Link>
             <div>
+              <Button 
+                className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+                onClick={() => {
+                  const expenseForm = document.getElementById('create-expense-button');
+                  if (expenseForm) {
+                    expenseForm.click();
+                  }
+                }}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Create New Expense
+              </Button>
               <ExpenseForm 
-                onSubmit={handleCreateExpense} 
-                defaultProjectId={filters.projectId !== 'all' ? filters.projectId : undefined} 
-                trigger={
-                  <Button className="bg-[#9b87f5] hover:bg-[#7E69AB]">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Create New Expense
-                  </Button>
-                }
+                onSubmit={handleCreateExpense}
+                defaultProjectId={filters.projectId !== 'all' ? filters.projectId : undefined}
               />
             </div>
           </div>
