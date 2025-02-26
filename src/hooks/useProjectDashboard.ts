@@ -44,24 +44,6 @@ export function useProjectDashboard(projectId: string | undefined) {
     },
   });
 
-  const { data: homeownerExpenses, isLoading: isExpensesLoading } = useQuery({
-    queryKey: ['homeowner-expenses', projectId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('homeowner_expenses')
-        .select(`
-          *,
-          project:project_id (
-            name
-          )
-        `)
-        .eq('project_id', projectId);
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
   const { data: userRole } = useQuery({
     queryKey: ['userRole'],
     queryFn: async () => {
@@ -78,10 +60,53 @@ export function useProjectDashboard(projectId: string | undefined) {
     }
   });
 
+  const { data: homeownerExpenses, isLoading: isHomeownerExpensesLoading } = useQuery({
+    queryKey: ['homeowner-expenses', projectId],
+    queryFn: async () => {
+      if (userRole !== 'homeowner') return [];
+
+      const { data, error } = await supabase
+        .from('homeowner_expenses')
+        .select(`
+          *,
+          project:project_id (
+            name
+          )
+        `)
+        .eq('project_id', projectId);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userRole,
+  });
+
+  const { data: gcExpenses, isLoading: isGCExpensesLoading } = useQuery({
+    queryKey: ['gc-expenses', projectId],
+    queryFn: async () => {
+      if (!['gc_admin', 'platform_admin'].includes(userRole || '')) return [];
+
+      const { data, error } = await supabase
+        .from('expenses')
+        .select(`
+          *,
+          project:project_id (
+            name
+          )
+        `)
+        .eq('project_id', projectId);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userRole,
+  });
+
   return {
     project,
-    homeownerExpenses,
+    homeownerExpenses: userRole === 'homeowner' ? homeownerExpenses : [],
+    gcExpenses: ['gc_admin', 'platform_admin'].includes(userRole || '') ? gcExpenses : [],
     userRole,
-    isLoading: isProjectLoading || isExpensesLoading
+    isLoading: isProjectLoading || isHomeownerExpensesLoading || isGCExpensesLoading
   };
 }

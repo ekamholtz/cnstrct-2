@@ -5,9 +5,10 @@ import { ProjectExpenses } from "@/components/project/ProjectExpenses";
 
 interface GCTabbedContentProps {
   projectId: string;
+  expenses: any[];
 }
 
-export function GCTabbedContent({ projectId }: GCTabbedContentProps) {
+export function GCTabbedContent({ projectId, expenses }: GCTabbedContentProps) {
   return (
     <Tabs defaultValue="invoices" className="w-full">
       <TabsList className="w-full bg-white border-b">
@@ -30,7 +31,7 @@ export function GCTabbedContent({ projectId }: GCTabbedContentProps) {
         </div>
       </TabsContent>
       <TabsContent value="expenses" className="mt-6">
-        <ProjectExpenses projectId={projectId} />
+        <ProjectExpenses projectId={projectId} expenses={expenses} />
       </TabsContent>
     </Tabs>
   );

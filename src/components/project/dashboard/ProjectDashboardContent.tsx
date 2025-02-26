@@ -9,6 +9,7 @@ import { calculateProjectCompletion } from "@/utils/project-calculations";
 interface ProjectDashboardContentProps {
   project: any;
   homeownerExpenses: any[];
+  gcExpenses: any[];
   projectId: string;
   userRole: string | null;
 }
@@ -16,6 +17,7 @@ interface ProjectDashboardContentProps {
 export function ProjectDashboardContent({
   project,
   homeownerExpenses,
+  gcExpenses,
   projectId,
   userRole
 }: ProjectDashboardContentProps) {
@@ -56,7 +58,7 @@ export function ProjectDashboardContent({
         {isHomeowner ? (
           <TabbedContent projectId={projectId} isHomeowner={isHomeowner} />
         ) : isGC || isAdmin ? (
-          <GCTabbedContent projectId={projectId} />
+          <GCTabbedContent projectId={projectId} expenses={gcExpenses} />
         ) : null}
       </div>
     </div>
