@@ -19,6 +19,19 @@ interface ExpenseListProps {
   showProjectName?: boolean;
 }
 
+// Helper function to map expense status to invoice status
+const mapExpenseStatusToInvoiceStatus = (status: Expense['payment_status']): "paid" | "pending_payment" | "cancelled" => {
+  switch (status) {
+    case "paid":
+      return "paid";
+    case "partially_paid":
+    case "due":
+      return "pending_payment";
+    default:
+      return "pending_payment";
+  }
+};
+
 export function ExpenseList({ expenses, loading }: ExpenseListProps) {
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const totalPaid = expenses.reduce((sum, exp) => {
@@ -86,7 +99,7 @@ export function ExpenseList({ expenses, loading }: ExpenseListProps) {
                 <TableCell>{expense.name}</TableCell>
                 <TableCell>${expense.amount.toLocaleString()}</TableCell>
                 <TableCell>
-                  <StatusBadge status={expense.payment_status} />
+                  <StatusBadge status={mapExpenseStatusToInvoiceStatus(expense.payment_status)} />
                 </TableCell>
                 <TableCell>
                   {formatDistanceToNow(new Date(expense.expense_date), { addSuffix: true })}
