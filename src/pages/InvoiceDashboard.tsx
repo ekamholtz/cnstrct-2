@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +10,7 @@ import { DateRange } from "react-day-picker";
 import { DateRangeFilter } from "@/components/shared/filters/DateRangeFilter";
 import { ProjectFilter } from "@/components/shared/filters/ProjectFilter";
 import { Invoice } from "@/components/project/invoice/types";
+import { InvoiceList } from "@/components/invoice-dashboard/InvoiceList";
 import {
   Select,
   SelectContent,
@@ -27,15 +27,6 @@ interface InvoiceFilters {
   status: InvoiceStatus;
   projectId: string;
   paymentMethod: PaymentMethod;
-}
-
-interface InvoiceListProps {
-  data: Invoice[];
-  isLoading: boolean;
-}
-
-function InvoiceList({ data, isLoading }: InvoiceListProps) {
-  return <div>Invoice List Component</div>;
 }
 
 export default function InvoiceDashboard() {
@@ -184,7 +175,7 @@ export default function InvoiceDashboard() {
 
         {/* Invoice List */}
         <Card className="shadow-sm border-0">
-          <InvoiceList data={invoices || []} isLoading={isLoading} />
+          <InvoiceList loading={isLoading} invoices={invoices || []} />
         </Card>
       </div>
     </div>

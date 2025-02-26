@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
 import { DateRangeFilter } from "@/components/shared/filters/DateRangeFilter";
 import { ProjectFilter } from "@/components/shared/filters/ProjectFilter";
-import { Expense } from "@/components/project/expense/types";
+import { HomeownerExpenseList } from "@/components/homeowner/expenses/HomeownerExpenseList";
 import {
   Select,
   SelectContent,
@@ -18,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HomeownerExpenseList } from "@/components/homeowner/expenses/HomeownerExpenseList";
 
 type ExpenseStatus = "due" | "partially_paid" | "paid" | "all";
 type ExpenseType = "labor" | "materials" | "subcontractor" | "other" | "all";
@@ -42,7 +40,7 @@ export default function ExpenseDashboard() {
     queryKey: ['expenses', filters],
     queryFn: async () => {
       let query = supabase
-        .from('expenses')
+        .from('homeowner_expenses')
         .select(`
           *,
           project:project_id (
@@ -68,28 +66,9 @@ export default function ExpenseDashboard() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as Expense[];
+      return data;
     },
   });
-
-  // Transform expenses to match HomeownerExpenseList expected format
-  const transformedExpenses = expenses?.map(expense => ({
-    id: expense.id,
-    amount: expense.amount,
-    amount_due: expense.amount_due,
-    expense_date: expense.expense_date,
-    expense_type: expense.expense_type,
-    payment_status: expense.payment_status,
-    created_at: expense.created_at,
-    updated_at: expense.updated_at || expense.created_at,
-    payee: expense.payee,
-    notes: expense.notes,
-    expense_number: expense.id, // Using ID as expense number since we don't have one
-    name: expense.name,
-    project_id: expense.project_id,
-    homeowner_id: expense.contractor_id, // Using contractor_id as homeowner_id
-    project: expense.project
-  })) || [];
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
@@ -174,7 +153,7 @@ export default function ExpenseDashboard() {
         {/* Expense List */}
         <Card className="shadow-sm border-0">
           <HomeownerExpenseList
-            expenses={transformedExpenses}
+            expenses={expenses || []}
             loading={isLoading}
             showProject={true}
           />
