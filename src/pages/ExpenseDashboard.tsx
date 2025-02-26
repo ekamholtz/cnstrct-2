@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,10 @@ interface ExpenseFilters {
   projectId: string;
   expenseType: ExpenseType;
 }
+
+const generateExpenseNumber = () => {
+  return `EXP-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`.toUpperCase();
+};
 
 export default function ExpenseDashboard() {
   const queryClient = useQueryClient();
@@ -87,11 +92,17 @@ export default function ExpenseDashboard() {
       const { error } = await supabase
         .from('homeowner_expenses')
         .insert({
-          ...data,
+          name: data.name,
           amount: parseFloat(data.amount),
+          payee: data.payee,
+          expense_date: data.expense_date,
+          expense_type: data.expense_type,
+          project_id: data.project_id,
+          notes: data.notes,
           homeowner_id: user.id,
           payment_status: status,
-          amount_due: parseFloat(data.amount)
+          amount_due: parseFloat(data.amount),
+          expense_number: generateExpenseNumber()
         });
 
       if (error) throw error;
@@ -127,12 +138,18 @@ export default function ExpenseDashboard() {
                 Back to Dashboard
               </Button>
             </Link>
-            <ExpenseForm onSubmit={handleCreateExpense} defaultProjectId={filters.projectId !== 'all' ? filters.projectId : undefined}>
-              <Button className="bg-[#9b87f5] hover:bg-[#7E69AB]">
-                <Plus className="mr-2 h-4 w-4" />
-                Create New Expense
-              </Button>
-            </ExpenseForm>
+            <div>
+              <ExpenseForm 
+                onSubmit={handleCreateExpense} 
+                defaultProjectId={filters.projectId !== 'all' ? filters.projectId : undefined} 
+                trigger={
+                  <Button className="bg-[#9b87f5] hover:bg-[#7E69AB]">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create New Expense
+                  </Button>
+                }
+              />
+            </div>
           </div>
           <div className="space-y-1">
             <h1 className="text-2xl font-bold text-[#172b70]">Expenses Dashboard</h1>
