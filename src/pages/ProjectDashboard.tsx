@@ -10,7 +10,7 @@ import { useProjectDashboard } from "@/hooks/useProjectDashboard";
 const ProjectDashboard = () => {
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
-  const { project, homeownerExpenses, userRole, isLoading } = useProjectDashboard(projectId);
+  const { project, homeownerExpenses, gcExpenses, userRole, isLoading } = useProjectDashboard(projectId);
 
   useEffect(() => {
     if (!projectId) {
@@ -39,6 +39,7 @@ const ProjectDashboard = () => {
       <ProjectDashboardContent
         project={project}
         homeownerExpenses={homeownerExpenses || []}
+        gcExpenses={gcExpenses || []}
         projectId={projectId}
         userRole={userRole}
       />

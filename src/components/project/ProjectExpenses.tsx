@@ -8,10 +8,11 @@ import { useQueryClient } from "@tanstack/react-query";
 
 interface ProjectExpensesProps {
   projectId: string;
+  expenses: any[];
 }
 
-export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
-  const { expenses, isLoading, createExpense, createPayment } = useExpenses(projectId);
+export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
+  const { createExpense, createPayment } = useExpenses(projectId);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -47,14 +48,6 @@ export function ProjectExpenses({ projectId }: ProjectExpensesProps) {
       });
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="px-6 py-4">
