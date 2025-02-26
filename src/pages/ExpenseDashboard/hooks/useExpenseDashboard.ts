@@ -81,7 +81,12 @@ export function useExpenseDashboard() {
 
       if (error) throw error;
 
-      await queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      // Invalidate both the expenses list and the project-specific queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['expenses'] }),
+        queryClient.invalidateQueries({ queryKey: ['project', data.project_id] }),
+        queryClient.invalidateQueries({ queryKey: ['homeowner-expenses', data.project_id] })
+      ]);
 
       toast({
         title: "Success",
