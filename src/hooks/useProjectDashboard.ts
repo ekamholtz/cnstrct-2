@@ -49,7 +49,12 @@ export function useProjectDashboard(projectId: string | undefined) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('homeowner_expenses')
-        .select('*')
+        .select(`
+          *,
+          project:project_id (
+            name
+          )
+        `)
         .eq('project_id', projectId);
 
       if (error) throw error;
