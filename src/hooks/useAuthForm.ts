@@ -14,16 +14,19 @@ export const useAuthForm = () => {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
       setIsLoading(true);
+      console.log("Registering with role:", data.role); // Debug log
+      
       const { error } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
           data: {
             full_name: data.fullName,
-            role: 'homeowner',
+            role: data.role, // Explicitly pass the role from the form
           },
         },
       });
+      
       if (error) {
         console.error("Registration error:", error);
         throw error;
