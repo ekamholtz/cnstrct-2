@@ -43,6 +43,7 @@ export interface Expense {
   expense_date: string;
   expense_type: "labor" | "materials" | "subcontractor" | "other";
   payment_status: "due" | "partially_paid" | "paid";
+  expense_number: string;
   notes?: string;
   created_at: string;
   updated_at: string;

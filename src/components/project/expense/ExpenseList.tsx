@@ -1,6 +1,6 @@
 
 import { formatDistanceToNow } from "date-fns";
-import { DollarSign, Building2, Calendar, CreditCard, Receipt, Clock } from "lucide-react";
+import { DollarSign, Building2, Calendar, CreditCard, Receipt, Clock, Hash } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -99,6 +99,10 @@ export function ExpenseList({ expenses, loading, showProjectName }: ExpenseListP
                         {expense.payment_status.replace('_', ' ')}
                       </Badge>
                     </div>
+                    <CardDescription className="flex items-center gap-2">
+                      <Hash className="h-4 w-4" />
+                      {expense.expense_number}
+                    </CardDescription>
                     <CardDescription>
                       Paid to: {expense.payee}
                     </CardDescription>

@@ -141,6 +141,7 @@ export type Database = {
           contractor_id: string
           created_at: string | null
           expense_date: string
+          expense_number: string | null
           expense_type: Database["public"]["Enums"]["expense_type"] | null
           id: string
           name: string
@@ -156,6 +157,7 @@ export type Database = {
           contractor_id: string
           created_at?: string | null
           expense_date: string
+          expense_number?: string | null
           expense_type?: Database["public"]["Enums"]["expense_type"] | null
           id?: string
           name: string
@@ -171,6 +173,7 @@ export type Database = {
           contractor_id?: string
           created_at?: string | null
           expense_date?: string
+          expense_number?: string | null
           expense_type?: Database["public"]["Enums"]["expense_type"] | null
           id?: string
           name?: string
