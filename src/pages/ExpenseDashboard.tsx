@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
 
 type ExpenseStatus = "due" | "partially_paid" | "paid" | "all";
 type ExpenseType = "labor" | "materials" | "subcontractor" | "other" | "all";
@@ -76,36 +76,32 @@ export default function ExpenseDashboard() {
   });
 
   const handleCreateExpense = async (
-    data: any,
+    data: ExpenseFormStage1Data,
     status: 'due' | 'paid' | 'partially_paid',
-    paymentDetails?: any
-  ) => {
+    paymentDetails?: PaymentDetailsData
+  ): Promise<void> => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
-      const { data: newExpense, error } = await supabase
+      const { error } = await supabase
         .from('homeowner_expenses')
         .insert({
           ...data,
+          amount: parseFloat(data.amount),
           homeowner_id: user.id,
           payment_status: status,
-          amount_due: data.amount
-        })
-        .select()
-        .single();
+          amount_due: parseFloat(data.amount)
+        });
 
       if (error) throw error;
 
-      // Invalidate and refetch
       await queryClient.invalidateQueries({ queryKey: ['expenses'] });
 
       toast({
         title: "Success",
         description: "Expense created successfully",
       });
-
-      return newExpense;
     } catch (error) {
       console.error('Error creating expense:', error);
       toast({
@@ -123,7 +119,6 @@ export default function ExpenseDashboard() {
         <MainNav />
       </div>
       <div className="container mx-auto px-4 py-8 mt-16 space-y-8">
-        {/* Dashboard Header */}
         <div className="bg-white rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <Link to="/dashboard">
@@ -145,7 +140,6 @@ export default function ExpenseDashboard() {
           </div>
         </div>
 
-        {/* Filters */}
         <Card className="p-6 shadow-sm border-0">
           <div className="flex flex-col sm:flex-row gap-4">
             <Select
@@ -203,7 +197,6 @@ export default function ExpenseDashboard() {
           </div>
         </Card>
 
-        {/* Expense List */}
         <Card className="shadow-sm border-0">
           <HomeownerExpenseList
             expenses={expenses || []}
