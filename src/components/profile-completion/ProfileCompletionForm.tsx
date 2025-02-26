@@ -3,7 +3,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UseFormReturn } from "react-hook-form";
-import { ProfileCompletionFormValues } from "@/hooks/useProfileCompletion";
+import type { ProfileCompletionFormValues } from "@/hooks/profile/useProfileForm";
 
 interface ProfileCompletionFormProps {
   form: UseFormReturn<ProfileCompletionFormValues>;
