@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,6 +55,9 @@ export default function InvoiceDashboard() {
           *,
           project:project_id (
             name
+          ),
+          milestone:milestone_id (
+            name
           )
         `);
 
@@ -75,7 +79,26 @@ export default function InvoiceDashboard() {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data as Invoice[];
+
+      // Transform the data to match the Invoice type
+      return (data || []).map(item => ({
+        id: item.id,
+        invoice_number: item.invoice_number,
+        amount: item.amount,
+        status: item.status,
+        created_at: item.created_at,
+        milestone_id: item.milestone_id,
+        milestone_name: item.milestone?.name || '',
+        project_name: item.project?.name || '',
+        project_id: item.project_id,
+        payment_method: item.payment_method,
+        payment_date: item.payment_date,
+        payment_reference: item.payment_reference,
+        payment_gateway: item.payment_gateway,
+        payment_method_type: item.payment_method,
+        simulation_data: item.simulation_data,
+        updated_at: item.updated_at
+      })) as Invoice[];
     },
   });
 
