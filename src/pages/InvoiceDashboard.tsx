@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +11,6 @@ import { DateRange } from "react-day-picker";
 import { DateRangeFilter } from "@/components/shared/filters/DateRangeFilter";
 import { ProjectFilter } from "@/components/shared/filters/ProjectFilter";
 import { Invoice } from "@/components/project/invoice/types";
-import { InvoiceList } from "@/components/invoice-dashboard/InvoiceList";
 import {
   Select,
   SelectContent,
@@ -18,6 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { format } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 type InvoiceStatus = "pending_payment" | "paid" | "cancelled" | "all";
 type PaymentMethod = "cc" | "check" | "transfer" | "cash" | "all";
@@ -36,6 +40,8 @@ export default function InvoiceDashboard() {
     projectId: "all",
     paymentMethod: "all"
   });
+  
+  const navigate = useNavigate();
 
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['invoices', filters],
@@ -175,7 +181,48 @@ export default function InvoiceDashboard() {
 
         {/* Invoice List */}
         <Card className="shadow-sm border-0">
-          <InvoiceList loading={isLoading} invoices={invoices || []} />
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Invoice Number</TableHead>
+                <TableHead>Project</TableHead>
+                <TableHead>Milestone</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {invoices?.map((invoice) => (
+                <TableRow 
+                  key={invoice.id}
+                  className="cursor-pointer hover:bg-gray-50"
+                  onClick={() => navigate(`/invoices/${invoice.id}`)}
+                >
+                  <TableCell>{invoice.invoice_number}</TableCell>
+                  <TableCell>{invoice.project_name}</TableCell>
+                  <TableCell>{invoice.milestone_name}</TableCell>
+                  <TableCell>
+                    {format(new Date(invoice.created_at), 'MMM dd, yyyy')}
+                  </TableCell>
+                  <TableCell>${invoice.amount.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <Badge
+                      className={
+                        invoice.status === 'paid'
+                          ? 'bg-green-100 text-green-800'
+                          : invoice.status === 'pending_payment'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }
+                    >
+                      {invoice.status === 'pending_payment' ? 'Pending' : invoice.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </Card>
       </div>
     </div>
