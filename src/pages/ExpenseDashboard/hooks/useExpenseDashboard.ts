@@ -3,18 +3,8 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { DateRange } from "react-day-picker";
+import { ExpenseFilters } from "../types";
 import type { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
-
-export type ExpenseStatus = "due" | "partially_paid" | "paid" | "all";
-export type ExpenseType = "labor" | "materials" | "subcontractor" | "other" | "all";
-
-export interface ExpenseFilters {
-  dateRange: DateRange | undefined;
-  status: ExpenseStatus;
-  projectId: string;
-  expenseType: ExpenseType;
-}
 
 const generateExpenseNumber = () => {
   return `EXP-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`.toUpperCase();

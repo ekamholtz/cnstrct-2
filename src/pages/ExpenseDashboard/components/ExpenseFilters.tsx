@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/select";
 import { DateRangeFilter } from "@/components/shared/filters/DateRangeFilter";
 import { ProjectFilter } from "@/components/shared/filters/ProjectFilter";
-import type { ExpenseFilters, ExpenseStatus, ExpenseType } from "../hooks/useExpenseDashboard";
+import { ExpenseFilters as ExpenseFiltersType, ExpenseStatus, ExpenseType } from "../types";
 
 interface ExpenseFiltersProps {
-  filters: ExpenseFilters;
-  onFiltersChange: (filters: ExpenseFilters) => void;
+  filters: ExpenseFiltersType;
+  onFiltersChange: (filters: ExpenseFiltersType) => void;
 }
 
 export function ExpenseFilters({ filters, onFiltersChange }: ExpenseFiltersProps) {
@@ -23,9 +23,7 @@ export function ExpenseFilters({ filters, onFiltersChange }: ExpenseFiltersProps
       <div className="flex flex-col sm:flex-row gap-4">
         <Select
           value={filters.expenseType}
-          onValueChange={(value: ExpenseType) => 
-            onFiltersChange({ ...filters, expenseType: value })
-          }
+          onValueChange={(value: ExpenseType) => onFiltersChange({ ...filters, expenseType: value })}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Expense Type" />
@@ -41,9 +39,7 @@ export function ExpenseFilters({ filters, onFiltersChange }: ExpenseFiltersProps
 
         <Select
           value={filters.status}
-          onValueChange={(value: ExpenseStatus) => 
-            onFiltersChange({ ...filters, status: value })
-          }
+          onValueChange={(value: ExpenseStatus) => onFiltersChange({ ...filters, status: value })}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Payment Status" />
@@ -58,16 +54,12 @@ export function ExpenseFilters({ filters, onFiltersChange }: ExpenseFiltersProps
 
         <DateRangeFilter
           dateRange={filters.dateRange}
-          onDateRangeChange={(range) => 
-            onFiltersChange({ ...filters, dateRange: range })
-          }
+          onDateRangeChange={(range) => onFiltersChange({ ...filters, dateRange: range })}
         />
 
         <ProjectFilter
           value={filters.projectId}
-          onChange={(value) => 
-            onFiltersChange({ ...filters, projectId: value })
-          }
+          onChange={(value) => onFiltersChange({ ...filters, projectId: value })}
         />
 
         <Button
