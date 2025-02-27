@@ -3,14 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types/project";
 import { useToast } from "@/components/ui/use-toast";
+import { useUserRole } from "@/hooks/profile/useUserRole";
 
 export function useContractorProjects() {
   const { toast } = useToast();
+  const userRole = useUserRole();
 
   return useQuery({
-    queryKey: ['projects'],
+    queryKey: ['projects', userRole],
     queryFn: async () => {
-      console.log('Starting project fetch...');
+      console.log('Starting project fetch... User role:', userRole);
       
       // Verify user is authenticated
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -21,8 +23,8 @@ export function useContractorProjects() {
 
       console.log('Fetching projects for user:', user.id);
 
-      // Use a single query that leverages our fixed RLS policies
-      const { data: projects, error: projectsError } = await supabase
+      // Build query based on user role and permissions
+      let query = supabase
         .from('projects')
         .select(`
           *,
@@ -42,6 +44,18 @@ export function useContractorProjects() {
         `)
         .order('created_at', { ascending: false });
 
+      // Apply role-specific filters (though RLS should handle this server-side)
+      if (userRole === 'gc_admin') {
+        console.log('Applying GC admin filter');
+        query = query.eq('contractor_id', user.id);
+      } else if (userRole === 'project_manager') {
+        console.log('Applying PM filter');
+        query = query.eq('pm_user_id', user.id);
+      }
+      // For platform_admin, no additional filters needed
+
+      const { data: projects, error: projectsError } = await query;
+
       if (projectsError) {
         console.error('Error fetching projects:', projectsError);
         toast({
@@ -52,9 +66,10 @@ export function useContractorProjects() {
         throw projectsError;
       }
 
-      console.log('Projects found:', projects?.length || 0);
+      console.log(`Projects found (${userRole}):`, projects?.length || 0);
       return projects as Project[];
     },
+    enabled: !!userRole, // Only run query when user role is available
     retry: 1, // Limit retries to avoid spamming if there's a persistent error
     meta: {
       onError: (error: Error) => {
