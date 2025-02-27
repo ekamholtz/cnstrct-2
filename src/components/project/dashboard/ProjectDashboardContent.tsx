@@ -33,12 +33,12 @@ export function ProjectDashboardContent({
       <div className="mt-8">
         {userRole === 'homeowner' ? (
           <TabbedContent 
-            project={project}
-            expenses={homeownerExpenses}
+            projectId={projectId}
+            isHomeowner={true}
           />
         ) : (
           <GCTabbedContent 
-            project={project}
+            projectId={projectId}
             expenses={gcExpenses}
           />
         )}
