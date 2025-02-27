@@ -55,9 +55,11 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
 
   const getButtonStyle = (status: string | null) => {
     if (status === 'completed') {
-      return "bg-[#ff6b24] hover:bg-[#ff6b24]/90 text-white";
+      // Orange button with darker text for better contrast
+      return "bg-[#ff6b24] hover:bg-[#ff6b24]/90 text-[#222222] font-bold";
     }
-    return "bg-[#19db93] hover:bg-[#19db93]/90 text-white";
+    // Green button with darker text for better contrast
+    return "bg-[#19db93] hover:bg-[#19db93]/90 text-[#222222] font-bold";
   };
 
   return (
