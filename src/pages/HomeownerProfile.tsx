@@ -6,12 +6,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { HomeownerProfileHeader } from "@/components/homeowner-profile/HomeownerProfileHeader";
 import { HomeownerProfileForm } from "@/components/homeowner-profile/HomeownerProfileForm";
+import { UserList } from "@/components/gc-profile/UserList";
+import { InviteUserForm } from "@/components/gc-profile/InviteUserForm";
+import { useGCUserManagement } from "@/components/gc-profile/hooks/useGCUserManagement";
 import { useQuery } from "@tanstack/react-query";
+import type { CreateUserFormValues } from "@/components/gc-profile/types";
 
 export default function HomeownerProfile() {
   const [isEditing, setIsEditing] = useState(false);
+  const [isInvitingUser, setIsInvitingUser] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  const {
+    gcUsers,
+    isLoadingUsers,
+    isCreatingUser,
+    createUser,
+    canManageUsers,
+    currentUserProfile
+  } = useGCUserManagement();
 
   const { data: profile, isLoading } = useQuery({
     queryKey: ['homeowner-profile'],
@@ -46,6 +60,11 @@ export default function HomeownerProfile() {
     checkSession();
   }, [navigate]);
 
+  const handleInviteUser = (formData: CreateUserFormValues) => {
+    createUser(formData);
+    setIsInvitingUser(false);
+  };
+
   if (isLoading || !profile) return null;
 
   return (
@@ -55,12 +74,37 @@ export default function HomeownerProfile() {
           isEditing={isEditing}
           onEdit={() => setIsEditing(true)}
         />
-        <HomeownerProfileForm 
-          profile={profile}
-          isEditing={isEditing}
-          onCancel={() => setIsEditing(false)}
-          onSave={() => setIsEditing(false)}
-        />
+        
+        {isInvitingUser ? (
+          <div className="mt-8">
+            <InviteUserForm 
+              onSubmit={handleInviteUser}
+              onCancel={() => setIsInvitingUser(false)}
+              isLoading={isCreatingUser}
+            />
+          </div>
+        ) : (
+          <>
+            <HomeownerProfileForm 
+              profile={profile}
+              isEditing={isEditing}
+              onCancel={() => setIsEditing(false)}
+              onSave={() => setIsEditing(false)}
+            />
+            
+            {/* Only show user management for GC admins */}
+            {(profile.role === 'gc_admin' || profile.role === 'platform_admin') && (
+              <div className="mt-12">
+                <UserList 
+                  users={gcUsers || []}
+                  isLoading={isLoadingUsers}
+                  canManageUsers={canManageUsers}
+                  onCreateUser={() => setIsInvitingUser(true)}
+                />
+              </div>
+            )}
+          </>
+        )}
       </div>
     </DashboardLayout>
   );
