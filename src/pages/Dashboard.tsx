@@ -5,9 +5,11 @@ import { ContractorFinancialSummary } from "@/components/dashboard/ContractorFin
 import { ProjectsList } from "@/components/dashboard/ProjectsList";
 import { useContractorProjects } from "@/hooks/useContractorProjects";
 import { MainNav } from "@/components/navigation/MainNav";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function Dashboard() {
-  const { data: projects = [], isLoading, refetch } = useContractorProjects();
+  const { data: projects = [], isLoading, error, refetch } = useContractorProjects();
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
@@ -25,6 +27,18 @@ export default function Dashboard() {
             <DashboardHeader onProjectCreated={refetch} />
           </div>
         </div>
+
+        {/* Error display */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              There was an error loading your projects. Please try refreshing the page.
+              {error instanceof Error ? ` Error: ${error.message}` : ''}
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Stats Overview */}
         <div className="bg-white rounded-lg shadow-sm p-6">
