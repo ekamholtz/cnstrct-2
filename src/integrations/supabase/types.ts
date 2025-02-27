@@ -667,6 +667,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      can_manage_profile: {
+        Args: {
+          profile_id: string
+        }
+        Returns: boolean
+      }
       check_is_admin: {
         Args: {
           user_id: string
@@ -718,6 +724,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_gc_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
