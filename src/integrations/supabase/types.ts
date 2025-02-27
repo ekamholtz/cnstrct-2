@@ -691,6 +691,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      check_project_access: {
+        Args: {
+          project_id: string
+        }
+        Returns: boolean
+      }
       generate_invoice_number:
         | {
             Args: Record<PropertyKey, never>
