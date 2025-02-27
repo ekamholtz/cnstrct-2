@@ -50,7 +50,7 @@ export const useGCUserManagement = () => {
       // This is a limitation we'll note for now
       return profiles.map(profile => ({
         ...profile,
-        email: profile.email || 'Email not available',
+        email: undefined, // Make email optional in the GCUserProfile type
       } as GCUserProfile)) || [];
     },
     enabled: !!currentUserProfile?.gc_account_id && 
