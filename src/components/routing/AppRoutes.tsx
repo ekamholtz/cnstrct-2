@@ -22,6 +22,7 @@ import ExpenseDashboard from "@/pages/ExpenseDashboard";
 import ExpenseDetails from "@/pages/ExpenseDetails";
 import PaymentDetails from "@/pages/PaymentDetails";
 import PaymentsDashboard from "@/pages/PaymentsDashboard";
+import Help from "@/pages/Help";
 
 export const AppRoutes = () => {
   return (
@@ -145,6 +146,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <PaymentsDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/help"
+        element={
+          <ProtectedRoute>
+            <Help />
           </ProtectedRoute>
         }
       />
