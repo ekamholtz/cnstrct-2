@@ -46,12 +46,14 @@ export const useGCUserManagement = () => {
         throw error;
       }
 
-      // In a real app, we'd want to get emails from auth.users
-      // This is a limitation we'll note for now
-      return profiles.map(profile => ({
-        ...profile,
-        email: undefined, // Make email optional in the GCUserProfile type
-      } as GCUserProfile)) || [];
+      // Map profiles to GCUserProfile type, but don't try to access email property
+      return profiles.map(profile => {
+        const userProfile: GCUserProfile = {
+          ...profile,
+          // Don't include email since it doesn't exist in the profiles table
+        };
+        return userProfile;
+      }) || [];
     },
     enabled: !!currentUserProfile?.gc_account_id && 
       (currentUserProfile.role === 'gc_admin' || currentUserProfile.role === 'platform_admin'),
