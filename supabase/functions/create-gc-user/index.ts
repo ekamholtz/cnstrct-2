@@ -155,7 +155,7 @@ serve(async (req) => {
       );
     }
     
-    // TODO: In a real app, send an email to the user with their temporary password
+    // In a real app, you would send an email to the user with their temporary password
     
     return new Response(
       JSON.stringify({
