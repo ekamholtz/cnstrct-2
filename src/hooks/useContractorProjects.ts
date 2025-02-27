@@ -1,13 +1,59 @@
 
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Project } from "@/types/project";
 import { useToast } from "@/components/ui/use-toast";
 import { useUserRole } from "@/hooks/profile/useUserRole";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function useContractorProjects() {
   const { toast } = useToast();
   const userRole = useUserRole();
+  const queryClient = useQueryClient();
+
+  // Set up real-time subscription to projects table
+  useEffect(() => {
+    if (!userRole) return;
+    
+    console.log('Setting up real-time subscription for projects');
+    
+    const channel = supabase
+      .channel('public:projects')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'projects'
+      }, (payload) => {
+        console.log('Project change received:', payload);
+        queryClient.invalidateQueries({ queryKey: ['projects', userRole] });
+      })
+      .subscribe((status) => {
+        console.log('Projects subscription status:', status);
+      });
+    
+    // Also subscribe to milestones for project progress updates
+    const milestonesChannel = supabase
+      .channel('public:milestones')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'milestones'
+      }, (payload) => {
+        console.log('Milestone change received:', payload);
+        queryClient.invalidateQueries({ queryKey: ['all-projects-milestones'] });
+        queryClient.invalidateQueries({ queryKey: ['projects', userRole] });
+      })
+      .subscribe((status) => {
+        console.log('Milestones subscription status:', status);
+      });
+    
+    return () => {
+      console.log('Cleaning up real-time subscriptions');
+      supabase.removeChannel(channel);
+      supabase.removeChannel(milestonesChannel);
+    };
+  }, [userRole, queryClient]);
 
   return useQuery({
     queryKey: ['projects', userRole],
