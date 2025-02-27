@@ -19,26 +19,31 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
   // Check authentication status on component mount
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error('Auth error:', error);
-        toast({
-          variant: "destructive",
-          title: "Authentication Error",
-          description: "Please log in again to continue.",
-        });
-        navigate('/auth');
-        return;
-      }
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Auth error:', error);
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "Please log in again to continue.",
+          });
+          navigate('/auth');
+          return;
+        }
 
-      if (!session) {
-        console.log('No session found, redirecting to auth');
-        navigate('/auth');
-        return;
-      }
+        if (!session) {
+          console.log('No session found, redirecting to auth');
+          navigate('/auth');
+          return;
+        }
 
-      console.log('Session found for user:', session.user.id);
+        console.log('Session found for user:', session.user.id);
+      } catch (error) {
+        console.error('Session check error:', error);
+        navigate('/auth');
+      }
     };
 
     checkAuth();
@@ -47,74 +52,81 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
   const { data: projects, isLoading, error } = useQuery({
     queryKey: ['client-projects', limit],
     queryFn: async () => {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error('Error getting user:', userError);
-        throw userError;
+      try {
+        // Get current user
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error('Error getting user:', userError);
+          throw userError;
+        }
+
+        if (!user) {
+          console.log('No user found, redirecting to auth');
+          navigate('/auth');
+          throw new Error('No user found');
+        }
+
+        console.log('Starting project fetch for user:', user.id);
+
+        // First, get all client records for this user directly from auth user data
+        // This avoids the need to query the profiles table which has RLS issues
+        const { data: clientsData, error: clientError } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('user_id', user.id);
+
+        if (clientError) {
+          console.error('Error finding client records:', clientError);
+          throw clientError;
+        }
+
+        console.log('Client data found:', clientsData);
+
+        if (!clientsData || clientsData.length === 0) {
+          console.log('No client record found for user:', user.id);
+          return [];
+        }
+
+        // Get the first client record (there should typically only be one)
+        const clientData = clientsData[0];
+
+        let query = supabase
+          .from('projects')
+          .select(`
+            *,
+            milestones (
+              id,
+              name,
+              amount,
+              status
+            )
+          `)
+          .eq('client_id', clientData.id)
+          .not('client_id', 'is', null)
+          .order('created_at', { ascending: false });
+
+        // Apply limit if provided
+        if (limit) {
+          query = query.limit(limit);
+        }
+
+        const { data: projects, error: projectsError } = await query;
+
+        if (projectsError) {
+          console.error('Error fetching projects:', projectsError);
+          throw projectsError;
+        }
+
+        console.log('Projects found:', projects);
+        return projects as ClientProject[];
+      } catch (error) {
+        console.error('Projects fetch error:', error);
+        throw error;
       }
-
-      if (!user) {
-        console.log('No user found, redirecting to auth');
-        navigate('/auth');
-        throw new Error('No user found');
-      }
-
-      console.log('Starting project fetch for user:', user.id);
-
-      // First, get all client records for this user
-      const { data: clientsData, error: clientError } = await supabase
-        .from('clients')
-        .select('*')
-        .eq('user_id', user.id);
-
-      if (clientError) {
-        console.error('Error finding client records:', clientError);
-        throw clientError;
-      }
-
-      console.log('Client data found:', clientsData);
-
-      if (!clientsData || clientsData.length === 0) {
-        console.log('No client record found for user:', user.id);
-        return [];
-      }
-
-      // Get the first client record (there should typically only be one)
-      const clientData = clientsData[0];
-
-      let query = supabase
-        .from('projects')
-        .select(`
-          *,
-          milestones (
-            id,
-            name,
-            amount,
-            status
-          )
-        `)
-        .eq('client_id', clientData.id)
-        .not('client_id', 'is', null)
-        .order('created_at', { ascending: false });
-
-      // Apply limit if provided
-      if (limit) {
-        query = query.limit(limit);
-      }
-
-      const { data: projects, error: projectsError } = await query;
-
-      if (projectsError) {
-        console.error('Error fetching projects:', projectsError);
-        throw projectsError;
-      }
-
-      console.log('Projects found:', projects);
-      return projects as ClientProject[];
     },
     meta: {
-      errorHandler: (error: Error) => {
+      onError: (error: Error) => {
         console.error('Query error:', error);
         toast({
           variant: "destructive",
