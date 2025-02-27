@@ -53,6 +53,13 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
     }
   };
 
+  const getButtonStyle = (status: string | null) => {
+    if (status === 'completed') {
+      return "bg-[#ff6b24] hover:bg-[#ff6b24]/90 text-white";
+    }
+    return "bg-[#19db93] hover:bg-[#19db93]/90 text-white";
+  };
+
   return (
     <div className="relative">
       <div className="absolute left-0 top-1/2 -translate-y-1/2 z-10">
@@ -98,9 +105,8 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
                   </span>
                 </div>
                 <Button
-                  variant="outline"
                   size="sm"
-                  className="w-full"
+                  className={`w-full ${getButtonStyle(milestone.status)}`}
                   onClick={() => handleMilestoneAction(milestone)}
                 >
                   <Check className="h-4 w-4 mr-2" />
