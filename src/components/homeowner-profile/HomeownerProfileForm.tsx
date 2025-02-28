@@ -54,11 +54,11 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
   const onSubmit = async (data: ProfileFormValues) => {
     try {
       // Check if this is a GC admin adding or updating a company name
-      const isGCAdmin = userRole === "gc_admin" || userRole === "platform_admin";
+      const isGCUser = userRole === "gc_admin" || userRole === "project_manager" || userRole === "platform_admin";
       const updatedData = { ...data };
 
-      // Generate a GC account ID if a company name is provided and user is a GC admin
-      if (isGCAdmin && data.company_name && !profile.gc_account_id) {
+      // Generate a GC account ID if a company name is provided and user is a GC role (not homeowner)
+      if (isGCUser && data.company_name && !profile.gc_account_id) {
         // Generate a unique ID for the GC account
         const gc_account_id = `gc_${uuidv4().substring(0, 8)}`;
         updatedData.gc_account_id = gc_account_id;
@@ -97,7 +97,7 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="bg-white shadow rounded-lg p-6 space-y-6">
         <BasicProfileFields form={form} email={profile.email} />
-        {userRole === "gc_admin" && <GCProfileFields form={form} />}
+        {(userRole === "gc_admin" || userRole === "project_manager") && <GCProfileFields form={form} />}
         
         <div className="flex justify-end space-x-4 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>

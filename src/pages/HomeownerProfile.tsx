@@ -72,8 +72,9 @@ export default function HomeownerProfile() {
     }
   }, [isInvitingUser, isLoading, refetchUsers]);
 
-  // Check if user has a GC account ID set
-  const hasGcAccountId = profile && profile.gc_account_id;
+  // Check if user has a GC account ID set and has a GC role (not homeowner)
+  const isGCUser = profile && (profile.role === 'gc_admin' || profile.role === 'project_manager' || profile.role === 'platform_admin');
+  const hasGcAccountId = profile && profile.gc_account_id && isGCUser;
 
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {
@@ -137,7 +138,7 @@ export default function HomeownerProfile() {
             />
             
             {/* Only show user management for GC admins */}
-            {(profile.role === 'gc_admin' || profile.role === 'platform_admin') && (
+            {isGCUser && (
               <div className="mt-12">
                 {!hasGcAccountId && (
                   <Alert variant="destructive" className="mb-6">
