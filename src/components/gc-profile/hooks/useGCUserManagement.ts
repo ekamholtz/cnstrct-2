@@ -59,39 +59,33 @@ export const useGCUserManagement = () => {
       (currentUserProfile.role === 'gc_admin' || currentUserProfile.role === 'platform_admin'),
   });
 
-  // Create new user mutation
+  // Create new user mutation - updated to use create-gc-user-v2 function
   const createUserMutation = useMutation({
     mutationFn: async (userData: CreateUserFormValues) => {
       setIsCreatingUser(true);
       try {
-        // Get the current user's auth token
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('No session found');
-
-        // Call the Edge Function
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-gc-user`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
-            },
-            body: JSON.stringify({
-              name: userData.name,
-              email: userData.email,
-              phone: userData.phone,
-              role: userData.role,
-            }),
+        console.log('Creating user with data:', userData);
+        
+        // Use the Supabase client's functions.invoke method instead of raw fetch
+        const { data, error } = await supabase.functions.invoke('create-gc-user-v2', {
+          body: {
+            name: userData.name,
+            email: userData.email,
+            phone: userData.phone,
+            role: userData.role,
           }
-        );
+        });
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create user');
+        if (error) {
+          console.error('Error from Edge Function:', error);
+          throw new Error(error.message || 'Failed to create user');
         }
 
-        return await response.json();
+        console.log('User creation successful:', data);
+        return data;
+      } catch (error: any) {
+        console.error('Error in createUserMutation:', error);
+        throw error;
       } finally {
         setIsCreatingUser(false);
       }

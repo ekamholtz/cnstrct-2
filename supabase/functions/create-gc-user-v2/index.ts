@@ -1,184 +1,146 @@
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.29.0";
+// Edge function to create a new GC user
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+type RequestBody = {
+  name: string;
+  email: string;
+  phone: string;
+  role: 'gc_admin' | 'project_manager';
 };
 
 serve(async (req) => {
   // Handle CORS preflight requests
-  if (req.method === "OPTIONS") {
-    return new Response(null, {
-      headers: corsHeaders,
-    });
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Create a Supabase client with the Admin key
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Create a Supabase client with the Auth context of the requesting user
-    const authHeader = req.headers.get("Authorization");
+    // Ensure request has authorization
+    const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('No authorization header provided');
       return new Response(
-        JSON.stringify({ error: "Missing Authorization header" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: 'No authorization header provided' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Set up Supabase client with admin privileges
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
-    });
+    // Initialize the service role client to bypass RLS
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+    // Get the user making the request (to check permissions)
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user: requestingUser }, error: userError } = await supabaseAdmin.auth.getUser(token);
     
-    // Get the current user
-    const {
-      data: { user },
-      error: getUserError,
-    } = await supabase.auth.getUser();
-    
-    if (getUserError || !user) {
+    if (userError || !requestingUser) {
+      console.error('Error getting user from token:', userError);
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    // Get the requesting user's profile to verify permissions
-    const { data: callerProfile, error: callerProfileError } = await supabase
-      .from("profiles")
-      .select("role, gc_account_id")
-      .eq("id", user.id)
+
+    // Get the requesting user's profile to check their role
+    const { data: requestingUserProfile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('role, gc_account_id')
+      .eq('id', requestingUser.id)
       .single();
-      
-    if (callerProfileError || !callerProfile) {
+
+    if (profileError) {
+      console.error('Error fetching requesting user profile:', profileError);
       return new Response(
-        JSON.stringify({ error: "Unauthorized - Profile not found" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: 'Failed to verify user permissions' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    // Only platform_admin and gc_admin can create users
-    if (callerProfile.role !== "platform_admin" && callerProfile.role !== "gc_admin") {
+
+    // Check if user has permission to create users (must be gc_admin or platform_admin)
+    if (requestingUserProfile.role !== 'gc_admin' && requestingUserProfile.role !== 'platform_admin') {
+      console.error('User does not have permission to create users. Role:', requestingUserProfile.role);
       return new Response(
-        JSON.stringify({ error: "Unauthorized - Insufficient permissions" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: 'You do not have permission to create users' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
+
     // Parse request body
-    const { name, email, phone, role } = await req.json();
-    
-    if (!name || !email || !role) {
+    const requestData: RequestBody = await req.json();
+    console.log('Request data:', requestData);
+
+    // Basic validation
+    if (!requestData.name || !requestData.email || !requestData.role) {
+      console.error('Missing required fields:', requestData);
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: 'Missing required fields' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    // Validate that the role is valid
-    if (role !== "gc_admin" && role !== "project_manager") {
-      return new Response(
-        JSON.stringify({ error: "Invalid role" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-    
-    // Generate a random password
-    const password = Math.random().toString(36).slice(-10) + 
-                   Math.random().toString(36).slice(-10).toUpperCase() + 
-                   "!2#";
-    
-    // Create the user using the admin client
-    const { data: newUser, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true, // Skip email verification
+
+    // Create the new user
+    console.log('Creating user with email:', requestData.email);
+    const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+      email: requestData.email.toLowerCase(),
+      email_confirm: true, // Auto-confirm the email
       user_metadata: {
-        full_name: name,
-        role,
+        full_name: requestData.name,
+        role: requestData.role,
       },
+      password: crypto.randomUUID().substring(0, 8), // Generate a random initial password
     });
-    
-    if (createUserError) {
+
+    if (createError || !newUser.user) {
+      console.error('Error creating user:', createError);
       return new Response(
-        JSON.stringify({ error: createUserError.message }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+        JSON.stringify({ error: createError?.message || 'Failed to create user' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-    
-    // Update the profile with GC account ID, phone, and role
-    const { error: updateProfileError } = await supabaseAdmin
-      .from("profiles")
+
+    console.log('User created successfully:', newUser.user.id);
+
+    // Update the user's profile with additional information
+    const { error: updateError } = await supabaseAdmin
+      .from('profiles')
       .update({
-        phone_number: phone,
-        gc_account_id: callerProfile.gc_account_id,
-        role: role,
+        gc_account_id: requestingUserProfile.gc_account_id, // Link to the same GC account
+        phone_number: requestData.phone,
+        has_completed_profile: false, // New user needs to complete profile
       })
-      .eq("id", newUser.user.id);
-    
-    if (updateProfileError) {
-      return new Response(
-        JSON.stringify({ error: updateProfileError.message }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      .eq('id', newUser.user.id);
+
+    if (updateError) {
+      console.error('Error updating user profile:', updateError);
+      // We don't return an error here, as the user was created, but log it
     }
-    
-    // In a real app, you would send an email to the user with their temporary password
-    
+
+    // Return success response
     return new Response(
-      JSON.stringify({
-        id: newUser.user.id,
-        email: newUser.user.email,
-        message: "User created successfully",
+      JSON.stringify({ 
+        success: true, 
+        message: 'User created successfully',
+        userId: newUser.user.id 
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-    
+
   } catch (error) {
-    console.error("Error creating user:", error);
-    
+    console.error('Unexpected error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ error: 'An unexpected error occurred' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
