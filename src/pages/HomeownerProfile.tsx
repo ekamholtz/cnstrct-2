@@ -10,6 +10,8 @@ import { UserList } from "@/components/gc-profile/UserList";
 import { InviteUserForm } from "@/components/gc-profile/InviteUserForm";
 import { useGCUserManagement } from "@/components/gc-profile/hooks/useGCUserManagement";
 import { useQuery } from "@tanstack/react-query";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import type { CreateUserFormValues } from "@/components/gc-profile/types";
 
 export default function HomeownerProfile() {
@@ -69,6 +71,9 @@ export default function HomeownerProfile() {
     }
   }, [isInvitingUser, isLoading, refetchUsers]);
 
+  // Check if user has a GC account ID set
+  const hasGcAccountId = profile && currentUserProfile?.gc_account_id;
+
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {
       if (!currentUserProfile?.gc_account_id) {
@@ -126,10 +131,21 @@ export default function HomeownerProfile() {
             {/* Only show user management for GC admins */}
             {(profile.role === 'gc_admin' || profile.role === 'platform_admin') && (
               <div className="mt-12">
+                {!hasGcAccountId && (
+                  <Alert variant="destructive" className="mb-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Missing GC Account ID</AlertTitle>
+                    <AlertDescription>
+                      You need to set a GC account ID in your profile before you can manage team members.
+                      Please edit your profile and add a company name to generate a GC account ID.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
                 <UserList 
                   users={gcUsers || []}
                   isLoading={isLoadingUsers}
-                  canManageUsers={canManageUsers}
+                  canManageUsers={canManageUsers && !!hasGcAccountId}
                   onCreateUser={() => setIsInvitingUser(true)}
                   onRefresh={refetchUsers}
                 />
