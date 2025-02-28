@@ -10,6 +10,7 @@ import { BasicProfileFields } from "./components/BasicProfileFields";
 import { GCProfileFields } from "./components/GCProfileFields";
 import { ProfileDisplay } from "./components/ProfileDisplay";
 import { profileSchema, type ProfileFormValues, type Profile } from "./types";
+import { v4 as uuidv4 } from "uuid";
 
 interface HomeownerProfileFormProps {
   profile: Profile;
@@ -52,9 +53,23 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
+      // Check if this is a GC admin adding or updating a company name
+      const isGCAdmin = userRole === "gc_admin" || userRole === "platform_admin";
+      const updatedData = { ...data };
+
+      // Generate a GC account ID if a company name is provided and user is a GC admin
+      if (isGCAdmin && data.company_name && !profile.gc_account_id) {
+        // Generate a unique ID for the GC account
+        const gc_account_id = `gc_${uuidv4().substring(0, 8)}`;
+        updatedData.gc_account_id = gc_account_id;
+        
+        console.log("Generated new GC account ID:", gc_account_id);
+      }
+
+      // Update the profile with the new data
       const { error } = await supabase
         .from("profiles")
-        .update(data)
+        .update(updatedData)
         .eq("id", profile.id);
 
       if (error) throw error;

@@ -9,6 +9,7 @@ export const profileSchema = z.object({
   company_name: z.string().optional(),
   license_number: z.string().optional(),
   website: z.string().url().optional().or(z.literal("")),
+  gc_account_id: z.string().optional(),
 });
 
 export type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -24,4 +25,5 @@ export interface Profile {
   license_number?: string;
   website?: string;
   join_date?: string;
+  gc_account_id?: string;
 }

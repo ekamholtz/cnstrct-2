@@ -9,7 +9,7 @@ import { HomeownerProfileForm } from "@/components/homeowner-profile/HomeownerPr
 import { UserList } from "@/components/gc-profile/UserList";
 import { InviteUserForm } from "@/components/gc-profile/InviteUserForm";
 import { useGCUserManagement } from "@/components/gc-profile/hooks/useGCUserManagement";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import type { CreateUserFormValues } from "@/components/gc-profile/types";
@@ -19,6 +19,7 @@ export default function HomeownerProfile() {
   const [isInvitingUser, setIsInvitingUser] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   const {
     gcUsers,
@@ -72,7 +73,7 @@ export default function HomeownerProfile() {
   }, [isInvitingUser, isLoading, refetchUsers]);
 
   // Check if user has a GC account ID set
-  const hasGcAccountId = profile && currentUserProfile?.gc_account_id;
+  const hasGcAccountId = profile && profile.gc_account_id;
 
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {
@@ -101,6 +102,13 @@ export default function HomeownerProfile() {
     }
   };
 
+  const handleProfileSave = () => {
+    setIsEditing(false);
+    // Invalidate and refetch profile and current-user-profile
+    queryClient.invalidateQueries({ queryKey: ['homeowner-profile'] });
+    queryClient.invalidateQueries({ queryKey: ['current-user-profile'] });
+  };
+
   if (isLoading || !profile) return null;
 
   return (
@@ -125,7 +133,7 @@ export default function HomeownerProfile() {
               profile={profile}
               isEditing={isEditing}
               onCancel={() => setIsEditing(false)}
-              onSave={() => setIsEditing(false)}
+              onSave={handleProfileSave}
             />
             
             {/* Only show user management for GC admins */}
