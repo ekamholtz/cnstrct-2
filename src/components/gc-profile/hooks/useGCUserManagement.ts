@@ -33,9 +33,13 @@ export const useGCUserManagement = () => {
     queryKey: ['gc-users', currentUserProfile?.gc_account_id],
     queryFn: async () => {
       if (!currentUserProfile?.gc_account_id) {
+        console.log('No GC account ID found, not fetching users');
         return [];
       }
 
+      console.log('Fetching users for GC account:', currentUserProfile.gc_account_id);
+      
+      // First get all profiles with this GC account ID
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -46,27 +50,56 @@ export const useGCUserManagement = () => {
         throw error;
       }
 
-      // Map profiles to GCUserProfile type, but don't try to access email property
-      return profiles.map(profile => {
-        const userProfile: GCUserProfile = {
+      if (!profiles || profiles.length === 0) {
+        console.log('No profiles found for GC account ID:', currentUserProfile.gc_account_id);
+        return [];
+      }
+
+      console.log('Found profiles:', profiles.length);
+
+      // Now get the emails for these users from auth.users
+      // We can't query auth.users directly, so we'll use the admin function
+      const { data: usersWithEmails, error: adminError } = await supabase
+        .functions.invoke('get-user-emails', {
+          body: {
+            userIds: profiles.map(profile => profile.id)
+          }
+        });
+
+      if (adminError) {
+        console.error('Error fetching user emails:', adminError);
+        // Continue with profiles only, without emails
+        return profiles.map(profile => ({
           ...profile,
-          // Don't include email since it doesn't exist in the profiles table
+          email: 'Email not available' // Placeholder
+        }));
+      }
+
+      // Merge profile data with emails
+      const usersWithProfiles = profiles.map(profile => {
+        const userEmail = usersWithEmails?.find(u => u.id === profile.id)?.email || 'Email not available';
+        return {
+          ...profile,
+          email: userEmail
         };
-        return userProfile;
-      }) || [];
+      });
+
+      console.log('Returning users with profiles:', usersWithProfiles.length);
+      return usersWithProfiles as GCUserProfile[];
     },
     enabled: !!currentUserProfile?.gc_account_id && 
       (currentUserProfile.role === 'gc_admin' || currentUserProfile.role === 'platform_admin'),
+    retry: 2, // Retry failed requests up to 2 times
   });
 
-  // Create new user mutation - updated to use create-gc-user-v2 function
+  // Create new user mutation
   const createUserMutation = useMutation({
     mutationFn: async (userData: CreateUserFormValues) => {
       setIsCreatingUser(true);
       try {
         console.log('Creating user with data:', userData);
         
-        // Use the Supabase client's functions.invoke method instead of raw fetch
+        // Use the Supabase client's functions.invoke method
         const { data, error } = await supabase.functions.invoke('create-gc-user-v2', {
           body: {
             name: userData.name,
@@ -95,9 +128,15 @@ export const useGCUserManagement = () => {
         title: "Success",
         description: "User has been created and invited to the platform. They will receive an email with instructions to set their password.",
       });
+      // Explicitly invalidate the queries to force a refetch
       queryClient.invalidateQueries({
         queryKey: ['gc-users'],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['gc-users', currentUserProfile?.gc_account_id],
+      });
+      // Force a refetch after successful creation
+      setTimeout(() => refetch(), 1000);
       setIsCreatingUser(false);
     },
     onError: (error: any) => {

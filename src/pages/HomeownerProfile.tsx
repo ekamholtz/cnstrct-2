@@ -24,7 +24,8 @@ export default function HomeownerProfile() {
     isCreatingUser,
     createUser,
     canManageUsers,
-    currentUserProfile
+    currentUserProfile,
+    refetchUsers
   } = useGCUserManagement();
 
   const { data: profile, isLoading } = useQuery({
@@ -100,6 +101,7 @@ export default function HomeownerProfile() {
                   isLoading={isLoadingUsers}
                   canManageUsers={canManageUsers}
                   onCreateUser={() => setIsInvitingUser(true)}
+                  onRefresh={refetchUsers}
                 />
               </div>
             )}

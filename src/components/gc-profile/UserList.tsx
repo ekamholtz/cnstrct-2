@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { UserCog, Plus, Search } from "lucide-react";
+import { UserCog, Plus, Search, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ interface UserListProps {
   isLoading: boolean;
   canManageUsers: boolean;
   onCreateUser: () => void;
+  onRefresh?: () => void;
 }
 
 export const UserList = ({
@@ -32,14 +33,15 @@ export const UserList = ({
   isLoading,
   canManageUsers,
   onCreateUser,
+  onRefresh,
 }: UserListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredUsers = users.filter(user => 
-    user.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  const filteredUsers = users?.filter(user => 
+    (user.full_name && user.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
     (user.phone_number && user.phone_number.includes(searchQuery))
-  );
+  ) || [];
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -54,16 +56,25 @@ export const UserList = ({
     }
   };
 
+  console.log("UserList rendering. Users:", users?.length, "Filtered:", filteredUsers.length, "Loading:", isLoading);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">Team Members</h2>
-        {canManageUsers && (
-          <Button onClick={onCreateUser}>
-            <Plus className="h-4 w-4 mr-2" />
-            Invite User
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {onRefresh && (
+            <Button variant="outline" onClick={onRefresh} size="icon" title="Refresh user list">
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+          )}
+          {canManageUsers && (
+            <Button onClick={onCreateUser}>
+              <Plus className="h-4 w-4 mr-2" />
+              Invite User
+            </Button>
+          )}
+        </div>
       </div>
       
       <div className="relative">
@@ -91,7 +102,16 @@ export const UserList = ({
             {isLoading ? (
               <TableRow>
                 <TableCell colSpan={canManageUsers ? 5 : 4} className="text-center py-4">
-                  Loading users...
+                  <div className="flex items-center justify-center">
+                    <RefreshCw className="h-5 w-5 animate-spin mr-2" />
+                    Loading users...
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : users?.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={canManageUsers ? 5 : 4} className="text-center py-4">
+                  No users found. {canManageUsers && "Click 'Invite User' to add team members."}
                 </TableCell>
               </TableRow>
             ) : filteredUsers.length === 0 ? (
@@ -103,12 +123,12 @@ export const UserList = ({
             ) : (
               filteredUsers.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell>{user.full_name}</TableCell>
+                  <TableCell>{user.full_name || 'N/A'}</TableCell>
                   <TableCell>{user.email || 'N/A'}</TableCell>
                   <TableCell>{user.phone_number || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge className={getRoleBadgeColor(user.role)}>
-                      {user.role.replace('_', ' ')}
+                      {user.role?.replace('_', ' ') || 'Unknown'}
                     </Badge>
                   </TableCell>
                   {canManageUsers && (
