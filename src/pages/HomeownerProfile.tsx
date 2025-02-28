@@ -71,10 +71,20 @@ export default function HomeownerProfile() {
 
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {
+      if (!currentUserProfile?.gc_account_id) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Missing GC account ID. Cannot create user without it.",
+        });
+        return;
+      }
+      
       await createUser({
         ...formData,
-        gc_account_id: currentUserProfile?.gc_account_id
+        gc_account_id: currentUserProfile.gc_account_id
       });
+      
       setIsInvitingUser(false);
       
       // Force a refetch of users after successful creation

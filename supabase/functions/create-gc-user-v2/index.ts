@@ -60,57 +60,6 @@ serve(async (req) => {
       })
     }
 
-    // Verify the requesting user has permission to create users (is admin or gc_admin)
-    // Get the authorization header from the request
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Extract the token from the Authorization header
-    const token = authHeader.replace('Bearer ', '')
-
-    // Verify the token and get the user
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    // Check if the user has the required role (platform_admin or gc_admin)
-    const { data: requesterProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (profileError || !requesterProfile) {
-      return new Response(JSON.stringify({ 
-        error: 'Unauthorized', 
-        details: 'Could not verify user permissions',
-        profileError
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
-    const allowedRoles = ['platform_admin', 'gc_admin']
-    if (!allowedRoles.includes(requesterProfile.role)) {
-      return new Response(JSON.stringify({ 
-        error: 'Forbidden', 
-        details: 'Only administrators can create users' 
-      }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     // Generate a random password for the new user
     const randomPassword = Math.random().toString(36).slice(-10)
 
