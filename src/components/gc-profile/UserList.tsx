@@ -56,7 +56,7 @@ export const UserList = ({
     }
   };
 
-  console.log("UserList rendering. Users:", users?.length, "Filtered:", filteredUsers.length, "Loading:", isLoading);
+  console.log("UserList rendering. Users:", users?.length, "Filtered:", filteredUsers.length, "Loading:", isLoading, "User data:", users);
 
   return (
     <div className="space-y-4">
@@ -128,7 +128,7 @@ export const UserList = ({
                   <TableCell>{user.phone_number || 'N/A'}</TableCell>
                   <TableCell>
                     <Badge className={getRoleBadgeColor(user.role)}>
-                      {user.role?.replace('_', ' ') || 'Unknown'}
+                      {user.role?.replace(/_/g, ' ') || 'Unknown'}
                     </Badge>
                   </TableCell>
                   {canManageUsers && (

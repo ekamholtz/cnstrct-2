@@ -84,12 +84,13 @@ export const useGCUserManagement = () => {
         };
       });
 
-      console.log('Returning users with profiles:', usersWithProfiles.length);
+      console.log('Returning users with profiles:', usersWithProfiles.length, usersWithProfiles);
       return usersWithProfiles as GCUserProfile[];
     },
     enabled: !!currentUserProfile?.gc_account_id && 
       (currentUserProfile.role === 'gc_admin' || currentUserProfile.role === 'platform_admin'),
     retry: 2, // Retry failed requests up to 2 times
+    refetchOnWindowFocus: false,
   });
 
   // Create new user mutation
@@ -106,6 +107,7 @@ export const useGCUserManagement = () => {
             email: userData.email,
             phone: userData.phone,
             role: userData.role,
+            gc_account_id: currentUserProfile?.gc_account_id
           }
         });
 
@@ -123,20 +125,20 @@ export const useGCUserManagement = () => {
         setIsCreatingUser(false);
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "Success",
         description: "User has been created and invited to the platform. They will receive an email with instructions to set their password.",
       });
+      
       // Explicitly invalidate the queries to force a refetch
       queryClient.invalidateQueries({
         queryKey: ['gc-users'],
       });
-      queryClient.invalidateQueries({
-        queryKey: ['gc-users', currentUserProfile?.gc_account_id],
-      });
-      // Force a refetch after successful creation
-      setTimeout(() => refetch(), 1000);
+      
+      // Force a refetch immediately
+      refetch();
+      
       setIsCreatingUser(false);
     },
     onError: (error: any) => {

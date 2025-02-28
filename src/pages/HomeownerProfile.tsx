@@ -61,9 +61,29 @@ export default function HomeownerProfile() {
     checkSession();
   }, [navigate]);
 
-  const handleInviteUser = (formData: CreateUserFormValues) => {
-    createUser(formData);
-    setIsInvitingUser(false);
+  useEffect(() => {
+    // Refresh the user list when component mounts or when isInvitingUser changes to false
+    // (indicating a user might have been added)
+    if (!isInvitingUser && !isLoading) {
+      refetchUsers();
+    }
+  }, [isInvitingUser, isLoading, refetchUsers]);
+
+  const handleInviteUser = async (formData: CreateUserFormValues) => {
+    try {
+      await createUser({
+        ...formData,
+        gc_account_id: currentUserProfile?.gc_account_id
+      });
+      setIsInvitingUser(false);
+      
+      // Force a refetch of users after successful creation
+      setTimeout(() => {
+        refetchUsers();
+      }, 1000);
+    } catch (error) {
+      console.error("Error inviting user:", error);
+    }
   };
 
   if (isLoading || !profile) return null;
