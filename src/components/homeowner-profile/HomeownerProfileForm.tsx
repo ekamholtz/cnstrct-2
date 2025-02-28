@@ -53,12 +53,13 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      // Check if this is a GC admin adding or updating a company name
-      const isGCUser = userRole === "gc_admin" || userRole === "project_manager" || userRole === "platform_admin";
+      // Only GC roles (gc_admin or project_manager) need GC account IDs
+      // platform_admin users don't need GC account IDs as they're company employees
+      const isGCRole = userRole === "gc_admin" || userRole === "project_manager";
       const updatedData = { ...data };
 
-      // Generate a GC account ID if a company name is provided and user is a GC role (not homeowner)
-      if (isGCUser && data.company_name && !profile.gc_account_id) {
+      // Generate a GC account ID if a company name is provided and user is in a GC role
+      if (isGCRole && data.company_name && !profile.gc_account_id) {
         // Generate a unique ID for the GC account
         const gc_account_id = `gc_${uuidv4().substring(0, 8)}`;
         updatedData.gc_account_id = gc_account_id;
@@ -93,11 +94,14 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
     return <ProfileDisplay profile={profile} userRole={userRole} />;
   }
 
+  // Show GCProfileFields for GC roles only (not for platform_admin or homeowner)
+  const shouldShowGCFields = userRole === "gc_admin" || userRole === "project_manager";
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="bg-white shadow rounded-lg p-6 space-y-6">
         <BasicProfileFields form={form} email={profile.email} />
-        {(userRole === "gc_admin" || userRole === "project_manager") && <GCProfileFields form={form} />}
+        {shouldShowGCFields && <GCProfileFields form={form} />}
         
         <div className="flex justify-end space-x-4 pt-4">
           <Button type="button" variant="outline" onClick={onCancel}>

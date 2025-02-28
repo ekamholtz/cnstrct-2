@@ -72,13 +72,18 @@ export default function HomeownerProfile() {
     }
   }, [isInvitingUser, isLoading, refetchUsers]);
 
-  // Check if user has a GC account ID set and has a GC role (not homeowner)
-  const isGCUser = profile && (profile.role === 'gc_admin' || profile.role === 'project_manager' || profile.role === 'platform_admin');
-  const hasGcAccountId = profile && profile.gc_account_id && isGCUser;
+  // Only GC roles need to manage users and require a GC account ID
+  // platform_admin users have universal access without needing a GC account ID
+  const isGCRole = profile && (profile.role === 'gc_admin' || profile.role === 'project_manager');
+  const isPlatformAdmin = profile && profile.role === 'platform_admin';
+  
+  // GC roles need a GC account ID, platform_admin users don't
+  const hasGcAccountId = isGCRole && profile?.gc_account_id;
+  const showUserManagement = isGCRole || isPlatformAdmin;
 
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {
-      if (!currentUserProfile?.gc_account_id) {
+      if (!currentUserProfile?.gc_account_id && !isPlatformAdmin) {
         toast({
           variant: "destructive",
           title: "Error",
@@ -89,7 +94,7 @@ export default function HomeownerProfile() {
       
       await createUser({
         ...formData,
-        gc_account_id: currentUserProfile.gc_account_id
+        gc_account_id: currentUserProfile?.gc_account_id
       });
       
       setIsInvitingUser(false);
@@ -137,10 +142,11 @@ export default function HomeownerProfile() {
               onSave={handleProfileSave}
             />
             
-            {/* Only show user management for GC admins */}
-            {isGCUser && (
+            {/* Show user management for GC roles and platform_admin */}
+            {showUserManagement && (
               <div className="mt-12">
-                {!hasGcAccountId && (
+                {/* Only show GC account ID warning for GC roles, not for platform_admin */}
+                {isGCRole && !hasGcAccountId && (
                   <Alert variant="destructive" className="mb-6">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Missing GC Account ID</AlertTitle>
@@ -154,7 +160,7 @@ export default function HomeownerProfile() {
                 <UserList 
                   users={gcUsers || []}
                   isLoading={isLoadingUsers}
-                  canManageUsers={canManageUsers && !!hasGcAccountId}
+                  canManageUsers={canManageUsers || isPlatformAdmin} 
                   onCreateUser={() => setIsInvitingUser(true)}
                   onRefresh={refetchUsers}
                 />
