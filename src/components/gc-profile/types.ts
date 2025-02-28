@@ -17,4 +17,5 @@ export interface CreateUserFormValues {
   email: string;
   phone: string;
   role: "gc_admin" | "project_manager";
+  gc_account_id?: string; // Adding this field to match what we're trying to pass
 }

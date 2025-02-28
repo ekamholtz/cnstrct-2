@@ -107,7 +107,7 @@ export const useGCUserManagement = () => {
             email: userData.email,
             phone: userData.phone,
             role: userData.role,
-            gc_account_id: currentUserProfile?.gc_account_id
+            gc_account_id: userData.gc_account_id || currentUserProfile?.gc_account_id
           }
         });
 
