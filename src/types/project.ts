@@ -7,5 +7,6 @@ export interface Project {
   created_at: string;
   updated_at: string;
   contractor_id: string;
+  pm_user_id?: string;
   client_id?: string;
 }

@@ -90,7 +90,7 @@ export function useContractorProjects() {
         `)
         .order('created_at', { ascending: false });
 
-      // Apply role-specific filters (though RLS should handle this server-side)
+      // Apply role-specific filters
       if (userRole === 'gc_admin') {
         console.log('Applying GC admin filter');
         query = query.eq('contractor_id', user.id);

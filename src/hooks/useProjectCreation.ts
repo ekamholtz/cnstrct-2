@@ -26,6 +26,8 @@ export const useProjectCreation = () => {
 
       if (profileError) throw profileError;
 
+      console.log('Creating project with user profile:', userProfile);
+
       // First, create the client
       const { data: client, error: clientError } = await supabase
         .from('clients')
@@ -40,11 +42,24 @@ export const useProjectCreation = () => {
 
       if (clientError) throw clientError;
 
-      // Determine contractor_id based on user role
-      let contractor_id = user.id; // Default for GC users
+      // Initialize project data
+      let projectInsert: any = {
+        name: projectData.projectName,
+        address: projectData.clientAddress,
+        status: 'active' as const,
+        client_id: client.id
+      };
       
-      // For PM users, we need to use their GC's ID as contractor_id
-      if (userProfile.role === 'project_manager') {
+      // Set pm_user_id and contractor_id based on user role
+      if (userProfile.role === 'gc_admin') {
+        // If user is a GC admin, they are both the contractor and PM
+        projectInsert.contractor_id = user.id;
+        projectInsert.pm_user_id = user.id;
+        
+        console.log('GC admin creating project - setting contractor_id and pm_user_id to self:', user.id);
+      } 
+      else if (userProfile.role === 'project_manager') {
+        // For PMs, we need to find their associated GC admin
         if (!userProfile.gc_account_id) {
           throw new Error('Project Manager is not associated with a GC account');
         }
@@ -66,24 +81,22 @@ export const useProjectCreation = () => {
           throw new Error('No General Contractor admin found for this account');
         }
         
-        contractor_id = gcAdmins[0].id;
-        console.log('Using contractor_id from GC admin:', contractor_id);
+        // Set contractor_id to the GC admin's id
+        projectInsert.contractor_id = gcAdmins[0].id;
+        // Set pm_user_id to the current PM user's id
+        projectInsert.pm_user_id = user.id;
+        
+        console.log('PM creating project:', {
+          contractor_id: projectInsert.contractor_id,
+          pm_user_id: projectInsert.pm_user_id,
+          gc_account_id: userProfile.gc_account_id
+        });
+      }
+      else {
+        throw new Error('Only GC Admins and Project Managers can create projects');
       }
 
-      // Create project with correct contractor_id and pm_user_id
-      const projectInsert: any = {
-        name: projectData.projectName,
-        address: projectData.clientAddress,
-        contractor_id: contractor_id,
-        status: 'active' as const,
-        client_id: client.id
-      };
-      
-      // Add PM's ID to project if user is a project manager
-      if (userProfile.role === 'project_manager') {
-        projectInsert['pm_user_id'] = user.id;
-      }
-
+      // Create project with the constructed data
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .insert(projectInsert)
