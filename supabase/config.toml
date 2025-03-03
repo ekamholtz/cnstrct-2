@@ -67,5 +67,5 @@ gcp_jwt_path = "supabase/gcloud.json"
 [realtime]
 enabled = true
 
-[edge_functions]
+[functions]
 enabled = true
