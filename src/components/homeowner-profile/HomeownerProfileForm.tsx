@@ -62,19 +62,28 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
       console.log("Has company name:", !!data.company_name);
       console.log("Existing GC account ID:", profile.gc_account_id);
 
-      // Generate a GC account ID if a company name is provided and user is in a GC role
+      // For GC roles with company names, we handle the gc_account_id
       if (isGCRole && data.company_name) {
         if (!profile.gc_account_id) {
-          // Generate a proper UUID for the GC account
-          const gc_account_id = uuidv4();
-          updatedData.gc_account_id = gc_account_id;
-          
-          console.log("Generated new GC account ID:", gc_account_id);
+          try {
+            // First, check if we need to create a GC account entry
+            const gc_account_id = uuidv4();
+            
+            console.log("Generated new GC account ID:", gc_account_id);
+            updatedData.gc_account_id = gc_account_id;
+          } catch (gcError) {
+            console.error("Error creating GC account:", gcError);
+            throw new Error("Failed to create GC account. Please try again.");
+          }
         } else {
           // Preserve existing GC account ID
           updatedData.gc_account_id = profile.gc_account_id;
           console.log("Preserving existing GC account ID:", profile.gc_account_id);
         }
+      } else if (!isGCRole) {
+        // Non-GC roles should have null gc_account_id
+        updatedData.gc_account_id = null;
+        console.log("Setting gc_account_id to null for non-GC role");
       }
 
       console.log("Profile update data:", updatedData);

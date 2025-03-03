@@ -81,7 +81,7 @@ export default function HomeownerProfile() {
   
   // GC roles need a GC account ID, platform_admin users don't
   const hasGcAccountId = isGCRole && profile?.gc_account_id;
-  const showUserManagement = isGCRole || isPlatformAdmin;
+  const showUserManagement = (isGCRole && hasGcAccountId) || isPlatformAdmin;
 
   console.log("Profile information:", {
     role: profile?.role,
@@ -129,7 +129,12 @@ export default function HomeownerProfile() {
     setTimeout(() => {
       queryClient.refetchQueries({ queryKey: ['homeowner-profile'] });
       queryClient.refetchQueries({ queryKey: ['current-user-profile'] });
-    }, 500);
+      
+      // After refetching the profile, refetch the users list as well
+      setTimeout(() => {
+        refetchUsers();
+      }, 500);
+    }, 1000);
   };
 
   if (isLoading || !profile) return null;
@@ -159,7 +164,7 @@ export default function HomeownerProfile() {
               onSave={handleProfileSave}
             />
             
-            {/* Show user management for GC roles and platform_admin */}
+            {/* Show user management for GC roles with GC account ID and platform_admin */}
             {showUserManagement && (
               <div className="mt-12">
                 {/* Only show GC account ID warning for GC roles, not for platform_admin */}
