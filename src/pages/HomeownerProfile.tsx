@@ -45,6 +45,8 @@ export default function HomeownerProfile() {
 
       if (error) throw error;
       
+      console.log("Fetched user profile:", data);
+      
       // Add email from auth user to profile data
       return {
         ...data,
@@ -81,6 +83,15 @@ export default function HomeownerProfile() {
   const hasGcAccountId = isGCRole && profile?.gc_account_id;
   const showUserManagement = isGCRole || isPlatformAdmin;
 
+  console.log("Profile information:", {
+    role: profile?.role,
+    isGCRole,
+    isPlatformAdmin,
+    hasGcAccountId: profile?.gc_account_id,
+    showUserManagement,
+    companyName: profile?.company_name
+  });
+
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {
       if (!currentUserProfile?.gc_account_id && !isPlatformAdmin) {
@@ -113,6 +124,12 @@ export default function HomeownerProfile() {
     // Invalidate and refetch profile and current-user-profile
     queryClient.invalidateQueries({ queryKey: ['homeowner-profile'] });
     queryClient.invalidateQueries({ queryKey: ['current-user-profile'] });
+    
+    // Force a longer delay before refetching to ensure the database has updated
+    setTimeout(() => {
+      queryClient.refetchQueries({ queryKey: ['homeowner-profile'] });
+      queryClient.refetchQueries({ queryKey: ['current-user-profile'] });
+    }, 500);
   };
 
   if (isLoading || !profile) return null;

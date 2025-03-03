@@ -58,22 +58,41 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
       const isGCRole = userRole === "gc_admin" || userRole === "project_manager";
       const updatedData = { ...data };
 
+      console.log("Form submission - User role:", userRole);
+      console.log("Is GC Role:", isGCRole);
+      console.log("Has company name:", !!data.company_name);
+      console.log("Existing GC account ID:", profile.gc_account_id);
+
       // Generate a GC account ID if a company name is provided and user is in a GC role
-      if (isGCRole && data.company_name && !profile.gc_account_id) {
-        // Generate a unique ID for the GC account
-        const gc_account_id = `gc_${uuidv4().substring(0, 8)}`;
-        updatedData.gc_account_id = gc_account_id;
-        
-        console.log("Generated new GC account ID:", gc_account_id);
+      if (isGCRole && data.company_name) {
+        if (!profile.gc_account_id) {
+          // Generate a unique ID for the GC account
+          const gc_account_id = `gc_${uuidv4().substring(0, 8)}`;
+          updatedData.gc_account_id = gc_account_id;
+          
+          console.log("Generated new GC account ID:", gc_account_id);
+        } else {
+          // Preserve existing GC account ID
+          updatedData.gc_account_id = profile.gc_account_id;
+          console.log("Preserving existing GC account ID:", profile.gc_account_id);
+        }
       }
 
+      console.log("Profile update data:", updatedData);
+
       // Update the profile with the new data
-      const { error } = await supabase
+      const { error, data: updatedProfile } = await supabase
         .from("profiles")
         .update(updatedData)
-        .eq("id", profile.id);
+        .eq("id", profile.id)
+        .select();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+
+      console.log("Profile update successful. Updated profile:", updatedProfile);
 
       toast({
         title: "Profile updated",
@@ -82,6 +101,7 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
 
       onSave();
     } catch (error: any) {
+      console.error("Profile update error:", error);
       toast({
         variant: "destructive",
         title: "Error",
