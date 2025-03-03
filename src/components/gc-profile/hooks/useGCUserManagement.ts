@@ -109,20 +109,26 @@ export const useGCUserManagement = () => {
       setIsCreatingUser(true);
       try {
         // Ensure we have a GC account ID
-        if (!userData.gc_account_id) {
+        if (!currentUserProfile?.gc_account_id) {
           throw new Error("Missing GC account ID. Cannot create user without it.");
         }
         
-        console.log('Creating user with data:', userData);
+        // Always use the current user's gc_account_id
+        const userDataWithGCAccount = {
+          ...userData,
+          gc_account_id: currentUserProfile.gc_account_id
+        };
+        
+        console.log('Creating user with data:', userDataWithGCAccount);
         
         // Use the Supabase client's functions.invoke method
         const { data, error } = await supabase.functions.invoke('create-gc-user-v2', {
           body: {
-            name: userData.name,
-            email: userData.email,
-            phone: userData.phone,
-            role: userData.role,
-            gc_account_id: userData.gc_account_id
+            name: userDataWithGCAccount.name,
+            email: userDataWithGCAccount.email,
+            phone: userDataWithGCAccount.phone,
+            role: userDataWithGCAccount.role,
+            gc_account_id: userDataWithGCAccount.gc_account_id
           }
         });
 
