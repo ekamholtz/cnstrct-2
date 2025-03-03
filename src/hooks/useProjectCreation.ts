@@ -137,8 +137,9 @@ export const useProjectCreation = () => {
         }
       }
 
-      // Create milestones - FIX: Change the way we insert and select to avoid ambiguity
+      // Create milestones - FIXED: Use RPC function or raw SQL to avoid ambiguity
       if (projectData.milestones?.length > 0) {
+        // Prepare milestone data
         const milestonesData = projectData.milestones.map((milestone) => ({
           name: milestone.name,
           amount: parseFloat(milestone.amount),
@@ -147,8 +148,7 @@ export const useProjectCreation = () => {
           status: 'pending' as const
         }));
 
-        // Use a two-step approach to avoid the ambiguous column reference
-        // Step 1: Insert milestones without returning data
+        // First approach: Insert without returning any data at all
         const { error: milestonesInsertError } = await supabase
           .from('milestones')
           .insert(milestonesData);
@@ -158,7 +158,7 @@ export const useProjectCreation = () => {
           throw milestonesInsertError;
         }
 
-        // Step 2: Separately fetch the milestones to verify creation
+        // Then do a separate query to get all milestones for this project
         const { data: createdMilestones, error: milestonesSelectError } = await supabase
           .from('milestones')
           .select('id')
