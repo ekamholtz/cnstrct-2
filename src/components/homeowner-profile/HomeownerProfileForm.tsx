@@ -66,7 +66,7 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
       if (isGCRole && data.company_name) {
         if (!profile.gc_account_id) {
           try {
-            // First, check if we need to create a GC account entry
+            // Generate a new UUID for the GC account
             const gc_account_id = uuidv4();
             
             console.log("Generated new GC account ID:", gc_account_id);
