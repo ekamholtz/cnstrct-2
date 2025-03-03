@@ -70,7 +70,7 @@ export const useProjectCreation = () => {
         name: projectData.projectName,
         address: projectData.clientAddress,
         contractor_id: contractor_id,
-        status: 'active',
+        status: 'active' as const,
         client_id: client.id
       };
       
