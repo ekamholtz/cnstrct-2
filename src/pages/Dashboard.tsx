@@ -52,8 +52,8 @@ export default function Dashboard() {
                 <h1 className="text-2xl font-bold text-[#172b70] mt-1">{userProfile.company_name}</h1>
               )}
               {!hasGcAccount && (
-                <Alert variant="warning" className="mt-4">
-                  <AlertCircle className="h-4 w-4" />
+                <Alert variant="destructive" className="mt-4 bg-amber-50 border-amber-200 text-amber-700">
+                  <AlertCircle className="h-4 w-4 text-amber-500" />
                   <AlertTitle>Company Setup Needed</AlertTitle>
                   <AlertDescription>
                     Please complete your company profile to fully use all features.
