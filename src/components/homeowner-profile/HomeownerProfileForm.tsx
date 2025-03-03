@@ -54,7 +54,6 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
   const onSubmit = async (data: ProfileFormValues) => {
     try {
       // Only GC roles (gc_admin or project_manager) need GC account IDs
-      // platform_admin users don't need GC account IDs as they're company employees
       const isGCRole = userRole === "gc_admin" || userRole === "project_manager";
       const updatedData = { ...data };
 
@@ -66,8 +65,8 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
       // Generate a GC account ID if a company name is provided and user is in a GC role
       if (isGCRole && data.company_name) {
         if (!profile.gc_account_id) {
-          // Generate a unique ID for the GC account
-          const gc_account_id = `gc_${uuidv4().substring(0, 8)}`;
+          // Generate a proper UUID for the GC account
+          const gc_account_id = uuidv4();
           updatedData.gc_account_id = gc_account_id;
           
           console.log("Generated new GC account ID:", gc_account_id);
