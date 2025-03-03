@@ -137,7 +137,7 @@ export const useProjectCreation = () => {
         }
       }
 
-      // Create milestones
+      // Create milestones - FIX: Change the way we insert and select to avoid ambiguity
       if (projectData.milestones?.length > 0) {
         const milestonesData = projectData.milestones.map((milestone) => ({
           name: milestone.name,
@@ -147,14 +147,28 @@ export const useProjectCreation = () => {
           status: 'pending' as const
         }));
 
-        const { error: milestonesError } = await supabase
+        // Use a two-step approach to avoid the ambiguous column reference
+        // Step 1: Insert milestones without returning data
+        const { error: milestonesInsertError } = await supabase
           .from('milestones')
-          .insert(milestonesData)
-          .select('id'); // Select specific column to avoid ambiguity
+          .insert(milestonesData);
 
-        if (milestonesError) {
-          console.error('Error creating milestones:', milestonesError);
-          throw milestonesError;
+        if (milestonesInsertError) {
+          console.error('Error creating milestones:', milestonesInsertError);
+          throw milestonesInsertError;
+        }
+
+        // Step 2: Separately fetch the milestones to verify creation
+        const { data: createdMilestones, error: milestonesSelectError } = await supabase
+          .from('milestones')
+          .select('id')
+          .eq('project_id', project.id);
+
+        if (milestonesSelectError) {
+          console.error('Error verifying milestone creation:', milestonesSelectError);
+          // Not throwing here since the milestones were likely created
+        } else {
+          console.log(`Successfully created ${createdMilestones.length} milestones`);
         }
       }
 
