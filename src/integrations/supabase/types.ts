@@ -197,18 +197,21 @@ export type Database = {
         Row: {
           company_name: string
           created_at: string | null
+          creator_id: string | null
           id: string
           updated_at: string | null
         }
         Insert: {
           company_name: string
           created_at?: string | null
+          creator_id?: string | null
           id?: string
           updated_at?: string | null
         }
         Update: {
           company_name?: string
           created_at?: string | null
+          creator_id?: string | null
           id?: string
           updated_at?: string | null
         }
@@ -504,6 +507,7 @@ export type Database = {
           gc_account_id: string | null
           has_completed_profile: boolean | null
           id: string
+          is_owner: boolean | null
           license_number: string | null
           phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
@@ -520,6 +524,7 @@ export type Database = {
           gc_account_id?: string | null
           has_completed_profile?: boolean | null
           id: string
+          is_owner?: boolean | null
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
@@ -536,6 +541,7 @@ export type Database = {
           gc_account_id?: string | null
           has_completed_profile?: boolean | null
           id?: string
+          is_owner?: boolean | null
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
@@ -799,6 +805,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_gc_account_owner: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
       is_gc_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -815,6 +827,14 @@ export type Database = {
           simulation_details: Json
         }
         Returns: undefined
+      }
+      transfer_gc_ownership: {
+        Args: {
+          current_owner_id: string
+          new_owner_id: string
+          gc_account_id: string
+        }
+        Returns: boolean
       }
       undo_milestone_completion: {
         Args: {
