@@ -170,12 +170,16 @@ export const useProjectCreation = () => {
           status: 'pending' as const
         }));
 
-        // Fix: Don't use select at all and be extremely explicit with column names during insert
+        // Fix: Be explicit about the columns in the query to avoid ambiguity
         const { error: milestonesError } = await supabase
           .from('milestones')
-          .insert(milestonesData);
+          .insert(milestonesData)
+          .select('id'); // Select specific column to avoid ambiguity
 
-        if (milestonesError) throw milestonesError;
+        if (milestonesError) {
+          console.error('Error creating milestones:', milestonesError);
+          throw milestonesError;
+        }
       }
 
       toast({
