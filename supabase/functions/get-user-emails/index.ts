@@ -1,121 +1,80 @@
 
-// Edge function to get user emails by user IDs
-
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.43.1";
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-type RequestBody = {
-  userIds: string[];
-};
+}
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // Ensure request has authorization
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('No authorization header provided');
+    // Create a Supabase client with the Auth context of the function
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
+    )
+
+    // Get the user IDs from the request body
+    const { userIds } = await req.json()
+
+    // Input validation
+    if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'No authorization header provided' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        JSON.stringify({ error: 'Invalid user IDs provided' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
     }
 
-    // Set up Supabase admin client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    console.log(`Received ${userIds.length} user IDs to lookup emails for`)
 
-    // Get the user making the request to verify permissions
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user: requestingUser }, error: userError } = await supabaseAdmin.auth.getUser(token);
-    
-    if (userError || !requestingUser) {
-      console.error('Error getting user from token:', userError);
+    // Create a Supabase admin client for accessing auth data
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    )
+
+    // Get user emails using the admin client
+    const { data: users, error } = await supabaseAdmin.auth.admin.listUsers()
+
+    if (error) {
+      console.error('Error fetching users:', error)
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        JSON.stringify({ error: 'Failed to fetch user emails' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
     }
 
-    // Get the requesting user's profile to check role
-    const { data: requestingUserProfile, error: profileError } = await supabaseAdmin
-      .from('profiles')
-      .select('role')
-      .eq('id', requestingUser.id)
-      .single();
-
-    if (profileError) {
-      console.error('Error fetching requesting user profile:', profileError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to verify user permissions' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Check if user has permission (must be gc_admin or platform_admin)
-    if (requestingUserProfile.role !== 'gc_admin' && requestingUserProfile.role !== 'platform_admin') {
-      console.error('User does not have permission. Role:', requestingUserProfile.role);
-      return new Response(
-        JSON.stringify({ error: 'You do not have permission to access this data' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Parse request body to get user IDs
-    const requestData: RequestBody = await req.json();
-    const userIds = requestData.userIds || [];
-    
-    if (!userIds.length) {
-      return new Response(
-        JSON.stringify({ error: 'No user IDs provided' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`Fetching emails for ${userIds.length} users`);
-
-    // Fetch user emails from auth.users table
-    const { data: users, error: fetchError } = await supabaseAdmin.auth.admin.listUsers();
-    
-    if (fetchError) {
-      console.error('Error fetching users:', fetchError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch user data' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Filter users to only include those in the requested userIds
-    const filteredUsers = users.users.filter(user => userIds.includes(user.id))
+    // Filter and map users to get emails for the specified userIds
+    const usersWithEmails = users.users
+      .filter(user => userIds.includes(user.id))
       .map(user => ({
         id: user.id,
         email: user.email
-      }));
+      }))
 
-    console.log(`Found ${filteredUsers.length} matching users`);
+    console.log(`Found ${usersWithEmails.length} matching users`)
 
-    // Return the emails for the requested users
+    // Return the emails
     return new Response(
-      JSON.stringify(filteredUsers),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-
+      JSON.stringify(usersWithEmails),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   } catch (error) {
-    console.error('Unexpected error:', error);
+    console.error('Unexpected error:', error)
     return new Response(
-      JSON.stringify({ error: 'An unexpected error occurred' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      JSON.stringify({ error: 'Internal Server Error' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    )
   }
-});
+})

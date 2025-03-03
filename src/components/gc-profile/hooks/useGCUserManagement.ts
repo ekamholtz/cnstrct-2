@@ -40,7 +40,7 @@ export const useGCUserManagement = () => {
 
       console.log('Fetching users for GC account:', currentUserProfile.gc_account_id);
       
-      // More detailed query logging to understand what's happening
+      // First get all profiles matching the GC account ID
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -64,6 +64,10 @@ export const useGCUserManagement = () => {
         const userIds = profiles.map(profile => profile.id);
         console.log('Fetching emails for user IDs:', userIds);
 
+        if (userIds.length === 0) {
+          return [];
+        }
+
         // Get emails via the edge function
         const { data: usersWithEmails, error: funcError } = await supabase
           .functions.invoke('get-user-emails', {
@@ -83,9 +87,22 @@ export const useGCUserManagement = () => {
 
         console.log('Email data received:', usersWithEmails);
 
+        // Make sure usersWithEmails is an array
+        if (!Array.isArray(usersWithEmails)) {
+          console.error('Received invalid email data format:', usersWithEmails);
+          return profiles.map(profile => ({
+            ...profile,
+            email: 'Email data error'
+          })) as GCUserProfile[];
+        }
+
         // Merge profile data with emails
         const profilesWithEmails = profiles.map(profile => {
-          const userEmail = usersWithEmails?.find(u => u.id === profile.id)?.email || 'Email not available';
+          const userEmailObj = usersWithEmails?.find(u => u.id === profile.id);
+          const userEmail = userEmailObj?.email || 'Email not available';
+          
+          console.log(`Mapping profile ${profile.id} (${profile.full_name}) with email:`, userEmail);
+          
           return {
             ...profile,
             email: userEmail
@@ -105,7 +122,7 @@ export const useGCUserManagement = () => {
     },
     enabled: !!currentUserProfile?.gc_account_id && 
       (currentUserProfile.role === 'gc_admin' || currentUserProfile.role === 'platform_admin'),
-    retry: 2,
+    retry: 3,
     refetchOnWindowFocus: false,
   });
 
