@@ -6,6 +6,7 @@ import { InviteUserForm } from "@/components/gc-profile/InviteUserForm";
 import { useGCUserManagement } from "@/components/gc-profile/hooks/useGCUserManagement";
 import { UseHomeownerProfileReturn } from "./hooks/useHomeownerProfile";
 import type { CreateUserFormValues } from "@/components/gc-profile/types";
+import { useEffect } from "react";
 
 interface TeamManagementSectionProps {
   profileState: UseHomeownerProfileReturn;
@@ -18,7 +19,8 @@ export function TeamManagementSection({ profileState }: TeamManagementSectionPro
     hasGcAccountId,
     isInvitingUser,
     setIsInvitingUser,
-    showUserManagement
+    showUserManagement,
+    setRefetchUsers
   } = profileState;
 
   const {
@@ -32,9 +34,11 @@ export function TeamManagementSection({ profileState }: TeamManagementSectionPro
   } = useGCUserManagement();
 
   // Set the refetchUsers function in the profileState
-  if (profileState.refetchUsers === null) {
-    profileState.refetchUsers = refetchUsers;
-  }
+  useEffect(() => {
+    if (refetchUsers) {
+      setRefetchUsers(() => refetchUsers);
+    }
+  }, [refetchUsers, setRefetchUsers]);
 
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {

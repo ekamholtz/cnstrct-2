@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 export const useHomeownerProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [isInvitingUser, setIsInvitingUser] = useState(false);
+  const [refetchUsers, setRefetchUsers] = useState<(() => void) | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -86,7 +87,8 @@ export const useHomeownerProfile = () => {
     isPlatformAdmin,
     hasGcAccountId,
     showUserManagement,
-    refetchUsers: null, // This will be set later
+    refetchUsers,
+    setRefetchUsers
   };
 };
 
