@@ -1,5 +1,4 @@
 
-import { UserNav } from "@/components/ui/user-nav";
 import ProjectCreationForm from "@/components/projects/ProjectCreationForm";
 
 interface DashboardHeaderProps {
@@ -13,9 +12,8 @@ export function DashboardHeader({ onProjectCreated }: DashboardHeaderProps) {
         <h1 className="text-2xl font-bold">Dashboard</h1>
         <p className="text-gray-600">Manage your construction projects</p>
       </div>
-      <div className="flex items-center space-x-4">
+      <div className="flex items-center">
         <ProjectCreationForm onSuccess={onProjectCreated} />
-        <UserNav />
       </div>
     </div>
   );
