@@ -50,23 +50,28 @@ export const useProjectCreation = () => {
         }
         
         // Find the GC admin linked to this gc_account_id
-        const { data: gcAdmin, error: gcError } = await supabase
+        const { data: gcAdmins, error: gcError } = await supabase
           .from('profiles')
           .select('id')
           .eq('gc_account_id', userProfile.gc_account_id)
-          .eq('role', 'gc_admin')
-          .single();
+          .eq('role', 'gc_admin');
           
         if (gcError) {
           console.error('Error finding GC admin:', gcError);
           throw new Error('Could not find associated General Contractor');
         }
         
-        contractor_id = gcAdmin.id;
+        if (!gcAdmins || gcAdmins.length === 0) {
+          console.error('No GC admin found for gc_account_id:', userProfile.gc_account_id);
+          throw new Error('No General Contractor admin found for this account');
+        }
+        
+        contractor_id = gcAdmins[0].id;
+        console.log('Using contractor_id from GC admin:', contractor_id);
       }
 
       // Create project with correct contractor_id and pm_user_id
-      const projectInsert = {
+      const projectInsert: any = {
         name: projectData.projectName,
         address: projectData.clientAddress,
         contractor_id: contractor_id,
