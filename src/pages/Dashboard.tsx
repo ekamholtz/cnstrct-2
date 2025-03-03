@@ -7,9 +7,31 @@ import { useContractorProjects } from "@/hooks/useContractorProjects";
 import { MainNav } from "@/components/navigation/MainNav";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Dashboard() {
   const { data: projects = [], isLoading, error, refetch } = useContractorProjects();
+  
+  // Get user profile information
+  const { data: userProfile, isLoading: isLoadingProfile } = useQuery({
+    queryKey: ['user-dashboard-profile'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('No user found');
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, company_name, role')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const isGcOrPm = userProfile?.role === 'gc_admin' || userProfile?.role === 'project_manager';
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
@@ -19,10 +41,24 @@ export default function Dashboard() {
       <div className="container mx-auto px-4 py-8 mt-16 space-y-8">
         {/* Dashboard Header */}
         <div className="bg-white rounded-lg p-6 shadow-sm">
-          <h1 className="text-2xl font-bold text-[#172b70] mb-2">General Contractor Dashboard</h1>
-          <div className="flex items-center text-gray-600">
-            <span>Manage and track all your construction projects</span>
-          </div>
+          {isGcOrPm && userProfile ? (
+            <>
+              {userProfile.full_name && (
+                <p className="text-lg font-medium text-gray-700">Welcome, {userProfile.full_name}</p>
+              )}
+              {userProfile.company_name && (
+                <h1 className="text-2xl font-bold text-[#172b70] mt-1">{userProfile.company_name}</h1>
+              )}
+              <p className="text-gray-600 mt-2">Manage and track all your construction projects</p>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-[#172b70] mb-2">General Contractor Dashboard</h1>
+              <div className="flex items-center text-gray-600">
+                <span>Manage and track all your construction projects</span>
+              </div>
+            </>
+          )}
           <div className="mt-4">
             <DashboardHeader onProjectCreated={refetch} />
           </div>

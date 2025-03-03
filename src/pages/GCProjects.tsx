@@ -32,7 +32,7 @@ export default function GCProjects() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('company_name')
+        .select('company_name, full_name')
         .eq('id', user.id)
         .single();
 
@@ -71,10 +71,12 @@ export default function GCProjects() {
           
           <div className="flex justify-between items-center">
             <div>
-              {profile?.company_name && (
-                <p className="text-xl font-bold text-gray-700 mb-2">{profile.company_name}</p>
+              {profile?.full_name && (
+                <p className="text-lg font-medium text-gray-700">Welcome, {profile.full_name}</p>
               )}
-              <h1 className="text-2xl font-bold text-[#172b70]">All Projects</h1>
+              {profile?.company_name && (
+                <h1 className="text-2xl font-bold text-[#172b70]">{profile.company_name}</h1>
+              )}
               <p className="text-gray-600 mt-1">View and manage all your construction projects</p>
             </div>
             <Dialog>
