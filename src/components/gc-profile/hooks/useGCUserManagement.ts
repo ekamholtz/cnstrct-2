@@ -40,7 +40,7 @@ export const useGCUserManagement = () => {
 
       console.log('Fetching users for GC account:', currentUserProfile.gc_account_id);
       
-      // Detailed query to check all profiles with this gc_account_id
+      // More detailed query logging to understand what's happening
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -60,11 +60,15 @@ export const useGCUserManagement = () => {
       }
 
       try {
+        // Add detailed logging for user IDs being passed to the function
+        const userIds = profiles.map(profile => profile.id);
+        console.log('Fetching emails for user IDs:', userIds);
+
         // Get emails via the edge function
         const { data: usersWithEmails, error: funcError } = await supabase
           .functions.invoke('get-user-emails', {
             body: {
-              userIds: profiles.map(profile => profile.id)
+              userIds: userIds
             }
           });
 
@@ -76,6 +80,8 @@ export const useGCUserManagement = () => {
             email: 'Email not available'
           })) as GCUserProfile[];
         }
+
+        console.log('Email data received:', usersWithEmails);
 
         // Merge profile data with emails
         const profilesWithEmails = profiles.map(profile => {

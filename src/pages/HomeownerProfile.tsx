@@ -92,6 +92,8 @@ export default function HomeownerProfile() {
     companyName: profile?.company_name
   });
 
+  console.log("GC Users data:", gcUsers);
+
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {
       if (!currentUserProfile?.gc_account_id && !isPlatformAdmin) {
@@ -102,6 +104,8 @@ export default function HomeownerProfile() {
         });
         return;
       }
+      
+      console.log("Creating user with GC account ID:", currentUserProfile?.gc_account_id);
       
       await createUser({
         ...formData,

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserCog, Plus, Search, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,12 +36,27 @@ export const UserList = ({
   onRefresh,
 }: UserListProps) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [filteredUsers, setFilteredUsers] = useState<GCUserProfile[]>([]);
 
-  const filteredUsers = users?.filter(user => 
-    (user.full_name && user.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
-    (user.phone_number && user.phone_number.includes(searchQuery))
-  ) || [];
+  // Effect to filter users and provide more detailed logging
+  useEffect(() => {
+    // Log raw users array for debugging
+    console.log("UserList - Raw users array:", users);
+    
+    if (!users || users.length === 0) {
+      setFilteredUsers([]);
+      return;
+    }
+    
+    const filtered = users.filter(user => 
+      (user.full_name && user.full_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (user.phone_number && user.phone_number.includes(searchQuery))
+    );
+    
+    console.log(`UserList - Filtered from ${users.length} to ${filtered.length} users with query "${searchQuery}"`);
+    setFilteredUsers(filtered);
+  }, [users, searchQuery]);
 
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
@@ -142,6 +157,14 @@ export const UserList = ({
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>Reset Password</DropdownMenuItem>
                           <DropdownMenuItem>Edit User</DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="text-red-600 hover:text-red-700"
+                            onClick={() => {
+                              console.log(`User GC account ID: ${user.gc_account_id}`);
+                            }}
+                          >
+                            Debug GC ID
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
