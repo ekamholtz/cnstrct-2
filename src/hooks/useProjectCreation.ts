@@ -17,6 +17,15 @@ export const useProjectCreation = () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError) throw userError;
 
+      // Get user's profile to determine role and gc_account_id
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role, gc_account_id')
+        .eq('id', user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
       // First, create the client
       const { data: client, error: clientError } = await supabase
         .from('clients')
@@ -31,16 +40,48 @@ export const useProjectCreation = () => {
 
       if (clientError) throw clientError;
 
-      // Create project
+      // Determine contractor_id based on user role
+      let contractor_id = user.id; // Default for GC users
+      
+      // For PM users, we need to use their GC's ID as contractor_id
+      if (userProfile.role === 'project_manager') {
+        if (!userProfile.gc_account_id) {
+          throw new Error('Project Manager is not associated with a GC account');
+        }
+        
+        // Find the GC admin linked to this gc_account_id
+        const { data: gcAdmin, error: gcError } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('gc_account_id', userProfile.gc_account_id)
+          .eq('role', 'gc_admin')
+          .single();
+          
+        if (gcError) {
+          console.error('Error finding GC admin:', gcError);
+          throw new Error('Could not find associated General Contractor');
+        }
+        
+        contractor_id = gcAdmin.id;
+      }
+
+      // Create project with correct contractor_id and pm_user_id
+      const projectInsert = {
+        name: projectData.projectName,
+        address: projectData.clientAddress,
+        contractor_id: contractor_id,
+        status: 'active',
+        client_id: client.id
+      };
+      
+      // Add PM's ID to project if user is a project manager
+      if (userProfile.role === 'project_manager') {
+        projectInsert['pm_user_id'] = user.id;
+      }
+
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .insert({
-          name: projectData.projectName,
-          address: projectData.clientAddress,
-          contractor_id: user.id,
-          status: 'active',
-          client_id: client.id
-        })
+        .insert(projectInsert)
         .select()
         .single();
 
