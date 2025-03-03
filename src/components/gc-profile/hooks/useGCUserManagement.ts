@@ -40,7 +40,7 @@ export const useGCUserManagement = () => {
 
       console.log('Fetching users for GC account:', currentUserProfile.gc_account_id);
       
-      // Direct query for all profiles with matching gc_account_id
+      // Detailed query to check all profiles with this gc_account_id
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -51,12 +51,13 @@ export const useGCUserManagement = () => {
         throw error;
       }
 
+      // Debug log to understand what's retrieved
+      console.log(`Found ${profiles?.length || 0} profiles with gc_account_id ${currentUserProfile.gc_account_id}:`, profiles);
+
       if (!profiles || profiles.length === 0) {
         console.log('No profiles found for GC account ID:', currentUserProfile.gc_account_id);
         return [];
       }
-
-      console.log('Found profiles:', profiles.length, profiles);
 
       try {
         // Get emails via the edge function
