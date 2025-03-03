@@ -56,6 +56,7 @@ export const useProjectCreation = () => {
           status: 'pending' as const
         }));
 
+        // Fix: Remove the select() call to avoid the ambiguous column reference
         const { error: milestonesError } = await supabase
           .from('milestones')
           .insert(milestonesData);
