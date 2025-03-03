@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { CreateUserFormValues } from "./types";
+import { useCurrentUserProfile } from "./hooks/useCurrentUserProfile";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -42,6 +43,8 @@ export const InviteUserForm = ({
   onCancel,
   isLoading,
 }: InviteUserFormProps) => {
+  const { isOwner } = useCurrentUserProfile();
+  
   const form = useForm<CreateUserFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -51,6 +54,9 @@ export const InviteUserForm = ({
       role: "project_manager",
     },
   });
+
+  const selectedRole = form.watch("role");
+  const showAdminNotice = selectedRole === "gc_admin";
 
   return (
     <Card>
@@ -115,7 +121,9 @@ export const InviteUserForm = ({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="gc_admin">GC Admin</SelectItem>
+                      {isOwner && (
+                        <SelectItem value="gc_admin">GC Admin</SelectItem>
+                      )}
                       <SelectItem value="project_manager">Project Manager</SelectItem>
                     </SelectContent>
                   </Select>
@@ -123,6 +131,13 @@ export const InviteUserForm = ({
                 </FormItem>
               )}
             />
+
+            {showAdminNotice && isOwner && (
+              <div className="rounded-md bg-blue-50 p-4 text-sm text-blue-800">
+                GC Admins will have access to all company projects and financial information. 
+                They can manage projects but only the owner can add new GC Admins or transfer ownership.
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button variant="outline" onClick={onCancel} disabled={isLoading}>

@@ -2,19 +2,22 @@
 import { useCurrentUserProfile } from "./useCurrentUserProfile";
 import { useGCUsers } from "./useGCUsers";
 import { useCreateGCUser } from "./useCreateGCUser";
+import { useTeamManagement } from "./useTeamManagement";
 
 export const useGCUserManagement = () => {
   // Get current user profile
   const { 
     currentUserProfile, 
     isLoading: isLoadingCurrentUser,
-    canManageUsers 
+    canManageUsers,
+    isOwner 
   } = useCurrentUserProfile();
 
   console.log("[useGCUserManagement] Current profile:", currentUserProfile);
   console.log("[useGCUserManagement] Can manage users:", canManageUsers);
   console.log("[useGCUserManagement] Is loading current user:", isLoadingCurrentUser);
   console.log("[useGCUserManagement] GC account ID:", currentUserProfile?.gc_account_id);
+  console.log("[useGCUserManagement] Is owner:", isOwner);
 
   // Get GC users
   const { 
@@ -35,6 +38,16 @@ export const useGCUserManagement = () => {
     createUser 
   } = useCreateGCUser(currentUserProfile?.gc_account_id);
 
+  // Team management functions
+  const {
+    makeGCAdmin,
+    isMakingGCAdmin,
+    transferOwnership,
+    isTransferringOwnership,
+    removeTeamMember,
+    isRemovingMember
+  } = useTeamManagement();
+
   return {
     gcUsers,
     currentUserProfile,
@@ -44,5 +57,13 @@ export const useGCUserManagement = () => {
     refetchUsers,
     canManageUsers,
     isGCAdmin: currentUserProfile?.role === 'gc_admin',
+    isOwner,
+    // Team management functions
+    makeGCAdmin,
+    isMakingGCAdmin,
+    transferOwnership,
+    isTransferringOwnership,
+    removeTeamMember,
+    isRemovingMember
   };
 };

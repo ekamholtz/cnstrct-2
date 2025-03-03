@@ -25,6 +25,7 @@ export const useCurrentUserProfile = () => {
       console.log("Current user profile:", data);
       console.log("Current user role:", data?.role);
       console.log("Current user gc_account_id:", data?.gc_account_id);
+      console.log("Current user is_owner:", data?.is_owner);
       
       return data;
     }
@@ -32,16 +33,20 @@ export const useCurrentUserProfile = () => {
 
   const isGCAdmin = currentUserProfile?.role === 'gc_admin';
   const isPlatformAdmin = currentUserProfile?.role === 'platform_admin';
+  const isOwner = currentUserProfile?.is_owner || false;
   const canManageUsers = isGCAdmin || isPlatformAdmin;
   
   console.log("User can manage users:", canManageUsers);
   console.log("User is GC admin:", isGCAdmin);
   console.log("User is platform admin:", isPlatformAdmin);
+  console.log("User is company owner:", isOwner);
 
   return {
     currentUserProfile,
     isLoading,
     isGCAdmin,
+    isPlatformAdmin,
+    isOwner,
     canManageUsers,
   };
 };

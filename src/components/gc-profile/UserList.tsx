@@ -34,7 +34,6 @@ export const UserList = ({
     // Log raw users array for debugging
     console.log("UserList - Raw users array:", users);
     console.log("UserList - Users length:", users?.length);
-    console.log("UserList - Users data structure:", JSON.stringify(users));
     
     if (!users || users.length === 0) {
       console.log("UserList - No users available to filter");
@@ -47,16 +46,12 @@ export const UserList = ({
       const emailMatch = user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase());
       const phoneMatch = user.phone_number && user.phone_number.includes(searchQuery);
       
-      console.log(`UserList - Filtering user ${user.full_name} (${user.email}): nameMatch=${nameMatch}, emailMatch=${emailMatch}, phoneMatch=${phoneMatch}`);
-      
       return nameMatch || emailMatch || phoneMatch;
     });
     
     console.log(`UserList - Filtered from ${users.length} to ${filtered.length} users with query "${searchQuery}"`);
     setFilteredUsers(filtered);
   }, [users, searchQuery]);
-
-  console.log("UserList rendering. Users:", users?.length, "Filtered:", filteredUsers.length, "Loading:", isLoading, "User data:", users);
 
   return (
     <div className="space-y-4">
@@ -79,6 +74,7 @@ export const UserList = ({
               <TableHead>Email</TableHead>
               <TableHead>Phone</TableHead>
               <TableHead>Role</TableHead>
+              <TableHead>Profile Complete</TableHead>
               {canManageUsers && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>

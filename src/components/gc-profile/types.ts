@@ -10,6 +10,7 @@ export interface GCUserProfile {
   gc_account_id?: string;
   has_completed_profile?: boolean;
   created_at?: string;
+  is_owner?: boolean;
 }
 
 export interface CreateUserFormValues {
@@ -17,5 +18,6 @@ export interface CreateUserFormValues {
   email: string;
   phone: string;
   role: "gc_admin" | "project_manager";
-  gc_account_id?: string; // Adding this field to match what we're trying to pass
+  gc_account_id?: string;
+  is_owner?: boolean;
 }
