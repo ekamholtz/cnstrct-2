@@ -11,6 +11,11 @@ export const useGCUserManagement = () => {
     canManageUsers 
   } = useCurrentUserProfile();
 
+  console.log("[useGCUserManagement] Current profile:", currentUserProfile);
+  console.log("[useGCUserManagement] Can manage users:", canManageUsers);
+  console.log("[useGCUserManagement] Is loading current user:", isLoadingCurrentUser);
+  console.log("[useGCUserManagement] GC account ID:", currentUserProfile?.gc_account_id);
+
   // Get GC users
   const { 
     gcUsers, 
@@ -20,6 +25,9 @@ export const useGCUserManagement = () => {
     currentUserProfile?.gc_account_id,
     canManageUsers
   );
+
+  console.log("[useGCUserManagement] GC users:", gcUsers);
+  console.log("[useGCUserManagement] Is loading users:", isLoadingUsers);
 
   // Create GC user
   const { 

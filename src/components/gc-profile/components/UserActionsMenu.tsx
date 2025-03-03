@@ -27,10 +27,16 @@ export const UserActionsMenu = ({ user }: UserActionsMenuProps) => {
         <DropdownMenuItem 
           className="text-red-600 hover:text-red-700"
           onClick={() => {
+            console.log(`User ID: ${user.id}`);
+            console.log(`User full name: ${user.full_name}`);
+            console.log(`User email: ${user.email}`);
+            console.log(`User role: ${user.role}`);
             console.log(`User GC account ID: ${user.gc_account_id}`);
+            console.log(`User profile completed: ${user.has_completed_profile}`);
+            console.log(`User created at: ${user.created_at}`);
           }}
         >
-          Debug GC ID
+          Debug User Info
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -4,15 +4,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { GCUserProfile } from "../types";
 
 export const useGCUsers = (gcAccountId?: string, canFetch: boolean = false) => {
+  console.log("[useGCUsers] Initializing with gcAccountId:", gcAccountId, "canFetch:", canFetch);
+  
   const { data: gcUsers, isLoading: isLoadingUsers, refetch } = useQuery({
     queryKey: ['gc-users', gcAccountId],
     queryFn: async () => {
       if (!gcAccountId) {
-        console.log('No GC account ID found, not fetching users');
+        console.log('[useGCUsers] No GC account ID found, not fetching users');
         return [];
       }
 
-      console.log('Fetching users for GC account:', gcAccountId);
+      console.log('[useGCUsers] Fetching users for GC account:', gcAccountId);
       
       // First get all profiles matching the GC account ID
       const { data: profiles, error } = await supabase
@@ -21,22 +23,22 @@ export const useGCUsers = (gcAccountId?: string, canFetch: boolean = false) => {
         .eq('gc_account_id', gcAccountId);
 
       if (error) {
-        console.error('Error fetching GC users:', error);
+        console.error('[useGCUsers] Error fetching GC users:', error);
         throw error;
       }
 
       // Debug log to understand what's retrieved
-      console.log(`Found ${profiles?.length || 0} profiles with gc_account_id ${gcAccountId}:`, profiles);
+      console.log(`[useGCUsers] Found ${profiles?.length || 0} profiles with gc_account_id ${gcAccountId}:`, profiles);
 
       if (!profiles || profiles.length === 0) {
-        console.log('No profiles found for GC account ID:', gcAccountId);
+        console.log('[useGCUsers] No profiles found for GC account ID:', gcAccountId);
         return [];
       }
 
       try {
         // Add detailed logging for user IDs being passed to the function
         const userIds = profiles.map(profile => profile.id);
-        console.log('Fetching emails for user IDs:', userIds);
+        console.log('[useGCUsers] Fetching emails for user IDs:', userIds);
 
         if (userIds.length === 0) {
           return [];
@@ -51,7 +53,7 @@ export const useGCUsers = (gcAccountId?: string, canFetch: boolean = false) => {
           });
 
         if (funcError) {
-          console.error('Error fetching user emails:', funcError);
+          console.error('[useGCUsers] Error fetching user emails:', funcError);
           // Return profiles without emails if function call fails
           return profiles.map(profile => ({
             ...profile,
@@ -59,11 +61,11 @@ export const useGCUsers = (gcAccountId?: string, canFetch: boolean = false) => {
           })) as GCUserProfile[];
         }
 
-        console.log('Email data received:', usersWithEmails);
+        console.log('[useGCUsers] Email data received:', usersWithEmails);
 
         // Make sure usersWithEmails is an array
         if (!Array.isArray(usersWithEmails)) {
-          console.error('Received invalid email data format:', usersWithEmails);
+          console.error('[useGCUsers] Received invalid email data format:', usersWithEmails);
           return profiles.map(profile => ({
             ...profile,
             email: 'Email data error'
@@ -75,7 +77,7 @@ export const useGCUsers = (gcAccountId?: string, canFetch: boolean = false) => {
           const userEmailObj = usersWithEmails?.find(u => u.id === profile.id);
           const userEmail = userEmailObj?.email || 'Email not available';
           
-          console.log(`Mapping profile ${profile.id} (${profile.full_name}) with email:`, userEmail);
+          console.log(`[useGCUsers] Mapping profile ${profile.id} (${profile.full_name}) with email:`, userEmail);
           
           return {
             ...profile,
@@ -83,10 +85,10 @@ export const useGCUsers = (gcAccountId?: string, canFetch: boolean = false) => {
           };
         });
 
-        console.log('Returning users with profiles and emails:', profilesWithEmails.length);
+        console.log('[useGCUsers] Returning users with profiles and emails:', profilesWithEmails.length);
         return profilesWithEmails as GCUserProfile[];
       } catch (e) {
-        console.error('Error in email fetching process:', e);
+        console.error('[useGCUsers] Error in email fetching process:', e);
         // Return profiles without emails if function call throws
         return profiles.map(profile => ({
           ...profile,
@@ -98,6 +100,10 @@ export const useGCUsers = (gcAccountId?: string, canFetch: boolean = false) => {
     retry: 3,
     refetchOnWindowFocus: false,
   });
+
+  console.log("[useGCUsers] Query enabled:", !!gcAccountId && canFetch);
+  console.log("[useGCUsers] Users data:", gcUsers);
+  console.log("[useGCUsers] Is loading:", isLoadingUsers);
 
   return {
     gcUsers,

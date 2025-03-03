@@ -9,22 +9,39 @@ export const useCurrentUserProfile = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      console.log("Current auth user ID:", user.id);
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching current user profile:", error);
+        throw error;
+      }
+      
       console.log("Current user profile:", data);
+      console.log("Current user role:", data?.role);
+      console.log("Current user gc_account_id:", data?.gc_account_id);
+      
       return data;
     }
   });
 
+  const isGCAdmin = currentUserProfile?.role === 'gc_admin';
+  const isPlatformAdmin = currentUserProfile?.role === 'platform_admin';
+  const canManageUsers = isGCAdmin || isPlatformAdmin;
+  
+  console.log("User can manage users:", canManageUsers);
+  console.log("User is GC admin:", isGCAdmin);
+  console.log("User is platform admin:", isPlatformAdmin);
+
   return {
     currentUserProfile,
     isLoading,
-    isGCAdmin: currentUserProfile?.role === 'gc_admin',
-    canManageUsers: currentUserProfile?.role === 'gc_admin' || currentUserProfile?.role === 'platform_admin',
+    isGCAdmin,
+    canManageUsers,
   };
 };

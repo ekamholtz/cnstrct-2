@@ -20,8 +20,21 @@ export function TeamManagementSection({ profileState }: TeamManagementSectionPro
     isInvitingUser,
     setIsInvitingUser,
     showUserManagement,
-    setRefetchUsers
+    setRefetchUsers,
+    profile
   } = profileState;
+
+  console.log("[TeamManagementSection] Profile state:", {
+    isGCRole,
+    isPlatformAdmin,
+    hasGcAccountId,
+    showUserManagement,
+    profile: {
+      id: profile?.id,
+      role: profile?.role,
+      gc_account_id: profile?.gc_account_id
+    }
+  });
 
   const {
     gcUsers,
@@ -33,9 +46,21 @@ export function TeamManagementSection({ profileState }: TeamManagementSectionPro
     refetchUsers
   } = useGCUserManagement();
 
+  console.log("[TeamManagementSection] GC User Management:", {
+    usersCount: gcUsers?.length,
+    isLoadingUsers,
+    canManageUsers,
+    currentUserProfile: {
+      id: currentUserProfile?.id,
+      role: currentUserProfile?.role,
+      gc_account_id: currentUserProfile?.gc_account_id
+    }
+  });
+
   // Set the refetchUsers function in the profileState
   useEffect(() => {
     if (refetchUsers) {
+      console.log("[TeamManagementSection] Setting refetchUsers function");
       setRefetchUsers(() => refetchUsers);
     }
   }, [refetchUsers, setRefetchUsers]);
@@ -43,11 +68,12 @@ export function TeamManagementSection({ profileState }: TeamManagementSectionPro
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {
       if (!currentUserProfile?.gc_account_id && !isPlatformAdmin) {
-        // Handle missing GC account ID
+        console.error("[TeamManagementSection] Missing GC account ID:", currentUserProfile?.gc_account_id);
         return;
       }
       
-      console.log("Creating user with GC account ID:", currentUserProfile?.gc_account_id);
+      console.log("[TeamManagementSection] Creating user with GC account ID:", currentUserProfile?.gc_account_id);
+      console.log("[TeamManagementSection] Form data:", formData);
       
       await createUser({
         ...formData,
@@ -57,15 +83,18 @@ export function TeamManagementSection({ profileState }: TeamManagementSectionPro
       setIsInvitingUser(false);
       
       // Force a refetch of users after successful creation
+      console.log("[TeamManagementSection] Scheduling refetch after user creation");
       setTimeout(() => {
+        console.log("[TeamManagementSection] Executing delayed refetch");
         refetchUsers();
       }, 1000);
     } catch (error) {
-      console.error("Error inviting user:", error);
+      console.error("[TeamManagementSection] Error inviting user:", error);
     }
   };
 
   if (!showUserManagement) {
+    console.log("[TeamManagementSection] Not showing user management - conditions not met");
     return null;
   }
 
