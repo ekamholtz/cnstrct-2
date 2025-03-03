@@ -64,38 +64,46 @@ export const useProjectCreation = () => {
           throw new Error('Project Manager is not associated with a GC account');
         }
         
-        // Find the GC admin linked to this gc_account_id
-        const { data: gcAdmins, error: gcError } = await supabase
+        console.log('PM creating project - searching for GC admin with gc_account_id:', userProfile.gc_account_id);
+
+        // First try to find the GC admin who is the owner
+        const { data: ownerGcAdmins, error: ownerGcError } = await supabase
           .from('profiles')
           .select('id')
           .eq('gc_account_id', userProfile.gc_account_id)
           .eq('role', 'gc_admin')
           .eq('is_owner', true);
           
-        if (gcError) {
-          console.error('Error finding GC admin:', gcError);
-          throw new Error('Could not find associated General Contractor');
+        if (ownerGcError) {
+          console.error('Error finding owner GC admin:', ownerGcError);
         }
         
-        // Check if we have at least one GC admin
-        if (!gcAdmins || gcAdmins.length === 0) {
-          // Try again without the is_owner filter as a fallback
-          const { data: fallbackGcAdmins, error: fallbackError } = await supabase
+        // Check if we found an owner GC admin
+        if (ownerGcAdmins && ownerGcAdmins.length > 0) {
+          console.log('Found owner GC admin:', ownerGcAdmins[0].id);
+          projectInsert.contractor_id = ownerGcAdmins[0].id;
+        } else {
+          console.log('No owner GC admin found, looking for any GC admin');
+          
+          // If no owner found, try to find any GC admin
+          const { data: anyGcAdmins, error: anyGcError } = await supabase
             .from('profiles')
             .select('id')
             .eq('gc_account_id', userProfile.gc_account_id)
             .eq('role', 'gc_admin');
             
-          if (fallbackError || !fallbackGcAdmins || fallbackGcAdmins.length === 0) {
+          if (anyGcError) {
+            console.error('Error finding any GC admin:', anyGcError);
+            throw new Error('Could not find any General Contractor admin');
+          }
+          
+          if (!anyGcAdmins || anyGcAdmins.length === 0) {
             console.error('No GC admin found for gc_account_id:', userProfile.gc_account_id);
             throw new Error('No General Contractor admin found for this account');
           }
           
-          // Set contractor_id to the first GC admin's id
-          projectInsert.contractor_id = fallbackGcAdmins[0].id;
-        } else {
-          // Set contractor_id to the owner GC admin's id
-          projectInsert.contractor_id = gcAdmins[0].id;
+          console.log('Found GC admin (non-owner):', anyGcAdmins[0].id);
+          projectInsert.contractor_id = anyGcAdmins[0].id;
         }
         
         // Set pm_user_id to the current PM user's id
