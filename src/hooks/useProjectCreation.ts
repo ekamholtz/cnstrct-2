@@ -56,11 +56,11 @@ export const useProjectCreation = () => {
           status: 'pending' as const
         }));
 
-        // Fixed version: Specify the exact column names we're inserting to avoid ambiguity
+        // Fixed version: Use a different approach to avoid ambiguity with project_id
         const { error: milestonesError } = await supabase
           .from('milestones')
-          .insert(milestonesData)
-          .options({ returning: 'minimal' }); // Use options instead of select to avoid ambiguity
+          .insert(milestonesData);
+          // No select() call to avoid ambiguous column issue
 
         if (milestonesError) throw milestonesError;
       }
