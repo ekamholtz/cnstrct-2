@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { TeamMembersSection } from "@/components/dashboard/TeamMembersSection";
 
 export default function Dashboard() {
   const { data: projects = [], isLoading, error, refetch } = useContractorProjects();
@@ -22,7 +23,7 @@ export default function Dashboard() {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, company_name, role')
+        .select('full_name, company_name, role, gc_account_id')
         .eq('id', user.id)
         .single();
 
@@ -32,6 +33,7 @@ export default function Dashboard() {
   });
 
   const isGcOrPm = userProfile?.role === 'gc_admin' || userProfile?.role === 'project_manager';
+  const hasGcAccount = !!userProfile?.gc_account_id;
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
@@ -48,6 +50,15 @@ export default function Dashboard() {
               )}
               {userProfile.company_name && (
                 <h1 className="text-2xl font-bold text-[#172b70] mt-1">{userProfile.company_name}</h1>
+              )}
+              {!hasGcAccount && (
+                <Alert variant="warning" className="mt-4">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Company Setup Needed</AlertTitle>
+                  <AlertDescription>
+                    Please complete your company profile to fully use all features.
+                  </AlertDescription>
+                </Alert>
               )}
               <p className="text-gray-600 mt-2">Manage and track all your construction projects</p>
             </>
@@ -90,6 +101,9 @@ export default function Dashboard() {
           <h2 className="text-xl font-semibold text-[#172b70] mb-6">Active Projects</h2>
           <ProjectsList projects={projects} loading={isLoading} />
         </div>
+        
+        {/* Team Members Section */}
+        {isGcOrPm && <TeamMembersSection />}
       </div>
     </div>
   );

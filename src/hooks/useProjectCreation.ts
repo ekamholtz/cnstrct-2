@@ -20,13 +20,18 @@ export const useProjectCreation = () => {
       // Get user's profile to determine role and gc_account_id
       const { data: userProfile, error: profileError } = await supabase
         .from('profiles')
-        .select('role, gc_account_id, is_owner')
+        .select('role, gc_account_id, is_owner, full_name')
         .eq('id', user.id)
         .single();
 
       if (profileError) throw profileError;
 
       console.log('Creating project with user profile:', userProfile);
+
+      // Validate that user has a gc_account_id
+      if (!userProfile.gc_account_id) {
+        throw new Error('You must be associated with a General Contractor company to create projects');
+      }
 
       // First, create the client
       const { data: client, error: clientError } = await supabase
@@ -42,34 +47,21 @@ export const useProjectCreation = () => {
 
       if (clientError) throw clientError;
 
-      // Initialize project data
-      let projectInsert: any = {
-        name: projectData.projectName,
-        address: projectData.clientAddress,
-        status: 'active' as const,
-        client_id: client.id
-      };
+      // Get the contractor_id (GC Admin) for this gc_account
+      let contractor_id: string | null = null;
       
-      // Set pm_user_id and contractor_id based on user role
+      // If user is a GC admin, they are the contractor
       if (userProfile.role === 'gc_admin') {
-        // If user is a GC admin, they are both the contractor and PM
-        projectInsert.contractor_id = user.id;
-        projectInsert.pm_user_id = user.id;
+        contractor_id = user.id;
+        console.log('GC admin creating project - setting contractor_id to self:', user.id);
+      } else {
+        // For PMs, find the associated GC admin (owner or creator)
+        console.log('PM creating project - finding GC admin for gc_account_id:', userProfile.gc_account_id);
         
-        console.log('GC admin creating project - setting contractor_id and pm_user_id to self:', user.id);
-      } 
-      else if (userProfile.role === 'project_manager') {
-        // For PMs, we need to find their associated GC admin
-        if (!userProfile.gc_account_id) {
-          throw new Error('Project Manager is not associated with a GC account');
-        }
-        
-        console.log('PM creating project - searching for GC admin with gc_account_id:', userProfile.gc_account_id);
-
-        // First, check if the GC account exists and has a valid creator_id
+        // First check for the account creator/owner
         const { data: gcAccount, error: gcAccountError } = await supabase
           .from('gc_accounts')
-          .select('id, creator_id')
+          .select('creator_id')
           .eq('id', userProfile.gc_account_id)
           .single();
           
@@ -79,86 +71,71 @@ export const useProjectCreation = () => {
         }
         
         if (gcAccount.creator_id) {
-          console.log('Found GC account creator:', gcAccount.creator_id);
-          projectInsert.contractor_id = gcAccount.creator_id;
+          contractor_id = gcAccount.creator_id;
+          console.log('Using gc_account creator_id as contractor_id:', contractor_id);
         } else {
-          // If no creator_id found, fallback to looking for owner GC admin
-          const { data: ownerGcAdmins, error: ownerGcError } = await supabase
+          // If no creator_id, find a GC admin in this company, preferring owner
+          const { data: gcAdmins, error: gcAdminsError } = await supabase
             .from('profiles')
-            .select('id')
+            .select('id, is_owner')
             .eq('gc_account_id', userProfile.gc_account_id)
             .eq('role', 'gc_admin')
-            .eq('is_owner', true);
+            .order('is_owner', { ascending: false });
             
-          if (ownerGcError) {
-            console.error('Error finding owner GC admin:', ownerGcError);
+          if (gcAdminsError) {
+            console.error('Error finding GC admins:', gcAdminsError);
+            throw new Error('Could not find any General Contractor admin');
           }
           
-          // Check if we found an owner GC admin
-          if (ownerGcAdmins && ownerGcAdmins.length > 0) {
-            console.log('Found owner GC admin:', ownerGcAdmins[0].id);
-            projectInsert.contractor_id = ownerGcAdmins[0].id;
+          if (gcAdmins && gcAdmins.length > 0) {
+            contractor_id = gcAdmins[0].id;
+            console.log('Found GC admin to use as contractor_id:', contractor_id);
             
             // Update gc_account's creator_id for future use
             await supabase
               .from('gc_accounts')
-              .update({ creator_id: ownerGcAdmins[0].id })
+              .update({ creator_id: contractor_id })
               .eq('id', userProfile.gc_account_id);
           } else {
-            console.log('No owner GC admin found, looking for any GC admin');
-            
-            // If no owner found, try to find any GC admin
-            const { data: anyGcAdmins, error: anyGcError } = await supabase
-              .from('profiles')
-              .select('id')
-              .eq('gc_account_id', userProfile.gc_account_id)
-              .eq('role', 'gc_admin');
-              
-            if (anyGcError) {
-              console.error('Error finding any GC admin:', anyGcError);
-              throw new Error('Could not find any General Contractor admin');
-            }
-            
-            if (!anyGcAdmins || anyGcAdmins.length === 0) {
-              console.error('No GC admin found for gc_account_id:', userProfile.gc_account_id);
-              
-              // If there's no GC admin, set the contractor_id to the PM themselves as a fallback
-              console.log('No GC admin found, setting contractor_id to the PM user as fallback:', user.id);
-              projectInsert.contractor_id = user.id;
-            } else {
-              console.log('Found GC admin (non-owner):', anyGcAdmins[0].id);
-              projectInsert.contractor_id = anyGcAdmins[0].id;
-              
-              // Update gc_account's creator_id for future use
-              await supabase
-                .from('gc_accounts')
-                .update({ creator_id: anyGcAdmins[0].id })
-                .eq('id', userProfile.gc_account_id);
-            }
+            throw new Error('Could not find any General Contractor admin for this company');
           }
         }
-        
-        // Set pm_user_id to the current PM user's id
-        projectInsert.pm_user_id = user.id;
-        
-        console.log('PM creating project:', {
-          contractor_id: projectInsert.contractor_id,
-          pm_user_id: projectInsert.pm_user_id,
-          gc_account_id: userProfile.gc_account_id
-        });
       }
-      else {
-        throw new Error('Only GC Admins and Project Managers can create projects');
+      
+      if (!contractor_id) {
+        throw new Error('Failed to determine contractor_id for the project');
       }
 
-      // Create project with the constructed data
+      // Create project
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .insert(projectInsert)
+        .insert({
+          name: projectData.projectName,
+          address: projectData.clientAddress,
+          status: 'active',
+          client_id: client.id,
+          contractor_id: contractor_id,
+          pm_user_id: userProfile.role === 'project_manager' ? user.id : null
+        })
         .select()
         .single();
 
       if (projectError) throw projectError;
+
+      // If user is a PM, also add them to the project_managers table
+      if (userProfile.role === 'project_manager') {
+        const { error: pmError } = await supabase
+          .from('project_managers')
+          .insert({
+            project_id: project.id,
+            user_id: user.id
+          });
+          
+        if (pmError) {
+          console.error('Error adding PM to project_managers:', pmError);
+          // Non-fatal error, continue with project creation
+        }
+      }
 
       // Create milestones
       if (projectData.milestones?.length > 0) {
@@ -170,7 +147,6 @@ export const useProjectCreation = () => {
           status: 'pending' as const
         }));
 
-        // Fix: Be explicit about the columns in the query to avoid ambiguity
         const { error: milestonesError } = await supabase
           .from('milestones')
           .insert(milestonesData)
@@ -194,9 +170,9 @@ export const useProjectCreation = () => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create project. Please try again.",
+        description: error.message || "Failed to create project. Please try again.",
       });
-      throw error;
+      return null;
     } finally {
       setIsLoading(false);
     }

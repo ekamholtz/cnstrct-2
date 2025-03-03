@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GCUserProfile } from "../types";
 
-export const useGCUsers = (gcAccountId?: string, canFetch: boolean = false) => {
+export const useGCUsers = (gcAccountId?: string, canFetch: boolean = true) => {
   console.log("[useGCUsers] Initializing with gcAccountId:", gcAccountId, "canFetch:", canFetch);
   
   const { data: gcUsers, isLoading: isLoadingUsers, refetch } = useQuery({
@@ -28,7 +28,7 @@ export const useGCUsers = (gcAccountId?: string, canFetch: boolean = false) => {
       }
 
       // Debug log to understand what's retrieved
-      console.log(`[useGCUsers] Found ${profiles?.length || 0} profiles with gc_account_id ${gcAccountId}:`, profiles);
+      console.log(`[useGCUsers] Found ${profiles?.length || 0} profiles with gc_account_id ${gcAccountId}`);
 
       if (!profiles || profiles.length === 0) {
         console.log('[useGCUsers] No profiles found for GC account ID:', gcAccountId);

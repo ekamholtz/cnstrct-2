@@ -19,14 +19,14 @@ export const useGCUserManagement = () => {
   console.log("[useGCUserManagement] GC account ID:", currentUserProfile?.gc_account_id);
   console.log("[useGCUserManagement] Is owner:", isOwner);
 
-  // Get GC users
+  // Get GC users only if we have a gc_account_id and can manage users
   const { 
     gcUsers, 
     isLoadingUsers, 
     refetchUsers 
   } = useGCUsers(
     currentUserProfile?.gc_account_id,
-    canManageUsers
+    !!currentUserProfile?.gc_account_id && (canManageUsers || currentUserProfile?.role === 'project_manager')
   );
 
   console.log("[useGCUserManagement] GC users:", gcUsers);
