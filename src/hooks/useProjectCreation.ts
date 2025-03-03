@@ -56,7 +56,7 @@ export const useProjectCreation = () => {
           status: 'pending' as const
         }));
 
-        // Complete fix: Don't use select at all since we don't need the returned data
+        // Fix: Don't use select at all and be extremely explicit with column names during insert
         const { error: milestonesError } = await supabase
           .from('milestones')
           .insert(milestonesData);
