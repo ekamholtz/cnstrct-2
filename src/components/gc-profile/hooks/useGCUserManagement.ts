@@ -40,7 +40,7 @@ export const useGCUserManagement = () => {
 
       console.log('Fetching users for GC account:', currentUserProfile.gc_account_id);
       
-      // First get all profiles with this GC account ID
+      // Direct query for all profiles with matching gc_account_id
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -56,41 +56,49 @@ export const useGCUserManagement = () => {
         return [];
       }
 
-      console.log('Found profiles:', profiles.length);
+      console.log('Found profiles:', profiles.length, profiles);
 
-      // Now get the emails for these users from auth.users
-      // We can't query auth.users directly, so we'll use the admin function
-      const { data: usersWithEmails, error: adminError } = await supabase
-        .functions.invoke('get-user-emails', {
-          body: {
-            userIds: profiles.map(profile => profile.id)
-          }
+      try {
+        // Get emails via the edge function
+        const { data: usersWithEmails, error: funcError } = await supabase
+          .functions.invoke('get-user-emails', {
+            body: {
+              userIds: profiles.map(profile => profile.id)
+            }
+          });
+
+        if (funcError) {
+          console.error('Error fetching user emails:', funcError);
+          // Return profiles without emails if function call fails
+          return profiles.map(profile => ({
+            ...profile,
+            email: 'Email not available'
+          })) as GCUserProfile[];
+        }
+
+        // Merge profile data with emails
+        const profilesWithEmails = profiles.map(profile => {
+          const userEmail = usersWithEmails?.find(u => u.id === profile.id)?.email || 'Email not available';
+          return {
+            ...profile,
+            email: userEmail
+          };
         });
 
-      if (adminError) {
-        console.error('Error fetching user emails:', adminError);
-        // Continue with profiles only, without emails
+        console.log('Returning users with profiles and emails:', profilesWithEmails.length);
+        return profilesWithEmails as GCUserProfile[];
+      } catch (e) {
+        console.error('Error in email fetching process:', e);
+        // Return profiles without emails if function call throws
         return profiles.map(profile => ({
           ...profile,
-          email: 'Email not available' // Placeholder
-        }));
+          email: 'Email not available'
+        })) as GCUserProfile[];
       }
-
-      // Merge profile data with emails
-      const usersWithProfiles = profiles.map(profile => {
-        const userEmail = usersWithEmails?.find(u => u.id === profile.id)?.email || 'Email not available';
-        return {
-          ...profile,
-          email: userEmail
-        };
-      });
-
-      console.log('Returning users with profiles:', usersWithProfiles.length, usersWithProfiles);
-      return usersWithProfiles as GCUserProfile[];
     },
     enabled: !!currentUserProfile?.gc_account_id && 
       (currentUserProfile.role === 'gc_admin' || currentUserProfile.role === 'platform_admin'),
-    retry: 2, // Retry failed requests up to 2 times
+    retry: 2,
     refetchOnWindowFocus: false,
   });
 
