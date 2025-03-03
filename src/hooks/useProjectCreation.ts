@@ -56,11 +56,11 @@ export const useProjectCreation = () => {
           status: 'pending' as const
         }));
 
-        // Fixed version: Use explicit column names and avoid direct select
+        // Fix: Explicitly select only id to avoid ambiguity with project_id
         const { error: milestonesError } = await supabase
           .from('milestones')
           .insert(milestonesData)
-          .select('id'); // Select only the id to avoid ambiguity with project_id
+          .select('id'); // Only select id to avoid ambiguity
 
         if (milestonesError) throw milestonesError;
       }
