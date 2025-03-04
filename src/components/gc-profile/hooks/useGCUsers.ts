@@ -1,3 +1,4 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GCUserProfile } from "../types";
@@ -16,11 +17,10 @@ export const useGCUsers = (gcAccountId?: string, canFetch: boolean = true) => {
       console.log('[useGCUsers] Fetching users for GC account:', gcAccountId);
       
       // First get all profiles matching the GC account ID
-      // Use explicit column reference for gc_account_id
       const { data: profiles, error } = await supabase
-        .from('profiles as p')
-        .select('p.*')
-        .eq('p.gc_account_id', gcAccountId);
+        .from('profiles')
+        .select('*')
+        .eq('gc_account_id', gcAccountId);
 
       if (error) {
         console.error('[useGCUsers] Error fetching GC users:', error);

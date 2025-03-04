@@ -91,31 +91,29 @@ export const createMilestones = async (milestonesData: {
   status: MilestoneStatus;
 }[]) => {
   try {
-    // Try the standard insert first
+    // Important: We need to avoid using RPC function for PMs due to permissions
+    // So we'll use direct inserts with explicit fields
+    const insertData = milestonesData.map(milestone => ({
+      name: milestone.name,
+      amount: milestone.amount,
+      description: milestone.description,
+      project_id: milestone.project_id,
+      status: milestone.status
+    }));
+    
     const { error: milestonesError } = await supabase
       .from('milestones')
-      .insert(milestonesData);
+      .insert(insertData);
       
     if (milestonesError) {
+      console.error('Error inserting milestones:', milestonesError);
       throw milestonesError;
     }
     
     return { success: true };
-  } catch (insertError) {
-    console.error('Error inserting milestones with standard method:', insertError);
-    
-    // Fallback to our custom function if normal insert fails
-    const { error: rpcError } = await supabase.rpc(
-      'insert_milestones',
-      { milestones_data: JSON.stringify(milestonesData) }
-    );
-    
-    if (rpcError) {
-      console.error('Error with RPC milestone insertion:', rpcError);
-      throw rpcError;
-    }
-    
-    return { success: true };
+  } catch (error) {
+    console.error('Error creating milestones:', error);
+    throw error;
   }
 };
 

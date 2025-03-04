@@ -83,18 +83,12 @@ export const useClientInvoices = () => {
       const totalPending = allPendingInvoices?.reduce((sum, inv) => 
         sum + Number(inv.amount), 0) || 0;
 
-      // Explicitly qualify table aliases and column references
+      // Use standard format for querying with foreign table data
       const { data: displayInvoices, error: invoiceError } = await supabase
-        .from('invoices as i')
+        .from('invoices')
         .select(`
-          i.id,
-          i.invoice_number,
-          i.amount,
-          i.status,
-          i.created_at,
-          i.updated_at,
-          i.milestone_id,
-          milestones!i.milestone_id (
+          *,
+          milestone:milestone_id (
             id,
             name,
             project:project_id (
@@ -103,9 +97,9 @@ export const useClientInvoices = () => {
             )
           )
         `)
-        .in('i.milestone_id', milestoneIds)
-        .eq('i.status', 'pending_payment')
-        .order('i.created_at', { ascending: true })
+        .in('milestone_id', milestoneIds)
+        .eq('status', 'pending_payment')
+        .order('created_at', { ascending: true })
         .limit(3);
 
       if (invoiceError) {
@@ -127,9 +121,9 @@ export const useClientInvoices = () => {
         created_at: invoice.created_at,
         updated_at: invoice.updated_at,
         milestone_id: invoice.milestone_id,
-        milestone_name: invoice.milestones.name,
-        project_name: invoice.milestones.project.name,
-        project_id: invoice.milestones.project.id,
+        milestone_name: invoice.milestone?.name,
+        project_name: invoice.milestone?.project?.name,
+        project_id: invoice.milestone?.project?.id,
         payment_method: null,
         payment_date: null,
         payment_reference: null,
