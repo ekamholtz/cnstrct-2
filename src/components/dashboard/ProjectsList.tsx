@@ -1,8 +1,10 @@
+
 import { Project } from "@/types/project";
 import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { calculateProjectCompletion } from "@/utils/project-calculations";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -37,31 +39,9 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
     enabled: projects.length > 0,
   });
 
-  const calculateCompletion = (projectId: string) => {
-    if (!milestones) return 0;
-    
-    const projectMilestones = milestones.filter(m => m.project_id === projectId);
-    
-    if (projectMilestones.length === 0) {
-      console.log('No milestones found for project:', projectId);
-      return 0;
-    }
-
-    const totalAmount = projectMilestones.reduce((sum, milestone) => 
-      sum + (milestone.amount || 0), 0);
-    
-    const completedAmount = projectMilestones
-      .filter(milestone => milestone.status === 'completed')
-      .reduce((sum, milestone) => sum + (milestone.amount || 0), 0);
-
-    console.log('Project completion calculation:', {
-      projectId,
-      totalAmount,
-      completedAmount,
-      percentage: totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0
-    });
-
-    return totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0;
+  const getProjectMilestones = (projectId: string) => {
+    if (!milestones) return [];
+    return milestones.filter(m => m.project_id === projectId);
   };
 
   if (loading) {
@@ -102,9 +82,9 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Progress</span>
-                    <span className="text-sm font-medium">{calculateCompletion(project.id)}% Complete</span>
+                    <span className="text-sm font-medium">{calculateProjectCompletion(getProjectMilestones(project.id))}% Complete</span>
                   </div>
-                  <Progress value={calculateCompletion(project.id)} className="h-2" />
+                  <Progress value={calculateProjectCompletion(getProjectMilestones(project.id))} className="h-2" />
                 </div>
               </div>
             </Link>

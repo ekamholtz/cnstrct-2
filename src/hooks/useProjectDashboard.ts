@@ -135,9 +135,7 @@ export function useProjectDashboard(projectId: string | undefined) {
         .from('homeowner_expenses')
         .select(`
           *,
-          project:project_id (
-            name
-          )
+          project:projects(name)
         `)
         .eq('project_id', projectId);
 
@@ -156,9 +154,7 @@ export function useProjectDashboard(projectId: string | undefined) {
         .from('expenses')
         .select(`
           *,
-          project:project_id (
-            name
-          )
+          project:projects(name)
         `)
         .eq('project_id', projectId);
 
