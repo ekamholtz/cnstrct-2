@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { ProjectFormValues } from "@/components/projects/types";
+import { MilestoneStatus } from "@/types/project-types";
 
 export const useProjectCreation = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -140,22 +141,28 @@ export const useProjectCreation = () => {
       // Handle milestones creation
       if (projectData.milestones?.length > 0) {
         try {
-          // Prepare milestones data
+          // Prepare milestones data - ensuring the status is properly typed
           const milestonesData = projectData.milestones.map((milestone) => ({
             name: milestone.name,
             amount: parseFloat(milestone.amount),
             description: milestone.description,
             project_id: project.id,
-            status: 'pending'
+            status: 'pending' as MilestoneStatus
           }));
 
-          // Call the database function using a direct SQL query through REST API
-          const { error: milestonesError } = await supabase
-            .from('milestones')
-            .insert(milestonesData);
+          // Try the standard insert first
+          try {
+            const { error: milestonesError } = await supabase
+              .from('milestones')
+              .insert(milestonesData);
+              
+            if (milestonesError) {
+              throw milestonesError;
+            }
             
-          if (milestonesError) {
-            console.error('Error inserting milestones with standard method:', milestonesError);
+            console.log(`Successfully created milestones for project: ${project.id}`);
+          } catch (insertError) {
+            console.error('Error inserting milestones with standard method:', insertError);
             
             // Fallback to our custom function if normal insert fails
             const { error: rpcError } = await supabase.rpc(
@@ -169,8 +176,6 @@ export const useProjectCreation = () => {
             } else {
               console.log(`Successfully created milestones for project: ${project.id} using RPC function`);
             }
-          } else {
-            console.log(`Successfully created milestones for project: ${project.id}`);
           }
         } catch (milestonesError) {
           console.error('Error creating milestones:', milestonesError);
