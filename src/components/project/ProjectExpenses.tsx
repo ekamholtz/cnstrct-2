@@ -30,13 +30,25 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
         payment_status: status.toLowerCase() as 'due' | 'paid' | 'partially_paid'
       });
       
+      if (!expense) {
+        throw new Error("Failed to create expense - no expense returned");
+      }
+      
+      console.log('Expense created:', expense);
+      
       // If payment details are provided, create a payment record
       if (paymentDetails && expense) {
         console.log('Creating payment for expense:', expense.id, paymentDetails);
-        await createPayment({
+        const paymentResult = await createPayment({
           expenseId: expense.id,
           paymentData: paymentDetails
         });
+        
+        console.log('Payment creation result:', paymentResult);
+        
+        if (!paymentResult) {
+          throw new Error("Failed to create payment");
+        }
       }
 
       // Invalidate relevant queries to trigger a refresh
@@ -52,7 +64,9 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create expense. Please try again.",
+        description: error instanceof Error 
+          ? `Failed to create expense: ${error.message}` 
+          : "Failed to create expense. Please try again.",
       });
     }
   };

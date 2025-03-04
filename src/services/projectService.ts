@@ -113,6 +113,26 @@ export const createPayment = async (paymentData: {
 }) => {
   console.log('Creating payment with data:', paymentData);
   
+  if (!paymentData.expense_id) {
+    throw new Error('Missing expense_id in payment data');
+  }
+  
+  // Validate the expense exists before creating payment
+  const { data: expense, error: expenseError } = await supabase
+    .from('expenses')
+    .select('id, amount')
+    .eq('id', paymentData.expense_id)
+    .single();
+    
+  if (expenseError) {
+    console.error('Error validating expense before payment:', expenseError);
+    throw new Error(`Cannot create payment: ${expenseError.message}`);
+  }
+  
+  if (!expense) {
+    throw new Error(`Cannot create payment: Expense with ID ${paymentData.expense_id} not found`);
+  }
+  
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
     .insert(paymentData)

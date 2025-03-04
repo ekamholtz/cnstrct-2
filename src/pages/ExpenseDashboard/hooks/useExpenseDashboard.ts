@@ -61,14 +61,22 @@ export function useExpenseDashboard() {
     paymentDetails?: PaymentDetailsData
   ): Promise<void> => {
     try {
+      console.log('Attempting to create expense with data:', data);
+      
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
-      const { error } = await supabase
+      const amount = parseFloat(data.amount);
+      const expenseNumber = generateExpenseNumber();
+      
+      console.log('Creating expense with amount:', amount, 'and expense number:', expenseNumber);
+      
+      const { data: newExpense, error } = await supabase
         .from('homeowner_expenses')
         .insert({
           name: data.name,
-          amount: parseFloat(data.amount),
+          amount: amount,
+          amount_due: amount,
           payee: data.payee,
           expense_date: data.expense_date,
           expense_type: data.expense_type,
@@ -76,11 +84,59 @@ export function useExpenseDashboard() {
           notes: data.notes,
           homeowner_id: user.id,
           payment_status: status,
-          amount_due: parseFloat(data.amount),
-          expense_number: generateExpenseNumber()
-        });
+          expense_number: expenseNumber
+        })
+        .select()
+        .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error during expense creation:', error);
+        throw error;
+      }
+      
+      console.log('Expense created successfully:', newExpense);
+
+      // If payment details are provided, create a payment
+      if (paymentDetails && newExpense) {
+        console.log('Creating payment for expense:', newExpense.id, paymentDetails);
+        const paymentAmount = parseFloat(paymentDetails.amount);
+        
+        const { data: payment, error: paymentError } = await supabase
+          .from('payments')
+          .insert({
+            expense_id: newExpense.id,
+            payment_method_code: paymentDetails.payment_method_code,
+            payment_date: paymentDetails.payment_date,
+            amount: paymentAmount,
+            notes: paymentDetails.notes || '',
+            direction: 'outgoing',
+            status: 'completed'
+          })
+          .select();
+
+        if (paymentError) {
+          console.error('Error creating payment:', paymentError);
+          throw paymentError;
+        }
+        
+        console.log('Payment created successfully:', payment);
+        
+        // Update expense amount_due and status based on payment
+        const newAmountDue = newExpense.amount - paymentAmount;
+        const newStatus = newAmountDue <= 0 ? 'paid' as const : 'partially_paid' as const;
+        
+        const { error: updateError } = await supabase
+          .from('homeowner_expenses')
+          .update({
+            payment_status: newStatus,
+            amount_due: Math.max(0, newAmountDue)
+          })
+          .eq('id', newExpense.id);
+          
+        if (updateError) {
+          console.error('Error updating expense after payment:', updateError);
+        }
+      }
 
       // Invalidate both the expenses list and the project-specific queries
       await Promise.all([
@@ -91,14 +147,14 @@ export function useExpenseDashboard() {
 
       toast({
         title: "Success",
-        description: "Expense created successfully",
+        description: "Expense created successfully" + (paymentDetails ? " with payment" : ""),
       });
     } catch (error) {
       console.error('Error creating expense:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to create expense. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to create expense. Please try again.",
       });
       throw error;
     }

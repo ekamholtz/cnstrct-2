@@ -12,6 +12,7 @@ export function useExpenses(projectId: string) {
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['expenses', projectId],
     queryFn: async () => {
+      console.log('Fetching expenses for project:', projectId);
       const { data, error } = await supabase
         .from('expenses')
         .select(`
@@ -22,22 +23,39 @@ export function useExpenses(projectId: string) {
         .eq('project_id', projectId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching expenses:', error);
+        throw error;
+      }
+      
+      console.log('Fetched expenses:', data);
       return data as Expense[];
     },
   });
 
   const { mutateAsync: createExpense } = useMutation({
     mutationFn: async (data: ExpenseFormStage1Data & { payment_status: 'due' | 'paid' | 'partially_paid' }) => {
+      console.log('Creating expense with data:', data);
+      
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .select('contractor_id')
         .eq('id', data.project_id)
         .single();
 
-      if (projectError) throw projectError;
+      if (projectError) {
+        console.error('Error fetching project for expense creation:', projectError);
+        throw projectError;
+      }
+
+      if (!project) {
+        throw new Error("Project not found");
+      }
 
       const amount = Number(data.amount);
+      if (isNaN(amount) || amount <= 0) {
+        throw new Error("Invalid expense amount");
+      }
 
       const newExpense = {
         name: data.name,
@@ -49,16 +67,23 @@ export function useExpenses(projectId: string) {
         notes: data.notes || '',
         project_id: data.project_id,
         contractor_id: project.contractor_id,
-        payment_status: data.payment_status
+        payment_status: data.payment_status,
+        expense_number: `EXP-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`.toUpperCase()
       };
 
+      console.log('Inserting expense:', newExpense);
       const { data: expense, error } = await supabase
         .from('expenses')
-        .insert([newExpense])
+        .insert(newExpense)
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating expense:', error);
+        throw error;
+      }
+      
+      console.log('Expense created successfully:', expense);
       return expense;
     },
     onSuccess: () => {
@@ -68,44 +93,71 @@ export function useExpenses(projectId: string) {
         description: "Expense created successfully",
       });
     },
+    onError: (error) => {
+      console.error('Error creating expense (in mutation):', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to create expense. Please try again.",
+      });
+    }
   });
 
   const { mutateAsync: processPayment } = useMutation({
     mutationFn: async ({ expenseId, paymentData }: { expenseId: string; paymentData: PaymentDetailsData }) => {
       console.log('Processing payment for expense:', expenseId, paymentData);
       
-      // Create the payment record using the service function
-      const payment = await createPayment({
-        expense_id: expenseId,
-        payment_method_code: paymentData.payment_method_code,
-        payment_date: new Date(paymentData.payment_date).toISOString(),
-        amount: Number(paymentData.amount),
-        notes: paymentData.notes,
-        direction: 'outgoing',
-        status: 'completed'
-      });
+      try {
+        // Create the payment record using the service function
+        const payment = await createPayment({
+          expense_id: expenseId,
+          payment_method_code: paymentData.payment_method_code,
+          payment_date: new Date(paymentData.payment_date).toISOString(),
+          amount: Number(paymentData.amount),
+          notes: paymentData.notes || '',
+          direction: 'outgoing',
+          status: 'completed'
+        });
+        
+        console.log('Payment created:', payment);
 
-      // Update the expense status and amount_due
-      const { data: expense, error: expenseError } = await supabase
-        .from('expenses')
-        .select('amount, amount_due')
-        .eq('id', expenseId)
-        .single();
+        // Update the expense status and amount_due
+        const { data: expense, error: expenseError } = await supabase
+          .from('expenses')
+          .select('amount, amount_due')
+          .eq('id', expenseId)
+          .single();
 
-      if (expenseError) throw expenseError;
+        if (expenseError) {
+          console.error('Error fetching expense for payment update:', expenseError);
+          throw expenseError;
+        }
 
-      const newAmountDue = expense.amount_due - Number(paymentData.amount);
-      const newStatus = newAmountDue <= 0 ? 'paid' as const : 'partially_paid' as const;
+        const newAmountDue = expense.amount_due - Number(paymentData.amount);
+        const newStatus = newAmountDue <= 0 ? 'paid' as const : 'partially_paid' as const;
 
-      await supabase
-        .from('expenses')
-        .update({
-          payment_status: newStatus,
-          amount_due: Math.max(0, newAmountDue)
-        })
-        .eq('id', expenseId);
+        const { data: updatedExpense, error: updateError } = await supabase
+          .from('expenses')
+          .update({
+            payment_status: newStatus,
+            amount_due: Math.max(0, newAmountDue)
+          })
+          .eq('id', expenseId)
+          .select()
+          .single();
+          
+        if (updateError) {
+          console.error('Error updating expense after payment:', updateError);
+          throw updateError;
+        }
+        
+        console.log('Expense updated after payment:', updatedExpense);
 
-      return payment;
+        return payment;
+      } catch (error) {
+        console.error('Error processing payment:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
@@ -115,6 +167,14 @@ export function useExpenses(projectId: string) {
         description: "Payment processed successfully",
       });
     },
+    onError: (error) => {
+      console.error('Error processing payment (in mutation):', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
+      });
+    }
   });
 
   return {
