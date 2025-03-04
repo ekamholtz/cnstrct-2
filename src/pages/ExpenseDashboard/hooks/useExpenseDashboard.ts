@@ -1,17 +1,22 @@
 
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { ExpenseFilters } from "../types";
-import type { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
+import { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
 import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
+import { useFetchExpenses } from "./useFetchExpenses";
+import { generateExpenseNumber } from "../utils/expenseUtils";
+import { 
+  createHomeownerExpense, 
+  createGCExpense, 
+  createExpensePayment, 
+  updateExpenseAfterPayment 
+} from "../services/expenseService";
+import { UseExpenseDashboardResult } from "./types/dashboardTypes";
 
-const generateExpenseNumber = () => {
-  return `EXP-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`.toUpperCase();
-};
-
-export function useExpenseDashboard() {
+export function useExpenseDashboard(): UseExpenseDashboardResult {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { currentUserProfile } = useCurrentUserProfile();
@@ -26,48 +31,8 @@ export function useExpenseDashboard() {
   const isHomeowner = currentUserProfile?.role === 'homeowner';
   const expensesTable = isHomeowner ? 'homeowner_expenses' : 'expenses';
 
-  const { data: expenses, isLoading } = useQuery({
-    queryKey: ['expenses', filters, expensesTable],
-    queryFn: async () => {
-      console.log(`Fetching expenses from ${expensesTable} table with filters:`, filters);
-      
-      // Use standard Supabase join pattern without table aliases
-      let query = supabase
-        .from(expensesTable)
-        .select(`
-          *,
-          project:project_id (
-            name
-          )
-        `);
-
-      if (filters.status !== 'all') {
-        query = query.eq('payment_status', filters.status);
-      }
-      if (filters.projectId !== 'all') {
-        query = query.eq('project_id', filters.projectId);
-      }
-      if (filters.expenseType !== 'all') {
-        query = query.eq('expense_type', filters.expenseType);
-      }
-      if (filters.dateRange?.from) {
-        query = query.gte('expense_date', filters.dateRange.from.toISOString());
-      }
-      if (filters.dateRange?.to) {
-        query = query.lte('expense_date', filters.dateRange.to.toISOString());
-      }
-
-      const { data, error } = await query;
-      if (error) {
-        console.error(`Error fetching expenses from ${expensesTable}:`, error);
-        throw error;
-      }
-      
-      console.log(`Fetched ${data?.length || 0} expenses from ${expensesTable}:`, data);
-      return data;
-    },
-    enabled: !!currentUserProfile,
-  });
+  // Use the extracted fetch hook
+  const { data: expenses, isLoading } = useFetchExpenses(filters);
 
   const handleCreateExpense = async (
     data: ExpenseFormStage1Data,
@@ -82,125 +47,43 @@ export function useExpenseDashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No authenticated user');
 
-      const amount = parseFloat(data.amount);
       const expenseNumber = generateExpenseNumber();
-      
-      console.log('Creating expense with amount:', amount, 'and expense number:', expenseNumber);
+      console.log('Creating expense with expense number:', expenseNumber);
       
       let newExpense;
       
       if (isHomeowner) {
         // Homeowner flow - save to homeowner_expenses
-        const { data: homeownerExpense, error } = await supabase
-          .from('homeowner_expenses')
-          .insert({
-            name: data.name,
-            amount: amount,
-            amount_due: amount,
-            payee: data.payee,
-            expense_date: data.expense_date,
-            expense_type: data.expense_type,
-            project_id: data.project_id,
-            notes: data.notes,
-            homeowner_id: user.id,
-            payment_status: status,
-            expense_number: expenseNumber
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error during homeowner expense creation:', error);
-          throw error;
-        }
-        
-        newExpense = homeownerExpense;
-        console.log('Homeowner expense created successfully:', newExpense);
+        newExpense = await createHomeownerExpense({
+          data,
+          status,
+          userId: user.id,
+          expenseNumber
+        });
       } else {
         // GC or Project Manager flow - save to expenses
-        // First get project info to get contractor_id
-        const { data: project, error: projectError } = await supabase
-          .from('projects')
-          .select('contractor_id')
-          .eq('id', data.project_id)
-          .single();
-
-        if (projectError) {
-          console.error('Error fetching project for expense creation:', projectError);
-          throw projectError;
-        }
-
-        if (!project || !project.contractor_id) {
-          throw new Error('Project not found or missing contractor_id');
-        }
-
-        const { data: gcExpense, error } = await supabase
-          .from('expenses')
-          .insert({
-            name: data.name,
-            amount: amount,
-            amount_due: amount,
-            payee: data.payee,
-            expense_date: data.expense_date,
-            expense_type: data.expense_type,
-            project_id: data.project_id,
-            notes: data.notes || '',
-            contractor_id: project.contractor_id, // Add contractor_id from project
-            payment_status: status,
-            expense_number: expenseNumber
-          })
-          .select()
-          .single();
-
-        if (error) {
-          console.error('Error during expense creation:', error);
-          throw error;
-        }
-        
-        newExpense = gcExpense;
-        console.log('GC/PM expense created successfully:', newExpense);
+        newExpense = await createGCExpense({
+          data,
+          status,
+          expenseNumber
+        });
       }
 
       // If payment details are provided, create a payment
       if (paymentDetails && newExpense) {
-        console.log('Creating payment for expense:', newExpense.id, paymentDetails);
-        const paymentAmount = parseFloat(paymentDetails.amount);
-        
-        const { data: payment, error: paymentError } = await supabase
-          .from('payments')
-          .insert({
-            expense_id: newExpense.id,
-            payment_method_code: paymentDetails.payment_method_code,
-            payment_date: paymentDetails.payment_date,
-            amount: paymentAmount,
-            notes: paymentDetails.notes || '',
-            direction: 'outgoing',
-            status: 'completed'
-          })
-          .select();
-
-        if (paymentError) {
-          console.error('Error creating payment:', paymentError);
-          throw paymentError;
-        }
-        
-        console.log('Payment created successfully:', payment);
+        const payment = await createExpensePayment({
+          expenseId: newExpense.id,
+          paymentDetails,
+          expensesTable
+        });
         
         // Update expense amount_due and status based on payment
-        const newAmountDue = newExpense.amount - paymentAmount;
-        const newStatus = newAmountDue <= 0 ? 'paid' as const : 'partially_paid' as const;
-        
-        const { error: updateError } = await supabase
-          .from(expensesTable)
-          .update({
-            payment_status: newStatus,
-            amount_due: Math.max(0, newAmountDue)
-          })
-          .eq('id', newExpense.id);
-          
-        if (updateError) {
-          console.error(`Error updating expense after payment:`, updateError);
-        }
+        await updateExpenseAfterPayment(
+          newExpense.id,
+          newExpense.amount,
+          parseFloat(paymentDetails.amount),
+          expensesTable
+        );
       }
 
       // Invalidate both the expenses list and the project-specific queries
