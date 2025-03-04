@@ -68,4 +68,5 @@ gcp_jwt_path = "supabase/gcloud.json"
 enabled = true
 
 [functions]
+[functions.serve]
 enabled = true
