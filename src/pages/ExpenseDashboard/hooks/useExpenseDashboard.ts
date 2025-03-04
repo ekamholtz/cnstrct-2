@@ -23,29 +23,30 @@ export function useExpenseDashboard() {
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['expenses', filters],
     queryFn: async () => {
+      // Use explicit table alias and qualified column references
       let query = supabase
-        .from('homeowner_expenses')
+        .from('homeowner_expenses as he')
         .select(`
-          *,
-          project:project_id (
+          he.*,
+          project:he.project_id (
             name
           )
         `);
 
       if (filters.status !== 'all') {
-        query = query.eq('payment_status', filters.status);
+        query = query.eq('he.payment_status', filters.status);
       }
       if (filters.projectId !== 'all') {
-        query = query.eq('project_id', filters.projectId);
+        query = query.eq('he.project_id', filters.projectId);
       }
       if (filters.expenseType !== 'all') {
-        query = query.eq('expense_type', filters.expenseType);
+        query = query.eq('he.expense_type', filters.expenseType);
       }
       if (filters.dateRange?.from) {
-        query = query.gte('expense_date', filters.dateRange.from.toISOString());
+        query = query.gte('he.expense_date', filters.dateRange.from.toISOString());
       }
       if (filters.dateRange?.to) {
-        query = query.lte('expense_date', filters.dateRange.to.toISOString());
+        query = query.lte('he.expense_date', filters.dateRange.to.toISOString());
       }
 
       const { data, error } = await query;

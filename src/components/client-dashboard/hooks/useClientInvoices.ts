@@ -83,17 +83,18 @@ export const useClientInvoices = () => {
       const totalPending = allPendingInvoices?.reduce((sum, inv) => 
         sum + Number(inv.amount), 0) || 0;
 
+      // Explicitly qualify table aliases and column references
       const { data: displayInvoices, error: invoiceError } = await supabase
-        .from('invoices')
+        .from('invoices as i')
         .select(`
-          id,
-          invoice_number,
-          amount,
-          status,
-          created_at,
-          updated_at,
-          milestone_id,
-          milestones!milestone_id (
+          i.id,
+          i.invoice_number,
+          i.amount,
+          i.status,
+          i.created_at,
+          i.updated_at,
+          i.milestone_id,
+          milestones!i.milestone_id (
             id,
             name,
             project:project_id (
@@ -102,9 +103,9 @@ export const useClientInvoices = () => {
             )
           )
         `)
-        .in('milestone_id', milestoneIds)
-        .eq('status', 'pending_payment')
-        .order('created_at', { ascending: true })
+        .in('i.milestone_id', milestoneIds)
+        .eq('i.status', 'pending_payment')
+        .order('i.created_at', { ascending: true })
         .limit(3);
 
       if (invoiceError) {

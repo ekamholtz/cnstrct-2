@@ -14,19 +14,20 @@ export function useInvoices(projectId: string) {
     queryFn: async () => {
       console.log('Starting invoice fetch for project:', projectId);
       
+      // Use explicit table aliases and qualified column references
       const { data, error } = await supabase
-        .from('invoices')
+        .from('invoices as i')
         .select(`
-          *,
-          milestone:milestone_id (
+          i.*,
+          milestone:i.milestone_id (
             name,
             project:project_id (
               name
             )
           )
         `)
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: true });
+        .eq('i.project_id', projectId)
+        .order('i.created_at', { ascending: true });
 
       if (error) {
         console.error('Error fetching invoices:', error);

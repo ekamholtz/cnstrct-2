@@ -12,6 +12,7 @@ export function useInvoiceDetails(invoiceId: string | undefined) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      // Use explicit table aliases and qualify column references
       const { data, error } = await supabase
         .from('invoices')
         .select(`

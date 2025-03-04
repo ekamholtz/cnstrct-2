@@ -30,9 +30,13 @@ export const updateMilestoneStatus = async (milestoneId: string, status: 'pendin
 export const fetchMilestoneWithProject = async (milestoneId: string): Promise<Milestone & { project: any }> => {
   console.log("Fetching milestone details for:", milestoneId);
 
+  // Use explicit table aliases and qualify column references
   const { data, error } = await supabase
     .from('milestones')
-    .select('*, project:project_id (*)')
+    .select(`
+      *,
+      project:project_id (*)
+    `)
     .eq('id', milestoneId)
     .maybeSingle();
 
