@@ -4,12 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useRef } from "react";
-import { Milestone } from "@/types/project-types";
+import { Milestone, SimplifiedMilestone } from "@/types/project-types";
 import { format } from "date-fns";
 import { useMilestoneCompletion } from "@/components/project/milestone/hooks/useMilestoneCompletion";
 
 interface HorizontalMilestoneScrollProps {
-  milestones: Milestone[];
+  milestones: Milestone[] | SimplifiedMilestone[];
 }
 
 export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScrollProps) {
@@ -45,7 +45,7 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
     }
   };
 
-  const handleMilestoneAction = (milestone: Milestone) => {
+  const handleMilestoneAction = (milestone: Milestone | SimplifiedMilestone) => {
     if (milestone.status === 'completed') {
       undoMilestone(milestone.id);
     } else {
@@ -60,6 +60,14 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
     }
     // Green button with darker text for better contrast
     return "bg-[#19db93] hover:bg-[#19db93]/90 text-[#222222] font-bold";
+  };
+
+  // Function to safely format date for both Milestone and SimplifiedMilestone
+  const formatDate = (milestone: Milestone | SimplifiedMilestone) => {
+    if ('updated_at' in milestone) {
+      return format(new Date(milestone.updated_at), 'MMM d, yyyy');
+    }
+    return format(new Date(), 'MMM d, yyyy'); // Fallback for SimplifiedMilestone
   };
 
   return (
@@ -95,7 +103,7 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
                 <p className="text-2xl font-bold text-[#172b70]">
                   ${milestone.amount?.toLocaleString()}
                 </p>
-                {milestone.description && (
+                {'description' in milestone && milestone.description && (
                   <p className="text-sm text-gray-500 line-clamp-2">{milestone.description}</p>
                 )}
               </div>
@@ -103,7 +111,7 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
                 <div className="flex items-center text-sm text-gray-500">
                   <Calendar className="h-4 w-4 mr-2" />
                   <span>
-                    {format(new Date(milestone.updated_at), 'MMM d, yyyy')}
+                    {formatDate(milestone)}
                   </span>
                 </div>
                 <Button
