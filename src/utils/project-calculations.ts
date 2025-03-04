@@ -1,7 +1,7 @@
 
 import { Milestone, SimplifiedMilestone } from "@/types/project-types";
 
-export const calculateProjectCompletion = (milestones?: Milestone[] | SimplifiedMilestone[]) => {
+export const calculateProjectCompletion = (milestones?: (Milestone | SimplifiedMilestone)[]) => {
   if (!milestones || milestones.length === 0) return 0;
   
   const totalMilestones = milestones.length;

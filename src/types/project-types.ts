@@ -4,7 +4,7 @@ export interface Milestone {
   name: string;
   amount: number | null;
   status: MilestoneStatus | null;
-  description?: string;
+  description?: string | null;
   project_id: string;
   created_at: string;
   updated_at: string;
@@ -26,10 +26,13 @@ export interface ClientProject {
   milestones?: SimplifiedMilestone[];
 }
 
-// Add a simplified milestone type that matches what's returned in the client projects query
+// Simplified milestone type with required properties for display in lists
 export interface SimplifiedMilestone {
   id: string;
   name: string;
   amount: number | null;
   status: MilestoneStatus | null;
+  project_id: string;
+  created_at: string;
+  updated_at: string;
 }

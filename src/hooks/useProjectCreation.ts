@@ -9,8 +9,7 @@ import {
   createClient,
   createProject,
   assignProjectManager,
-  createMilestones,
-  getGCAccountId
+  createMilestones
 } from "@/services/projectService";
 
 export const useProjectCreation = () => {
@@ -46,6 +45,7 @@ export const useProjectCreation = () => {
         status: 'active',
         client_id: client.id,
         gc_account_id: userProfile.gc_account_id,
+        contractor_id: user.id, // Add contractor_id as the current user
         pm_user_id: userProfile.role === 'project_manager' ? user.id : null
       });
 

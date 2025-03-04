@@ -1,7 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { MilestoneStatus } from "@/types/project-types";
-import { ProjectFormValues } from "@/components/projects/types";
 
 /**
  * Fetches the current user profile from Supabase
@@ -51,17 +50,12 @@ export const createProject = async (projectData: {
   status: 'active' | 'draft' | 'completed' | 'cancelled';
   client_id: string;
   gc_account_id: string;
+  contractor_id: string;
   pm_user_id?: string;
 }) => {
-  // Get current user for contractor_id
-  const { data: { user } } = await supabase.auth.getUser();
-  
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .insert({
-      ...projectData,
-      contractor_id: user.id // Add contractor_id from current user
-    })
+    .insert(projectData)
     .select()
     .single();
 
@@ -121,26 +115,4 @@ export const createMilestones = async (milestonesData: {
     console.error('Error creating milestones:', error);
     throw error;
   }
-};
-
-/**
- * Gets the GC account ID for a user
- */
-export const getGCAccountId = async (userId: string) => {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('gc_account_id')
-    .eq('id', userId)
-    .single();
-    
-  if (error) {
-    console.error('Error finding GC account ID:', error);
-    throw new Error('Could not find associated General Contractor account');
-  }
-  
-  if (!data.gc_account_id) {
-    throw new Error('User does not have an associated General Contractor account');
-  }
-  
-  return data.gc_account_id;
 };
