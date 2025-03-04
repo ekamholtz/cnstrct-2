@@ -5,6 +5,8 @@ import { HomeownerExpenseList } from "@/components/homeowner/expenses/HomeownerE
 import { DashboardHeader } from "./components/DashboardHeader";
 import { ExpenseFilters } from "./components/ExpenseFilters";
 import { useExpenseDashboard } from "./hooks/useExpenseDashboard";
+import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
+import { ExpenseList } from "@/components/project/expense/ExpenseList";
 
 export default function ExpenseDashboard() {
   const {
@@ -14,6 +16,9 @@ export default function ExpenseDashboard() {
     isLoading,
     handleCreateExpense,
   } = useExpenseDashboard();
+
+  const { currentUserProfile } = useCurrentUserProfile();
+  const isHomeowner = currentUserProfile?.role === 'homeowner';
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
@@ -30,11 +35,15 @@ export default function ExpenseDashboard() {
           onFiltersChange={setFilters}
         />
         <Card className="shadow-sm border-0">
-          <HomeownerExpenseList
-            expenses={expenses || []}
-            loading={isLoading}
-            showProject={true}
-          />
+          {isHomeowner ? (
+            <HomeownerExpenseList
+              expenses={expenses as any[] || []}
+              loading={isLoading}
+              showProject={true}
+            />
+          ) : (
+            <ExpenseList expenses={expenses as any[] || []} />
+          )}
         </Card>
       </div>
     </div>

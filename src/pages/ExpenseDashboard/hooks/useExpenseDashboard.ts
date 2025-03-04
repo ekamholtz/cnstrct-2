@@ -118,6 +118,22 @@ export function useExpenseDashboard() {
         console.log('Homeowner expense created successfully:', newExpense);
       } else {
         // GC or Project Manager flow - save to expenses
+        // First get project info to get contractor_id
+        const { data: project, error: projectError } = await supabase
+          .from('projects')
+          .select('contractor_id')
+          .eq('id', data.project_id)
+          .single();
+
+        if (projectError) {
+          console.error('Error fetching project for expense creation:', projectError);
+          throw projectError;
+        }
+
+        if (!project || !project.contractor_id) {
+          throw new Error('Project not found or missing contractor_id');
+        }
+
         const { data: gcExpense, error } = await supabase
           .from('expenses')
           .insert({
@@ -128,7 +144,8 @@ export function useExpenseDashboard() {
             expense_date: data.expense_date,
             expense_type: data.expense_type,
             project_id: data.project_id,
-            notes: data.notes,
+            notes: data.notes || '',
+            contractor_id: project.contractor_id, // Add contractor_id from project
             payment_status: status,
             expense_number: expenseNumber
           })

@@ -28,12 +28,15 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
       console.log('Project ID:', projectId);
       console.log('User role:', userRole);
       
-      // Create the expense with normalized status
-      const expense = await createExpense({
+      // Ensure project_id is set correctly
+      const expenseData = {
         ...data,
         project_id: projectId, // Ensure correct project ID is used
         payment_status: status.toLowerCase() as 'due' | 'paid' | 'partially_paid'
-      });
+      };
+      
+      // Create the expense with normalized status
+      const expense = await createExpense(expenseData);
       
       if (!expense) {
         throw new Error("Failed to create expense - no expense returned");

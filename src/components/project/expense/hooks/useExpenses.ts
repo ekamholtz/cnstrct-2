@@ -60,6 +60,10 @@ export function useExpenses(projectId: string) {
         throw new Error("Project not found");
       }
 
+      if (!project.contractor_id) {
+        throw new Error("Project is missing contractor_id");
+      }
+
       const amount = Number(data.amount);
       if (isNaN(amount) || amount <= 0) {
         throw new Error("Invalid expense amount");
