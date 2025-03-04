@@ -40,15 +40,21 @@ export function useExpenses(projectId: string) {
   });
 
   const { mutateAsync: createExpense } = useMutation({
-    mutationFn: async (data: ExpenseFormStage1Data & { payment_status?: 'due' | 'paid' | 'partially_paid' }) => {
+    mutationFn: async (data: ExpenseFormStage1Data) => {
       console.log('Creating expense with data:', data);
       console.log('Project ID:', projectId);
       console.log('User role:', currentUserProfile?.role);
       
+      // If project_id was not provided in data, use the one from props
+      const finalData = {
+        ...data,
+        project_id: data.project_id || projectId
+      };
+      
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .select('contractor_id')
-        .eq('id', data.project_id)
+        .eq('id', finalData.project_id)
         .single();
 
       if (projectError) {
@@ -64,22 +70,22 @@ export function useExpenses(projectId: string) {
         throw new Error("Project is missing contractor_id");
       }
 
-      const amount = Number(data.amount);
+      const amount = Number(finalData.amount);
       if (isNaN(amount) || amount <= 0) {
         throw new Error("Invalid expense amount");
       }
 
       const newExpense = {
-        name: data.name,
+        name: finalData.name,
         amount,
         amount_due: amount,
-        payee: data.payee,
-        expense_date: data.expense_date,
-        expense_type: data.expense_type,
-        notes: data.notes || '',
-        project_id: data.project_id,
+        payee: finalData.payee,
+        expense_date: finalData.expense_date,
+        expense_type: finalData.expense_type,
+        notes: finalData.notes || '',
+        project_id: finalData.project_id,
         contractor_id: project.contractor_id,
-        payment_status: data.payment_status || 'due',
+        payment_status: 'due' as const,
         expense_number: `EXP-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`.toUpperCase()
       };
 

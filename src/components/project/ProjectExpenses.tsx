@@ -32,7 +32,6 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
       const expenseData = {
         ...data,
         project_id: projectId, // Ensure correct project ID is used
-        payment_status: status.toLowerCase() as 'due' | 'paid' | 'partially_paid'
       };
       
       // Create the expense with normalized status

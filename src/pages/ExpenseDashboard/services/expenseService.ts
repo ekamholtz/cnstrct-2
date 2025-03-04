@@ -19,7 +19,7 @@ interface CreateGCExpenseParams {
 interface CreatePaymentParams {
   expenseId: string;
   paymentDetails: PaymentDetailsData;
-  expensesTable: string;
+  expensesTable: 'expenses' | 'homeowner_expenses';
 }
 
 /**
@@ -153,7 +153,7 @@ export async function updateExpenseAfterPayment(
   expenseId: string,
   expenseAmount: number,
   paymentAmount: number,
-  expensesTable: string
+  expensesTable: 'expenses' | 'homeowner_expenses'
 ) {
   const newAmountDue = expenseAmount - paymentAmount;
   const newStatus = newAmountDue <= 0 ? 'paid' as const : 'partially_paid' as const;
