@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ClientProjectCard } from "./ClientProjectCard";
-import { ClientProject } from "@/types/project-types";
+import { ClientProject, SimplifiedMilestone } from "@/types/project-types";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
@@ -111,15 +111,22 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
           query = query.limit(limit);
         }
 
-        const { data: projects, error: projectsError } = await query;
+        const { data: projectsData, error: projectsError } = await query;
 
         if (projectsError) {
           console.error('Error fetching projects:', projectsError);
           throw projectsError;
         }
 
-        console.log('Projects found:', projects);
-        return projects as ClientProject[];
+        console.log('Projects found:', projectsData);
+        
+        // Transform the data to match our ClientProject type
+        const clientProjects: ClientProject[] = projectsData?.map(project => ({
+          ...project,
+          milestones: project.milestones as SimplifiedMilestone[]
+        })) || [];
+        
+        return clientProjects;
       } catch (error) {
         console.error('Projects fetch error:', error);
         throw error;
@@ -169,7 +176,7 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {projects.map((project) => (
+      {projects?.map((project) => (
         <ClientProjectCard key={project.id} project={project} />
       ))}
     </div>

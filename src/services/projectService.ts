@@ -53,9 +53,15 @@ export const createProject = async (projectData: {
   gc_account_id: string;
   pm_user_id?: string;
 }) => {
+  // Get current user for contractor_id
+  const { data: { user } } = await supabase.auth.getUser();
+  
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .insert(projectData)
+    .insert({
+      ...projectData,
+      contractor_id: user.id // Add contractor_id from current user
+    })
     .select()
     .single();
 
