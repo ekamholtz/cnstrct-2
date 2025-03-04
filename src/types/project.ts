@@ -6,8 +6,7 @@ export interface Project {
   status: 'draft' | 'active' | 'completed' | 'cancelled';
   created_at: string;
   updated_at: string;
-  contractor_id: string;
-  gc_account_id?: string;
-  pm_user_id?: string;
+  gc_account_id: string;
+  pm_user_id: string;
   client_id?: string;
 }

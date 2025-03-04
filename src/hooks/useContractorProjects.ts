@@ -93,7 +93,15 @@ export function useContractorProjects() {
       // Apply role-specific filters
       if (userRole === 'gc_admin') {
         console.log('Applying GC admin filter');
-        query = query.eq('contractor_id', user.id);
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('gc_account_id')
+          .eq('id', user.id)
+          .single();
+          
+        if (profile && profile.gc_account_id) {
+          query = query.eq('gc_account_id', profile.gc_account_id);
+        }
       } else if (userRole === 'project_manager') {
         console.log('Applying PM filter');
         query = query.eq('pm_user_id', user.id);

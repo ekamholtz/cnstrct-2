@@ -50,8 +50,7 @@ export const createProject = async (projectData: {
   status: 'active' | 'draft' | 'completed' | 'cancelled';
   client_id: string;
   gc_account_id: string;
-  contractor_id: string;
-  pm_user_id?: string;
+  pm_user_id: string;
 }) => {
   const { data: project, error: projectError } = await supabase
     .from('projects')
