@@ -137,38 +137,32 @@ export const useProjectCreation = () => {
         }
       }
 
-      // Create milestones - FIXED: Use RPC function or raw SQL to avoid ambiguity
+      // Handle milestones creation
       if (projectData.milestones?.length > 0) {
-        // Prepare milestone data
-        const milestonesData = projectData.milestones.map((milestone) => ({
-          name: milestone.name,
-          amount: parseFloat(milestone.amount),
-          description: milestone.description,
-          project_id: project.id,
-          status: 'pending' as const
-        }));
+        try {
+          // Prepare milestones data
+          const milestonesData = projectData.milestones.map((milestone) => ({
+            name: milestone.name,
+            amount: parseFloat(milestone.amount),
+            description: milestone.description,
+            project_id: project.id,
+            status: 'pending'
+          }));
 
-        // First approach: Insert without returning any data at all
-        const { error: milestonesInsertError } = await supabase
-          .from('milestones')
-          .insert(milestonesData);
-
-        if (milestonesInsertError) {
-          console.error('Error creating milestones:', milestonesInsertError);
-          throw milestonesInsertError;
-        }
-
-        // Then do a separate query to get all milestones for this project
-        const { data: createdMilestones, error: milestonesSelectError } = await supabase
-          .from('milestones')
-          .select('id')
-          .eq('project_id', project.id);
-
-        if (milestonesSelectError) {
-          console.error('Error verifying milestone creation:', milestonesSelectError);
-          // Not throwing here since the milestones were likely created
-        } else {
-          console.log(`Successfully created ${createdMilestones.length} milestones`);
+          // Use a direct insert without any return values to avoid the ambiguous column problem
+          await supabase.rpc('insert_milestones', {
+            milestones_data: JSON.stringify(milestonesData)
+          });
+          
+          console.log(`Successfully initiated milestone creation for project: ${project.id}`);
+        } catch (milestonesError) {
+          console.error('Error creating milestones:', milestonesError);
+          // Log but don't throw - we want to return the created project even if milestones fail
+          toast({
+            variant: "destructive",
+            title: "Warning",
+            description: "Project created but there was an issue with milestones. Please add them manually.",
+          });
         }
       }
 
