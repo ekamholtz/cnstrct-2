@@ -100,15 +100,13 @@ export function useContractorProjects() {
           .single();
           
         if (profile && profile.gc_account_id) {
-          // Filter by gc_account_id for GC admins
+          // For GC admins, show all projects for their company
           query = query.eq('gc_account_id', profile.gc_account_id);
-        } else {
-          // Fall back to contractor_id if gc_account_id isn't available
-          query = query.eq('contractor_id', user.id);
         }
       } else if (userRole === 'project_manager') {
         console.log('Applying PM filter');
-        query = query.eq('pm_user_id', user.id);
+        // For project managers, only show projects where they are the assigned user
+        query = query.eq('contractor_id', user.id);
       }
       // For platform_admin, no additional filters needed
 

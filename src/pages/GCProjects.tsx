@@ -9,15 +9,6 @@ import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Plus } from "lucide-react";
 import { MainNav } from "@/components/navigation/MainNav";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import ProjectCreationForm from "@/components/projects/ProjectCreationForm";
 
 export default function GCProjects() {
@@ -79,27 +70,7 @@ export default function GCProjects() {
               )}
               <p className="text-gray-600 mt-1">View and manage all your construction projects</p>
             </div>
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Project
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[600px] max-h-[90vh] p-6">
-                <DialogHeader className="mb-4">
-                  <DialogTitle>Create New Project</DialogTitle>
-                  <DialogDescription>
-                    Fill in the project details below to create a new project.
-                  </DialogDescription>
-                </DialogHeader>
-                <ScrollArea className="h-[calc(90vh-180px)] pr-6">
-                  <div className="pb-6">
-                    <ProjectCreationForm onSuccess={refetch} />
-                  </div>
-                </ScrollArea>
-              </DialogContent>
-            </Dialog>
+            <ProjectCreationForm onSuccess={refetch} />
           </div>
         </div>
 

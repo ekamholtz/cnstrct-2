@@ -118,18 +118,41 @@ export function useProjectDashboard(projectId: string | undefined) {
 
       const { data } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, gc_account_id')
         .eq('id', user.id)
         .single();
 
-      return data?.role;
+      return { role: data?.role, gc_account_id: data?.gc_account_id };
     }
+  });
+
+  // Determine if the current user has admin rights for this project
+  const { data: hasAdminRights = false } = useQuery({
+    queryKey: ['project-admin-rights', projectId, userRole],
+    queryFn: async () => {
+      if (!project || !userRole) return false;
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+      
+      // Platform admins have admin rights for all projects
+      if (userRole.role === 'platform_admin') return true;
+      
+      // Project managers have admin rights if they are the assigned user
+      if (project.contractor_id === user.id) return true;
+      
+      // GC admins have admin rights if they belong to the same company
+      if (userRole.role === 'gc_admin' && userRole.gc_account_id === project.gc_account_id) return true;
+      
+      return false;
+    },
+    enabled: !!project && !!userRole,
   });
 
   const { data: homeownerExpenses, isLoading: isHomeownerExpensesLoading } = useQuery({
     queryKey: ['homeowner-expenses', projectId],
     queryFn: async () => {
-      if (userRole !== 'homeowner') return [];
+      if (userRole?.role !== 'homeowner') return [];
 
       const { data, error } = await supabase
         .from('homeowner_expenses')
@@ -148,7 +171,7 @@ export function useProjectDashboard(projectId: string | undefined) {
   const { data: gcExpenses, isLoading: isGCExpensesLoading } = useQuery({
     queryKey: ['gc-expenses', projectId],
     queryFn: async () => {
-      if (!['gc_admin', 'platform_admin'].includes(userRole || '')) return [];
+      if (!['gc_admin', 'platform_admin'].includes(userRole?.role || '')) return [];
 
       const { data, error } = await supabase
         .from('expenses')
@@ -166,9 +189,10 @@ export function useProjectDashboard(projectId: string | undefined) {
 
   return {
     project,
-    homeownerExpenses: userRole === 'homeowner' ? homeownerExpenses : [],
-    gcExpenses: ['gc_admin', 'platform_admin'].includes(userRole || '') ? gcExpenses : [],
-    userRole,
+    homeownerExpenses: userRole?.role === 'homeowner' ? homeownerExpenses : [],
+    gcExpenses: ['gc_admin', 'platform_admin'].includes(userRole?.role || '') ? gcExpenses : [],
+    userRole: userRole?.role,
+    hasAdminRights,
     isLoading: isProjectLoading || isHomeownerExpensesLoading || isGCExpensesLoading
   };
 }
