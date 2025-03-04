@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserProfile } from "./useCurrentUserProfile";
 import { GCUserProfile } from "../types";
@@ -28,6 +28,25 @@ export const useTeamManagement = () => {
       return data;
     },
     enabled: !!currentUserProfile?.gc_account_id,
+  });
+
+  // Check if user is the owner of the GC account
+  const { data: isGCOwner } = useQuery({
+    queryKey: ['is-gc-owner', currentUserProfile?.id, currentUserProfile?.gc_account_id],
+    queryFn: async () => {
+      if (!currentUserProfile?.id || !currentUserProfile?.gc_account_id) return false;
+
+      // Check if the user is the owner in gc_accounts
+      const { data: account, error } = await supabase
+        .from('gc_accounts')
+        .select('owner_id')
+        .eq('id', currentUserProfile.gc_account_id)
+        .single();
+
+      if (error) return false;
+      return account.owner_id === currentUserProfile.id;
+    },
+    enabled: !!currentUserProfile?.id && !!currentUserProfile?.gc_account_id,
   });
 
   // Make user a GC admin of the current company
@@ -73,7 +92,7 @@ export const useTeamManagement = () => {
   // Transfer ownership to another GC admin
   const { mutate: transferOwnership, isPending: isTransferringOwnership } = useMutation({
     mutationFn: async (newOwnerId: string) => {
-      if (!currentUserProfile?.gc_account_id || !isOwner) {
+      if (!currentUserProfile?.gc_account_id || !isGCOwner) {
         throw new Error('You do not have permission to transfer ownership');
       }
 
@@ -90,7 +109,7 @@ export const useTeamManagement = () => {
         throw new Error('Target user is not a GC admin in this company');
       }
 
-      // Start a transaction to update both users
+      // Call the updated function to transfer ownership
       const { data, error } = await supabase.rpc('transfer_gc_ownership', {
         current_owner_id: currentUserProfile.id,
         new_owner_id: newOwnerId,
@@ -107,6 +126,7 @@ export const useTeamManagement = () => {
       });
       queryClient.invalidateQueries({ queryKey: ['current-user-profile'] });
       queryClient.invalidateQueries({ queryKey: ['gc-users'] });
+      queryClient.invalidateQueries({ queryKey: ['is-gc-owner'] });
     },
     onError: (error) => {
       console.error('Error transferring ownership:', error);
@@ -121,7 +141,7 @@ export const useTeamManagement = () => {
   // Remove user from GC account
   const { mutate: removeTeamMember, isPending: isRemovingMember } = useMutation({
     mutationFn: async (userId: string) => {
-      if (!currentUserProfile?.gc_account_id || !isOwner) {
+      if (!currentUserProfile?.gc_account_id || !isGCOwner) {
         throw new Error('You do not have permission to remove team members');
       }
 
@@ -163,7 +183,7 @@ export const useTeamManagement = () => {
     isTransferringOwnership,
     removeTeamMember,
     isRemovingMember,
-    isOwner,
+    isOwner: isGCOwner, // Use new direct ownership check
     isGCAdmin
   };
 };

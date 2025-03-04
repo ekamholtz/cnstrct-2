@@ -14,7 +14,7 @@ export const getCurrentUserProfile = async () => {
   // Get user's profile to determine role and gc_account_id
   const { data: userProfile, error: profileError } = await supabase
     .from('profiles')
-    .select('role, gc_account_id, is_owner, full_name')
+    .select('role, gc_account_id, full_name')
     .eq('id', user.id)
     .single();
 
@@ -50,7 +50,7 @@ export const createProject = async (projectData: {
   address: string;
   status: 'active' | 'draft' | 'completed' | 'cancelled';
   client_id: string;
-  contractor_id: string;
+  gc_account_id: string;
   pm_user_id?: string;
 }) => {
   const { data: project, error: projectError } = await supabase
@@ -118,60 +118,23 @@ export const createMilestones = async (milestonesData: {
 };
 
 /**
- * Finds a contractor ID for a GC account
+ * Gets the GC account ID for a user
  */
-export const findContractorId = async (gcAccountId: string, currentUserId: string, userRole: string) => {
-  // If user is a GC admin, they are the contractor
-  if (userRole === 'gc_admin') {
-    console.log('GC admin creating project - setting contractor_id to self:', currentUserId);
-    return currentUserId;
-  }
-  
-  // For PMs, find the associated GC admin (owner or creator)
-  console.log('PM creating project - finding GC admin for gc_account_id:', gcAccountId);
-  
-  // First check for the account creator/owner
-  const { data: gcAccount, error: gcAccountError } = await supabase
-    .from('gc_accounts')
-    .select('creator_id')
-    .eq('id', gcAccountId)
+export const getGCAccountId = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('gc_account_id')
+    .eq('id', userId)
     .single();
     
-  if (gcAccountError) {
-    console.error('Error finding GC account:', gcAccountError);
+  if (error) {
+    console.error('Error finding GC account ID:', error);
     throw new Error('Could not find associated General Contractor account');
   }
   
-  if (gcAccount.creator_id) {
-    console.log('Using gc_account creator_id as contractor_id:', gcAccount.creator_id);
-    return gcAccount.creator_id;
-  } 
-  
-  // If no creator_id, find a GC admin in this company, preferring owner
-  const { data: gcAdmins, error: gcAdminsError } = await supabase
-    .from('profiles')
-    .select('id, is_owner')
-    .eq('gc_account_id', gcAccountId)
-    .eq('role', 'gc_admin')
-    .order('is_owner', { ascending: false });
-    
-  if (gcAdminsError) {
-    console.error('Error finding GC admins:', gcAdminsError);
-    throw new Error('Could not find any General Contractor admin');
+  if (!data.gc_account_id) {
+    throw new Error('User does not have an associated General Contractor account');
   }
   
-  if (gcAdmins && gcAdmins.length > 0) {
-    const contractorId = gcAdmins[0].id;
-    console.log('Found GC admin to use as contractor_id:', contractorId);
-    
-    // Update gc_account's creator_id for future use
-    await supabase
-      .from('gc_accounts')
-      .update({ creator_id: contractorId })
-      .eq('id', gcAccountId);
-      
-    return contractorId;
-  } 
-  
-  throw new Error('Could not find any General Contractor admin for this company');
+  return data.gc_account_id;
 };

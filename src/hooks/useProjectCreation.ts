@@ -10,7 +10,7 @@ import {
   createProject,
   assignProjectManager,
   createMilestones,
-  findContractorId
+  getGCAccountId
 } from "@/services/projectService";
 
 export const useProjectCreation = () => {
@@ -39,24 +39,13 @@ export const useProjectCreation = () => {
         phone_number: projectData.clientPhone
       });
 
-      // Determine contractor_id for the project
-      const contractor_id = await findContractorId(
-        userProfile.gc_account_id, 
-        user.id, 
-        userProfile.role
-      );
-      
-      if (!contractor_id) {
-        throw new Error('Failed to determine contractor_id for the project');
-      }
-
-      // Create the project
+      // Create the project with gc_account_id
       const project = await createProject({
         name: projectData.projectName,
         address: projectData.clientAddress,
         status: 'active',
         client_id: client.id,
-        contractor_id: contractor_id,
+        gc_account_id: userProfile.gc_account_id,
         pm_user_id: userProfile.role === 'project_manager' ? user.id : null
       });
 

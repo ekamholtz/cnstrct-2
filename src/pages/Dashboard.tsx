@@ -32,6 +32,27 @@ export default function Dashboard() {
     },
   });
 
+  // Check if user is the owner of the GC account
+  const { data: isOwner = false } = useQuery({
+    queryKey: ['is-dashboard-owner', userProfile?.gc_account_id],
+    queryFn: async () => {
+      if (!userProfile?.gc_account_id) return false;
+      
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return false;
+
+      const { data, error } = await supabase
+        .from('gc_accounts')
+        .select('owner_id')
+        .eq('id', userProfile.gc_account_id)
+        .single();
+
+      if (error) return false;
+      return data.owner_id === user.id;
+    },
+    enabled: !!userProfile?.gc_account_id,
+  });
+
   const isGcOrPm = userProfile?.role === 'gc_admin' || userProfile?.role === 'project_manager';
   const hasGcAccount = !!userProfile?.gc_account_id;
 

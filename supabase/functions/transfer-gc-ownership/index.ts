@@ -48,15 +48,14 @@ serve(async (req) => {
     );
   }
 
-  // Verify the current user is actually the owner
-  const { data: currentOwner, error: currentOwnerError } = await supabaseClient
-    .from("profiles")
-    .select("is_owner")
-    .eq("id", currentOwnerId)
-    .eq("gc_account_id", gcAccountId)
+  // Verify the current user is actually the owner of the GC account
+  const { data: currentOwnerCheck, error: currentOwnerError } = await supabaseClient
+    .from("gc_accounts")
+    .select("owner_id")
+    .eq("id", gcAccountId)
     .single();
 
-  if (currentOwnerError || !currentOwner || !currentOwner.is_owner) {
+  if (currentOwnerError || !currentOwnerCheck || currentOwnerCheck.owner_id !== currentOwnerId) {
     return new Response(
       JSON.stringify({ error: "You are not the current owner of this GC account" }),
       {
@@ -84,53 +83,15 @@ serve(async (req) => {
     );
   }
 
-  // Update the current owner - remove owner status
-  const { error: removeOwnerError } = await supabaseClient
-    .from("profiles")
-    .update({ is_owner: false })
-    .eq("id", currentOwnerId);
-
-  if (removeOwnerError) {
-    return new Response(
-      JSON.stringify({ error: "Failed to update current owner status" }),
-      {
-        headers: { "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
-  }
-
-  // Update the new owner - set as owner
-  const { error: setNewOwnerError } = await supabaseClient
-    .from("profiles")
-    .update({ is_owner: true })
-    .eq("id", newOwnerId);
-
-  if (setNewOwnerError) {
-    // Rollback if there was an error
-    await supabaseClient
-      .from("profiles")
-      .update({ is_owner: true })
-      .eq("id", currentOwnerId);
-
-    return new Response(
-      JSON.stringify({ error: "Failed to set new owner status" }),
-      {
-        headers: { "Content-Type": "application/json" },
-        status: 500,
-      }
-    );
-  }
-
-  // Update the gc_account
-  const { error: updateGcAccountError } = await supabaseClient
+  // Update the GC account owner
+  const { error: updateOwnerError } = await supabaseClient
     .from("gc_accounts")
-    .update({ creator_id: newOwnerId })
+    .update({ owner_id: newOwnerId })
     .eq("id", gcAccountId);
 
-  if (updateGcAccountError) {
+  if (updateOwnerError) {
     return new Response(
-      JSON.stringify({ error: "Failed to update GC account, but ownership was transferred" }),
+      JSON.stringify({ error: "Failed to update ownership status" }),
       {
         headers: { "Content-Type": "application/json" },
         status: 500,
