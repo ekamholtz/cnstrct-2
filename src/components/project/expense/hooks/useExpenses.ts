@@ -4,15 +4,20 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ExpenseFormStage1Data, Expense, PaymentDetailsData } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { createPayment } from "@/services/projectService";
+import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
 
 export function useExpenses(projectId: string) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { currentUserProfile } = useCurrentUserProfile();
 
   const { data: expenses, isLoading } = useQuery({
     queryKey: ['expenses', projectId],
     queryFn: async () => {
       console.log('Fetching expenses for project:', projectId);
+      console.log('User role:', currentUserProfile?.role);
+      
+      // Always query the expenses table (not homeowner_expenses) for project details page
       const { data, error } = await supabase
         .from('expenses')
         .select(`
@@ -31,11 +36,14 @@ export function useExpenses(projectId: string) {
       console.log('Fetched expenses:', data);
       return data as Expense[];
     },
+    enabled: !!projectId && !!currentUserProfile,
   });
 
   const { mutateAsync: createExpense } = useMutation({
-    mutationFn: async (data: ExpenseFormStage1Data & { payment_status: 'due' | 'paid' | 'partially_paid' }) => {
+    mutationFn: async (data: ExpenseFormStage1Data & { payment_status?: 'due' | 'paid' | 'partially_paid' }) => {
       console.log('Creating expense with data:', data);
+      console.log('Project ID:', projectId);
+      console.log('User role:', currentUserProfile?.role);
       
       const { data: project, error: projectError } = await supabase
         .from('projects')
@@ -67,11 +75,11 @@ export function useExpenses(projectId: string) {
         notes: data.notes || '',
         project_id: data.project_id,
         contractor_id: project.contractor_id,
-        payment_status: data.payment_status,
+        payment_status: data.payment_status || 'due',
         expense_number: `EXP-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`.toUpperCase()
       };
 
-      console.log('Inserting expense:', newExpense);
+      console.log('Inserting expense into expenses table:', newExpense);
       const { data: expense, error } = await supabase
         .from('expenses')
         .insert(newExpense)

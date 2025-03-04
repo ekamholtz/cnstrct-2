@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { MilestoneStatus } from "@/types/project-types";
 

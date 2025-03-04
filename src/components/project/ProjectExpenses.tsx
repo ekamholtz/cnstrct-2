@@ -5,6 +5,7 @@ import { useExpenses } from "./expense/hooks/useExpenses";
 import type { ExpenseFormStage1Data, PaymentDetailsData } from "./expense/types";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
+import { useUserRole } from "@/hooks/profile/useUserRole";
 
 interface ProjectExpensesProps {
   projectId: string;
@@ -15,6 +16,7 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
   const { createExpense, createPayment } = useExpenses(projectId);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const userRole = useUserRole();
 
   const handleCreateExpense = async (
     data: ExpenseFormStage1Data, 
@@ -23,10 +25,13 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
   ) => {
     try {
       console.log('Creating expense:', data, status, paymentDetails);
+      console.log('Project ID:', projectId);
+      console.log('User role:', userRole);
       
       // Create the expense with normalized status
       const expense = await createExpense({
         ...data,
+        project_id: projectId, // Ensure correct project ID is used
         payment_status: status.toLowerCase() as 'due' | 'paid' | 'partially_paid'
       });
       
