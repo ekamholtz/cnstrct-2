@@ -8,5 +8,6 @@ export interface Project {
   updated_at: string;
   gc_account_id: string;
   pm_user_id: string;
+  contractor_id: string;
   client_id?: string;
 }

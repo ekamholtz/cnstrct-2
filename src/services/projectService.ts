@@ -51,6 +51,7 @@ export const createProject = async (projectData: {
   client_id: string;
   gc_account_id: string;
   pm_user_id: string;
+  contractor_id: string;
 }) => {
   const { data: project, error: projectError } = await supabase
     .from('projects')
