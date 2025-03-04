@@ -24,17 +24,22 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
     paymentDetails?: PaymentDetailsData
   ) => {
     try {
-      console.log('Creating expense:', data, status, paymentDetails);
-      console.log('Project ID:', projectId);
-      console.log('User role:', userRole);
+      console.log('Creating expense from ProjectExpenses component:');
+      console.log('- Data:', data);
+      console.log('- Status:', status);
+      console.log('- Payment details:', paymentDetails);
+      console.log('- Project ID:', projectId);
+      console.log('- User role:', userRole);
       
-      // Ensure project_id is set correctly
+      // Make sure project_id is set correctly in the data
       const expenseData = {
         ...data,
-        project_id: projectId, // Ensure correct project ID is used
+        project_id: projectId, // Explicitly set the project ID from props
       };
       
-      // Create the expense with normalized status
+      console.log('Final expense data being sent to createExpense:', expenseData);
+      
+      // Create the expense
       const expense = await createExpense(expenseData);
       
       if (!expense) {
