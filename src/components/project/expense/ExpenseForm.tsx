@@ -73,6 +73,7 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
               amountDue={Number(stage1Data.amount)}
               onSubmit={async (data, isPartialPayment) => {
                 try {
+                  console.log('Submitting from ExpenseForm:', { data, isPartialPayment });
                   await onSubmit(
                     stage1Data, 
                     isPartialPayment ? 'partially_paid' : 'paid',

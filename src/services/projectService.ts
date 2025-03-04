@@ -98,3 +98,32 @@ export const createMilestones = async (milestonesData: {
     throw error;
   }
 };
+
+/**
+ * Creates a payment for an expense in the database
+ */
+export const createPayment = async (paymentData: {
+  expense_id: string;
+  payment_method_code: string;
+  payment_date: string;
+  amount: number;
+  notes?: string;
+  direction: 'outgoing';
+  status: 'completed';
+}) => {
+  console.log('Creating payment with data:', paymentData);
+  
+  const { data: payment, error: paymentError } = await supabase
+    .from('payments')
+    .insert(paymentData)
+    .select()
+    .single();
+
+  if (paymentError) {
+    console.error('Error creating payment:', paymentError);
+    throw paymentError;
+  }
+  
+  console.log('Payment created successfully:', payment);
+  return payment;
+};

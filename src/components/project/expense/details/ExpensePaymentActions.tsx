@@ -28,11 +28,16 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
   if (!showActions) return null;
 
   const handlePaymentSubmit = async (data: PaymentDetailsData) => {
-    await createPayment({
-      expenseId: expense.id,
-      paymentData: data
-    });
-    setShowPaymentDetails(false);
+    try {
+      console.log('Submitting payment details:', data);
+      await createPayment({
+        expenseId: expense.id,
+        paymentData: data
+      });
+      setShowPaymentDetails(false);
+    } catch (error) {
+      console.error('Error processing payment:', error);
+    }
   };
 
   const handlePaymentSimulation = async (data: { 
@@ -40,17 +45,21 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
     payee_email?: string;
     payee_phone?: string;
   }) => {
-    await createPayment({
-      expenseId: expense.id,
-      paymentData: {
-        payment_type: 'transfer',
-        payment_date: new Date().toISOString().split('T')[0],
-        payment_amount: data.payment_amount,
-        vendor_email: data.payee_email,
-        vendor_phone: data.payee_phone
-      } as PaymentDetailsData
-    });
-    setShowPaymentSimulation(false);
+    try {
+      console.log('Simulating payment:', data);
+      await createPayment({
+        expenseId: expense.id,
+        paymentData: {
+          payment_method_code: 'transfer',
+          payment_date: new Date().toISOString().split('T')[0],
+          amount: data.payment_amount,
+          notes: `Payment to ${data.payee_email || expense.payee}`
+        } as PaymentDetailsData
+      });
+      setShowPaymentSimulation(false);
+    } catch (error) {
+      console.error('Error simulating payment:', error);
+    }
   };
 
   return (

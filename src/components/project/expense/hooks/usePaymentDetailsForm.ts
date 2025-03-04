@@ -51,6 +51,7 @@ export function usePaymentDetailsForm({
 
     try {
       setIsProcessing(true);
+      console.log('Processing full payment:', data);
       await onSubmit(data, false);
       toast({
         variant: "default",
@@ -81,6 +82,7 @@ export function usePaymentDetailsForm({
     
     try {
       setIsProcessing(true);
+      console.log('Processing partial payment:', pendingData);
       await onSubmit(pendingData, true);
       toast({
         variant: "default",

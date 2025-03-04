@@ -22,6 +22,8 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
     paymentDetails?: PaymentDetailsData
   ) => {
     try {
+      console.log('Creating expense:', data, status, paymentDetails);
+      
       // Create the expense with normalized status
       const expense = await createExpense({
         ...data,
@@ -30,6 +32,7 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
       
       // If payment details are provided, create a payment record
       if (paymentDetails && expense) {
+        console.log('Creating payment for expense:', expense.id, paymentDetails);
         await createPayment({
           expenseId: expense.id,
           paymentData: paymentDetails
@@ -38,7 +41,12 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
 
       // Invalidate relevant queries to trigger a refresh
       queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
       
+      toast({
+        title: "Success",
+        description: "Expense created successfully" + (paymentDetails ? " with payment" : ""),
+      });
     } catch (error) {
       console.error('Error creating expense:', error);
       toast({
