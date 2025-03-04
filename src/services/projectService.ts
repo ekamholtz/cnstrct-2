@@ -64,23 +64,6 @@ export const createProject = async (projectData: {
 };
 
 /**
- * Assigns a project manager to a project
- */
-export const assignProjectManager = async (projectId: string, userId: string) => {
-  const { error: pmError } = await supabase
-    .from('project_managers')
-    .insert({
-      project_id: projectId,
-      user_id: userId
-    });
-    
-  if (pmError) {
-    console.error('Error adding PM to project_managers:', pmError);
-    // Non-fatal error, continue with project creation
-  }
-};
-
-/**
  * Creates milestones for a project
  */
 export const createMilestones = async (milestonesData: {

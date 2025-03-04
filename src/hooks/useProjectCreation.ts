@@ -8,7 +8,6 @@ import {
   getCurrentUserProfile,
   createClient,
   createProject,
-  assignProjectManager,
   createMilestones
 } from "@/services/projectService";
 
@@ -48,11 +47,6 @@ export const useProjectCreation = () => {
         contractor_id: user.id, // Add contractor_id as the current user
         pm_user_id: userProfile.role === 'project_manager' ? user.id : null
       });
-
-      // If user is a PM, also add them to the project_managers table
-      if (userProfile.role === 'project_manager') {
-        await assignProjectManager(project.id, user.id);
-      }
 
       // Handle milestones creation
       if (projectData.milestones?.length > 0) {
