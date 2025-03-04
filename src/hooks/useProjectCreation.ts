@@ -149,12 +149,29 @@ export const useProjectCreation = () => {
             status: 'pending'
           }));
 
-          // Use a direct insert without any return values to avoid the ambiguous column problem
-          await supabase.rpc('insert_milestones', {
-            milestones_data: JSON.stringify(milestonesData)
-          });
-          
-          console.log(`Successfully initiated milestone creation for project: ${project.id}`);
+          // Call the database function using a direct SQL query through REST API
+          const { error: milestonesError } = await supabase
+            .from('milestones')
+            .insert(milestonesData);
+            
+          if (milestonesError) {
+            console.error('Error inserting milestones with standard method:', milestonesError);
+            
+            // Fallback to our custom function if normal insert fails
+            const { error: rpcError } = await supabase.rpc(
+              'insert_milestones',
+              { milestones_data: JSON.stringify(milestonesData) }
+            );
+            
+            if (rpcError) {
+              console.error('Error with RPC milestone insertion:', rpcError);
+              throw rpcError;
+            } else {
+              console.log(`Successfully created milestones for project: ${project.id} using RPC function`);
+            }
+          } else {
+            console.log(`Successfully created milestones for project: ${project.id}`);
+          }
         } catch (milestonesError) {
           console.error('Error creating milestones:', milestonesError);
           // Log but don't throw - we want to return the created project even if milestones fail

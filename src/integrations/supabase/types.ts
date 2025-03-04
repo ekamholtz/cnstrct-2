@@ -801,6 +801,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      insert_milestones: {
+        Args: {
+          milestones_data: Json
+        }
+        Returns: undefined
+      }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
