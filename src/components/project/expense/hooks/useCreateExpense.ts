@@ -38,7 +38,7 @@ export function useCreateExpense(projectId: string) {
       // First get project info to get contractor_id and gc_account_id
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('contractor_id, gc_account_id')
+        .select('contractor_id, gc_account_id, pm_user_id')
         .eq('id', finalProjectId)
         .single();
 
@@ -52,29 +52,25 @@ export function useCreateExpense(projectId: string) {
         throw new Error("Project not found");
       }
 
-      if (!project.contractor_id) {
-        console.error('Project missing contractor_id:', project);
-        throw new Error("Project is missing contractor_id");
-      }
-
       console.log('Project details:', project);
       console.log('User is attempting to create expense for project with gc_account_id:', project.gc_account_id);
       
-      // Additional authorization check - verify if user has permission through their role
-      const isAuthorized = 
-        currentUserProfile.role === 'platform_admin' || 
-        (currentUserProfile.role === 'gc_admin' && currentUserProfile.gc_account_id === project.gc_account_id) ||
-        (currentUserProfile.role === 'project_manager' && await isUserProjectManager(finalProjectId, currentUserProfile.id));
+      // Log whether current user is the PM for this project
+      const isPM = currentUserProfile.id === project.pm_user_id;
+      console.log('Is user the PM for this project?', isPM ? 'Yes' : 'No');
+      console.log('Project PM user ID:', project.pm_user_id);
       
-      if (!isAuthorized) {
-        console.error('User not authorized to create expense for this project:', {
-          userRole: currentUserProfile.role,
-          userId: currentUserProfile.id,
-          userGcAccountId: currentUserProfile.gc_account_id,
-          projectGcAccountId: project.gc_account_id
-        });
-        throw new Error("You don't have permission to create expenses for this project. Make sure you are either a platform admin, a GC admin for this company, or the project manager assigned to this project.");
-      }
+      // Log authorization check details
+      const isGcAdmin = currentUserProfile.role === 'gc_admin' && currentUserProfile.gc_account_id === project.gc_account_id;
+      const isPlatformAdmin = currentUserProfile.role === 'platform_admin';
+      console.log('Authorization checks:', {
+        isPlatformAdmin,
+        isGcAdmin,
+        isPM,
+        userRole: currentUserProfile.role,
+        userGcAccountId: currentUserProfile.gc_account_id,
+        projectGcAccountId: project.gc_account_id
+      });
 
       const amount = Number(data.amount);
       if (isNaN(amount) || amount <= 0) {
@@ -91,12 +87,12 @@ export function useCreateExpense(projectId: string) {
         expense_type: data.expense_type,
         notes: data.notes || '',
         project_id: finalProjectId,
-        contractor_id: project.contractor_id,
         payment_status: 'due' as const,
         expense_number: generateExpenseNumber()
       };
 
       console.log('Inserting expense with data:', newExpense);
+      console.log('Note: contractor_id will be set automatically by database trigger');
       
       try {
         const { data: expense, error } = await supabase
@@ -114,6 +110,8 @@ export function useCreateExpense(projectId: string) {
               userRole: currentUserProfile.role,
               userId: currentUserProfile.id,
               projectId: finalProjectId,
+              isPM,
+              pmUserId: project.pm_user_id,
               gcAccountId: currentUserProfile.gc_account_id,
               projectGcAccountId: project.gc_account_id
             });
@@ -147,20 +145,4 @@ export function useCreateExpense(projectId: string) {
       });
     }
   });
-}
-
-// Helper function to check if a user is the project manager for a specific project
-async function isUserProjectManager(projectId: string, userId: string): Promise<boolean> {
-  const { data, error } = await supabase
-    .from('projects')
-    .select('pm_user_id')
-    .eq('id', projectId)
-    .single();
-    
-  if (error || !data) {
-    console.error('Error checking if user is project manager:', error);
-    return false;
-  }
-  
-  return data.pm_user_id === userId;
 }
