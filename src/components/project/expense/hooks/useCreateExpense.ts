@@ -88,14 +88,18 @@ export function useCreateExpense(projectId: string) {
         notes: data.notes || '',
         project_id: finalProjectId,
         payment_status: 'due' as const,
-        expense_number: generateExpenseNumber()
+        expense_number: generateExpenseNumber(),
+        // The database trigger will set contractor_id automatically, but TypeScript
+        // needs us to include it here to satisfy the type requirements
+        contractor_id: project.contractor_id
       };
 
       console.log('Inserting expense with data:', newExpense);
       console.log('Note: contractor_id will be set automatically by database trigger');
       
       try {
-        // Notice we're NOT including contractor_id here as it will be set by the database trigger
+        // Even though we're providing contractor_id to satisfy TypeScript,
+        // the database trigger will still set it based on the project_id
         const { data: expense, error } = await supabase
           .from('expenses')
           .insert(newExpense)
