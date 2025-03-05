@@ -95,9 +95,13 @@ export function useCreateExpense(projectId: string) {
       };
 
       console.log('Inserting expense with data:', newExpense);
-      console.log('Note: contractor_id will be set automatically by database trigger');
       
       try {
+        console.log('About to insert expense with project_id:', finalProjectId);
+        console.log('Expense will be associated with contractor_id:', project.contractor_id);
+        console.log('User creating expense has role:', currentUserProfile.role);
+        console.log('RLS check should pass for PM if:', currentUserProfile.id === project.pm_user_id);
+        
         // Even though we're providing contractor_id to satisfy TypeScript,
         // the database trigger will still set it based on the project_id
         const { data: expense, error } = await supabase
