@@ -52,7 +52,7 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
         paymentData: {
           payment_method_code: 'transfer',
           payment_date: new Date().toISOString().split('T')[0],
-          amount: Number(data.payment_amount),
+          amount: data.payment_amount,
           notes: `Payment to ${data.payee_email || expense.payee}`,
         } as PaymentDetailsData
       });

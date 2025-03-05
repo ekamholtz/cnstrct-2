@@ -61,7 +61,7 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
             <PaymentSimulationForm
               initialPayee={stage1Data.payee}
               initialAmount={stage1Data.amount}
-              onSubmit={handlePaymentSimulation}
+              onSubmit={handlePay}
               onCancel={() => {
                 setShowPaymentSimulation(false);
                 setStage1Data(null);
@@ -71,15 +71,9 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
             <PaymentDetailsForm
               expenseAmount={Number(stage1Data.amount)}
               amountDue={Number(stage1Data.amount)}
-              onSubmit={async (data, isPartialPayment) => {
+              onSubmit={async (paymentData: PaymentDetailsData) => {
                 try {
-                  console.log('Submitting from ExpenseForm:', { data, isPartialPayment });
-                  await onSubmit(
-                    stage1Data, 
-                    isPartialPayment ? 'partially_paid' : 'paid',
-                    data
-                  );
-                  
+                  await onSubmit(stage1Data, 'paid', paymentData);
                   form.reset();
                   setOpen(false);
                   setShowPaymentDetails(false);

@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 
 const simulationSchema = z.object({
-  payment_amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Amount must be a positive number",
-  }),
+  payment_amount: z.string().min(1, "Payment amount is required").refine(
+    (val) => !isNaN(Number(val)) && Number(val) > 0,
+    { message: "Amount must be a positive number" }
+  ),
   payee_email: z.string().email("Must be a valid email").optional(),
   payee_phone: z.string().optional(),
   payment_reference: z.string().optional(),
@@ -22,12 +22,7 @@ type SimulationFormData = z.infer<typeof simulationSchema>;
 interface PaymentSimulationFormProps {
   initialPayee: string;
   initialAmount: string;
-  onSubmit: (data: { 
-    payment_amount: string;
-    payee_email?: string;
-    payee_phone?: string;
-    payment_reference?: string;
-  }) => Promise<void>;
+  onSubmit: (data: SimulationFormData) => Promise<void>;
   onCancel: () => void;
 }
 

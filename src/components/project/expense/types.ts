@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 import type { Payment as BasePayment } from "@/components/payments/types";
 
@@ -29,9 +30,9 @@ export const paymentDetailsSchema = z.object({
 });
 
 export type ExpenseFormStage1Data = z.infer<typeof expenseFormStage1Schema>;
-export type PaymentDetailsData = z.infer<typeof paymentDetailsSchema> & {
-  amount: string | number; // Allow both string and number types for flexibility
-};
+
+// Standardize PaymentDetailsData to consistently use string for amount
+export type PaymentDetailsData = z.infer<typeof paymentDetailsSchema>;
 
 export interface Expense {
   id: string;

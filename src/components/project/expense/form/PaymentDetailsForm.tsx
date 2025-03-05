@@ -35,14 +35,7 @@ export function PaymentDetailsForm({ expenseAmount, amountDue, onSubmit, onCance
   const handleSubmit = async (data: PaymentDetailsData) => {
     try {
       setIsProcessing(true);
-      
-      // Convert amount to number for consistency
-      const submissionData: PaymentDetailsData = {
-        ...data,
-        amount: Number(data.amount)
-      };
-      
-      await onSubmit(submissionData);
+      await onSubmit(data);
     } catch (error) {
       console.error("Error processing payment:", error);
     } finally {
