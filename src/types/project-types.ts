@@ -17,8 +17,7 @@ export interface ClientProject {
   name: string;
   address: string;
   status: 'draft' | 'active' | 'completed' | 'cancelled';
-  contractor_id: string;
-  gc_account_id?: string;
+  gc_account_id: string;
   pm_user_id?: string;
   client_id?: string;
   created_at: string;

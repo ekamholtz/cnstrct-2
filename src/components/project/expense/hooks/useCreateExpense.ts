@@ -35,10 +35,10 @@ export function useCreateExpense(projectId: string) {
       
       console.log('Final project ID being used:', finalProjectId);
       
-      // First get project info to get contractor_id and gc_account_id
+      // First get project info to get gc_account_id
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('contractor_id, gc_account_id, pm_user_id')
+        .select('gc_account_id, pm_user_id')
         .eq('id', finalProjectId)
         .single();
 
@@ -92,19 +92,18 @@ export function useCreateExpense(projectId: string) {
         project_id: finalProjectId,
         payment_status: 'due' as const,
         expense_number: expenseNumber,
-        contractor_id: project.contractor_id
+        gc_account_id: project.gc_account_id  // Use gc_account_id from the project
       };
 
       console.log('Inserting expense with data:', newExpense);
       
       try {
         console.log('About to insert expense with project_id:', finalProjectId);
-        console.log('Expense will be associated with contractor_id:', project.contractor_id);
+        console.log('Expense will be associated with gc_account_id:', project.gc_account_id);
         console.log('User creating expense has role:', currentUserProfile.role);
         console.log('RLS check should pass for PM if:', currentUserProfile.id === project.pm_user_id);
         
-        // The RLS policy needs to allow this user to insert expenses
-        // We'll add all information directly without relying on triggers
+        // Insert the expense with gc_account_id
         const { data: expense, error } = await supabase
           .from('expenses')
           .insert(newExpense)

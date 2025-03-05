@@ -96,7 +96,6 @@ export const logAuthContext = (userProfile: any, projectData: any): void => {
     project: {
       id: projectData?.id,
       pmUserId: projectData?.pm_user_id,
-      contractorId: projectData?.contractor_id,
       gcAccountId: projectData?.gc_account_id,
     },
     isPM: userProfile?.id === projectData?.pm_user_id,

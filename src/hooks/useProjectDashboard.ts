@@ -139,7 +139,7 @@ export function useProjectDashboard(projectId: string | undefined) {
       if (userRole.role === 'platform_admin') return true;
       
       // Project managers have admin rights if they are the assigned user
-      if (project.contractor_id === user.id) return true;
+      if (project.pm_user_id === user.id) return true;
       
       // GC admins have admin rights if they belong to the same company
       if (userRole.role === 'gc_admin' && userRole.gc_account_id === project.gc_account_id) return true;

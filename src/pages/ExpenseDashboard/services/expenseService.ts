@@ -68,10 +68,10 @@ export async function createGCExpense({
   status,
   expenseNumber
 }: CreateGCExpenseParams) {
-  // First get project info to get contractor_id
+  // First get project info to get gc_account_id
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .select('contractor_id')
+    .select('gc_account_id')
     .eq('id', data.project_id)
     .single();
 
@@ -80,8 +80,8 @@ export async function createGCExpense({
     throw projectError;
   }
 
-  if (!project || !project.contractor_id) {
-    throw new Error('Project not found or missing contractor_id');
+  if (!project || !project.gc_account_id) {
+    throw new Error('Project not found or missing gc_account_id');
   }
 
   const amount = parseFloat(data.amount);
@@ -97,7 +97,7 @@ export async function createGCExpense({
       expense_type: data.expense_type,
       project_id: data.project_id,
       notes: data.notes || '',
-      contractor_id: project.contractor_id,
+      gc_account_id: project.gc_account_id,
       payment_status: status,
       expense_number: expenseNumber
     })

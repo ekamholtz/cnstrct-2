@@ -106,7 +106,7 @@ export function useContractorProjects() {
       } else if (userRole === 'project_manager') {
         console.log('Applying PM filter');
         // For project managers, only show projects where they are the assigned user
-        query = query.eq('contractor_id', user.id);
+        query = query.eq('pm_user_id', user.id);
       }
       // For platform_admin, no additional filters needed
 

@@ -44,7 +44,7 @@ export const useProjectCreation = () => {
         status: 'active',
         client_id: client.id,
         gc_account_id: userProfile.gc_account_id,
-        contractor_id: user.id // Set the current user as the assigned user/PM
+        pm_user_id: user.id // Set the current user as the assigned user/PM
       });
 
       // Handle milestones creation
