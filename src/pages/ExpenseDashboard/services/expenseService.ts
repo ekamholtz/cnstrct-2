@@ -113,6 +113,7 @@ export async function createGCExpense({
       gc_account_id: project.gc_account_id,
       payment_status: status,
       expense_number: expenseNumber
+      // Note: contractor_id is no longer included as it's being phased out
     })
     .select()
     .single();

@@ -37,7 +37,7 @@ export const useProjectCreation = () => {
         phone_number: projectData.clientPhone
       });
 
-      // Create the project with required fields (no longer passing contractor_id)
+      // Create the project with required fields (gc_account_id is required, contractor_id is optional)
       const project = await createProject({
         name: projectData.projectName,
         address: projectData.clientAddress,

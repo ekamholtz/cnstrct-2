@@ -7,7 +7,7 @@ export interface Project {
   created_at: string;
   updated_at: string;
   gc_account_id: string;
-  pm_user_id: string; // This now represents the assigned user/PM
+  pm_user_id: string; 
   client_id?: string;
   contractor_id?: string; // Now optional as we phase it out
 }

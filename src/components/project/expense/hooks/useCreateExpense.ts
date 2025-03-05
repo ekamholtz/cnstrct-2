@@ -53,7 +53,6 @@ export function useCreateExpense(projectId: string) {
       }
 
       console.log('Project details:', project);
-      console.log('User is attempting to create expense for project with gc_account_id:', project.gc_account_id);
       
       // Log whether current user is the PM for this project
       const isPM = currentUserProfile.id === project.pm_user_id;
@@ -93,6 +92,7 @@ export function useCreateExpense(projectId: string) {
         payment_status: 'due' as const,
         expense_number: expenseNumber,
         gc_account_id: project.gc_account_id
+        // Note: contractor_id is no longer being set here as it's being phased out
       };
 
       console.log('Inserting expense with data:', newExpense);
@@ -100,10 +100,8 @@ export function useCreateExpense(projectId: string) {
       try {
         console.log('About to insert expense with project_id:', finalProjectId);
         console.log('Expense will be associated with gc_account_id:', project.gc_account_id);
-        console.log('User creating expense has role:', currentUserProfile.role);
-        console.log('RLS check should pass for PM if:', currentUserProfile.id === project.pm_user_id);
         
-        // Insert the expense with gc_account_id
+        // Insert the expense with gc_account_id instead of contractor_id
         const { data: expense, error } = await supabase
           .from('expenses')
           .insert(newExpense)

@@ -30,14 +30,14 @@ export const paymentDetailsSchema = z.object({
 });
 
 export type ExpenseFormStage1Data = z.infer<typeof expenseFormStage1Schema>;
-
-// Standardize PaymentDetailsData to consistently use string for amount
 export type PaymentDetailsData = z.infer<typeof paymentDetailsSchema>;
 
 export interface Expense {
   id: string;
   project_id: string;
-  contractor_id: string;
+  // contractor_id is being phased out in favor of gc_account_id
+  contractor_id?: string;
+  gc_account_id: string;
   name: string;
   payee: string;
   amount: number;
