@@ -1,11 +1,10 @@
-
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Expense } from "@/components/project/expense/types";
+import { Expense, Payment } from "@/components/project/expense/types";
 import { ExpenseDetailsSection } from "@/components/project/expense/details/ExpenseDetailsSection";
 import { PaymentsSection } from "@/components/project/expense/details/PaymentsSection";
 import { ExpensePaymentActions } from "@/components/project/expense/details/ExpensePaymentActions";
@@ -27,17 +26,11 @@ export default function ExpenseDetails() {
         .single();
 
       if (error) throw error;
-      return data as Expense & { 
+      
+      // Type assertion to make TypeScript happy with the structure
+      return data as unknown as Expense & { 
         project: { name: string }, 
-        payments: Array<{
-          id: string;
-          payment_type: string;
-          payment_date: string;
-          payment_amount: number;
-          vendor_email?: string;
-          vendor_phone?: string;
-          created_at: string;
-        }>
+        payments: Payment[]
       };
     },
   });

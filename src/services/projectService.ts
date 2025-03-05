@@ -52,7 +52,14 @@ export const createProject = async (projectData: {
   client_id: string;
   gc_account_id: string;
   pm_user_id: string; // The assigned user/PM
+  contractor_id?: string; // Make contractor_id optional
 }) => {
+  // Get current user ID to use as contractor_id if not provided
+  if (!projectData.contractor_id) {
+    const { data: { user } } = await supabase.auth.getUser();
+    projectData.contractor_id = user?.id;
+  }
+
   const { data: project, error: projectError } = await supabase
     .from('projects')
     .insert(projectData)
