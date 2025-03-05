@@ -52,17 +52,25 @@ export const createProject = async (projectData: {
   client_id: string;
   gc_account_id: string;
   pm_user_id: string; // The assigned user/PM
-  contractor_id?: string; // Make contractor_id optional
+  contractor_id?: string; // Make contractor_id optional in the parameter
 }) => {
+  // Create a new object with all the properties from projectData
+  const projectDataToInsert = { ...projectData };
+  
   // Get current user ID to use as contractor_id if not provided
-  if (!projectData.contractor_id) {
+  if (!projectDataToInsert.contractor_id) {
     const { data: { user } } = await supabase.auth.getUser();
-    projectData.contractor_id = user?.id;
+    projectDataToInsert.contractor_id = user?.id;
+  }
+
+  // Ensure contractor_id is definitely set (to satisfy TypeScript)
+  if (!projectDataToInsert.contractor_id) {
+    throw new Error("Could not determine contractor_id for project");
   }
 
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .insert(projectData)
+    .insert(projectDataToInsert)
     .select()
     .single();
 
