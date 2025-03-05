@@ -7,13 +7,13 @@ import { ExpenseFilters } from "../types";
 import { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
 import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
 import { useFetchExpenses } from "./useFetchExpenses";
-import { generateExpenseNumber } from "../utils/expenseUtils";
 import { 
   createHomeownerExpense, 
   createGCExpense, 
   createExpensePayment, 
-  updateExpenseAfterPayment 
-} from "../services/expenseService";
+  updateExpenseAfterPayment,
+  generateExpenseNumber
+} from "../services";
 import { UseExpenseDashboardResult } from "./types/dashboardTypes";
 
 export function useExpenseDashboard(): UseExpenseDashboardResult {
