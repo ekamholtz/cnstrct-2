@@ -2,74 +2,87 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Form } from "@/components/ui/form";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescription } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
 
-const paymentSimulationSchema = z.object({
-  payee_name: z.string().min(1, "Payee name is required"),
-  payee_email: z.string().email("Invalid email address"),
-  payee_phone: z.string().min(10, "Phone number must be at least 10 digits"),
+const simulationSchema = z.object({
   payment_amount: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Payment amount must be a positive number",
+    message: "Amount must be a positive number",
   }),
+  payee_email: z.string().email("Must be a valid email").optional(),
+  payee_phone: z.string().optional(),
+  payment_reference: z.string().optional(),
 });
 
-type PaymentSimulationData = z.infer<typeof paymentSimulationSchema>;
+type SimulationFormData = z.infer<typeof simulationSchema>;
 
 interface PaymentSimulationFormProps {
   initialPayee: string;
   initialAmount: string;
-  onSubmit: (data: PaymentSimulationData) => Promise<void>;
+  onSubmit: (data: { 
+    payment_amount: string;
+    payee_email?: string;
+    payee_phone?: string;
+    payment_reference?: string;
+  }) => Promise<void>;
   onCancel: () => void;
 }
 
-export function PaymentSimulationForm({ 
-  initialPayee, 
-  initialAmount, 
+export function PaymentSimulationForm({
+  initialPayee,
+  initialAmount,
   onSubmit,
-  onCancel 
+  onCancel,
 }: PaymentSimulationFormProps) {
-  const [isProcessing, setIsProcessing] = useState(false);
-  
-  const form = useForm<PaymentSimulationData>({
-    resolver: zodResolver(paymentSimulationSchema),
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const form = useForm<SimulationFormData>({
+    resolver: zodResolver(simulationSchema),
     defaultValues: {
-      payee_name: initialPayee,
+      payment_amount: initialAmount,
       payee_email: "",
       payee_phone: "",
-      payment_amount: initialAmount,
+      payment_reference: "",
     },
   });
 
-  const handleSubmit = async (data: PaymentSimulationData) => {
+  const handleSubmit = async (data: SimulationFormData) => {
     try {
-      setIsProcessing(true);
+      setIsSubmitting(true);
       await onSubmit(data);
+    } catch (error) {
+      console.error("Error simulating payment:", error);
     } finally {
-      setIsProcessing(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
-          <p className="text-sm text-blue-700">
-            This is a simulated payment process for demonstration purposes.
+        <div className="bg-gray-50 p-4 rounded mb-4">
+          <p className="font-medium">Payment to: {initialPayee}</p>
+          <p className="text-sm text-gray-500 mt-2">
+            This is a simulation. In production, this would connect to a payment processor.
           </p>
         </div>
 
         <FormField
           control={form.control}
-          name="payee_name"
+          name="payment_amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Payee Name</FormLabel>
+              <FormLabel>Payment Amount</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input 
+                  type="number" 
+                  step="0.01"
+                  min="0"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -83,8 +96,14 @@ export function PaymentSimulationForm({
             <FormItem>
               <FormLabel>Payee Email</FormLabel>
               <FormControl>
-                <Input type="email" {...field} />
+                <Input 
+                  type="email"
+                  placeholder="Enter payee email"
+                  {...field}
+                  value={field.value || ''}
+                />
               </FormControl>
+              <FormDescription>Payment confirmation will be sent here</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -95,51 +114,53 @@ export function PaymentSimulationForm({
           name="payee_phone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Payee Phone Number</FormLabel>
+              <FormLabel>Payee Phone (Optional)</FormLabel>
               <FormControl>
-                <Input type="tel" {...field} />
+                <Input 
+                  type="tel"
+                  placeholder="Enter payee phone"
+                  {...field}
+                  value={field.value || ''}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-
+        
         <FormField
           control={form.control}
-          name="payment_amount"
+          name="payment_reference"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Payment Amount</FormLabel>
+              <FormLabel>Payment Reference (Optional)</FormLabel>
               <FormControl>
-                <Input type="number" step="0.01" {...field} />
+                <Input 
+                  placeholder="Enter payment reference or invoice number"
+                  {...field}
+                  value={field.value || ''}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-
+        
         <div className="flex justify-end space-x-2 pt-4">
           <Button
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={isProcessing}
+            disabled={isSubmitting}
           >
             Cancel
           </Button>
-          <Button 
+          <Button
             type="submit"
-            disabled={isProcessing}
+            disabled={isSubmitting}
             className="bg-[#9b87f5] hover:bg-[#7E69AB]"
           >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing Payment...
-              </>
-            ) : (
-              'Process Payment'
-            )}
+            {isSubmitting ? "Processing..." : "Simulate Payment"}
           </Button>
         </div>
       </form>

@@ -28,14 +28,25 @@ export default function ExpenseDetails() {
 
       if (error) throw error;
       
-      // Transform the data to match the expected types for components
+      // Transform the data to match the expected Payment interface
       const transformedPayments = data.payments.map((payment: any) => ({
         id: payment.id,
-        payment_type: payment.payment_method_code,
+        direction: payment.direction || 'outgoing',
+        amount: payment.amount,
+        payment_method_code: payment.payment_method_code,
+        status: payment.status || 'completed',
         payment_date: payment.payment_date,
-        payment_amount: payment.amount,
+        notes: payment.notes,
         created_at: payment.created_at,
-        // Add any other fields needed by the components
+        updated_at: payment.updated_at,
+        simulation_mode: payment.simulation_mode || false,
+        // Include other required fields with defaults if needed
+        invoice_id: payment.invoice_id,
+        expense_id: payment.expense_id,
+        payment_processor_id: payment.payment_processor_id,
+        processor_transaction_id: payment.processor_transaction_id,
+        processor_metadata: payment.processor_metadata,
+        simulation_data: payment.simulation_data
       }));
       
       return {
