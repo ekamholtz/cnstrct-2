@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { PaymentDetailsData } from "../types";
 import { useToast } from "@/hooks/use-toast";
-import { createPayment } from "@/services/projectService";
+import { createExpensePayment, updateExpenseAfterPayment } from "@/pages/ExpenseDashboard/services/paymentService";
 
 export function useProcessPayment(projectId: string) {
   const queryClient = useQueryClient();
@@ -14,10 +14,10 @@ export function useProcessPayment(projectId: string) {
       console.log('Processing payment for expense:', expenseId, paymentData);
       
       try {
-        // First get the expense to get its gc_account_id
+        // First get the expense to validate and get its amount info
         const { data: expense, error: expenseError } = await supabase
           .from('expenses')
-          .select('amount, amount_due, gc_account_id')
+          .select('amount, amount_due')
           .eq('id', expenseId)
           .single();
 
@@ -26,37 +26,22 @@ export function useProcessPayment(projectId: string) {
           throw expenseError;
         }
 
-        // Create the payment record using the service function
-        const payment = await createPayment({
-          expense_id: expenseId,
-          payment_method_code: paymentData.payment_method_code,
-          payment_date: new Date(paymentData.payment_date).toISOString(),
-          amount: Number(paymentData.amount),
-          notes: paymentData.notes || '',
-          direction: 'outgoing',
-          status: 'completed'
+        // Create the payment record using the createExpensePayment function
+        const payment = await createExpensePayment({
+          expenseId,
+          paymentDetails: paymentData,
+          expensesTable: 'expenses'
         });
         
         console.log('Payment created:', payment);
 
-        // Update the expense status and amount_due
-        const newAmountDue = expense.amount_due - Number(paymentData.amount);
-        const newStatus = newAmountDue <= 0 ? 'paid' as const : 'partially_paid' as const;
-
-        const { data: updatedExpense, error: updateError } = await supabase
-          .from('expenses')
-          .update({
-            payment_status: newStatus,
-            amount_due: Math.max(0, newAmountDue)
-          })
-          .eq('id', expenseId)
-          .select()
-          .single();
-          
-        if (updateError) {
-          console.error('Error updating expense after payment:', updateError);
-          throw updateError;
-        }
+        // Update the expense status and amount_due using updateExpenseAfterPayment
+        const updatedExpense = await updateExpenseAfterPayment(
+          expenseId,
+          expense.amount,
+          Number(paymentData.amount),
+          'expenses'
+        );
         
         console.log('Expense updated after payment:', updatedExpense);
 

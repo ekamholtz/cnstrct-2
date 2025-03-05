@@ -5,7 +5,7 @@ import { PaymentDetailsData } from "@/components/project/expense/types";
 interface CreateExpensePaymentParams {
   expenseId: string;
   paymentDetails: PaymentDetailsData;
-  expensesTable: string;
+  expensesTable: 'expenses' | 'homeowner_expenses';
 }
 
 /**
@@ -70,7 +70,7 @@ export async function updateExpenseAfterPayment(
   expenseId: string,
   totalAmount: number,
   paymentAmount: number,
-  expensesTable: string
+  expensesTable: 'expenses' | 'homeowner_expenses'
 ) {
   console.log('Updating expense after payment:', {
     expenseId,
