@@ -17,6 +17,7 @@ export function useCreateExpense(projectId: string) {
       console.log('Project ID from parameter:', projectId);
       console.log('Project ID from data:', data.project_id);
       console.log('User role:', currentUserProfile?.role);
+      console.log('User ID:', currentUserProfile?.id);
       
       // Ensure we have a project_id - use the one from the data object if present, otherwise use the projectId prop
       const finalProjectId = data.project_id || projectId;
@@ -26,18 +27,23 @@ export function useCreateExpense(projectId: string) {
         throw new Error("Missing project ID. Cannot create expense without a project ID.");
       }
       
+      if (!currentUserProfile) {
+        console.error('No user profile found for expense creation');
+        throw new Error("Unable to create expense: User not authenticated or profile not found.");
+      }
+      
       console.log('Final project ID being used:', finalProjectId);
       
       // First get project info to get contractor_id
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('contractor_id')
+        .select('contractor_id, gc_account_id')
         .eq('id', finalProjectId)
         .single();
 
       if (projectError) {
         console.error('Error fetching project for expense creation:', projectError);
-        throw projectError;
+        throw new Error(`Error fetching project: ${projectError.message}`);
       }
 
       if (!project) {
@@ -72,19 +78,37 @@ export function useCreateExpense(projectId: string) {
 
       console.log('Inserting expense with data:', newExpense);
       
-      const { data: expense, error } = await supabase
-        .from('expenses')
-        .insert(newExpense)
-        .select()
-        .single();
+      try {
+        const { data: expense, error } = await supabase
+          .from('expenses')
+          .insert(newExpense)
+          .select()
+          .single();
 
-      if (error) {
-        console.error('Error creating expense:', error);
+        if (error) {
+          console.error('Error creating expense:', error);
+          
+          // Additional context for RLS policy errors
+          if (error.code === '42501') {
+            console.error('Row-level security policy violation. Check if user has proper permissions:', {
+              userRole: currentUserProfile.role,
+              userId: currentUserProfile.id,
+              projectId: finalProjectId,
+              gcAccountId: currentUserProfile.gc_account_id,
+              projectGcAccountId: project.gc_account_id
+            });
+            throw new Error("Permission denied: You don't have access to create expenses for this project.");
+          }
+          
+          throw new Error(`Failed to create expense: ${error.message}`);
+        }
+        
+        console.log('Expense created successfully:', expense);
+        return expense;
+      } catch (error) {
+        console.error('Exception during expense creation:', error);
         throw error;
       }
-      
-      console.log('Expense created successfully:', expense);
-      return expense;
     },
     onSuccess: (data) => {
       console.log('Expense creation success, invalidating queries');
