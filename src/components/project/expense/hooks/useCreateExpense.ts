@@ -78,6 +78,9 @@ export function useCreateExpense(projectId: string) {
         throw new Error("Invalid expense amount");
       }
 
+      // Generate a unique expense number
+      const expenseNumber = generateExpenseNumber();
+
       const newExpense = {
         name: data.name,
         amount,
@@ -88,9 +91,7 @@ export function useCreateExpense(projectId: string) {
         notes: data.notes || '',
         project_id: finalProjectId,
         payment_status: 'due' as const,
-        expense_number: generateExpenseNumber(),
-        // The database trigger will set contractor_id automatically, but TypeScript
-        // needs us to include it here to satisfy the type requirements
+        expense_number: expenseNumber,
         contractor_id: project.contractor_id
       };
 
@@ -102,8 +103,8 @@ export function useCreateExpense(projectId: string) {
         console.log('User creating expense has role:', currentUserProfile.role);
         console.log('RLS check should pass for PM if:', currentUserProfile.id === project.pm_user_id);
         
-        // Even though we're providing contractor_id to satisfy TypeScript,
-        // the database trigger will still set it based on the project_id
+        // The RLS policy needs to allow this user to insert expenses
+        // We'll add all information directly without relying on triggers
         const { data: expense, error } = await supabase
           .from('expenses')
           .insert(newExpense)

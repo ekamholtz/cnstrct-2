@@ -4,8 +4,8 @@
  */
 export const generateExpenseNumber = (): string => {
   const timestamp = Date.now();
-  const randomStr = Math.random().toString(36).substring(2, 5);
-  return `EXP-${timestamp}-${randomStr}`.toUpperCase();
+  const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `EXP-${timestamp.toString().substring(6)}-${randomStr}`;
 };
 
 /**
