@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { MilestoneStatus } from "@/types/project-types";
 import { ProjectFormValues } from "@/components/projects/types";
@@ -51,9 +52,8 @@ export const createProject = async (projectData: {
   client_id: string;
   gc_account_id: string;
   pm_user_id: string; // The assigned user/PM
-  contractor_id?: string; // Optional - being phased out
 }) => {
-  // Create the project with provided data (no longer enforcing contractor_id)
+  // Create the project with provided data (no longer using contractor_id at all)
   const { data: project, error: projectError } = await supabase
     .from('projects')
     .insert(projectData)

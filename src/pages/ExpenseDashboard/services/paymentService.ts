@@ -2,10 +2,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import { PaymentDetailsData } from "@/components/project/expense/types";
 
-interface CreatePaymentParams {
+interface CreateExpensePaymentParams {
   expenseId: string;
   paymentDetails: PaymentDetailsData;
-  expensesTable: 'expenses' | 'homeowner_expenses';
+  expensesTable: string;
 }
 
 /**
@@ -15,23 +15,31 @@ export async function createExpensePayment({
   expenseId,
   paymentDetails,
   expensesTable
-}: CreatePaymentParams) {
-  console.log('Creating payment for expense:', expenseId, paymentDetails);
-  const paymentAmount = parseFloat(paymentDetails.amount);
+}: CreateExpensePaymentParams) {
+  console.log('Creating payment for expense:', expenseId);
+  console.log('Payment details:', paymentDetails);
+  console.log('Using expenses table:', expensesTable);
   
-  // Get the expense to determine the gc_account_id
+  // First get the expense to get its gc_account_id
   const { data: expense, error: expenseError } = await supabase
     .from(expensesTable)
     .select('gc_account_id')
     .eq('id', expenseId)
     .single();
-    
+
   if (expenseError) {
-    console.error(`Error fetching expense for payment:`, expenseError);
+    console.error('Error fetching expense for payment:', expenseError);
     throw expenseError;
   }
+
+  if (!expense || !expense.gc_account_id) {
+    throw new Error('Expense not found or missing gc_account_id');
+  }
+
+  const paymentAmount = parseFloat(paymentDetails.amount);
   
-  const { data: payment, error: paymentError } = await supabase
+  // Create the payment record
+  const { data: payment, error } = await supabase
     .from('payments')
     .insert({
       expense_id: expenseId,
@@ -43,11 +51,12 @@ export async function createExpensePayment({
       status: 'completed',
       gc_account_id: expense.gc_account_id
     })
-    .select();
+    .select()
+    .single();
 
-  if (paymentError) {
-    console.error('Error creating payment:', paymentError);
-    throw paymentError;
+  if (error) {
+    console.error('Error creating payment:', error);
+    throw error;
   }
   
   console.log('Payment created successfully:', payment);
@@ -55,29 +64,39 @@ export async function createExpensePayment({
 }
 
 /**
- * Updates an expense's payment status and amount due
+ * Updates an expense after a payment is made
  */
 export async function updateExpenseAfterPayment(
   expenseId: string,
-  expenseAmount: number,
+  totalAmount: number,
   paymentAmount: number,
-  expensesTable: 'expenses' | 'homeowner_expenses'
+  expensesTable: string
 ) {
-  const newAmountDue = expenseAmount - paymentAmount;
-  const newStatus = newAmountDue <= 0 ? 'paid' as const : 'partially_paid' as const;
+  console.log('Updating expense after payment:', {
+    expenseId,
+    totalAmount,
+    paymentAmount,
+    expensesTable
+  });
   
-  const { error: updateError } = await supabase
+  const remainingAmount = totalAmount - paymentAmount;
+  const newStatus = remainingAmount <= 0 ? 'paid' : (remainingAmount < totalAmount ? 'partially_paid' : 'due');
+  
+  const { data, error } = await supabase
     .from(expensesTable)
     .update({
-      payment_status: newStatus,
-      amount_due: Math.max(0, newAmountDue)
+      amount_due: Math.max(0, remainingAmount),
+      payment_status: newStatus
     })
-    .eq('id', expenseId);
-    
-  if (updateError) {
-    console.error(`Error updating expense after payment:`, updateError);
-    throw updateError;
+    .eq('id', expenseId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating expense after payment:', error);
+    throw error;
   }
   
-  return { newStatus, newAmountDue: Math.max(0, newAmountDue) };
+  console.log('Expense updated successfully after payment:', data);
+  return data;
 }

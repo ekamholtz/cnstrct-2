@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
@@ -30,7 +29,7 @@ export const useTeamManagement = () => {
     enabled: !!currentUserProfile?.gc_account_id,
   });
 
-  // Check if user is the owner of the GC account
+  // Check if user is the owner of the GC account - now only uses gc_accounts table
   const { data: isGCOwner } = useQuery({
     queryKey: ['is-gc-owner', currentUserProfile?.id, currentUserProfile?.gc_account_id],
     queryFn: async () => {
@@ -183,7 +182,7 @@ export const useTeamManagement = () => {
     isTransferringOwnership,
     removeTeamMember,
     isRemovingMember,
-    isOwner: isGCOwner, // Use new direct ownership check
+    isOwner: isGCOwner, // Use direct ownership check from gc_accounts
     isGCAdmin
   };
 };

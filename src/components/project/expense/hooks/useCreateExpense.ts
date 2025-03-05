@@ -92,7 +92,6 @@ export function useCreateExpense(projectId: string) {
         payment_status: 'due' as const,
         expense_number: expenseNumber,
         gc_account_id: project.gc_account_id
-        // Note: contractor_id is no longer being set here as it's being phased out
       };
 
       console.log('Inserting expense with data:', newExpense);
@@ -101,7 +100,7 @@ export function useCreateExpense(projectId: string) {
         console.log('About to insert expense with project_id:', finalProjectId);
         console.log('Expense will be associated with gc_account_id:', project.gc_account_id);
         
-        // Insert the expense with gc_account_id instead of contractor_id
+        // Insert the expense with gc_account_id
         const { data: expense, error } = await supabase
           .from('expenses')
           .insert(newExpense)
