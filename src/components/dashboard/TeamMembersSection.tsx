@@ -23,6 +23,13 @@ export const TeamMembersSection = () => {
 
   const { createUser, isCreatingUser } = useCreateGCUser(gcAccountId);
 
+  console.log("TeamMembersSection rendered with:", { 
+    teamMembers: teamMembers?.length,
+    gcAccountId,
+    isGCAdmin,
+    isPlatformAdmin
+  });
+
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {
       await createUser({
@@ -31,6 +38,7 @@ export const TeamMembersSection = () => {
       });
       
       setIsInviting(false);
+      // Use a timeout to allow for database update to complete
       setTimeout(() => refetchTeam(), 1000);
     } catch (error) {
       console.error("Error inviting user:", error);
@@ -41,11 +49,13 @@ export const TeamMembersSection = () => {
   
   // Don't render if user doesn't have a GC account
   if (!gcAccountId && !isPlatformAdmin) {
+    console.log("Not rendering TeamMembersSection - no GC account ID and not platform admin");
     return null;
   }
   
   // If the user is platform admin but not viewing as part of a GC
   if (isPlatformAdmin && !gcAccountId) {
+    console.log("Not rendering TeamMembersSection - platform admin without GC account context");
     return null;
   }
 

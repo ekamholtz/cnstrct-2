@@ -53,6 +53,8 @@ export const createProject = async (projectData: {
   gc_account_id: string;
   pm_user_id: string; // The assigned user/PM
 }) => {
+  console.log('Creating project with data:', projectData);
+  
   // Validate that the PM belongs to the GC account
   const { data: pmProfile, error: pmError } = await supabase
     .from('profiles')
@@ -78,6 +80,8 @@ export const createProject = async (projectData: {
     .single();
 
   if (projectError) throw projectError;
+  
+  console.log('Project created successfully:', project);
   return project;
 };
 

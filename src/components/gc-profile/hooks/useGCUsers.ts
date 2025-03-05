@@ -72,16 +72,28 @@ export const useGCUsers = (gcAccountId?: string, canFetch: boolean = true) => {
           })) as GCUserProfile[];
         }
 
-        // Merge profile data with emails
+        // Check if any company owner exists
+        const { data: gcAccount } = await supabase
+          .from('gc_accounts')
+          .select('owner_id')
+          .eq('id', gcAccountId)
+          .single();
+
+        // Merge profile data with emails and owner information
         const profilesWithEmails = profiles.map(profile => {
           const userEmailObj = usersWithEmails?.find(u => u.id === profile.id);
           const userEmail = userEmailObj?.email || 'Email not available';
           
+          // Mark if this profile is the owner
+          const isOwner = gcAccount && gcAccount.owner_id === profile.id;
+          
           console.log(`[useGCUsers] Mapping profile ${profile.id} (${profile.full_name}) with email:`, userEmail);
+          console.log(`[useGCUsers] Is owner:`, isOwner);
           
           return {
             ...profile,
-            email: userEmail
+            email: userEmail,
+            is_owner: isOwner
           };
         });
 

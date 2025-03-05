@@ -17,7 +17,7 @@ export const useTeamMembers = () => {
 
       console.log('Fetching team members for gc_account_id:', currentUserProfile.gc_account_id);
       
-      // Get all profiles matching the GC account ID
+      // Get all profiles matching the GC account ID including all roles (gc_admin and project_manager)
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -38,6 +38,8 @@ export const useTeamMembers = () => {
         // Get emails via the edge function
         const userIds = profiles.map(profile => profile.id);
         
+        console.log('Fetching emails for user IDs:', userIds);
+        
         const { data: usersWithEmails, error: funcError } = await supabase
           .functions.invoke('get-user-emails', {
             body: {
@@ -53,17 +55,29 @@ export const useTeamMembers = () => {
           })) as GCUserProfile[];
         }
 
-        // Merge profile data with emails
+        // Check if any company owner exists
+        const { data: gcAccount } = await supabase
+          .from('gc_accounts')
+          .select('owner_id')
+          .eq('id', currentUserProfile.gc_account_id)
+          .single();
+
+        // Merge profile data with emails and owner information
         const profilesWithEmails = profiles.map(profile => {
           const userEmailObj = usersWithEmails?.find(u => u.id === profile.id);
           const userEmail = userEmailObj?.email || 'Email not available';
           
+          // Mark if this profile is the owner
+          const isOwner = gcAccount && gcAccount.owner_id === profile.id;
+          
           return {
             ...profile,
-            email: userEmail
+            email: userEmail,
+            is_owner: isOwner
           };
         });
 
+        console.log('Team members data with emails:', profilesWithEmails);
         return profilesWithEmails as GCUserProfile[];
       } catch (e) {
         console.error('Error in email fetching process:', e);
