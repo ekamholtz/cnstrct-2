@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { MilestoneStatus } from "@/types/project-types";
+import { ProjectFormValues } from "@/components/projects/types";
 
 /**
  * Fetches the current user profile from Supabase
@@ -52,9 +53,21 @@ export const createProject = async (projectData: {
   gc_account_id: string;
   pm_user_id: string; // The assigned user/PM
 }) => {
+  // Get the current user to use as contractor_id (temporary until schema update)
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('No authenticated user found');
+  }
+
+  // Include contractor_id in project data (will be removed later)
+  const fullProjectData = {
+    ...projectData,
+    contractor_id: user.id // Required field until schema update
+  };
+
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .insert(projectData)
+    .insert(fullProjectData)
     .select()
     .single();
 

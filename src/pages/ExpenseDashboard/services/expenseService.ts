@@ -84,6 +84,12 @@ export async function createGCExpense({
     throw new Error('Project not found or missing gc_account_id');
   }
 
+  // Get the current user to use as contractor_id (temporary until schema change)
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    throw new Error('No authenticated user found');
+  }
+
   const amount = parseFloat(data.amount);
   
   const { data: gcExpense, error } = await supabase
@@ -99,7 +105,8 @@ export async function createGCExpense({
       notes: data.notes || '',
       gc_account_id: project.gc_account_id,
       payment_status: status,
-      expense_number: expenseNumber
+      expense_number: expenseNumber,
+      contractor_id: user.id // Keep contractor_id until schema update
     })
     .select()
     .single();
