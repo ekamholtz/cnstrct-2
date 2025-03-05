@@ -138,7 +138,6 @@ export type Database = {
         Row: {
           amount: number
           amount_due: number
-          contractor_id: string | null
           created_at: string | null
           expense_date: string
           expense_number: string | null
@@ -155,7 +154,6 @@ export type Database = {
         Insert: {
           amount: number
           amount_due?: number
-          contractor_id?: string | null
           created_at?: string | null
           expense_date: string
           expense_number?: string | null
@@ -172,7 +170,6 @@ export type Database = {
         Update: {
           amount?: number
           amount_due?: number
-          contractor_id?: string | null
           created_at?: string | null
           expense_date?: string
           expense_number?: string | null
@@ -306,7 +303,6 @@ export type Database = {
       invoices: {
         Row: {
           amount: number
-          contractor_id: string
           created_at: string | null
           gc_account_id: string | null
           id: string
@@ -323,7 +319,6 @@ export type Database = {
         }
         Insert: {
           amount: number
-          contractor_id: string
           created_at?: string | null
           gc_account_id?: string | null
           id?: string
@@ -340,7 +335,6 @@ export type Database = {
         }
         Update: {
           amount?: number
-          contractor_id?: string
           created_at?: string | null
           gc_account_id?: string | null
           id?: string
@@ -384,6 +378,7 @@ export type Database = {
           amount: number
           created_at: string | null
           description: string | null
+          gc_account_id: string | null
           id: string
           name: string
           project_id: string
@@ -394,6 +389,7 @@ export type Database = {
           amount: number
           created_at?: string | null
           description?: string | null
+          gc_account_id?: string | null
           id?: string
           name: string
           project_id: string
@@ -404,6 +400,7 @@ export type Database = {
           amount?: number
           created_at?: string | null
           description?: string | null
+          gc_account_id?: string | null
           id?: string
           name?: string
           project_id?: string
@@ -591,7 +588,6 @@ export type Database = {
         Row: {
           address: string
           client_id: string | null
-          contractor_id: string | null
           created_at: string | null
           gc_account_id: string | null
           id: string
@@ -603,7 +599,6 @@ export type Database = {
         Insert: {
           address: string
           client_id?: string | null
-          contractor_id?: string | null
           created_at?: string | null
           gc_account_id?: string | null
           id?: string
@@ -615,7 +610,6 @@ export type Database = {
         Update: {
           address?: string
           client_id?: string | null
-          contractor_id?: string | null
           created_at?: string | null
           gc_account_id?: string | null
           id?: string
