@@ -29,12 +29,24 @@ export const createMilestoneInvoice = async (
 ) => {
   console.log('Creating invoice for milestone:', milestone.id);
 
+  // Get gc_account_id from the project
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('gc_account_id')
+    .eq('id', milestone.project_id)
+    .single();
+
+  if (projectError) {
+    console.error("Error fetching project details:", projectError);
+    throw projectError;
+  }
+
   const { data: invoice, error } = await supabase
     .from('invoices')
     .insert({
       milestone_id: milestone.id,
       project_id: milestone.project_id,
-      contractor_id: milestone.project.contractor_id,
+      gc_account_id: project.gc_account_id,
       amount: milestone.amount,
       invoice_number: invoiceNumber,
       status: 'pending_payment'

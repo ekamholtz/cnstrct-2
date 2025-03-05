@@ -9,5 +9,4 @@ export interface Project {
   gc_account_id: string;
   pm_user_id: string; 
   client_id?: string;
-  contractor_id?: string; // Now optional as we phase it out
 }
