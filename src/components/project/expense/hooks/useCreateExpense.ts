@@ -59,9 +59,14 @@ export function useCreateExpense(projectId: string) {
       console.log('Is user the PM for this project?', isPM ? 'Yes' : 'No');
       console.log('Project PM user ID:', project.pm_user_id);
       
-      // Log authorization check details
+      // Validate user permission for expense creation
       const isGcAdmin = currentUserProfile.role === 'gc_admin' && currentUserProfile.gc_account_id === project.gc_account_id;
       const isPlatformAdmin = currentUserProfile.role === 'platform_admin';
+      
+      if (!isPM && !isGcAdmin && !isPlatformAdmin) {
+        throw new Error("You don't have permission to create expenses for this project.");
+      }
+      
       console.log('Authorization checks:', {
         isPlatformAdmin,
         isGcAdmin,

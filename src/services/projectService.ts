@@ -53,7 +53,24 @@ export const createProject = async (projectData: {
   gc_account_id: string;
   pm_user_id: string; // The assigned user/PM
 }) => {
-  // Create the project with provided data (no longer using contractor_id at all)
+  // Validate that the PM belongs to the GC account
+  const { data: pmProfile, error: pmError } = await supabase
+    .from('profiles')
+    .select('gc_account_id, role')
+    .eq('id', projectData.pm_user_id)
+    .single();
+    
+  if (pmError) {
+    console.error('Error validating PM for project creation:', pmError);
+    throw new Error('Could not validate project manager');
+  }
+  
+  // Check that PM belongs to the same GC account as the project
+  if (pmProfile.gc_account_id !== projectData.gc_account_id) {
+    throw new Error('Project manager must belong to the same GC account as the project');
+  }
+  
+  // Create the project
   const { data: project, error: projectError } = await supabase
     .from('projects')
     .insert(projectData)
