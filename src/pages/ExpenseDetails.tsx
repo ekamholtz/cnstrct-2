@@ -1,3 +1,4 @@
+
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useParams } from "react-router-dom";
@@ -27,8 +28,20 @@ export default function ExpenseDetails() {
 
       if (error) throw error;
       
-      // Type assertion to make TypeScript happy with the structure
-      return data as unknown as Expense & { 
+      // Transform the data to match the expected types for components
+      const transformedPayments = data.payments.map((payment: any) => ({
+        id: payment.id,
+        payment_type: payment.payment_method_code,
+        payment_date: payment.payment_date,
+        payment_amount: payment.amount,
+        created_at: payment.created_at,
+        // Add any other fields needed by the components
+      }));
+      
+      return {
+        ...data,
+        payments: transformedPayments
+      } as Expense & { 
         project: { name: string }, 
         payments: Payment[]
       };

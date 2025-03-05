@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { MilestoneStatus } from "@/types/project-types";
 import { ProjectFormValues } from "@/components/projects/types";
@@ -52,25 +51,12 @@ export const createProject = async (projectData: {
   client_id: string;
   gc_account_id: string;
   pm_user_id: string; // The assigned user/PM
-  contractor_id?: string; // Make contractor_id optional in the parameter
+  contractor_id?: string; // Optional - being phased out
 }) => {
-  // Create a new object with all the properties from projectData
-  const projectDataToInsert = { ...projectData };
-  
-  // Get current user ID to use as contractor_id if not provided
-  if (!projectDataToInsert.contractor_id) {
-    const { data: { user } } = await supabase.auth.getUser();
-    projectDataToInsert.contractor_id = user?.id;
-  }
-
-  // Ensure contractor_id is definitely set (to satisfy TypeScript)
-  if (!projectDataToInsert.contractor_id) {
-    throw new Error("Could not determine contractor_id for project");
-  }
-
+  // Create the project with provided data (no longer enforcing contractor_id)
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .insert(projectDataToInsert)
+    .insert(projectData)
     .select()
     .single();
 

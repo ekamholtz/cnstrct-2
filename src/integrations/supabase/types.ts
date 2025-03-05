@@ -591,7 +591,7 @@ export type Database = {
         Row: {
           address: string
           client_id: string | null
-          contractor_id: string
+          contractor_id: string | null
           created_at: string | null
           gc_account_id: string | null
           id: string
@@ -603,7 +603,7 @@ export type Database = {
         Insert: {
           address: string
           client_id?: string | null
-          contractor_id: string
+          contractor_id?: string | null
           created_at?: string | null
           gc_account_id?: string | null
           id?: string
@@ -615,7 +615,7 @@ export type Database = {
         Update: {
           address?: string
           client_id?: string | null
-          contractor_id?: string
+          contractor_id?: string | null
           created_at?: string | null
           gc_account_id?: string | null
           id?: string
