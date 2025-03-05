@@ -19,6 +19,8 @@ export const formatExpenseType = (type: string): string => {
  * Validates expense data
  */
 export const validateExpenseData = (data: any): string | null => {
+  console.log('Validating expense data:', data);
+  
   if (!data.name || data.name.trim() === '') {
     return 'Expense name is required';
   }
@@ -40,4 +42,22 @@ export const validateExpenseData = (data: any): string | null => {
   }
   
   return null;
+};
+
+/**
+ * Gets a user-friendly error message from Supabase error
+ */
+export const getErrorMessage = (error: any): string => {
+  // Handle RLS policy violations
+  if (error?.code === '42501') {
+    return "Permission denied: You don't have access to perform this action. Please check your permissions.";
+  }
+  
+  // Handle generic DB errors with user-friendly messages
+  if (error?.code?.startsWith('23')) {
+    return "Database error: The data couldn't be saved. Please check your input and try again.";
+  }
+  
+  // Return the error message or a default
+  return error?.message || "An unknown error occurred. Please try again.";
 };

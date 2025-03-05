@@ -18,6 +18,7 @@ export function useCreateExpense(projectId: string) {
       console.log('Project ID from data:', data.project_id);
       console.log('User role:', currentUserProfile?.role);
       console.log('User ID:', currentUserProfile?.id);
+      console.log('User GC account ID:', currentUserProfile?.gc_account_id);
       
       // Ensure we have a project_id - use the one from the data object if present, otherwise use the projectId prop
       const finalProjectId = data.project_id || projectId;
@@ -34,7 +35,7 @@ export function useCreateExpense(projectId: string) {
       
       console.log('Final project ID being used:', finalProjectId);
       
-      // First get project info to get contractor_id
+      // First get project info to get contractor_id and gc_account_id
       const { data: project, error: projectError } = await supabase
         .from('projects')
         .select('contractor_id, gc_account_id')
@@ -54,6 +55,25 @@ export function useCreateExpense(projectId: string) {
       if (!project.contractor_id) {
         console.error('Project missing contractor_id:', project);
         throw new Error("Project is missing contractor_id");
+      }
+
+      console.log('Project details:', project);
+      console.log('User is attempting to create expense for project with gc_account_id:', project.gc_account_id);
+      
+      // Additional authorization check - verify if user has permission through their role
+      const isAuthorized = 
+        currentUserProfile.role === 'platform_admin' || 
+        (currentUserProfile.role === 'gc_admin' && currentUserProfile.gc_account_id === project.gc_account_id) ||
+        (currentUserProfile.role === 'project_manager' && await isUserProjectManager(finalProjectId, currentUserProfile.id));
+      
+      if (!isAuthorized) {
+        console.error('User not authorized to create expense for this project:', {
+          userRole: currentUserProfile.role,
+          userId: currentUserProfile.id,
+          userGcAccountId: currentUserProfile.gc_account_id,
+          projectGcAccountId: project.gc_account_id
+        });
+        throw new Error("You don't have permission to create expenses for this project. Make sure you are either a platform admin, a GC admin for this company, or the project manager assigned to this project.");
       }
 
       const amount = Number(data.amount);
@@ -97,7 +117,7 @@ export function useCreateExpense(projectId: string) {
               gcAccountId: currentUserProfile.gc_account_id,
               projectGcAccountId: project.gc_account_id
             });
-            throw new Error("Permission denied: You don't have access to create expenses for this project.");
+            throw new Error("Permission denied: You don't have access to create expenses for this project. Make sure you're logged in with the correct account that has permission to manage this project.");
           }
           
           throw new Error(`Failed to create expense: ${error.message}`);
@@ -127,4 +147,20 @@ export function useCreateExpense(projectId: string) {
       });
     }
   });
+}
+
+// Helper function to check if a user is the project manager for a specific project
+async function isUserProjectManager(projectId: string, userId: string): Promise<boolean> {
+  const { data, error } = await supabase
+    .from('projects')
+    .select('pm_user_id')
+    .eq('id', projectId)
+    .single();
+    
+  if (error || !data) {
+    console.error('Error checking if user is project manager:', error);
+    return false;
+  }
+  
+  return data.pm_user_id === userId;
 }

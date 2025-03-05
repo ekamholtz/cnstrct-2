@@ -6,6 +6,7 @@ import type { ExpenseFormStage1Data, PaymentDetailsData } from "./expense/types"
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { useUserRole } from "@/hooks/profile/useUserRole";
+import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
 
 interface ProjectExpensesProps {
   projectId: string;
@@ -17,6 +18,7 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const userRole = useUserRole();
+  const { currentUserProfile } = useCurrentUserProfile();
 
   const handleCreateExpense = async (
     data: ExpenseFormStage1Data, 
@@ -30,6 +32,7 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
       console.log('- Payment details:', paymentDetails);
       console.log('- Project ID:', projectId);
       console.log('- User role:', userRole);
+      console.log('- Current user profile:', currentUserProfile);
       
       // Make sure project_id is set correctly in the data
       const expenseData = {
