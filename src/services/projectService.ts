@@ -53,21 +53,9 @@ export const createProject = async (projectData: {
   gc_account_id: string;
   pm_user_id: string; // The assigned user/PM
 }) => {
-  // Get the current user to use as contractor_id (temporary until schema update)
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('No authenticated user found');
-  }
-
-  // Include contractor_id in project data (will be removed later)
-  const fullProjectData = {
-    ...projectData,
-    contractor_id: user.id // Required field until schema update
-  };
-
   const { data: project, error: projectError } = await supabase
     .from('projects')
-    .insert(fullProjectData)
+    .insert(projectData)
     .select()
     .single();
 
@@ -133,7 +121,7 @@ export const createPayment = async (paymentData: {
   // Validate the expense exists before creating payment
   const { data: expense, error: expenseError } = await supabase
     .from('expenses')
-    .select('id, amount')
+    .select('id, amount, gc_account_id')
     .eq('id', paymentData.expense_id)
     .single();
     
@@ -146,9 +134,15 @@ export const createPayment = async (paymentData: {
     throw new Error(`Cannot create payment: Expense with ID ${paymentData.expense_id} not found`);
   }
   
+  // Add gc_account_id to payment data
+  const fullPaymentData = {
+    ...paymentData,
+    gc_account_id: expense.gc_account_id
+  };
+  
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
-    .insert(paymentData)
+    .insert(fullPaymentData)
     .select()
     .single();
 

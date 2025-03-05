@@ -92,8 +92,7 @@ export function useCreateExpense(projectId: string) {
         project_id: finalProjectId,
         payment_status: 'due' as const,
         expense_number: expenseNumber,
-        gc_account_id: project.gc_account_id,
-        contractor_id: currentUserProfile.id  // For now, keeping contractor_id as required by the schema
+        gc_account_id: project.gc_account_id
       };
 
       console.log('Inserting expense with data:', newExpense);

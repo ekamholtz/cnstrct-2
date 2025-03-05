@@ -33,6 +33,18 @@ export async function createHomeownerExpense({
 }: CreateHomeownerExpenseParams) {
   const amount = parseFloat(data.amount);
   
+  // First get project info to get gc_account_id
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('gc_account_id')
+    .eq('id', data.project_id)
+    .single();
+
+  if (projectError) {
+    console.error('Error fetching project for homeowner expense creation:', projectError);
+    throw projectError;
+  }
+
   const { data: homeownerExpense, error } = await supabase
     .from('homeowner_expenses')
     .insert({
@@ -46,7 +58,8 @@ export async function createHomeownerExpense({
       notes: data.notes,
       homeowner_id: userId,
       payment_status: status,
-      expense_number: expenseNumber
+      expense_number: expenseNumber,
+      gc_account_id: project.gc_account_id
     })
     .select()
     .single();
@@ -84,12 +97,6 @@ export async function createGCExpense({
     throw new Error('Project not found or missing gc_account_id');
   }
 
-  // Get the current user to use as contractor_id (temporary until schema change)
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    throw new Error('No authenticated user found');
-  }
-
   const amount = parseFloat(data.amount);
   
   const { data: gcExpense, error } = await supabase
@@ -105,8 +112,7 @@ export async function createGCExpense({
       notes: data.notes || '',
       gc_account_id: project.gc_account_id,
       payment_status: status,
-      expense_number: expenseNumber,
-      contractor_id: user.id // Keep contractor_id until schema update
+      expense_number: expenseNumber
     })
     .select()
     .single();
@@ -131,6 +137,18 @@ export async function createExpensePayment({
   console.log('Creating payment for expense:', expenseId, paymentDetails);
   const paymentAmount = parseFloat(paymentDetails.amount);
   
+  // Get the expense to determine the gc_account_id
+  const { data: expense, error: expenseError } = await supabase
+    .from(expensesTable)
+    .select('gc_account_id')
+    .eq('id', expenseId)
+    .single();
+    
+  if (expenseError) {
+    console.error(`Error fetching expense for payment:`, expenseError);
+    throw expenseError;
+  }
+  
   const { data: payment, error: paymentError } = await supabase
     .from('payments')
     .insert({
@@ -140,7 +158,8 @@ export async function createExpensePayment({
       amount: paymentAmount,
       notes: paymentDetails.notes || '',
       direction: 'outgoing',
-      status: 'completed'
+      status: 'completed',
+      gc_account_id: expense.gc_account_id
     })
     .select();
 

@@ -14,6 +14,18 @@ export function useProcessPayment(projectId: string) {
       console.log('Processing payment for expense:', expenseId, paymentData);
       
       try {
+        // First get the expense to get its gc_account_id
+        const { data: expense, error: expenseError } = await supabase
+          .from('expenses')
+          .select('amount, amount_due, gc_account_id')
+          .eq('id', expenseId)
+          .single();
+
+        if (expenseError) {
+          console.error('Error fetching expense for payment update:', expenseError);
+          throw expenseError;
+        }
+
         // Create the payment record using the service function
         const payment = await createPayment({
           expense_id: expenseId,
@@ -28,17 +40,6 @@ export function useProcessPayment(projectId: string) {
         console.log('Payment created:', payment);
 
         // Update the expense status and amount_due
-        const { data: expense, error: expenseError } = await supabase
-          .from('expenses')
-          .select('amount, amount_due')
-          .eq('id', expenseId)
-          .single();
-
-        if (expenseError) {
-          console.error('Error fetching expense for payment update:', expenseError);
-          throw expenseError;
-        }
-
         const newAmountDue = expense.amount_due - Number(paymentData.amount);
         const newStatus = newAmountDue <= 0 ? 'paid' as const : 'partially_paid' as const;
 

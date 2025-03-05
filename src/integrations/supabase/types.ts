@@ -138,11 +138,12 @@ export type Database = {
         Row: {
           amount: number
           amount_due: number
-          contractor_id: string
+          contractor_id: string | null
           created_at: string | null
           expense_date: string
           expense_number: string | null
           expense_type: Database["public"]["Enums"]["expense_type"] | null
+          gc_account_id: string | null
           id: string
           name: string
           notes: string | null
@@ -154,11 +155,12 @@ export type Database = {
         Insert: {
           amount: number
           amount_due?: number
-          contractor_id: string
+          contractor_id?: string | null
           created_at?: string | null
           expense_date: string
           expense_number?: string | null
           expense_type?: Database["public"]["Enums"]["expense_type"] | null
+          gc_account_id?: string | null
           id?: string
           name: string
           notes?: string | null
@@ -170,11 +172,12 @@ export type Database = {
         Update: {
           amount?: number
           amount_due?: number
-          contractor_id?: string
+          contractor_id?: string | null
           created_at?: string | null
           expense_date?: string
           expense_number?: string | null
           expense_type?: Database["public"]["Enums"]["expense_type"] | null
+          gc_account_id?: string | null
           id?: string
           name?: string
           notes?: string | null
@@ -184,6 +187,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            isOneToOne: false
+            referencedRelation: "gc_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_project_id_fkey"
             columns: ["project_id"]
@@ -225,6 +235,7 @@ export type Database = {
           expense_date: string
           expense_number: string
           expense_type: Database["public"]["Enums"]["homeowner_expense_type"]
+          gc_account_id: string | null
           homeowner_id: string
           id: string
           name: string
@@ -241,6 +252,7 @@ export type Database = {
           expense_date: string
           expense_number: string
           expense_type?: Database["public"]["Enums"]["homeowner_expense_type"]
+          gc_account_id?: string | null
           homeowner_id: string
           id?: string
           name: string
@@ -257,6 +269,7 @@ export type Database = {
           expense_date?: string
           expense_number?: string
           expense_type?: Database["public"]["Enums"]["homeowner_expense_type"]
+          gc_account_id?: string | null
           homeowner_id?: string
           id?: string
           name?: string
@@ -267,6 +280,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "homeowner_expenses_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            isOneToOne: false
+            referencedRelation: "gc_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "homeowner_expenses_homeowner_id_fkey"
             columns: ["homeowner_id"]
@@ -288,6 +308,7 @@ export type Database = {
           amount: number
           contractor_id: string
           created_at: string | null
+          gc_account_id: string | null
           id: string
           invoice_number: string
           milestone_id: string
@@ -304,6 +325,7 @@ export type Database = {
           amount: number
           contractor_id: string
           created_at?: string | null
+          gc_account_id?: string | null
           id?: string
           invoice_number: string
           milestone_id: string
@@ -320,6 +342,7 @@ export type Database = {
           amount?: number
           contractor_id?: string
           created_at?: string | null
+          gc_account_id?: string | null
           id?: string
           invoice_number?: string
           milestone_id?: string
@@ -333,6 +356,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            isOneToOne: false
+            referencedRelation: "gc_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_milestone_id_fkey"
             columns: ["milestone_id"]
@@ -423,6 +453,7 @@ export type Database = {
           created_at: string | null
           direction: Database["public"]["Enums"]["payment_direction"]
           expense_id: string | null
+          gc_account_id: string | null
           id: string
           invoice_id: string | null
           notes: string | null
@@ -441,6 +472,7 @@ export type Database = {
           created_at?: string | null
           direction: Database["public"]["Enums"]["payment_direction"]
           expense_id?: string | null
+          gc_account_id?: string | null
           id?: string
           invoice_id?: string | null
           notes?: string | null
@@ -459,6 +491,7 @@ export type Database = {
           created_at?: string | null
           direction?: Database["public"]["Enums"]["payment_direction"]
           expense_id?: string | null
+          gc_account_id?: string | null
           id?: string
           invoice_id?: string | null
           notes?: string | null
@@ -478,6 +511,13 @@ export type Database = {
             columns: ["expense_id"]
             isOneToOne: false
             referencedRelation: "expenses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payments_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            isOneToOne: false
+            referencedRelation: "gc_accounts"
             referencedColumns: ["id"]
           },
           {
@@ -735,6 +775,10 @@ export type Database = {
             }
             Returns: string
           }
+      get_user_gc_account: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       get_user_permissions: {
         Args: {
           user_id: string
@@ -793,6 +837,12 @@ export type Database = {
       is_gc_admin_of: {
         Args: {
           profile_id: string
+        }
+        Returns: boolean
+      }
+      is_pm_for_project: {
+        Args: {
+          project_id: string
         }
         Returns: boolean
       }
