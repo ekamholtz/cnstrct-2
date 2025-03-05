@@ -61,7 +61,7 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
             <PaymentSimulationForm
               initialPayee={stage1Data.payee}
               initialAmount={stage1Data.amount}
-              onSubmit={handlePay}
+              onSubmit={handlePaymentSimulation}
               onCancel={() => {
                 setShowPaymentSimulation(false);
                 setStage1Data(null);
