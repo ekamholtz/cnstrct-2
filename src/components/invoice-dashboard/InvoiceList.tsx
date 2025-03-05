@@ -16,6 +16,21 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from 'react-router-dom';
 
+// Define the invoice type explicitly to avoid infinite recursion
+interface InvoiceWithRelations {
+  id: string;
+  invoice_number: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  milestone?: {
+    name: string;
+    project?: {
+      name: string;
+    };
+  };
+}
+
 export const InvoiceList = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -27,6 +42,16 @@ export const InvoiceList = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
+      // Get user profile to determine gc_account_id
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('gc_account_id, role')
+        .eq('id', user.id)
+        .single();
+        
+      if (profileError) throw profileError;
+
+      // Query invoices based on gc_account_id instead of contractor_id
       const { data, error } = await supabase
         .from('invoices')
         .select(`
@@ -38,11 +63,11 @@ export const InvoiceList = () => {
             )
           )
         `)
-        .eq('contractor_id', user.id)
+        .eq('gc_account_id', profile.gc_account_id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as InvoiceWithRelations[];
     },
   });
 

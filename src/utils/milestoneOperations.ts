@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const markMilestoneComplete = async (milestoneId: string) => {
@@ -23,13 +22,13 @@ export const markMilestoneComplete = async (milestoneId: string) => {
   if (invoiceNumberError) throw invoiceNumberError;
   console.log('Generated invoice number:', invoiceNumber);
 
-  // Create invoice
+  // Create invoice - now using gc_account_id instead of contractor_id
   const { data: invoice, error: invoiceError } = await supabase
     .from('invoices')
     .insert({
       milestone_id: milestoneId,
       project_id: milestone.project_id,
-      contractor_id: milestone.project.contractor_id,
+      gc_account_id: milestone.project.gc_account_id,
       amount: milestone.amount,
       invoice_number: invoiceNumber,
     })

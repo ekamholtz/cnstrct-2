@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ExpenseFormStage1Data, Expense, PaymentDetailsData } from "../components/project/expense/types";
@@ -30,7 +29,7 @@ export function useExpenses(projectId: string) {
     mutationFn: async (data: ExpenseFormStage1Data & { payment_status: 'due' | 'paid' | 'partially_paid' }) => {
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('contractor_id')
+        .select('gc_account_id')
         .eq('id', data.project_id)
         .single();
 
@@ -47,7 +46,7 @@ export function useExpenses(projectId: string) {
         expense_type: data.expense_type,
         notes: data.notes || '',
         project_id: data.project_id,
-        contractor_id: project.contractor_id,
+        gc_account_id: project.gc_account_id,
         payment_status: data.payment_status
       };
 
