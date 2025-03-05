@@ -95,6 +95,7 @@ export function useCreateExpense(projectId: string) {
       console.log('Note: contractor_id will be set automatically by database trigger');
       
       try {
+        // Notice we're NOT including contractor_id here as it will be set by the database trigger
         const { data: expense, error } = await supabase
           .from('expenses')
           .insert(newExpense)
