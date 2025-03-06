@@ -9,7 +9,7 @@ import {
   createClient,
   createProject,
   createMilestones
-} from "@/services/projectService";
+} from "@/services";
 
 export const useProjectCreation = () => {
   const [isLoading, setIsLoading] = useState(false);
