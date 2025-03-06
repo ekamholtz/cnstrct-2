@@ -5,8 +5,18 @@ import { useFetchExpenses } from "./useFetchExpenses";
 import { useCreateExpenseDashboard } from "./useCreateExpenseDashboard";
 import { useProcessPaymentDashboard } from "./useProcessPaymentDashboard";
 import { ExpenseFilters } from "../types";
+import { ProcessPaymentMutation, CreateExpenseFunction } from "./types";
 
-export function useExpenseDashboard() {
+export interface UseExpenseDashboardResult {
+  filters: ExpenseFilters;
+  setFilters: React.Dispatch<React.SetStateAction<ExpenseFilters>>;
+  expenses: any[] | null;
+  isLoading: boolean;
+  handleCreateExpense: CreateExpenseFunction;
+  processPaymentMutation: ProcessPaymentMutation;
+}
+
+export function useExpenseDashboard(): UseExpenseDashboardResult {
   const [filters, setFilters] = useState<ExpenseFilters>({
     dateRange: undefined,
     status: "all",

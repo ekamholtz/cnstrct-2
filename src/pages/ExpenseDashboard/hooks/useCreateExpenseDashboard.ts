@@ -2,14 +2,17 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-import { ExpenseFormSt̥age1Data, PaymentDetailsData } from "@/components/project/expense/types";
+import { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
+import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
 import { createHomeownerExpense, createGCExpense, createExpensePayment, updateExpenseAfterPayment, generateExpenseNumber } from "../services";
+import { CreateExpenseFunction } from "./types";
 
 export function useCreateExpenseDashboard() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { currentUserProfile } = useCurrentUserProfile();
 
-  const handleCreateExpense = async (
+  const handleCreateExpense: CreateExpenseFunction = async (
     data: ExpenseFormStage1Data,
     status: 'due' | 'paid' | 'partially_paid',
     paymentDetails?: PaymentDetailsData

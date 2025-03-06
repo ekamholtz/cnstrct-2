@@ -2,24 +2,18 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { createExpensePayment, updateExpenseAfterPayment } from "../services";
+import { ProcessPaymentParams, PaymentResponse, ProcessPaymentMutation } from "./types";
 
-interface ProcessPaymentParams {
-  expenseId: string;
-  amount: number;
-  paymentDetails: {
-    payment_method_code: string;
-    payment_date: string;
-    amount: number;
-    notes?: string;
-  };
-  expensesTable: 'expenses' | 'homeowner_expenses';
-}
-
-export function useProcessPaymentDashboard() {
+export function useProcessPaymentDashboard(): { processPaymentMutation: ProcessPaymentMutation } {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  const processPaymentMutation = useMutation({
+  const processPaymentMutation = useMutation<
+    PaymentResponse,
+    Error,
+    ProcessPaymentParams,
+    unknown
+  >({
     mutationFn: async ({
       expenseId,
       amount,
@@ -44,6 +38,7 @@ export function useProcessPaymentDashboard() {
       return payment;
     },
     onSuccess: () => {
+      // Fix: Using proper invalidateQueries format
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ['expenses'] }),
         queryClient.invalidateQueries({ queryKey: ['project'] }),
