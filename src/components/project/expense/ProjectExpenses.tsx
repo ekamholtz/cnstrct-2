@@ -32,10 +32,18 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
       
       // If payment details are provided, create a payment record
       if (paymentDetails && expense) {
-        await createPayment({
+        // Make sure required fields are properly set and not optional
+        const paymentData = {
           expenseId: expense.id,
-          paymentData: paymentDetails
-        });
+          paymentData: {
+            payment_method_code: paymentDetails.payment_method_code,
+            payment_date: paymentDetails.payment_date,
+            amount: paymentDetails.amount,
+            notes: paymentDetails.notes || ''
+          }
+        };
+        
+        await createPayment(paymentData);
       }
 
       // Invalidate relevant queries to trigger a refresh

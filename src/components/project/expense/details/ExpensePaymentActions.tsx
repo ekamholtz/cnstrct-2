@@ -31,7 +31,7 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
     try {
       console.log('Submitting payment details:', data);
       
-      // Ensure all required fields are present
+      // Ensure all required fields are present with proper typing
       const paymentData = {
         expenseId: expense.id,
         paymentData: {
@@ -57,6 +57,7 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
     try {
       console.log('Simulating payment:', data);
       
+      // Ensure payment data has all required fields set
       const paymentData = {
         expenseId: expense.id,
         paymentData: {
