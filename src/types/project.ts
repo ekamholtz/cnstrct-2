@@ -9,4 +9,5 @@ export interface Project {
   gc_account_id: string;
   pm_user_id: string; 
   client_id?: string;
+  description?: string;
 }

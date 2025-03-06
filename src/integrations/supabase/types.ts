@@ -589,6 +589,7 @@ export type Database = {
           address: string
           client_id: string | null
           created_at: string | null
+          description: string | null
           gc_account_id: string | null
           id: string
           name: string
@@ -600,6 +601,7 @@ export type Database = {
           address: string
           client_id?: string | null
           created_at?: string | null
+          description?: string | null
           gc_account_id?: string | null
           id?: string
           name: string
@@ -611,6 +613,7 @@ export type Database = {
           address?: string
           client_id?: string | null
           created_at?: string | null
+          description?: string | null
           gc_account_id?: string | null
           id?: string
           name?: string
