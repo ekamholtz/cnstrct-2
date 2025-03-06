@@ -56,7 +56,12 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
         console.log('Creating payment for expense:', expense.id, paymentDetails);
         const paymentResult = await createPayment({
           expenseId: expense.id,
-          paymentData: paymentDetails
+          paymentData: {
+            payment_method_code: paymentDetails.payment_method_code,
+            payment_date: paymentDetails.payment_date,
+            amount: paymentDetails.amount,
+            notes: paymentDetails.notes
+          }
         });
         
         console.log('Payment creation result:', paymentResult);

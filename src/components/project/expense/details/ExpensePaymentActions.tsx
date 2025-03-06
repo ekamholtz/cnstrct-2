@@ -32,7 +32,12 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
       console.log('Submitting payment details:', data);
       await createPayment({
         expenseId: expense.id,
-        paymentData: data
+        paymentData: {
+          payment_method_code: data.payment_method_code,
+          payment_date: data.payment_date,
+          amount: data.amount,
+          notes: data.notes
+        }
       });
       setShowPaymentDetails(false);
     } catch (error) {
@@ -54,7 +59,7 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
           payment_date: new Date().toISOString().split('T')[0],
           amount: data.payment_amount,
           notes: `Payment to ${data.payee_email || expense.payee}`,
-        } as PaymentDetailsData
+        }
       });
       setShowPaymentSimulation(false);
     } catch (error) {
