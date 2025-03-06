@@ -4,8 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ExpenseFormStage1Data, Expense } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
-import { generateExpenseNumber } from "../utils/expenseUtils";
-import { isProjectManagerForProject, getProjectWithPMDetails } from "@/services/projectService";
 
 export function useCreateExpense(projectId: string) {
   const queryClient = useQueryClient();
@@ -39,7 +37,7 @@ export function useCreateExpense(projectId: string) {
       // First get project info to get gc_account_id
       const { data: project, error: projectError } = await supabase
         .from('projects')
-        .select('gc_account_id, pm_user_id')
+        .select('gc_account_id')
         .eq('id', finalProjectId)
         .single();
 
@@ -54,47 +52,12 @@ export function useCreateExpense(projectId: string) {
       }
 
       console.log('Project details:', project);
-      
-      // Check if user is the PM for this project
-      const isPM = currentUserProfile.id === project.pm_user_id;
-      console.log('Is user the PM for this project?', isPM ? 'Yes' : 'No');
-      console.log('Project PM user ID:', project.pm_user_id);
-      
-      // Validate user permission for expense creation
-      const isGcAdmin = currentUserProfile.role === 'gc_admin' && currentUserProfile.gc_account_id === project.gc_account_id;
-      const isPlatformAdmin = currentUserProfile.role === 'platform_admin';
-      
-      // Allow project managers to create expenses for their projects
-      if (!isPM && !isGcAdmin && !isPlatformAdmin) {
-        console.error('Permission denied: User cannot create expenses for this project');
-        console.error('Authorization details:', {
-          userRole: currentUserProfile.role,
-          userGcAccountId: currentUserProfile.gc_account_id,
-          projectGcAccountId: project.gc_account_id,
-          isPM,
-          pmUserId: project.pm_user_id,
-          userId: currentUserProfile.id
-        });
-        throw new Error("You don't have permission to create expenses for this project.");
-      }
-      
-      console.log('Authorization checks passed:', {
-        isPlatformAdmin,
-        isGcAdmin,
-        isPM,
-        userRole: currentUserProfile.role,
-        userGcAccountId: currentUserProfile.gc_account_id,
-        projectGcAccountId: project.gc_account_id
-      });
 
       const amount = Number(data.amount);
       if (isNaN(amount) || amount <= 0) {
         console.error('Invalid expense amount:', data.amount);
         throw new Error("Invalid expense amount");
       }
-
-      // Generate a unique expense number
-      const expenseNumber = generateExpenseNumber();
 
       const newExpense = {
         name: data.name,
@@ -106,7 +69,6 @@ export function useCreateExpense(projectId: string) {
         notes: data.notes || '',
         project_id: finalProjectId,
         payment_status: 'due' as const,
-        expense_number: expenseNumber,
         gc_account_id: project.gc_account_id
       };
 
@@ -132,8 +94,6 @@ export function useCreateExpense(projectId: string) {
               userRole: currentUserProfile.role,
               userId: currentUserProfile.id,
               projectId: finalProjectId,
-              isPM,
-              pmUserId: project.pm_user_id,
               gcAccountId: currentUserProfile.gc_account_id,
               projectGcAccountId: project.gc_account_id
             });
