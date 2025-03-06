@@ -59,7 +59,7 @@ export function useCreateExpense(projectId: string) {
         throw new Error("Invalid expense amount");
       }
 
-      // Create the new expense WITHOUT including contractor_id
+      // Create the new expense with gc_account_id from the project
       const newExpense = {
         name: data.name,
         amount,
