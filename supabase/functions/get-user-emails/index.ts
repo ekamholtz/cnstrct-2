@@ -36,7 +36,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`Received ${userIds.length} user IDs to lookup emails for`)
+    console.log(`Received ${userIds.length} user IDs to lookup emails for: ${JSON.stringify(userIds)}`)
 
     // Create a Supabase admin client for accessing auth data
     const supabaseAdmin = createClient(
@@ -44,27 +44,43 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // Get user emails using the admin client
-    const { data: users, error } = await supabaseAdmin.auth.admin.listUsers()
-
-    if (error) {
-      console.error('Error fetching users:', error)
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch user emails' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
-      )
+    // Get user emails by fetching each user individually
+    const usersWithEmails = []
+    
+    // Process users in batches to avoid potential issues with too many concurrent requests
+    const batchSize = 10
+    for (let i = 0; i < userIds.length; i += batchSize) {
+      const batch = userIds.slice(i, i + batchSize)
+      const batchPromises = batch.map(async (userId) => {
+        try {
+          const { data: userData, error: userError } = await supabaseAdmin.auth.admin.getUserById(userId)
+          
+          if (userError) {
+            console.error(`Error fetching user ${userId}:`, userError)
+            return null
+          }
+          
+          if (!userData || !userData.user) {
+            console.log(`No user found for ID ${userId}`)
+            return null
+          }
+          
+          return {
+            id: userData.user.id,
+            email: userData.user.email
+          }
+        } catch (err) {
+          console.error(`Error processing user ${userId}:`, err)
+          return null
+        }
+      })
+      
+      const batchResults = await Promise.all(batchPromises)
+      usersWithEmails.push(...batchResults.filter(Boolean))
     }
 
-    // Filter and map users to get emails for the specified userIds
-    const usersWithEmails = users.users
-      .filter(user => userIds.includes(user.id))
-      .map(user => ({
-        id: user.id,
-        email: user.email
-      }))
-
-    console.log(`Found ${usersWithEmails.length} matching users`)
-
+    console.log(`Found ${usersWithEmails.length} users with emails`)
+    
     // Return the emails
     return new Response(
       JSON.stringify(usersWithEmails),
