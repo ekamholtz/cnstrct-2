@@ -40,6 +40,7 @@ export const useTeamMembers = () => {
         
         console.log('Fetching emails for user IDs:', userIds);
         
+        // This edge function call is crucial - it needs to return emails for ALL users
         const { data: usersWithEmails, error: funcError } = await supabase
           .functions.invoke('get-user-emails', {
             body: {
