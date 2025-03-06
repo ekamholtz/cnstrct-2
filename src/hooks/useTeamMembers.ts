@@ -17,7 +17,7 @@ export const useTeamMembers = () => {
 
       console.log('Fetching team members for gc_account_id:', currentUserProfile.gc_account_id);
       
-      // Get all profiles matching the GC account ID
+      // Get all profiles matching the GC account ID - this is the key part for showing all team members
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -31,6 +31,7 @@ export const useTeamMembers = () => {
       console.log(`Found ${profiles?.length || 0} team members with gc_account_id ${currentUserProfile.gc_account_id}:`, profiles);
 
       if (!profiles || profiles.length === 0) {
+        console.log('No team members found with matching gc_account_id');
         return [];
       }
 

@@ -53,7 +53,7 @@ export const UserTableBody = ({
     );
   }
 
-  if (users?.length === 0) {
+  if (!users || users.length === 0) {
     return (
       <TableBody>
         <TableRow>
