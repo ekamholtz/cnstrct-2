@@ -97,6 +97,15 @@ export const useTeamMembers = () => {
     refetchOnWindowFocus: false,
   });
 
+  console.log("useTeamMembers hook returning:", { 
+    teamMembers: teamMembers?.length,
+    teamMembersData: teamMembers,
+    isLoadingTeam: isLoadingTeam || isLoadingProfile,
+    gcAccountId: currentUserProfile?.gc_account_id,
+    isGCAdmin: currentUserProfile?.role === 'gc_admin',
+    isPlatformAdmin: currentUserProfile?.role === 'platform_admin'
+  });
+
   return {
     teamMembers,
     isLoadingTeam: isLoadingTeam || isLoadingProfile,
