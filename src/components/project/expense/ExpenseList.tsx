@@ -33,6 +33,9 @@ const mapExpenseStatusToInvoiceStatus = (status: Expense['payment_status']): "pa
 };
 
 export function ExpenseList({ expenses, loading }: ExpenseListProps) {
+  console.log("ExpenseList - Expenses received:", expenses);
+  console.log("ExpenseList - Number of expenses:", expenses.length);
+
   const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
   const totalPaid = expenses.reduce((sum, exp) => {
     return sum + (exp.payments?.reduce((pSum, p) => pSum + p.amount, 0) ?? 0);

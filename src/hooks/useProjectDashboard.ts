@@ -63,12 +63,29 @@ export function useProjectDashboard(projectId: string | undefined) {
         console.log('Invoices subscription status:', status);
       });
     
+    // Add subscription for expenses table
+    const expensesChannel = supabase
+      .channel(`expenses-${projectId}`)
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'expenses',
+        filter: `project_id=eq.${projectId}`
+      }, (payload) => {
+        console.log('Expense change received:', payload);
+        queryClient.invalidateQueries({ queryKey: ['gc-expenses', projectId] });
+      })
+      .subscribe((status) => {
+        console.log('Expenses subscription status:', status);
+      });
+    
     // Clean up subscriptions on unmount
     return () => {
       console.log('Cleaning up project dashboard subscriptions');
       supabase.removeChannel(projectChannel);
       supabase.removeChannel(milestonesChannel);
       supabase.removeChannel(invoicesChannel);
+      supabase.removeChannel(expensesChannel);
     };
   }, [projectId, queryClient]);
 
@@ -171,26 +188,38 @@ export function useProjectDashboard(projectId: string | undefined) {
   const { data: gcExpenses, isLoading: isGCExpensesLoading } = useQuery({
     queryKey: ['gc-expenses', projectId],
     queryFn: async () => {
-      if (!['gc_admin', 'platform_admin'].includes(userRole?.role || '')) return [];
+      // Also include 'project_manager' role to allow PMs to see expenses
+      if (!['gc_admin', 'platform_admin', 'project_manager'].includes(userRole?.role || '')) return [];
+
+      console.log('Fetching GC expenses for project:', projectId);
+      console.log('User role:', userRole?.role);
 
       const { data, error } = await supabase
         .from('expenses')
         .select(`
           *,
-          project:projects(name)
+          project:projects(name),
+          payments(*)
         `)
         .eq('project_id', projectId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching GC expenses:', error);
+        throw error;
+      }
+      
+      console.log('Fetched GC expenses:', data);
+      console.log('Number of GC expenses:', data?.length || 0);
       return data;
     },
-    enabled: !!userRole,
+    enabled: !!userRole && !!projectId,
   });
 
   return {
     project,
     homeownerExpenses: userRole?.role === 'homeowner' ? homeownerExpenses : [],
-    gcExpenses: ['gc_admin', 'platform_admin'].includes(userRole?.role || '') ? gcExpenses : [],
+    // Allow project managers to see GC expenses
+    gcExpenses: ['gc_admin', 'platform_admin', 'project_manager'].includes(userRole?.role || '') ? gcExpenses : [],
     userRole: userRole?.role,
     hasAdminRights,
     isLoading: isProjectLoading || isHomeownerExpensesLoading || isGCExpensesLoading

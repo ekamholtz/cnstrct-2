@@ -9,6 +9,9 @@ interface GCTabbedContentProps {
 }
 
 export function GCTabbedContent({ projectId, expenses }: GCTabbedContentProps) {
+  console.log("GCTabbedContent - expenses received:", expenses);
+  console.log("GCTabbedContent - Number of expenses:", expenses?.length || 0);
+  
   return (
     <Tabs defaultValue="invoices" className="w-full">
       <TabsList className="w-full bg-white border-b">

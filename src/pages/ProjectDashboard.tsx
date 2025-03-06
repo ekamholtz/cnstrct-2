@@ -31,6 +31,9 @@ const ProjectDashboard = () => {
     return <ProjectNotFound />;
   }
 
+  console.log("ProjectDashboard component - Expenses being passed to dashboard:", gcExpenses);
+  console.log("ProjectDashboard component - User role:", userRole);
+
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
       <div className="bg-[#172b70] text-white">
