@@ -1,4 +1,3 @@
-
 import { ExpenseFilters } from "../../types";
 import { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
 
@@ -14,4 +13,5 @@ export interface UseExpenseDashboardResult {
   expenses: any[] | null;
   isLoading: boolean;
   handleCreateExpense: CreateExpenseFunction;
+  processPaymentMutation: any; // Using any temporarily, should be properly typed based on mutation return type
 }
