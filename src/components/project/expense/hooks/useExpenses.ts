@@ -11,7 +11,7 @@ export function useExpenses(projectId: string) {
   const { toast } = useToast();
   
   const { data: expenses, isLoading, error: fetchError } = useFetchExpenses(projectId);
-  const { mutateAsync: createExpense, isPending: isCreating } = useCreateExpense();
+  const { mutateAsync: createExpense, isPending: isCreating } = useCreateExpense(projectId);
   const { mutateAsync: processPayment, isPending: isProcessingPayment } = useProcessPayment();
 
   // Log any fetch errors
