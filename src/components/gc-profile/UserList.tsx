@@ -31,7 +31,6 @@ export const UserList = ({
 
   // Effect to filter users and provide more detailed logging
   useEffect(() => {
-    // Log raw users array for debugging
     console.log("UserList - Raw users array:", users);
     console.log("UserList - Users length:", users?.length);
     

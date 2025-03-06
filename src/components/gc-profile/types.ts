@@ -1,9 +1,10 @@
+
 import { UserRole } from "@/components/admin/users/types";
 
 export interface GCUserProfile {
   id: string;
   full_name: string;
-  email: string;
+  email?: string;
   phone_number?: string;
   role: UserRole;
   gc_account_id: string;

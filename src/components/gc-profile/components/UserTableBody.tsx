@@ -34,7 +34,6 @@ export const UserTableBody = ({
     console.log("First few users data:", users.slice(0, 3).map(user => ({
       id: user.id,
       name: user.full_name,
-      email: user.email,
       role: user.role
     })));
   }
@@ -83,7 +82,7 @@ export const UserTableBody = ({
   
   // Debug log for users being displayed
   console.log(`UserTableBody - Displaying ${usersToDisplay.length} users:`, 
-    usersToDisplay.map(u => ({id: u.id, name: u.full_name, email: u.email}))
+    usersToDisplay.map(u => ({id: u.id, name: u.full_name}))
   );
   
   return (
@@ -98,7 +97,7 @@ export const UserTableBody = ({
               </Badge>
             )}
           </TableCell>
-          <TableCell>{user.email || 'N/A'}</TableCell>
+          <TableCell>{user.email || user.id}</TableCell>
           <TableCell>{user.phone_number || 'N/A'}</TableCell>
           <TableCell>
             <RoleBadge role={user.role} />
