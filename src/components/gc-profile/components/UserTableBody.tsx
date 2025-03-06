@@ -56,21 +56,24 @@ export const UserTableBody = ({
     );
   }
 
-  if (filteredUsers.length === 0) {
+  if (filteredUsers.length === 0 && searchQuery) {
     return (
       <TableBody>
         <TableRow>
           <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-4">
-            {searchQuery ? "No users match your search" : "No users found"}
+            No users match your search criteria.
           </TableCell>
         </TableRow>
       </TableBody>
     );
   }
 
+  // If we have users but no filtered users (without a search query), show all users
+  const usersToDisplay = searchQuery ? filteredUsers : users;
+  
   return (
     <TableBody>
-      {filteredUsers.map((user) => (
+      {usersToDisplay.map((user) => (
         <TableRow key={user.id}>
           <TableCell>
             {user.full_name || 'N/A'}
