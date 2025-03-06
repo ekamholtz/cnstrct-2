@@ -21,11 +21,13 @@ import {
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus } from "lucide-react";
+import { useUserRole } from "@/hooks/profile/useUserRole";
 
 export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => void }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [open, setOpen] = useState(false);
   const { createProject } = useProjectCreation();
+  const userRole = useUserRole();
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
@@ -68,6 +70,11 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
             Fill in the project details below to create a new project.
+            {userRole === 'project_manager' && (
+              <div className="mt-2 text-yellow-600">
+                Note: You will be automatically assigned as the Project Manager.
+              </div>
+            )}
           </DialogDescription>
         </DialogHeader>
         <ScrollArea className="h-[calc(90vh-180px)]">

@@ -38,14 +38,15 @@ export const useProjectCreation = () => {
       });
 
       // Create the project
-      // For Project Managers, we need to ensure they are assigned as the PM for the project
+      // Always assign the current user as PM for projects they create
       const project = await createProject({
         name: projectData.projectName,
         address: projectData.clientAddress,
         status: 'active',
         client_id: client.id,
         gc_account_id: userProfile.gc_account_id,
-        pm_user_id: user.id // Always assign the current user as PM if they are creating the project
+        pm_user_id: user.id, // Explicitly set the current user as PM
+        description: projectData.projectDescription // Add description field
       });
 
       // Handle milestones creation

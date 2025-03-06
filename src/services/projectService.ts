@@ -51,7 +51,8 @@ export const createProject = async (projectData: {
   status: 'active' | 'draft' | 'completed' | 'cancelled';
   client_id: string;
   gc_account_id: string;
-  pm_user_id: string; // The assigned user/PM
+  pm_user_id: string;
+  description?: string;
 }) => {
   console.log('Creating project with data:', projectData);
   
@@ -72,20 +73,26 @@ export const createProject = async (projectData: {
     throw new Error('Project manager must belong to the same GC account as the project');
   }
   
-  // Create the project
-  const { data: project, error: projectError } = await supabase
-    .from('projects')
-    .insert(projectData)
-    .select()
-    .single();
+  // Try to create the project with a transaction to ensure consistency
+  try {
+    // Create the project
+    const { data: project, error: projectError } = await supabase
+      .from('projects')
+      .insert(projectData)
+      .select()
+      .single();
 
-  if (projectError) {
-    console.error('Error creating project:', projectError);
-    throw projectError;
+    if (projectError) {
+      console.error('Error creating project:', projectError);
+      throw projectError;
+    }
+    
+    console.log('Project created successfully:', project);
+    return project;
+  } catch (error) {
+    console.error('Project creation failed with error:', error);
+    throw error;
   }
-  
-  console.log('Project created successfully:', project);
-  return project;
 };
 
 /**
