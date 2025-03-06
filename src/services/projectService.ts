@@ -186,3 +186,41 @@ export const createPayment = async (paymentData: {
   console.log('Payment created successfully:', payment);
   return payment;
 };
+
+/**
+ * Get project details including PM information
+ */
+export const getProjectWithPMDetails = async (projectId: string) => {
+  const { data, error } = await supabase
+    .from('projects')
+    .select(`
+      *,
+      pm:profiles!projects_pm_user_id_fkey(id, full_name, role)
+    `)
+    .eq('id', projectId)
+    .single();
+  
+  if (error) throw error;
+  return data;
+};
+
+/**
+ * Checks if current user is the PM for a project
+ */
+export const isProjectManagerForProject = async (projectId: string) => {
+  const { user } = await getCurrentUserProfile();
+  
+  const { data, error } = await supabase
+    .from('projects')
+    .select('pm_user_id')
+    .eq('id', projectId)
+    .eq('pm_user_id', user.id)
+    .single();
+  
+  if (error && error.code !== 'PGRST116') {
+    console.error('Error checking PM status:', error);
+    return false;
+  }
+  
+  return !!data;
+};

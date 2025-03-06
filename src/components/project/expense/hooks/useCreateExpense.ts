@@ -5,6 +5,7 @@ import type { ExpenseFormStage1Data, Expense } from "../types";
 import { useToast } from "@/hooks/use-toast";
 import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
 import { generateExpenseNumber } from "../utils/expenseUtils";
+import { isProjectManagerForProject, getProjectWithPMDetails } from "@/services/projectService";
 
 export function useCreateExpense(projectId: string) {
   const queryClient = useQueryClient();
@@ -54,7 +55,7 @@ export function useCreateExpense(projectId: string) {
 
       console.log('Project details:', project);
       
-      // Log whether current user is the PM for this project
+      // Check if user is the PM for this project
       const isPM = currentUserProfile.id === project.pm_user_id;
       console.log('Is user the PM for this project?', isPM ? 'Yes' : 'No');
       console.log('Project PM user ID:', project.pm_user_id);
@@ -63,11 +64,21 @@ export function useCreateExpense(projectId: string) {
       const isGcAdmin = currentUserProfile.role === 'gc_admin' && currentUserProfile.gc_account_id === project.gc_account_id;
       const isPlatformAdmin = currentUserProfile.role === 'platform_admin';
       
+      // Allow project managers to create expenses for their projects
       if (!isPM && !isGcAdmin && !isPlatformAdmin) {
+        console.error('Permission denied: User cannot create expenses for this project');
+        console.error('Authorization details:', {
+          userRole: currentUserProfile.role,
+          userGcAccountId: currentUserProfile.gc_account_id,
+          projectGcAccountId: project.gc_account_id,
+          isPM,
+          pmUserId: project.pm_user_id,
+          userId: currentUserProfile.id
+        });
         throw new Error("You don't have permission to create expenses for this project.");
       }
       
-      console.log('Authorization checks:', {
+      console.log('Authorization checks passed:', {
         isPlatformAdmin,
         isGcAdmin,
         isPM,
