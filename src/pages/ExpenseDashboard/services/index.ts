@@ -1,6 +1,2 @@
 
-import { generateExpenseNumber } from "../utils/expenseUtils";
-export { createHomeownerExpense } from "./homeownerExpenseService";
-export { createGCExpense } from "./gcExpenseService";
-export { createExpensePayment, updateExpenseAfterPayment } from "./paymentService";
-export { generateExpenseNumber };
+export { createHomeownerExpense, createGCExpense, createExpensePayment, updateExpenseAfterPayment, generateExpenseNumber } from "@/services/expenseService";
