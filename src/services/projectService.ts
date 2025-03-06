@@ -79,7 +79,10 @@ export const createProject = async (projectData: {
     .select()
     .single();
 
-  if (projectError) throw projectError;
+  if (projectError) {
+    console.error('Error creating project:', projectError);
+    throw projectError;
+  }
   
   console.log('Project created successfully:', project);
   return project;
