@@ -29,6 +29,16 @@ export const UserTableBody = ({
     searchQuery
   });
 
+  // Debug logs for users data to help diagnose the issue
+  if (users?.length > 0) {
+    console.log("First few users data:", users.slice(0, 3).map(user => ({
+      id: user.id,
+      name: user.full_name,
+      email: user.email,
+      role: user.role
+    })));
+  }
+
   if (isLoading) {
     return (
       <TableBody>
@@ -70,6 +80,11 @@ export const UserTableBody = ({
 
   // If we have users but no filtered users (without a search query), show all users
   const usersToDisplay = searchQuery ? filteredUsers : users;
+  
+  // Debug log for users being displayed
+  console.log(`UserTableBody - Displaying ${usersToDisplay.length} users:`, 
+    usersToDisplay.map(u => ({id: u.id, name: u.full_name, email: u.email}))
+  );
   
   return (
     <TableBody>

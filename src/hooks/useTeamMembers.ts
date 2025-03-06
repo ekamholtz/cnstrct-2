@@ -66,9 +66,16 @@ export const useTeamMembers = () => {
 
         console.log('GC account data:', gcAccount);
 
+        // Ensure usersWithEmails is an array
+        const emailsArray = Array.isArray(usersWithEmails) ? usersWithEmails : [];
+        
+        if (emailsArray.length === 0) {
+          console.warn('No email data received from the edge function');
+        }
+
         // Merge profile data with emails and owner information
         const profilesWithEmails = profiles.map(profile => {
-          const userEmailObj = usersWithEmails?.find(u => u.id === profile.id);
+          const userEmailObj = emailsArray.find(u => u?.id === profile.id);
           const userEmail = userEmailObj?.email || 'Email not available';
           
           // Mark if this profile is the owner
