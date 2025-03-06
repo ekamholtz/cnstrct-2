@@ -30,15 +30,19 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
   const handlePaymentSubmit = async (data: PaymentDetailsData) => {
     try {
       console.log('Submitting payment details:', data);
-      await createPayment({
+      
+      // Ensure all required fields are present
+      const paymentData = {
         expenseId: expense.id,
         paymentData: {
           payment_method_code: data.payment_method_code,
           payment_date: data.payment_date,
           amount: data.amount,
-          notes: data.notes
+          notes: data.notes || ''
         }
-      });
+      };
+      
+      await createPayment(paymentData);
       setShowPaymentDetails(false);
     } catch (error) {
       console.error('Error processing payment:', error);
@@ -52,15 +56,18 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
   }) => {
     try {
       console.log('Simulating payment:', data);
-      await createPayment({
+      
+      const paymentData = {
         expenseId: expense.id,
         paymentData: {
           payment_method_code: 'transfer',
           payment_date: new Date().toISOString().split('T')[0],
           amount: data.payment_amount,
-          notes: `Payment to ${data.payee_email || expense.payee}`,
+          notes: `Payment to ${data.payee_email || expense.payee}`
         }
-      });
+      };
+      
+      await createPayment(paymentData);
       setShowPaymentSimulation(false);
     } catch (error) {
       console.error('Error simulating payment:', error);
