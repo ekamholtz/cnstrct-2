@@ -25,6 +25,7 @@ export const TeamMembersSection = () => {
 
   console.log("TeamMembersSection rendered with:", { 
     teamMembers: teamMembers?.length,
+    teamMembersData: teamMembers,
     gcAccountId,
     isGCAdmin,
     isPlatformAdmin

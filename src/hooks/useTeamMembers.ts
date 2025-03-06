@@ -17,7 +17,7 @@ export const useTeamMembers = () => {
 
       console.log('Fetching team members for gc_account_id:', currentUserProfile.gc_account_id);
       
-      // Get all profiles matching the GC account ID including all roles (gc_admin and project_manager)
+      // Get all profiles matching the GC account ID regardless of role
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
@@ -28,7 +28,7 @@ export const useTeamMembers = () => {
         throw error;
       }
 
-      console.log(`Found ${profiles?.length || 0} team members`);
+      console.log(`Found ${profiles?.length || 0} team members with gc_account_id ${currentUserProfile.gc_account_id}:`, profiles);
 
       if (!profiles || profiles.length === 0) {
         return [];
@@ -55,12 +55,16 @@ export const useTeamMembers = () => {
           })) as GCUserProfile[];
         }
 
+        console.log('Email data received:', usersWithEmails);
+
         // Check if any company owner exists
         const { data: gcAccount } = await supabase
           .from('gc_accounts')
           .select('owner_id')
           .eq('id', currentUserProfile.gc_account_id)
           .single();
+
+        console.log('GC account data:', gcAccount);
 
         // Merge profile data with emails and owner information
         const profilesWithEmails = profiles.map(profile => {
@@ -69,6 +73,8 @@ export const useTeamMembers = () => {
           
           // Mark if this profile is the owner
           const isOwner = gcAccount && gcAccount.owner_id === profile.id;
+          
+          console.log(`Mapping profile ${profile.id} (${profile.full_name}) with email: ${userEmail}, isOwner: ${isOwner}`);
           
           return {
             ...profile,

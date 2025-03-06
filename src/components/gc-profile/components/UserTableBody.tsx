@@ -21,6 +21,14 @@ export const UserTableBody = ({
   canManageUsers,
   searchQuery
 }: UserTableBodyProps) => {
+  console.log("UserTableBody rendering with:", {
+    usersLength: users?.length,
+    filteredUsersLength: filteredUsers?.length,
+    isLoading,
+    canManageUsers,
+    searchQuery
+  });
+
   if (isLoading) {
     return (
       <TableBody>
