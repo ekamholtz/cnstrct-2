@@ -70,7 +70,7 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
             Fill in the project details below to create a new project.
-            {userRole === 'project_manager' && (
+            {userRole && (
               <div className="mt-2 text-yellow-600">
                 Note: You will be automatically assigned as the Project Manager.
               </div>

@@ -46,7 +46,7 @@ export const useProjectCreation = () => {
         client_id: client.id,
         gc_account_id: userProfile.gc_account_id,
         pm_user_id: user.id, // Explicitly set the current user as PM
-        description: projectData.projectDescription // Add description field
+        description: projectData.projectDescription
       });
 
       // Handle milestones creation
