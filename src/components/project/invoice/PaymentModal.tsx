@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -32,7 +31,7 @@ import { PaymentFormData, PaymentModalProps } from "./types";
 import { paymentSchema } from "./schemas";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { markInvoiceAsPaid } from "@/services/invoiceService";
 
 export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
   const [open, setOpen] = useState(false);
@@ -47,18 +46,7 @@ export function PaymentModal({ invoice, onSubmit }: PaymentModalProps) {
 
   const markAsPaidMutation = useMutation({
     mutationFn: async (data: PaymentFormData) => {
-      const { error } = await supabase
-        .from('invoices')
-        .update({
-          status: 'paid',
-          payment_method: data.payment_method,
-          payment_date: data.payment_date.toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', invoice.id);
-
-      if (error) throw error;
-      return true;
+      return markInvoiceAsPaid(invoice.id, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoice', invoice.id] });

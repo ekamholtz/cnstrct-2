@@ -6,3 +6,4 @@ export * from './projectService';
 export * from './milestoneService';
 export * from './paymentService';
 export * from './expenseService';
+export * from './invoiceService';

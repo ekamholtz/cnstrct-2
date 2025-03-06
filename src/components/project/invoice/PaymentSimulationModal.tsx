@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -13,7 +12,7 @@ import {
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Invoice } from "./types";
-import { supabase } from "@/integrations/supabase/client";
+import { simulateInvoicePayment } from "@/services/invoiceService";
 
 interface PaymentSimulationModalProps {
   invoice: Invoice;
@@ -46,23 +45,7 @@ export function PaymentSimulationModal({ invoice, onPaymentComplete }: PaymentSi
         invoice_number: invoice.invoice_number
       };
 
-      console.log('Calling simulate_invoice_payment with:', {
-        invoice_id: invoice.id,
-        simulation_details: simulationDetails
-      });
-
-      const { data, error } = await supabase
-        .rpc('simulate_invoice_payment', {
-          invoice_id: invoice.id,
-          simulation_details: simulationDetails
-        });
-
-      if (error) {
-        console.error('Payment simulation error:', error);
-        throw error;
-      }
-
-      console.log('Payment simulation completed successfully:', data);
+      await simulateInvoicePayment(invoice.id, simulationDetails);
 
       toast({
         title: "Payment Successful",

@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { ExpenseFilters } from "../types";
 import { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
 import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
@@ -109,11 +108,68 @@ export function useExpenseDashboard(): UseExpenseDashboardResult {
     }
   };
 
+  const processPaymentMutation = useMutation({
+    mutationFn: async ({
+      expenseId,
+      amount,
+      paymentDetails,
+      expensesTable = 'expenses'
+    }: {
+      expenseId: string;
+      amount: number;
+      paymentDetails: {
+        payment_method_code: string;
+        payment_date: string;
+        amount: number;
+        notes?: string;
+      };
+      expensesTable?: 'expenses' | 'homeowner_expenses';
+    }) => {
+      console.log('Processing payment:', { expenseId, amount, paymentDetails, expensesTable });
+      
+      // Create payment record
+      const payment = await createExpensePayment({
+        expenseId,
+        paymentDetails,
+        expensesTable
+      });
+      
+      // Update expense status
+      await updateExpenseAfterPayment(
+        expenseId,
+        amount,
+        paymentDetails.amount,
+        expensesTable
+      );
+      
+      return payment;
+    },
+    onSuccess: () => {
+      // Invalidate both the expenses list and the project-specific queries
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['expenses'] }),
+        queryClient.invalidateQueries({ queryKey: ['project', data.project_id] }),
+        queryClient.invalidateQueries({ queryKey: ['homeowner-expenses', data.project_id] }),
+        queryClient.invalidateQueries({ queryKey: ['expenses', data.project_id] })
+      ]);
+    },
+    onError: (error) => {
+      console.error('Error processing payment:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
+      });
+      throw error;
+    },
+  });
+
   return {
     filters,
     setFilters,
     expenses,
     isLoading,
     handleCreateExpense,
+    processPaymentMutation,
   };
 }

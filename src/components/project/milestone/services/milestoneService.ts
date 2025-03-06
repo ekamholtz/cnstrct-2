@@ -1,6 +1,6 @@
 
 import { fetchMilestoneWithProject, updateMilestoneStatus } from "../utils/milestoneStatusUtils";
-import { createMilestoneInvoice, deleteInvoicesForMilestone, generateInvoiceNumber } from "../utils/invoiceUtils";
+import { createMilestoneInvoice, deleteInvoicesForMilestone, generateInvoiceNumber } from "@/services/invoiceService";
 
 /**
  * Service function to complete a milestone, which includes:

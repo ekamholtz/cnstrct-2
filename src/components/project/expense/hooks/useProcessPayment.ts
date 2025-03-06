@@ -1,71 +1,73 @@
-
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { PaymentDetailsData } from "../types";
-import { useToast } from "@/hooks/use-toast";
-import { createExpensePayment, updateExpenseAfterPayment } from "@/pages/ExpenseDashboard/services/paymentService";
+import { useToast } from "@/components/ui/use-toast";
+import { createExpensePayment, updateExpenseAfterPayment } from "@/services/expenseService";
 
-export function useProcessPayment(projectId: string) {
-  const queryClient = useQueryClient();
+export function useProcessPayment() {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  return useMutation({
-    mutationFn: async ({ expenseId, paymentData }: { expenseId: string; paymentData: PaymentDetailsData }) => {
-      console.log('Processing payment for expense:', expenseId, paymentData);
-      
-      try {
-        // First get the expense to validate and get its amount info
-        const { data: expense, error: expenseError } = await supabase
-          .from('expenses')
-          .select('amount, amount_due')
-          .eq('id', expenseId)
-          .single();
+  const mutation = useMutation(
+    async ({
+      expenseId,
+      amount,
+      paymentDetails,
+      expensesTable,
+    }: {
+      expenseId: string;
+      amount: number;
+      paymentDetails: {
+        payment_method_code: string;
+        payment_date: string;
+        amount: number;
+        notes?: string;
+      };
+      expensesTable: "expenses" | "homeowner_expenses";
+    }) => {
+      console.log("Processing payment:", {
+        expenseId,
+        amount,
+        paymentDetails,
+        expensesTable,
+      });
 
-        if (expenseError) {
-          console.error('Error fetching expense for payment update:', expenseError);
-          throw expenseError;
-        }
+      // Create payment record
+      const payment = await createExpensePayment({
+        expenseId,
+        paymentDetails,
+        expensesTable,
+      });
 
-        // Create the payment record using the createExpensePayment function
-        const payment = await createExpensePayment({
-          expenseId,
-          paymentDetails: paymentData,
-          expensesTable: 'expenses'
+      // Update expense status
+      await updateExpenseAfterPayment(
+        expenseId,
+        amount,
+        paymentDetails.amount,
+        expensesTable
+      );
+
+      return payment;
+    },
+    {
+      onSuccess: () => {
+        queryClient.invalidateQueries(["expenses"]);
+        toast({
+          title: "Success",
+          description: "Payment processed successfully",
         });
-        
-        console.log('Payment created:', payment);
-
-        // Update the expense status and amount_due using updateExpenseAfterPayment
-        const updatedExpense = await updateExpenseAfterPayment(
-          expenseId,
-          expense.amount,
-          Number(paymentData.amount),
-          'expenses'
-        );
-        
-        console.log('Expense updated after payment:', updatedExpense);
-
-        return payment;
-      } catch (error) {
-        console.error('Error processing payment:', error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-      toast({
-        title: "Success",
-        description: "Payment processed successfully",
-      });
-    },
-    onError: (error) => {
-      console.error('Error processing payment (in mutation):', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
-      });
+      },
+      onError: (error) => {
+        console.error("Error processing payment:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description:
+            error instanceof Error
+              ? error.message
+              : "Failed to process payment. Please try again.",
+        });
+      },
     }
-  });
+  );
+
+  return mutation;
 }

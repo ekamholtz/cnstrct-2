@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Invoice, PaymentFormData } from "../types";
+import { getProjectInvoices, markInvoiceAsPaid } from "@/services/invoiceService";
 
 export function useInvoices(projectId: string) {
   const { toast } = useToast();
@@ -12,50 +13,7 @@ export function useInvoices(projectId: string) {
   const { data: invoices, isLoading } = useQuery({
     queryKey: ['project-invoices', projectId],
     queryFn: async () => {
-      console.log('Starting invoice fetch for project:', projectId);
-      
-      // Use standard Supabase join pattern without table aliases
-      const { data, error } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          milestone:milestone_id (
-            name,
-            project:project_id (
-              name
-            )
-          )
-        `)
-        .eq('project_id', projectId)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.error('Error fetching invoices:', error);
-        throw error;
-      }
-
-      console.log('Raw invoices data:', data);
-
-      const transformedData: Invoice[] = (data || []).map(invoice => ({
-        id: invoice.id,
-        invoice_number: invoice.invoice_number,
-        amount: invoice.amount,
-        status: invoice.status as Invoice['status'],
-        created_at: invoice.created_at,
-        milestone_id: invoice.milestone_id,
-        milestone_name: invoice.milestone?.name || '',
-        project_name: invoice.milestone?.project?.name || '',
-        project_id: invoice.project_id,
-        payment_method: invoice.payment_method as Invoice['payment_method'],
-        payment_date: invoice.payment_date || null,
-        payment_reference: invoice.payment_reference || null,
-        payment_gateway: invoice.payment_gateway || null,
-        simulation_data: invoice.simulation_data,
-        updated_at: invoice.updated_at
-      }));
-
-      console.log('Transformed invoices data:', transformedData);
-      return transformedData;
+      return getProjectInvoices(projectId);
     },
   });
 
@@ -97,48 +55,7 @@ export function useInvoices(projectId: string) {
     }: { 
       invoiceId: string;
     } & PaymentFormData) => {
-      console.log("Marking invoice as paid:", {
-        invoiceId,
-        payment_method,
-        payment_date
-      });
-
-      // Get invoice details first
-      const { data: invoice, error: invoiceError } = await supabase
-        .from('invoices')
-        .select('*')
-        .eq('id', invoiceId)
-        .single();
-
-      if (invoiceError) throw invoiceError;
-
-      // Create payment record
-      const { error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          invoice_id: invoiceId,
-          amount: invoice.amount,
-          direction: 'incoming',
-          payment_method_code: payment_method,
-          payment_date: payment_date.toISOString(),
-          status: 'completed'
-        });
-
-      if (paymentError) throw paymentError;
-
-      // Update invoice status
-      const { error: updateError } = await supabase
-        .from('invoices')
-        .update({
-          status: 'paid',
-          payment_method,
-          payment_date: payment_date.toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', invoiceId)
-        .single();
-
-      if (updateError) throw updateError;
+      await markInvoiceAsPaid(invoiceId, { payment_method, payment_date });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project-invoices', projectId] });
