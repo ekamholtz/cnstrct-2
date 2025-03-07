@@ -53,11 +53,8 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Recent Projects</h2>
-      </div>
-      <div className="divide-y divide-gray-200">
+    <div className="bg-white rounded-lg">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {projects.length > 0 ? (
           projects.map((project) => (
             <Link 
@@ -65,10 +62,10 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
               to={`/project/${project.id}`}
               className="block"
             >
-              <div className="p-6 hover:bg-gray-50 transition-colors duration-200">
+              <div className="p-5 hover:bg-gray-50 transition-colors duration-200 rounded-lg border border-gray-100 hover:shadow-md">
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900">{project.name}</h3>
+                    <h3 className="text-lg font-medium text-gray-900">{project.name}</h3>
                     <p className="text-sm text-gray-500">{project.address}</p>
                   </div>
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -90,7 +87,7 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
             </Link>
           ))
         ) : (
-          <div className="text-center p-8 text-gray-500">
+          <div className="text-center p-8 text-gray-500 col-span-3">
             No projects found. Create your first project to get started.
           </div>
         )}

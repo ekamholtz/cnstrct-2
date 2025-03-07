@@ -89,7 +89,7 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
         {milestones.map((milestone) => (
           <Card 
             key={milestone.id}
-            className="flex-none w-[280px] aspect-square hover:shadow-lg transition-shadow"
+            className="flex-none w-[280px] aspect-square hover:shadow-lg transition-shadow border-0"
           >
             <div className={`h-2 ${getStatusColor(milestone.status)}`} />
             <div className="p-4 flex flex-col h-[calc(100%-8px)]">
@@ -107,7 +107,7 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
                   <p className="text-sm text-gray-500 line-clamp-2">{milestone.description}</p>
                 )}
               </div>
-              <div className="pt-4 mt-auto border-t space-y-3">
+              <div className="pt-4 mt-auto border-t border-gray-100 space-y-3">
                 <div className="flex items-center text-sm text-gray-500">
                   <Calendar className="h-4 w-4 mr-2" />
                   <span>
@@ -116,7 +116,7 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
                 </div>
                 <Button
                   size="sm"
-                  className={`w-full ${getButtonStyle(milestone.status)}`}
+                  className={`w-full ${getButtonStyle(milestone.status)} border-0`}
                   onClick={() => handleMilestoneAction(milestone)}
                 >
                   <Check className="h-4 w-4 mr-2" />

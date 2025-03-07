@@ -65,7 +65,7 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
           New Project
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] border-0 shadow-lg">
         <DialogHeader>
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
@@ -86,7 +86,7 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
                 <MilestonesSection form={form} />
                 <ContractValueSection form={form} />
 
-                <Button type="submit" disabled={isSubmitting} className="w-full">
+                <Button type="submit" disabled={isSubmitting} className="w-full border-0">
                   <Save className="h-4 w-4 mr-2" />
                   Create Project
                 </Button>

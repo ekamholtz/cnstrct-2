@@ -37,7 +37,7 @@ export function ClientProjectCard({ project }: ClientProjectCardProps) {
 
   return (
     <Link to={`/project/${project.id}`}>
-      <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+      <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer bg-white border-0">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <h3 className="font-semibold text-lg text-gray-900">{project.name}</h3>

@@ -1,3 +1,4 @@
+
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -22,7 +23,7 @@ export function MilestonesSection({ form }: MilestonesSectionProps) {
       
       <div className="space-y-4">
         {fields.map((field, index) => (
-          <div key={field.id} className="p-4 border rounded-lg space-y-4">
+          <div key={field.id} className="p-4 rounded-lg space-y-4 bg-gray-50">
             <div className="flex justify-between items-center">
               <h4 className="font-medium">Milestone {index + 1}</h4>
               {fields.length > 1 && (
@@ -45,7 +46,7 @@ export function MilestonesSection({ form }: MilestonesSectionProps) {
                   <FormItem>
                     <FormLabel>Milestone Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter milestone name" {...field} />
+                      <Input placeholder="Enter milestone name" {...field} className="border-gray-200" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -63,6 +64,7 @@ export function MilestonesSection({ form }: MilestonesSectionProps) {
                         min="0"
                         step="0.01"
                         placeholder="Enter amount"
+                        className="border-gray-200"
                         {...field}
                       />
                     </FormControl>
@@ -80,6 +82,7 @@ export function MilestonesSection({ form }: MilestonesSectionProps) {
                       <FormControl>
                         <Textarea 
                           placeholder="Enter milestone description"
+                          className="border-gray-200"
                           {...field}
                         />
                       </FormControl>
@@ -96,7 +99,7 @@ export function MilestonesSection({ form }: MilestonesSectionProps) {
       <Button
         type="button"
         variant="outline"
-        className="w-full"
+        className="w-full border-gray-200"
         onClick={() => append({ name: "", description: "", amount: "" })}
       >
         <Plus className="h-4 w-4 mr-2" />

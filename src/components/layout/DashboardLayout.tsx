@@ -8,7 +8,7 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="min-h-screen bg-slate-50">
-      <div className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-30">
+      <div className="bg-white shadow-sm sticky top-0 z-30">
         <MainNav />
       </div>
       <main className="container mx-auto px-4 py-6 mt-4 max-w-7xl">

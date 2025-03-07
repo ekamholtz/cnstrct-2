@@ -43,6 +43,7 @@ export function ExpenseFormContent({
             variant="outline"
             onClick={onCancel}
             disabled={isProcessing}
+            className="border-gray-200"
           >
             Cancel
           </Button>
@@ -51,7 +52,7 @@ export function ExpenseFormContent({
             variant="secondary"
             onClick={() => onSubmit('save_as_due')}
             disabled={isProcessing}
-            className="bg-[#7E69AB] hover:bg-[#9b87f5] text-white"
+            className="bg-[#7E69AB] hover:bg-[#9b87f5] text-white border-0"
           >
             Save as Due
           </Button>
@@ -59,7 +60,7 @@ export function ExpenseFormContent({
             type="button"
             onClick={() => onSubmit('save_as_paid')}
             disabled={isProcessing}
-            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white border-0"
           >
             Save as Paid
           </Button>
@@ -67,7 +68,7 @@ export function ExpenseFormContent({
             type="button"
             onClick={() => onSubmit('pay')}
             disabled={isProcessing}
-            className="bg-blue-600 hover:bg-blue-700 text-white"
+            className="bg-blue-600 hover:bg-blue-700 text-white border-0"
           >
             Pay Now
           </Button>

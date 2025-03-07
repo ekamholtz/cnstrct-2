@@ -17,9 +17,8 @@ export function ContractorFinancialSummary() {
   } = useContractorFinancials(projectIds);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-l-blue-500">
+    <div className="bg-white rounded-lg shadow-sm p-6">
       <div className="flex items-center mb-6">
-        <div className="w-1 h-6 bg-blue-500 mr-3 rounded-full"></div>
         <h2 className="text-xl font-semibold text-slate-800">Financial Overview</h2>
       </div>
       <FinancialMetricsGrid 

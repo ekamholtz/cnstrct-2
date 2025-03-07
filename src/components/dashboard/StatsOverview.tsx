@@ -63,7 +63,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       icon: Building2,
       description: "Current ongoing projects",
       link: "/gc-projects",
-      color: "border-blue-100",
+      color: "shadow-sm",
       iconBg: "bg-blue-50",
       iconColor: "text-blue-600"
     },
@@ -72,7 +72,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       value: pendingApprovals,
       icon: Clock,
       description: "Awaiting client approval",
-      color: "border-amber-100",
+      color: "shadow-sm",
       iconBg: "bg-amber-50",
       iconColor: "text-amber-600"
     },
@@ -82,7 +82,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       icon: DollarSign,
       description: "Active projects",
       link: "/gc-projects",
-      color: "border-emerald-100",
+      color: "shadow-sm",
       iconBg: "bg-emerald-50",
       iconColor: "text-emerald-600"
     },
@@ -91,7 +91,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       value: activeClients,
       icon: Users,
       description: "Currently working with",
-      color: "border-purple-100",
+      color: "shadow-sm",
       iconBg: "bg-purple-50",
       iconColor: "text-purple-600"
     }
@@ -107,7 +107,7 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
             to={stat.link || ''} 
             className={`block transition-transform hover:scale-[1.02] ${stat.link ? 'cursor-pointer' : ''}`}
           >
-            <div className={`bg-white rounded-lg border ${stat.color} p-5 h-full hover:shadow-md transition-all duration-300`}>
+            <div className={`bg-white rounded-lg p-5 h-full hover:shadow-md transition-all duration-300 border border-gray-100`}>
               <div className="flex items-center justify-between">
                 <div className={`${stat.iconBg} p-3 rounded-lg ${stat.iconColor}`}>
                   <stat.icon className="h-5 w-5" />

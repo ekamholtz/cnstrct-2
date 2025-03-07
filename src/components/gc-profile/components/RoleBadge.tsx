@@ -9,13 +9,13 @@ export const RoleBadge = ({ role }: RoleBadgeProps) => {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'gc_admin':
-        return 'bg-blue-50 text-blue-700 border border-blue-200';
+        return 'bg-blue-50 text-blue-700';
       case 'project_manager':
-        return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+        return 'bg-emerald-50 text-emerald-700';
       case 'platform_admin':
-        return 'bg-violet-50 text-violet-700 border border-violet-200';
+        return 'bg-violet-50 text-violet-700';
       default:
-        return 'bg-slate-50 text-slate-700 border border-slate-200';
+        return 'bg-slate-50 text-slate-700';
     }
   };
 

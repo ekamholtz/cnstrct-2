@@ -4,7 +4,6 @@ import { StatsOverview } from "@/components/dashboard/StatsOverview";
 import { ContractorFinancialSummary } from "@/components/dashboard/ContractorFinancialSummary";
 import { ProjectsList } from "@/components/dashboard/ProjectsList";
 import { useContractorProjects } from "@/hooks/useContractorProjects";
-import { MainNav } from "@/components/navigation/MainNav";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -61,7 +60,7 @@ export default function Dashboard() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Dashboard Header */}
-        <div className="bg-white rounded-lg p-6 shadow-sm border border-slate-100">
+        <div className="bg-white rounded-lg p-6 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               {isGcOrPm && userProfile ? (
@@ -112,9 +111,8 @@ export default function Dashboard() {
         )}
 
         {/* Project Overview Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-l-blue-500">
+        <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center mb-6">
-            <div className="w-1 h-6 bg-blue-500 mr-3 rounded-full"></div>
             <h2 className="text-xl font-semibold text-slate-800">Project Overview</h2>
           </div>
           <StatsOverview projects={projects} />
@@ -124,9 +122,8 @@ export default function Dashboard() {
         <ContractorFinancialSummary />
 
         {/* Projects List */}
-        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-l-blue-500">
+        <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex items-center mb-6">
-            <div className="w-1 h-6 bg-blue-500 mr-3 rounded-full"></div>
             <h2 className="text-xl font-semibold text-slate-800">Active Projects</h2>
           </div>
           <ProjectsList projects={projects} loading={isLoading} />
@@ -134,9 +131,8 @@ export default function Dashboard() {
         
         {/* Team Members Section */}
         {isGcOrPm && (
-          <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-l-blue-500">
+          <div className="bg-white rounded-lg shadow-sm p-6">
             <div className="flex items-center mb-6">
-              <div className="w-1 h-6 bg-blue-500 mr-3 rounded-full"></div>
               <h2 className="text-xl font-semibold text-slate-800">Team Members</h2>
             </div>
             <TeamMembersSection />

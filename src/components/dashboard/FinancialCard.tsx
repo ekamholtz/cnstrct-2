@@ -18,13 +18,12 @@ export function FinancialCard({
   bgColor, 
   label, 
   amount,
-  textColor,
-  border = "border-gray-100"
+  textColor
 }: FinancialCardProps) {
   const isPositive = amount >= 0;
   
   return (
-    <Card className={`p-5 bg-white hover:shadow-md transition-all duration-300 ease-in-out ${border} border rounded-lg group h-full`}>
+    <Card className="p-5 bg-white hover:shadow-md transition-all duration-300 ease-in-out border-0 rounded-lg group h-full">
       <div className="flex items-center justify-between">
         <div className={`${bgColor} p-2 rounded-lg transition-transform group-hover:scale-110 duration-300`}>
           <Icon className={`h-5 w-5 ${iconColor}`} />
