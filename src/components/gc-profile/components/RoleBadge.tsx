@@ -9,13 +9,13 @@ export const RoleBadge = ({ role }: RoleBadgeProps) => {
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case 'gc_admin':
-        return 'bg-blue-50 text-blue-700 border border-blue-200';
+        return 'bg-blue-50 text-blue-700 border border-blue-200 shadow-sm';
       case 'project_manager':
-        return 'bg-green-50 text-green-700 border border-green-200';
+        return 'bg-green-50 text-green-700 border border-green-200 shadow-sm';
       case 'platform_admin':
-        return 'bg-purple-50 text-purple-700 border border-purple-200';
+        return 'bg-purple-50 text-purple-700 border border-purple-200 shadow-sm';
       default:
-        return 'bg-gray-50 text-gray-700 border border-gray-200';
+        return 'bg-gray-50 text-gray-700 border border-gray-200 shadow-sm';
     }
   };
 
@@ -33,7 +33,7 @@ export const RoleBadge = ({ role }: RoleBadgeProps) => {
   };
 
   return (
-    <Badge className={`${getRoleBadgeColor(role)} font-medium rounded-md px-2 py-1`}>
+    <Badge className={`${getRoleBadgeColor(role)} font-medium rounded-md px-2.5 py-1 transition-all duration-200 hover:shadow-md`}>
       {getRoleDisplayName(role)}
     </Badge>
   );

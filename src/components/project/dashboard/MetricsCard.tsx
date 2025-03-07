@@ -35,7 +35,7 @@ export function MetricsCard({
   };
 
   return (
-    <Card className="p-6 bg-white hover:shadow-premium-lg transition-all duration-300 ease-in-out border border-gray-100">
+    <Card className="p-6 bg-white hover:shadow-lg transition-all duration-300 ease-in-out border border-gray-100 rounded-lg group">
       <div className="flex items-start justify-between mb-4">
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
@@ -43,10 +43,12 @@ export function MetricsCard({
           </p>
           {/* Only show the value if it's not a circular progress card */}
           {!useCircularProgress && (
-            <p className="text-2xl font-bold text-[#172b70]">{formattedValue}</p>
+            <p className="text-2xl font-bold text-cnstrct-navy group-hover:scale-105 transition-transform duration-300">
+              {formattedValue}
+            </p>
           )}
         </div>
-        <div className="p-3 rounded-full bg-blue-50 text-blue-600">
+        <div className="p-3 rounded-full bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform duration-300">
           <Icon className="h-5 w-5" />
         </div>
       </div>
@@ -69,7 +71,7 @@ export function MetricsCard({
 
       {useCircularProgress ? (
         <div className="flex justify-center mt-6">
-          <div className="relative h-24 w-24">
+          <div className="relative h-24 w-24 transition-transform duration-300 group-hover:scale-105">
             <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
               <path
                 d="M18 2.0845
@@ -84,13 +86,19 @@ export function MetricsCard({
                   a 15.9155 15.9155 0 0 1 0 31.831
                   a 15.9155 15.9155 0 0 1 0 -31.831"
                 fill="none"
-                stroke={colors.primary}
+                stroke="url(#progressGradient)"
                 strokeWidth="3"
                 strokeDasharray={`${progress}, 100`}
                 className="transition-all duration-1000 ease-in-out"
               />
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="#172b70" />
+                  <stop offset="100%" stopColor="#4A5CCC" />
+                </linearGradient>
+              </defs>
             </svg>
-            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-medium text-[#172b70]">
+            <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-medium text-cnstrct-navy">
               {Math.round(progress)}%
             </span>
           </div>

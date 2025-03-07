@@ -53,14 +53,14 @@ export const UserList = ({
   }, [users, searchQuery]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 animate-fadeIn">
       <UserListHeader 
         onCreateUser={onCreateUser}
         onRefresh={onRefresh}
         canManageUsers={canManageUsers}
       />
       
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md">
         <div className="p-4 border-b border-gray-100">
           <UserSearch 
             searchQuery={searchQuery}
@@ -71,7 +71,7 @@ export const UserList = ({
         <div className="overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gray-50">
+              <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100">
                 <TableHead className="font-semibold text-gray-700">Name</TableHead>
                 <TableHead className="font-semibold text-gray-700">Email</TableHead>
                 <TableHead className="font-semibold text-gray-700">Phone</TableHead>
