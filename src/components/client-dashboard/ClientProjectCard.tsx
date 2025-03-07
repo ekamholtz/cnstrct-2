@@ -37,25 +37,28 @@ export function ClientProjectCard({ project }: ClientProjectCardProps) {
 
   return (
     <Link to={`/project/${project.id}`}>
-      <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer bg-white border-0">
+      <Card className="hover:shadow-md transition-shadow duration-200 cursor-pointer bg-white border-0 h-full">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <h3 className="font-semibold text-lg text-gray-900">{project.name}</h3>
-            <div className="flex items-center gap-3">
-              <Badge className={`${getStatusColor(project.status)}`}>
-                {formatStatus(project.status)}
-              </Badge>
-              <span className="text-sm font-medium">{completionPercentage}%</span>
-            </div>
+            <Badge className={`${getStatusColor(project.status)}`}>
+              {formatStatus(project.status)}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div className="flex items-start gap-2 text-gray-600">
               <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
               <p className="text-sm">{project.address}</p>
             </div>
-            <Progress value={completionPercentage} className="h-2" />
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-gray-600">Progress</span>
+                <span className="text-sm font-medium">{completionPercentage}% Complete</span>
+              </div>
+              <Progress value={completionPercentage} className="h-2" />
+            </div>
           </div>
         </CardContent>
       </Card>
