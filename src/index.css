@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -66,7 +67,7 @@
  
     --ring: 217.2 32.6% 17.5%;
  
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 }
  
@@ -75,7 +76,8 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
   }
 }
 
@@ -88,4 +90,66 @@
 .hide-scrollbar {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+/* Enhanced button styles */
+.btn-premium {
+  @apply relative overflow-hidden transition-all duration-300 ease-out;
+}
+
+.btn-premium:after {
+  @apply absolute inset-0 -translate-x-full bg-white/10 z-10 opacity-0 transition-all duration-300 content-[''];
+}
+
+.btn-premium:hover:after {
+  @apply translate-x-0 opacity-20;
+}
+
+/* Card hover effects */
+.premium-card {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.premium-card:hover {
+  @apply shadow-lg transform -translate-y-1;
+}
+
+/* Table row hover effect */
+tr.premium-row {
+  @apply transition-all duration-200;
+}
+
+tr.premium-row:hover {
+  @apply bg-gray-50;
+}
+
+/* Premium badge styles */
+.premium-badge {
+  @apply bg-gradient-to-r from-blue-500 to-purple-500 text-white;
+}
+
+/* Premium avatar styles */
+.premium-avatar {
+  @apply ring-2 ring-white shadow-md;
+}
+
+/* Form input focus effect */
+.form-input-premium {
+  @apply border-gray-200 focus:border-blue-400 focus:ring focus:ring-blue-200 focus:ring-opacity-50 transition-all duration-200;
+}
+
+/* Animation utilities */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+  background-size: 1000px 100%;
 }

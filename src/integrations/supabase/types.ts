@@ -761,6 +761,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_same_gc_account: {
+        Args: {
+          target_profile_id: string
+        }
+        Returns: boolean
+      }
       generate_invoice_number:
         | {
             Args: Record<PropertyKey, never>

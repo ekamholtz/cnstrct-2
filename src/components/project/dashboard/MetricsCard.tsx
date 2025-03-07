@@ -1,7 +1,6 @@
 
 import { LucideIcon } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 interface MetricsCardProps {
@@ -28,14 +27,15 @@ export function MetricsCard({
     ? `$${value.toLocaleString()}`
     : value;
 
-  // Colors for the budget and payment visualizations - using brand colors
+  // Updated colors for the budget and payment visualizations - using brand colors
   const colors = {
     primary: '#172b70',    // Navy blue (brand primary)
     secondary: '#4A5CCC',  // Lighter blue
+    gradient: 'linear-gradient(135deg, #172b70 0%, #4A5CCC 100%)',
   };
 
   return (
-    <Card className="p-6 bg-white hover:shadow-lg transition-shadow">
+    <Card className="p-6 bg-white hover:shadow-premium-lg transition-all duration-300 ease-in-out border border-gray-100">
       <div className="flex items-start justify-between mb-4">
         <div className="space-y-2">
           <p className="text-sm font-medium text-gray-500 uppercase tracking-wider">
@@ -46,7 +46,9 @@ export function MetricsCard({
             <p className="text-2xl font-bold text-[#172b70]">{formattedValue}</p>
           )}
         </div>
-        <Icon className="h-5 w-5 text-[#172b70]" />
+        <div className="p-3 rounded-full bg-blue-50 text-blue-600">
+          <Icon className="h-5 w-5" />
+        </div>
       </div>
 
       {/* Budget/Payment Breakdown Text */}
@@ -85,6 +87,7 @@ export function MetricsCard({
                 stroke={colors.primary}
                 strokeWidth="3"
                 strokeDasharray={`${progress}, 100`}
+                className="transition-all duration-1000 ease-in-out"
               />
             </svg>
             <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-lg font-medium text-[#172b70]">
@@ -97,10 +100,10 @@ export function MetricsCard({
           <div className="flex items-center gap-2">
             <div className="h-2 flex-1 bg-gray-100 rounded-full overflow-hidden">
               <div 
-                className="h-full transition-all"
+                className="h-full transition-all duration-1000 ease-in-out"
                 style={{ 
                   width: `${progress}%`,
-                  backgroundColor: colors.primary
+                  background: colors.gradient
                 }}
               />
             </div>

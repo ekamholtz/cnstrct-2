@@ -53,38 +53,42 @@ export const UserList = ({
   }, [users, searchQuery]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <UserListHeader 
         onCreateUser={onCreateUser}
         onRefresh={onRefresh}
         canManageUsers={canManageUsers}
       />
       
-      <UserSearch 
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-      />
-      
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Profile Complete</TableHead>
-              {canManageUsers && <TableHead className="text-right">Actions</TableHead>}
-            </TableRow>
-          </TableHeader>
-          <UserTableBody 
-            users={users}
-            filteredUsers={filteredUsers}
-            isLoading={isLoading}
-            canManageUsers={canManageUsers}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
+        <div className="p-4 border-b border-gray-100">
+          <UserSearch 
             searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
           />
-        </Table>
+        </div>
+        
+        <div className="overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50">
+                <TableHead className="font-semibold text-gray-700">Name</TableHead>
+                <TableHead className="font-semibold text-gray-700">Email</TableHead>
+                <TableHead className="font-semibold text-gray-700">Phone</TableHead>
+                <TableHead className="font-semibold text-gray-700">Role</TableHead>
+                <TableHead className="font-semibold text-gray-700">Profile Complete</TableHead>
+                {canManageUsers && <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>}
+              </TableRow>
+            </TableHeader>
+            <UserTableBody 
+              users={users}
+              filteredUsers={filteredUsers}
+              isLoading={isLoading}
+              canManageUsers={canManageUsers}
+              searchQuery={searchQuery}
+            />
+          </Table>
+        </div>
       </div>
     </div>
   );
