@@ -60,8 +60,8 @@ export const UserList = ({
         canManageUsers={canManageUsers}
       />
       
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-md">
-        <div className="p-4 border-b border-gray-100">
+      <div className="bg-white rounded-lg shadow-sm border border-slate-100 overflow-hidden transition-all duration-300 hover:shadow-md">
+        <div className="p-4 border-b border-slate-100">
           <UserSearch 
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
@@ -71,13 +71,13 @@ export const UserList = ({
         <div className="overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="bg-gradient-to-r from-gray-50 to-gray-100">
-                <TableHead className="font-semibold text-gray-700">Name</TableHead>
-                <TableHead className="font-semibold text-gray-700">Email</TableHead>
-                <TableHead className="font-semibold text-gray-700">Phone</TableHead>
-                <TableHead className="font-semibold text-gray-700">Role</TableHead>
-                <TableHead className="font-semibold text-gray-700">Profile Complete</TableHead>
-                {canManageUsers && <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>}
+              <TableRow className="bg-slate-50">
+                <TableHead className="font-semibold text-slate-700">Name</TableHead>
+                <TableHead className="font-semibold text-slate-700">Email</TableHead>
+                <TableHead className="font-semibold text-slate-700">Phone</TableHead>
+                <TableHead className="font-semibold text-slate-700">Role</TableHead>
+                <TableHead className="font-semibold text-slate-700">Profile Complete</TableHead>
+                {canManageUsers && <TableHead className="text-right font-semibold text-slate-700">Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <UserTableBody 

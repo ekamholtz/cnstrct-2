@@ -44,8 +44,8 @@ export const UserTableBody = ({
         <TableRow>
           <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-8">
             <div className="flex items-center justify-center">
-              <RefreshCw className="h-5 w-5 animate-spin mr-2 text-primary/70" />
-              <span className="text-primary/70 font-medium">Loading users...</span>
+              <RefreshCw className="h-5 w-5 animate-spin mr-2 text-blue-600" />
+              <span className="text-blue-600 font-medium">Loading users...</span>
             </div>
           </TableCell>
         </TableRow>
@@ -58,7 +58,7 @@ export const UserTableBody = ({
       <TableBody>
         <TableRow>
           <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-8">
-            <div className="text-gray-500">
+            <div className="text-slate-500">
               No users found. {canManageUsers && <span className="text-blue-600 font-medium">Click 'Invite User' to add team members.</span>}
             </div>
           </TableCell>
@@ -72,7 +72,7 @@ export const UserTableBody = ({
       <TableBody>
         <TableRow>
           <TableCell colSpan={canManageUsers ? 6 : 5} className="text-center py-8">
-            <div className="text-gray-500">
+            <div className="text-slate-500">
               No users match your search criteria.
             </div>
           </TableCell>
@@ -92,25 +92,25 @@ export const UserTableBody = ({
   return (
     <TableBody>
       {usersToDisplay.map((user) => (
-        <TableRow key={user.id} className="hover:bg-gray-50 transition-colors">
+        <TableRow key={user.id} className="hover:bg-slate-50 transition-colors">
           <TableCell className="py-3">
             <div className="flex flex-col">
               <div className="flex items-center">
-                <span className="font-medium text-gray-900">{user.full_name || 'N/A'}</span>
+                <span className="font-medium text-slate-800">{user.full_name || 'N/A'}</span>
                 {user.is_owner && (
-                  <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-800 border-amber-200">
+                  <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 border-amber-200">
                     Owner
                   </Badge>
                 )}
               </div>
-              {user.email && <span className="text-xs text-gray-500 mt-1">{user.email}</span>}
+              {user.email && <span className="text-xs text-slate-500 mt-1">{user.email}</span>}
             </div>
           </TableCell>
-          <TableCell className="text-gray-600">{user.email || user.id}</TableCell>
+          <TableCell className="text-slate-600">{user.email || user.id}</TableCell>
           <TableCell>
             {user.phone_number ? 
-              <span className="text-gray-600">{user.phone_number}</span> : 
-              <span className="text-gray-400 italic">Not provided</span>
+              <span className="text-slate-600">{user.phone_number}</span> : 
+              <span className="text-slate-400 italic">Not provided</span>
             }
           </TableCell>
           <TableCell>
@@ -119,8 +119,8 @@ export const UserTableBody = ({
           <TableCell>
             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
               user.has_completed_profile 
-                ? 'bg-green-100 text-green-800' 
-                : 'bg-gray-100 text-gray-800'
+                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                : 'bg-slate-50 text-slate-700 border border-slate-200'
             }`}>
               {user.has_completed_profile ? "Yes" : "No"}
             </span>

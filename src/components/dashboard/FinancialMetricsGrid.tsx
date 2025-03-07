@@ -11,6 +11,7 @@ interface FinancialMetric {
   amount: number;
   link?: string;
   textColor?: string;
+  border?: string;
 }
 
 interface FinancialMetricsGridProps {
@@ -28,50 +29,56 @@ export function FinancialMetricsGrid({ metrics }: FinancialMetricsGridProps) {
   const financialMetrics: FinancialMetric[] = [
     {
       icon: BadgeDollarSign,
-      iconColor: "text-green-600",
-      bgColor: "bg-green-100",
-      label: "Paid Invoices",
+      iconColor: "text-emerald-600",
+      bgColor: "bg-emerald-50",
+      label: "PAID INVOICES",
       amount: metrics.paidInvoices,
-      link: "/invoices?status=paid"
+      link: "/invoices?status=paid",
+      border: "border-emerald-100"
     },
     {
       icon: Clock,
-      iconColor: "text-orange-600",
-      bgColor: "bg-orange-100",
-      label: "Pending Invoices",
+      iconColor: "text-amber-600",
+      bgColor: "bg-amber-50",
+      label: "PENDING INVOICES",
       amount: metrics.pendingInvoices,
-      link: "/invoices?status=pending_payment"
+      link: "/invoices?status=pending_payment",
+      border: "border-amber-100"
     },
     {
       icon: Package,
-      iconColor: "text-purple-600",
-      bgColor: "bg-purple-100",
-      label: "Uninvoiced Amount",
-      amount: metrics.uninvoicedAmount
+      iconColor: "text-violet-600",
+      bgColor: "bg-violet-50",
+      label: "UNINVOICED AMOUNT",
+      amount: metrics.uninvoicedAmount,
+      border: "border-violet-100"
     },
     {
       icon: Receipt,
       iconColor: "text-red-600",
-      bgColor: "bg-red-100",
-      label: "Total Expenses",
+      bgColor: "bg-red-50",
+      label: "TOTAL EXPENSES",
       amount: metrics.totalExpenses,
-      link: "/expenses"
+      link: "/expenses",
+      border: "border-red-100"
     },
     {
       icon: Wallet,
       iconColor: "text-blue-600",
-      bgColor: "bg-blue-100",
-      label: "Net Profit",
+      bgColor: "bg-blue-50",
+      label: "NET PROFIT",
       amount: metrics.netProfit,
-      textColor: metrics.netProfit >= 0 ? 'text-blue-600' : 'text-red-600'
+      textColor: metrics.netProfit >= 0 ? 'text-blue-600' : 'text-red-600',
+      border: "border-blue-100"
     },
     {
       icon: TrendingUp,
       iconColor: "text-emerald-600",
-      bgColor: "bg-emerald-100",
-      label: "Net Cash Flow",
+      bgColor: "bg-emerald-50",
+      label: "NET CASH FLOW",
       amount: metrics.netCashFlow,
-      textColor: metrics.netCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'
+      textColor: metrics.netCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600',
+      border: "border-emerald-100"
     }
   ];
 
@@ -87,6 +94,7 @@ export function FinancialMetricsGrid({ metrics }: FinancialMetricsGridProps) {
               label={metric.label}
               amount={metric.amount}
               textColor={metric.textColor}
+              border={metric.border}
             />
           </Link>
         ) : (
@@ -98,6 +106,7 @@ export function FinancialMetricsGrid({ metrics }: FinancialMetricsGridProps) {
             label={metric.label}
             amount={metric.amount}
             textColor={metric.textColor}
+            border={metric.border}
           />
         )
       ))}

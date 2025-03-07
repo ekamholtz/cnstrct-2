@@ -9,6 +9,7 @@ interface FinancialCardProps {
   label: string;
   amount: number;
   textColor?: string;
+  border?: string;
 }
 
 export function FinancialCard({ 
@@ -17,18 +18,21 @@ export function FinancialCard({
   bgColor, 
   label, 
   amount,
-  textColor
+  textColor,
+  border = "border-gray-100"
 }: FinancialCardProps) {
   const isPositive = amount >= 0;
   
   return (
-    <Card className="p-6 flex items-center space-x-4 w-full h-[110px] bg-white hover:shadow-lg transition-all duration-300 ease-in-out border border-gray-100 rounded-lg group">
-      <div className={`${bgColor} p-3 rounded-full transition-transform group-hover:scale-110 duration-300`}>
-        <Icon className={`h-6 w-6 ${iconColor}`} />
+    <Card className={`p-5 bg-white hover:shadow-md transition-all duration-300 ease-in-out ${border} border rounded-lg group h-full`}>
+      <div className="flex items-center justify-between">
+        <div className={`${bgColor} p-2 rounded-lg transition-transform group-hover:scale-110 duration-300`}>
+          <Icon className={`h-5 w-5 ${iconColor}`} />
+        </div>
+        <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">{label}</p>
       </div>
-      <div className="flex-1">
-        <p className="text-sm font-medium text-gray-500 mb-1">{label}</p>
-        <p className={`text-2xl font-bold flex items-center ${textColor || iconColor}`}>
+      <div className="mt-4">
+        <p className={`text-2xl font-bold flex items-center ${textColor || (isPositive ? iconColor : 'text-red-600')}`}>
           <span className="transition-all duration-300 ease-out group-hover:scale-105">
             ${Math.abs(amount).toLocaleString()}
           </span>

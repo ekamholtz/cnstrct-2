@@ -32,14 +32,20 @@ export function ProjectDashboardContent({
 
       {/* Project Milestones Section */}
       <div className="mt-8">
-        <h2 className="text-xl font-semibold text-[#172b70] mb-4">Project Milestones</h2>
-        {project.milestones && project.milestones.length > 0 ? (
-          <HorizontalMilestoneScroll milestones={project.milestones} />
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm p-6 text-center text-gray-500">
-            No milestones found for this project.
+        <div className="bg-white rounded-lg shadow-sm p-6 border-l-4 border-l-blue-500">
+          <div className="flex items-center mb-6">
+            <div className="w-1 h-6 bg-blue-500 mr-3 rounded-full"></div>
+            <h2 className="text-xl font-semibold text-slate-800">Project Milestones</h2>
           </div>
-        )}
+          
+          {project.milestones && project.milestones.length > 0 ? (
+            <HorizontalMilestoneScroll milestones={project.milestones} />
+          ) : (
+            <div className="bg-slate-50 rounded-lg p-6 text-center text-slate-500">
+              No milestones found for this project.
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Content tabs */}
