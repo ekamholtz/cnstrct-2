@@ -8,7 +8,6 @@ import { calculateProjectCompletion } from "@/utils/project-calculations";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -74,13 +73,13 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
   }
 
   return (
-    <div className="relative">
+    <div className="relative px-10">
       {projects.length > 3 && (
         <Button
           onClick={() => scroll('left')}
           variant="outline"
           size="icon"
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white shadow-md hover:bg-gray-50 border-0"
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white shadow-md hover:bg-gray-50 border border-gray-200"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
@@ -88,7 +87,7 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
       
       <div 
         ref={scrollContainerRef}
-        className="flex overflow-x-auto py-4 gap-6 px-2 hide-scrollbar scroll-smooth snap-x"
+        className="flex overflow-x-auto py-4 gap-6 hide-scrollbar scroll-smooth snap-x"
       >
         {projects.map((project) => (
           <Link 
@@ -96,7 +95,7 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
             to={`/project/${project.id}`}
             className="block flex-none w-[calc(33.333%-16px)] min-w-[320px] snap-start"
           >
-            <div className="h-full bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden">
+            <div className="h-full bg-white rounded-lg shadow-premium-md hover:shadow-card-hover transition-all duration-300 overflow-hidden">
               <div className="p-5">
                 <div className="flex items-center justify-between mb-4">
                   <div>
@@ -132,7 +131,7 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
           onClick={() => scroll('right')}
           variant="outline"
           size="icon"
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white shadow-md hover:bg-gray-50 border-0"
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-10 rounded-full bg-white shadow-md hover:bg-gray-50 border border-gray-200"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
