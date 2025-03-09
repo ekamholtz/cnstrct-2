@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/project/invoice/StatusBadge";
+import { useNavigate } from "react-router-dom";
 
 interface HomeownerExpenseListProps {
   expenses: (HomeownerExpense & { project?: { name: string } })[];
@@ -31,6 +32,7 @@ export function HomeownerExpenseList({
   showProject = false 
 }: HomeownerExpenseListProps) {
   const { updatePaymentStatus } = useHomeownerExpenses(projectId || "");
+  const navigate = useNavigate();
   const totalExpenses = expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
   const totalDue = expenses?.reduce((sum, exp) => sum + exp.amount_due, 0) || 0;
 
@@ -59,6 +61,10 @@ export function HomeownerExpenseList({
       notes: `Simulated payment. Contact: ${data.payee_email || ''} ${data.payee_phone || ''}`
     };
     await updatePaymentStatus({ expenseId, paymentData });
+  };
+
+  const handleRowClick = (expenseId: string) => {
+    navigate(`/expenses/${expenseId}`);
   };
 
   const paidExpenses = expenses?.filter(exp => exp.payment_status === "paid").length || 0;
@@ -109,7 +115,11 @@ export function HomeownerExpenseList({
           </TableHeader>
           <TableBody>
             {expenses.map((expense) => (
-              <TableRow key={expense.id}>
+              <TableRow 
+                key={expense.id}
+                className="cursor-pointer hover:bg-gray-50"
+                onClick={() => handleRowClick(expense.id)}
+              >
                 <TableCell className="font-mono text-sm">
                   {expense.expense_number}
                 </TableCell>
@@ -135,6 +145,7 @@ export function HomeownerExpenseList({
                     expense={expense}
                     onPaymentSubmit={(data) => handlePaymentSubmit(expense.id, data)}
                     onPaymentSimulate={(data) => handlePaymentSimulation(expense.id, data)}
+                    onClick={(e) => e.stopPropagation()} // Prevent row click when clicking action buttons
                   />
                 </TableCell>
               </TableRow>

@@ -12,6 +12,7 @@ import {
 import { StatusBadge } from "@/components/project/invoice/StatusBadge";
 import type { Expense } from "./types";
 import { Progress } from "@/components/ui/progress";
+import { useNavigate } from "react-router-dom";
 
 interface ExpenseListProps {
   expenses: (Expense & { project?: { name: string } })[];
@@ -33,6 +34,8 @@ const mapExpenseStatusToInvoiceStatus = (status: Expense['payment_status']): "pa
 };
 
 export function ExpenseList({ expenses, loading }: ExpenseListProps) {
+  const navigate = useNavigate();
+  
   console.log("ExpenseList - Expenses received:", expenses);
   console.log("ExpenseList - Number of expenses:", expenses.length);
 
@@ -43,6 +46,10 @@ export function ExpenseList({ expenses, loading }: ExpenseListProps) {
 
   const paidCount = expenses.filter(exp => exp.payment_status === 'paid').length;
   const totalCount = expenses.length;
+
+  const handleRowClick = (expenseId: string) => {
+    navigate(`/expenses/${expenseId}`);
+  };
 
   if (loading) {
     return (
@@ -92,7 +99,11 @@ export function ExpenseList({ expenses, loading }: ExpenseListProps) {
           </TableHeader>
           <TableBody>
             {expenses.map((expense) => (
-              <TableRow key={expense.id}>
+              <TableRow 
+                key={expense.id}
+                className="cursor-pointer hover:bg-gray-50"
+                onClick={() => handleRowClick(expense.id)}
+              >
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-gray-500" />
@@ -109,7 +120,13 @@ export function ExpenseList({ expenses, loading }: ExpenseListProps) {
                 </TableCell>
                 <TableCell className="uppercase">{expense.expense_type}</TableCell>
                 <TableCell>
-                  <button className="text-gray-500 hover:text-gray-700">
+                  <button 
+                    className="text-gray-500 hover:text-gray-700"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Mark as paid functionality would go here
+                    }}
+                  >
                     Mark as Paid
                   </button>
                 </TableCell>
