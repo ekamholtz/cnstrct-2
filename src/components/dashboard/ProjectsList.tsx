@@ -1,14 +1,13 @@
 
 import { Project } from "@/types/project";
-import { Link } from "react-router-dom";
-import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateProjectCompletion } from "@/utils/project-calculations";
-import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { ExpandableProjectCard } from "@/components/ui/expandable-card";
+import { motion } from "framer-motion";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -43,6 +42,68 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
       return data;
     },
     enabled: projects.length > 0,
+  });
+
+  // Query to fetch project managers and clients
+  const { data: projectDetails } = useQuery({
+    queryKey: ['project-details', projects.map(p => p.id)],
+    queryFn: async () => {
+      if (projects.length === 0) return {};
+      
+      // Fetch project managers
+      const { data: projectManagers, error: pmError } = await supabase
+        .from('profiles')
+        .select('id, full_name')
+        .in('id', projects.filter(p => p.pm_user_id).map(p => p.pm_user_id));
+      
+      if (pmError) {
+        console.error('Error fetching project managers:', pmError);
+        throw pmError;
+      }
+
+      // Fetch clients
+      const { data: clients, error: clientError } = await supabase
+        .from('clients')
+        .select('id, name, email, phone_number')
+        .in('id', projects.filter(p => p.client_id).map(p => p.client_id));
+      
+      if (clientError) {
+        console.error('Error fetching clients:', clientError);
+        throw clientError;
+      }
+
+      // Organize data by project
+      const details: Record<string, { 
+        projectManager?: typeof projectManagers[0], 
+        client?: typeof clients[0],
+        contractValue?: number
+      }> = {};
+
+      // Calculate contract value for each project (sum of milestone amounts)
+      const projectContractValues: Record<string, number> = {};
+      if (milestones) {
+        for (const milestone of milestones) {
+          if (milestone.amount) {
+            if (!projectContractValues[milestone.project_id]) {
+              projectContractValues[milestone.project_id] = 0;
+            }
+            projectContractValues[milestone.project_id] += Number(milestone.amount);
+          }
+        }
+      }
+
+      // Map project managers and clients to projects
+      projects.forEach(project => {
+        details[project.id] = {
+          projectManager: projectManagers?.find(pm => pm.id === project.pm_user_id) || null,
+          client: clients?.find(c => c.id === project.client_id) || null,
+          contractValue: projectContractValues[project.id] || undefined
+        };
+      });
+
+      return details;
+    },
+    enabled: projects.length > 0 && !!milestones,
   });
 
   const getProjectMilestones = (projectId: string) => {
@@ -90,44 +151,27 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
         ref={scrollContainerRef}
         className="flex overflow-x-auto py-4 gap-6 hide-scrollbar scroll-smooth snap-x"
       >
-        {projects.map((project) => (
-          <Link 
-            key={project.id} 
-            to={`/project/${project.id}`}
-            className="block flex-none w-[calc(33.333%-16px)] min-w-[320px] snap-start"
-          >
-            <div className="h-full bg-white rounded-lg shadow-premium-md hover:shadow-card-hover transition-all duration-300 overflow-hidden">
-              <div className="p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">{project.name}</h3>
-                    <div className="flex items-center mt-1 text-sm text-gray-500">
-                      <MapPin className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-                      <p className="truncate">{project.address}</p>
-                    </div>
-                  </div>
-                  <Badge className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    project.status === 'active' 
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {project.status === 'active' ? 'active' : project.status}
-                  </Badge>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Progress</span>
-                    <span className="text-sm font-medium">{calculateProjectCompletion(getProjectMilestones(project.id))}% Complete</span>
-                  </div>
-                  <Progress 
-                    value={calculateProjectCompletion(getProjectMilestones(project.id))} 
-                    className="h-2" 
-                  />
-                </div>
-              </div>
-            </div>
-          </Link>
-        ))}
+        {projects.map((project) => {
+          const completionPercentage = calculateProjectCompletion(getProjectMilestones(project.id));
+          const details = projectDetails?.[project.id] || {};
+          
+          return (
+            <motion.div
+              key={project.id}
+              className="block flex-none w-[calc(33.333%-16px)] min-w-[320px] snap-start"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ExpandableProjectCard
+                project={project}
+                completionPercentage={completionPercentage}
+                projectManager={details.projectManager}
+                client={details.client}
+                contractValue={details.contractValue}
+              />
+            </motion.div>
+          );
+        })}
       </div>
       
       {projects.length > 3 && (
