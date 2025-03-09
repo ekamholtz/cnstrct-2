@@ -1,47 +1,54 @@
 
-import { ProjectStatusCard } from "@/components/ui/expandable-card"
+import { ExpandableProjectCard } from "@/components/ui/expandable-card"
+import { Project } from "@/types/project";
 
 function ExpandableCardDemo() {
+  // Sample project data for the demo
+  const sampleProject: Project = {
+    id: "sample-1",
+    name: "Design System",
+    address: "123 Main Street, Springfield",
+    status: "active",
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    gc_account_id: "sample-gc",
+    pm_user_id: "sample-pm",
+    description: "A sample project for demo purposes"
+  };
+
+  const sampleProjectManager = {
+    id: "sample-pm",
+    full_name: "Project Manager"
+  };
+
+  const sampleClient = {
+    id: "sample-client",
+    name: "Sample Client",
+    email: "client@example.com",
+    phone_number: "555-123-4567"
+  };
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <ProjectStatusCard
-        title="Design System"
-        progress={100}
-        dueDate="Dec 31, 2023"
-        contributors={[
-          { name: "Emma" },
-          { name: "John" },
-          { name: "Lisa" },
-          { name: "David" }
-        ]}
-        tasks={[
-          { title: "Create Component Library", completed: true },
-          { title: "Implement Design Tokens", completed: true },
-          { title: "Write Style Guide", completed: true },
-          { title: "Set up Documentation", completed: true }
-        ]}
-        githubStars={256}
-        openIssues={0}
+      <ExpandableProjectCard
+        project={sampleProject}
+        completionPercentage={75}
+        projectManager={sampleProjectManager}
+        client={sampleClient}
+        contractValue={125000}
       />
-
-      <ProjectStatusCard
-        title="Analytics Dashboard"
-        progress={45}
-        dueDate="Mar 1, 2024"
-        contributors={[
-          { name: "Michael" },
-          { name: "Sophie" },
-          { name: "James" }
-        ]}
-        tasks={[
-          { title: "Design Dashboard Layout", completed: true },
-          { title: "Implement Data Fetching", completed: true },
-          { title: "Create Visualization Components", completed: false },
-          { title: "Add Export Features", completed: false },
-          { title: "User Testing", completed: false }
-        ]}
-        githubStars={89}
-        openIssues={8}
+      
+      <ExpandableProjectCard
+        project={{
+          ...sampleProject,
+          id: "sample-2",
+          name: "Analytics Dashboard",
+          status: "draft"
+        }}
+        completionPercentage={45}
+        projectManager={sampleProjectManager}
+        client={sampleClient}
+        contractValue={89000}
       />
     </div>
   )
