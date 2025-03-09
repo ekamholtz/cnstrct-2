@@ -12,7 +12,6 @@ import { TransactionType } from "@/components/admin/transactions/TransactionFilt
 import { ProjectFilter } from "@/components/shared/filters/ProjectFilter";
 import { DateRangeFilter } from "@/components/shared/filters/DateRangeFilter";
 import { DateRange } from "react-day-picker";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -20,18 +19,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { Expense } from "@/components/project/expense/types";
 
 export default function ExpenseDashboard() {
   const [transactionType, setTransactionType] = useState<TransactionType>('expense');
   const [projectFilter, setProjectFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
-  const [minAmount, setMinAmount] = useState<string>('');
-  const [maxAmount, setMaxAmount] = useState<string>('');
   const navigate = useNavigate();
 
   const { data: expenses = [], isLoading: expensesLoading } = useQuery({
-    queryKey: ['expenses', projectFilter, statusFilter, dateRange, minAmount, maxAmount],
+    queryKey: ['expenses', projectFilter, statusFilter, dateRange],
     queryFn: async () => {
       console.log('Fetching expenses with filters');
       let query = supabase
@@ -46,6 +44,7 @@ export default function ExpenseDashboard() {
           expense_type,
           payment_status,
           notes,
+          project_id,
           projects (name)
         `);
 
@@ -68,15 +67,6 @@ export default function ExpenseDashboard() {
         }
       }
 
-      // Apply amount range filter
-      if (minAmount && !isNaN(Number(minAmount))) {
-        query = query.gte('amount', Number(minAmount));
-      }
-      
-      if (maxAmount && !isNaN(Number(maxAmount))) {
-        query = query.lte('amount', Number(maxAmount));
-      }
-
       query = query.order('expense_date', { ascending: false });
 
       const { data, error } = await query;
@@ -86,7 +76,15 @@ export default function ExpenseDashboard() {
         throw error;
       }
       
-      return data || [];
+      // Transform into proper Expense type
+      return (data || []).map(expense => ({
+        ...expense,
+        amount_due: expense.amount, // Adding missing fields required by Expense type
+        payments: [],
+        created_at: expense.expense_date,
+        updated_at: expense.expense_date,
+        gc_account_id: "",
+      })) as Expense[];
     },
   });
 
@@ -124,8 +122,6 @@ export default function ExpenseDashboard() {
     setProjectFilter('all');
     setStatusFilter('all');
     setDateRange(undefined);
-    setMinAmount('');
-    setMaxAmount('');
   };
 
   return (
@@ -163,7 +159,7 @@ export default function ExpenseDashboard() {
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Project</label>
                 <ProjectFilter value={projectFilter} onChange={setProjectFilter} />
@@ -187,26 +183,6 @@ export default function ExpenseDashboard() {
               <div className="space-y-2">
                 <label className="text-sm font-medium">Date Range</label>
                 <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Min Amount ($)</label>
-                <Input
-                  type="number"
-                  placeholder="Min Amount"
-                  value={minAmount}
-                  onChange={(e) => setMinAmount(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Max Amount ($)</label>
-                <Input
-                  type="number"
-                  placeholder="Max Amount"
-                  value={maxAmount}
-                  onChange={(e) => setMaxAmount(e.target.value)}
-                />
               </div>
             </div>
           </div>
