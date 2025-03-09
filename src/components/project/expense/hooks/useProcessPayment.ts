@@ -43,7 +43,7 @@ export function useProcessPayment() {
       // Get the expense details using Supabase directly instead of API fetch
       const { data: expense, error: expenseError } = await supabase
         .from("expenses")
-        .select("amount, amount_due, gc_account_id")
+        .select("amount, amount_due, gc_account_id, payment_status")
         .eq("id", expenseId)
         .single();
       
@@ -56,10 +56,17 @@ export function useProcessPayment() {
         throw new Error("Expense not found");
       }
       
+      console.log("Retrieved expense details:", expense);
+      
       // Convert amount to number if it's a string
       const paymentAmount = typeof paymentData.amount === 'string'
         ? parseFloat(paymentData.amount)
         : paymentData.amount;
+
+      // Check if payment amount exceeds amount due
+      if (paymentAmount > expense.amount_due) {
+        throw new Error(`Payment amount (${paymentAmount}) exceeds amount due (${expense.amount_due})`);
+      }
 
       // Create payment record
       const payment = await createExpensePayment({

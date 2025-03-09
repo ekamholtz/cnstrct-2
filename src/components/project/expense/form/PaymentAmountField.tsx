@@ -3,6 +3,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage, FormDescripti
 import { Input } from "@/components/ui/input";
 import { UseFormReturn } from "react-hook-form";
 import { PaymentDetailsData } from "../types";
+import { useEffect } from "react";
 
 interface PaymentAmountFieldProps {
   form: UseFormReturn<PaymentDetailsData>;
@@ -10,6 +11,13 @@ interface PaymentAmountFieldProps {
 }
 
 export function PaymentAmountField({ form, amountDue }: PaymentAmountFieldProps) {
+  // Update form value when amountDue changes
+  useEffect(() => {
+    if (amountDue > 0) {
+      form.setValue("amount", amountDue.toString());
+    }
+  }, [amountDue, form]);
+
   return (
     <FormField
       control={form.control}

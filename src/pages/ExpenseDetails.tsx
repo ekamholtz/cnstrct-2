@@ -16,6 +16,7 @@ export default function ExpenseDetails() {
   const { data: expense, isLoading, refetch } = useQuery({
     queryKey: ['expense', expenseId],
     queryFn: async () => {
+      console.log("Fetching expense details for ID:", expenseId);
       const { data, error } = await supabase
         .from('expenses')
         .select(`
@@ -26,7 +27,12 @@ export default function ExpenseDetails() {
         .eq('id', expenseId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching expense:", error);
+        throw error;
+      }
+      
+      console.log("Expense data retrieved:", data);
       
       // Transform the data to match the expected Payment interface
       const transformedPayments = data.payments.map((payment: any) => ({

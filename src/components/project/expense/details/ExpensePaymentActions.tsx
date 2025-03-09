@@ -9,6 +9,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription
 } from "@/components/ui/dialog";
 import { useExpenses } from "../hooks/useExpenses";
 
@@ -30,6 +31,7 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
   const handlePaymentSubmit = async (data: PaymentDetailsData) => {
     try {
       console.log('Submitting payment details:', data);
+      console.log('Expense amount_due:', expense.amount_due);
       
       // Ensure all required fields are present with proper typing
       const paymentData = {
@@ -56,6 +58,7 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
   }) => {
     try {
       console.log('Simulating payment:', data);
+      console.log('Expense amount_due:', expense.amount_due);
       
       // Ensure payment data has all required fields set
       const paymentData = {
@@ -95,6 +98,9 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enter Payment Details</DialogTitle>
+            <DialogDescription>
+              Record a payment for this expense.
+            </DialogDescription>
           </DialogHeader>
           <PaymentDetailsForm
             expenseAmount={expense.amount}
@@ -109,6 +115,9 @@ export function ExpensePaymentActions({ expense, showActions }: ExpensePaymentAc
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Payment Simulation</DialogTitle>
+            <DialogDescription>
+              Simulate a payment for this expense.
+            </DialogDescription>
           </DialogHeader>
           <PaymentSimulationForm
             initialPayee={expense.payee}
