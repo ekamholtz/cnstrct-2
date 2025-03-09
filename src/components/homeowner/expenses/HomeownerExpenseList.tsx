@@ -140,12 +140,11 @@ export function HomeownerExpenseList({
                 <TableCell>
                   {formatDistanceToNow(new Date(expense.expense_date), { addSuffix: true })}
                 </TableCell>
-                <TableCell className="text-right">
+                <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                   <HomeownerExpenseActions
                     expense={expense}
                     onPaymentSubmit={(data) => handlePaymentSubmit(expense.id, data)}
                     onPaymentSimulate={(data) => handlePaymentSimulation(expense.id, data)}
-                    onClick={(e) => e.stopPropagation()} // Prevent row click when clicking action buttons
                   />
                 </TableCell>
               </TableRow>

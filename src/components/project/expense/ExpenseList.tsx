@@ -33,7 +33,7 @@ const mapExpenseStatusToInvoiceStatus = (status: Expense['payment_status']): "pa
   }
 };
 
-export function ExpenseList({ expenses, loading }: ExpenseListProps) {
+export function ExpenseList({ expenses, loading, showProjectName = false }: ExpenseListProps) {
   const navigate = useNavigate();
   
   console.log("ExpenseList - Expenses received:", expenses);
@@ -90,6 +90,7 @@ export function ExpenseList({ expenses, loading }: ExpenseListProps) {
             <TableRow>
               <TableHead>Expense Number</TableHead>
               <TableHead>Name</TableHead>
+              {showProjectName && <TableHead>Project</TableHead>}
               <TableHead>Amount</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Date</TableHead>
@@ -111,6 +112,9 @@ export function ExpenseList({ expenses, loading }: ExpenseListProps) {
                   </div>
                 </TableCell>
                 <TableCell>{expense.name}</TableCell>
+                {showProjectName && (
+                  <TableCell>{expense.project?.name || 'N/A'}</TableCell>
+                )}
                 <TableCell>${expense.amount.toLocaleString()}</TableCell>
                 <TableCell>
                   <StatusBadge status={mapExpenseStatusToInvoiceStatus(expense.payment_status)} />
@@ -118,8 +122,10 @@ export function ExpenseList({ expenses, loading }: ExpenseListProps) {
                 <TableCell>
                   {formatDistanceToNow(new Date(expense.expense_date), { addSuffix: true })}
                 </TableCell>
-                <TableCell className="uppercase">{expense.expense_type}</TableCell>
-                <TableCell>
+                <TableCell className="uppercase text-xs font-semibold text-gray-500">
+                  {expense.expense_type}
+                </TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <button 
                     className="text-gray-500 hover:text-gray-700"
                     onClick={(e) => {
@@ -134,7 +140,7 @@ export function ExpenseList({ expenses, loading }: ExpenseListProps) {
             ))}
             {expenses.length === 0 && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-6 text-gray-500">
+                <TableCell colSpan={showProjectName ? 8 : 7} className="text-center py-6 text-gray-500">
                   No expenses found
                 </TableCell>
               </TableRow>
