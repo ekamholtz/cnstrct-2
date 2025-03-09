@@ -120,7 +120,7 @@ export function TransactionsTable({
                   </span>
                 </div>
               </TableCell>
-              <TableCell>{expense.projects?.name}</TableCell>
+              <TableCell>{expense.project?.name}</TableCell>
               <TableCell>${expense.amount.toLocaleString()}</TableCell>
               <TableCell>
                 <Badge className={getStatusBadgeColor(expense.payment_status)}>

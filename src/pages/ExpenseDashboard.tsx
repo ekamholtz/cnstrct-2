@@ -24,7 +24,7 @@ import type { Expense } from "@/components/project/expense/types";
 export default function ExpenseDashboard() {
   const [transactionType, setTransactionType] = useState<TransactionType>('expense');
   const [projectFilter, setProjectFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'paid' | 'partially_paid' | 'due'>('all');
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const navigate = useNavigate();
 
@@ -45,7 +45,11 @@ export default function ExpenseDashboard() {
           payment_status,
           notes,
           project_id,
-          projects (name)
+          amount_due, 
+          gc_account_id,
+          created_at,
+          updated_at,
+          project:project_id (name)
         `);
 
       // Apply project filter
@@ -76,15 +80,7 @@ export default function ExpenseDashboard() {
         throw error;
       }
       
-      // Transform into proper Expense type
-      return (data || []).map(expense => ({
-        ...expense,
-        amount_due: expense.amount, // Adding missing fields required by Expense type
-        payments: [],
-        created_at: expense.expense_date,
-        updated_at: expense.expense_date,
-        gc_account_id: "",
-      })) as Expense[];
+      return (data || []) as Expense[];
     },
   });
 
@@ -167,7 +163,7 @@ export default function ExpenseDashboard() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as 'all' | 'paid' | 'partially_paid' | 'due')}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select Status" />
                   </SelectTrigger>
