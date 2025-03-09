@@ -1,5 +1,6 @@
 
 import { Building2, CreditCard, MessageSquare, ChartBar, ArrowDownToLine } from "lucide-react";
+import { Glow } from "@/components/ui/glow";
 
 export const Features = () => {
   const topRowFeatures = [
@@ -34,9 +35,11 @@ export const Features = () => {
   ];
 
   return (
-    <section id="features" className="py-24 bg-cnstrct-gray">
-      <div className="container mx-auto px-4">
-        <div className="text-center mb-16">
+    <section id="features" className="py-24 bg-cnstrct-gray relative overflow-hidden">
+      <Glow variant="center" className="opacity-30" />
+      
+      <div className="container mx-auto px-4 relative z-10">
+        <div className="text-center mb-16 animate-[slideUp_0.5s_ease-out]">
           <h2 className="text-3xl font-bold text-cnstrct-navy mb-4">
             Powerful Features for Construction Management
           </h2>
@@ -49,10 +52,10 @@ export const Features = () => {
         <div className="space-y-6">
           {/* Top row - 2 boxes */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
-            {topRowFeatures.map((feature) => (
+            {topRowFeatures.map((feature, index) => (
               <div
                 key={feature.title}
-                className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow w-full max-w-xl"
+                className={`bg-white p-6 rounded-lg shadow-sm hover:shadow-card-hover transition-all duration-300 w-full max-w-xl transform hover:-translate-y-1 animate-[fadeIn_0.5s_ease-out_${index * 0.1}s] opacity-0 [animation-fill-mode:forwards]`}
               >
                 <feature.icon className="h-12 w-12 text-cnstrct-orange mb-4" />
                 <h3 className="text-xl font-semibold text-cnstrct-navy mb-2">
@@ -65,10 +68,10 @@ export const Features = () => {
 
           {/* Bottom row - 3 boxes */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
-            {bottomRowFeatures.map((feature) => (
+            {bottomRowFeatures.map((feature, index) => (
               <div
                 key={feature.title}
-                className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow w-full max-w-lg"
+                className={`bg-white p-6 rounded-lg shadow-sm hover:shadow-card-hover transition-all duration-300 w-full max-w-lg transform hover:-translate-y-1 animate-[fadeIn_0.5s_ease-out_${0.3 + index * 0.1}s] opacity-0 [animation-fill-mode:forwards]`}
               >
                 <feature.icon className="h-12 w-12 text-cnstrct-orange mb-4" />
                 <h3 className="text-xl font-semibold text-cnstrct-navy mb-2">

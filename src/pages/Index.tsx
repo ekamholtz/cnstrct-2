@@ -1,9 +1,10 @@
 
 import { Header } from "@/components/landing/Header";
-import { Hero } from "@/components/landing/Hero";
+import { HeroSection } from "@/components/landing/HeroSection";
 import { Features } from "@/components/landing/Features";
 import { Pricing } from "@/components/landing/Pricing";
 import { Footer } from "@/components/landing/Footer";
+import { Building, House } from "lucide-react";
 import { useEffect } from "react";
 
 export default function Index() {
@@ -23,7 +24,35 @@ export default function Index() {
     <div className="min-h-screen flex flex-col">
       <Header />
       <main className="flex-grow">
-        <Hero />
+        <HeroSection
+          badge={{
+            text: "New Feature",
+            action: {
+              text: "Instant Payments",
+              href: "#features",
+            },
+          }}
+          title="Transform Your Construction Payment Experience"
+          description="Streamline financial management with digitized workflows, automated invoicing, and real-time payments. Built specifically for construction professionals."
+          actions={[
+            {
+              text: "Start as General Contractor",
+              href: "/auth",
+              variant: "default",
+              icon: <Building className="h-6 w-6" />,
+            },
+            {
+              text: "Register as Homeowner",
+              href: "/auth",
+              variant: "outline",
+              icon: <House className="h-6 w-6" />,
+            },
+          ]}
+          image={{
+            src: "/placeholder.svg",
+            alt: "Construction payment platform dashboard",
+          }}
+        />
         <Features />
         <Pricing />
       </main>
