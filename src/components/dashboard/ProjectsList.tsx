@@ -5,9 +5,10 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateProjectCompletion } from "@/utils/project-calculations";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, MapPin } from "lucide-react";
 import { useRef } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -100,15 +101,18 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">{project.name}</h3>
-                    <p className="text-sm text-gray-500">{project.address}</p>
+                    <div className="flex items-center mt-1 text-sm text-gray-500">
+                      <MapPin className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+                      <p className="truncate">{project.address}</p>
+                    </div>
                   </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                  <Badge className={`px-2 py-1 text-xs font-medium rounded-full ${
                     project.status === 'active' 
                       ? 'bg-green-100 text-green-800'
                       : 'bg-gray-100 text-gray-800'
                   }`}>
                     {project.status === 'active' ? 'active' : project.status}
-                  </span>
+                  </Badge>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
