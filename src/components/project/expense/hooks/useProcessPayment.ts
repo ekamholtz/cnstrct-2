@@ -2,6 +2,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { createExpensePayment, updateExpenseAfterPayment } from "@/services/expenseService";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ProcessPaymentParams {
   expenseId: string;
@@ -39,12 +40,21 @@ export function useProcessPayment() {
         paymentData,
       });
 
-      // Get the expense details to get the total amount
-      const response = await fetch(`/api/expenses/${expenseId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch expense details");
+      // Get the expense details using Supabase directly instead of API fetch
+      const { data: expense, error: expenseError } = await supabase
+        .from("expenses")
+        .select("amount, amount_due, gc_account_id")
+        .eq("id", expenseId)
+        .single();
+      
+      if (expenseError) {
+        console.error("Error fetching expense details:", expenseError);
+        throw new Error(`Failed to fetch expense details: ${expenseError.message}`);
       }
-      const expense = await response.json();
+      
+      if (!expense) {
+        throw new Error("Expense not found");
+      }
       
       // Convert amount to number if it's a string
       const paymentAmount = typeof paymentData.amount === 'string'
@@ -75,6 +85,7 @@ export function useProcessPayment() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["expenses"] });
+      queryClient.invalidateQueries({ queryKey: ["expense"] });
       toast({
         title: "Success",
         description: "Payment processed successfully",
