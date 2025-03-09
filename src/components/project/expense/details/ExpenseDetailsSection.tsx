@@ -17,6 +17,12 @@ export function ExpenseDetailsSection({ expense }: ExpenseDetailsSectionProps) {
   // Calculate total paid amount and amount due
   const totalPaidAmount = expense.payments?.reduce((sum, payment) => sum + payment.amount, 0) ?? 0;
   const amountDue = expense.amount - totalPaidAmount;
+  
+  // Log inconsistency if detected
+  if (expense.amount_due !== amountDue) {
+    console.warn(`Expense ${expense.id} has inconsistent amount_due: ${expense.amount_due} vs calculated: ${amountDue}`);
+  }
+  
   const shouldShowAmountDue = ['due', 'partially_paid'].includes(expense.payment_status);
 
   return (

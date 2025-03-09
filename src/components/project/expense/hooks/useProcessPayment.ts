@@ -63,6 +63,26 @@ export function useProcessPayment() {
         ? parseFloat(paymentData.amount)
         : paymentData.amount;
 
+      // Check if the amount_due is showing as zero when it shouldn't
+      if (expense.amount_due === 0 && expense.amount > 0 && expense.payment_status !== 'paid') {
+        console.error("Inconsistent expense data detected: amount_due is 0 but payment_status is not 'paid'");
+        // Force update the amount_due to match the amount for expenses with inconsistent data
+        const { data: updatedExpense, error: updateError } = await supabase
+          .from("expenses")
+          .update({ amount_due: expense.amount })
+          .eq("id", expenseId)
+          .select()
+          .single();
+          
+        if (updateError) {
+          console.error("Error updating expense amount_due:", updateError);
+          throw new Error(`Failed to fix expense data: ${updateError.message}`);
+        }
+        
+        console.log("Updated expense with corrected amount_due:", updatedExpense);
+        expense.amount_due = updatedExpense.amount_due;
+      }
+
       // Check if payment amount exceeds amount due
       if (paymentAmount > expense.amount_due) {
         throw new Error(`Payment amount (${paymentAmount}) exceeds amount due (${expense.amount_due})`);

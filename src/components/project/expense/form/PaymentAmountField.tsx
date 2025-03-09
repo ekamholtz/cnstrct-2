@@ -13,6 +13,7 @@ interface PaymentAmountFieldProps {
 export function PaymentAmountField({ form, amountDue }: PaymentAmountFieldProps) {
   // Update form value when amountDue changes
   useEffect(() => {
+    console.log("PaymentAmountField received amountDue:", amountDue);
     if (amountDue > 0) {
       form.setValue("amount", amountDue.toString());
     }
