@@ -49,7 +49,7 @@ export default function Index() {
             },
           ]}
           image={{
-            src: "/placeholder.svg",
+            src: "/lovable-uploads/9021191a-43ec-41eb-b28c-4082d44cd9ff.png",
             alt: "Construction payment platform dashboard",
           }}
         />
