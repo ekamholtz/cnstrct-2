@@ -37,6 +37,12 @@ export const useProjectCreation = () => {
         phone_number: projectData.clientPhone
       });
 
+      // Calculate total contract value from milestones
+      const totalContractValue = projectData.milestones.reduce(
+        (sum, milestone) => sum + parseFloat(milestone.amount || '0'), 
+        0
+      );
+
       // Create the project
       // Always assign the current user as PM for projects they create
       const project = await createProject({
@@ -46,7 +52,8 @@ export const useProjectCreation = () => {
         client_id: client.id,
         gc_account_id: userProfile.gc_account_id,
         pm_user_id: user.id, // Explicitly set the current user as PM
-        description: projectData.projectDescription
+        description: projectData.projectDescription,
+        total_contract_value: totalContractValue
       });
 
       // Handle milestones creation

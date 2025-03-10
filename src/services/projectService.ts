@@ -13,6 +13,7 @@ export const createProject = async (projectData: {
   gc_account_id: string;
   pm_user_id: string;
   description?: string;
+  total_contract_value?: number;
 }) => {
   console.log('Creating project with data:', projectData);
   
