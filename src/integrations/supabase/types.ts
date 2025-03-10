@@ -634,6 +634,128 @@ export type Database = {
           },
         ]
       }
+      qbo_connections: {
+        Row: {
+          access_token: string
+          company_id: string
+          company_name: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          refresh_token: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          company_id: string
+          company_name: string
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          refresh_token: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          company_id?: string
+          company_name?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          refresh_token?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      qbo_references: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          local_entity_id: string
+          local_entity_type: string
+          qbo_company_id: string
+          qbo_entity_id: string
+          qbo_entity_type: string
+          sync_status: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          local_entity_id: string
+          local_entity_type: string
+          qbo_company_id: string
+          qbo_entity_id: string
+          qbo_entity_type: string
+          sync_status?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          local_entity_id?: string
+          local_entity_type?: string
+          qbo_company_id?: string
+          qbo_entity_id?: string
+          qbo_entity_type?: string
+          sync_status?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      qbo_sync_logs: {
+        Row: {
+          action: string
+          created_at: string | null
+          error_message: string | null
+          id: string
+          payload: Json | null
+          qbo_reference_id: string | null
+          response: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          qbo_reference_id?: string | null
+          response?: Json | null
+          status: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          qbo_reference_id?: string | null
+          response?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "qbo_sync_logs_qbo_reference_id_fkey"
+            columns: ["qbo_reference_id"]
+            isOneToOne: false
+            referencedRelation: "qbo_references"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_tiers: {
         Row: {
           created_at: string | null
