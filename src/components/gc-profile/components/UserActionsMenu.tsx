@@ -1,5 +1,4 @@
-
-import { UserCog, Crown, UserMinus, Shield } from "lucide-react";
+import { UserCog, Crown, UserMinus, Shield, KeyRound, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -41,18 +40,20 @@ export const UserActionsMenu = ({ user }: UserActionsMenuProps) => {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon">
+        <Button variant="ghost" size="icon" className="text-gray-500 hover:text-cnstrct-navy hover:bg-gray-50">
           <UserCog className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem>
-          Reset Password
+      <DropdownMenuContent align="end" className="w-56 shadow-premium border border-gray-200/60">
+        <DropdownMenuItem className="cursor-pointer flex items-center">
+          <KeyRound className="h-4 w-4 mr-2 text-gray-500" />
+          <span>Reset Password</span>
         </DropdownMenuItem>
         
-        <DropdownMenuItem>
-          Edit User
+        <DropdownMenuItem className="cursor-pointer flex items-center">
+          <Edit className="h-4 w-4 mr-2 text-gray-500" />
+          <span>Edit User</span>
         </DropdownMenuItem>
         
         {canTransferOwnership && (
@@ -60,22 +61,28 @@ export const UserActionsMenu = ({ user }: UserActionsMenuProps) => {
             <DropdownMenuSeparator />
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                <DropdownMenuItem 
+                  className="cursor-pointer flex items-center text-amber-600" 
+                  onSelect={(e) => e.preventDefault()}
+                >
                   <Crown className="h-4 w-4 mr-2" />
-                  Make Company Owner
+                  <span>Make Company Owner</span>
                 </DropdownMenuItem>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="shadow-premium border border-gray-200/60">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Transfer Company Ownership</AlertDialogTitle>
+                  <AlertDialogTitle className="text-cnstrct-navy">Transfer Company Ownership</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to make {user.full_name} the owner of this company? 
+                    Are you sure you want to make <span className="font-medium">{user.full_name}</span> the owner of this company? 
                     You will lose owner privileges.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => transferOwnership(user.id)}>
+                  <AlertDialogCancel className="border border-gray-200">Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => transferOwnership(user.id)}
+                    className="bg-amber-600 hover:bg-amber-700 text-white"
+                  >
                     Transfer Ownership
                   </AlertDialogAction>
                 </AlertDialogFooter>
@@ -90,26 +97,26 @@ export const UserActionsMenu = ({ user }: UserActionsMenuProps) => {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <DropdownMenuItem 
-                  className="text-red-600 hover:text-red-700"
+                  className="cursor-pointer flex items-center text-red-600 hover:text-red-700"
                   onSelect={(e) => e.preventDefault()}
                 >
                   <UserMinus className="h-4 w-4 mr-2" />
-                  Remove from Company
+                  <span>Remove from Company</span>
                 </DropdownMenuItem>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="shadow-premium border border-gray-200/60">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Remove Team Member</AlertDialogTitle>
+                  <AlertDialogTitle className="text-cnstrct-navy">Remove Team Member</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to remove {user.full_name} from your company?
+                    Are you sure you want to remove <span className="font-medium">{user.full_name}</span> from your company?
                     This will revoke their access to all company projects.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="border border-gray-200">Cancel</AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={() => removeTeamMember(user.id)}
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-red-600 hover:bg-red-700 text-white"
                   >
                     Remove User
                   </AlertDialogAction>
@@ -119,22 +126,27 @@ export const UserActionsMenu = ({ user }: UserActionsMenuProps) => {
           </>
         )}
         
-        <DropdownMenuSeparator />
-        <DropdownMenuItem 
-          className="text-gray-500"
-          onClick={() => {
-            console.log(`User ID: ${user.id}`);
-            console.log(`User full name: ${user.full_name}`);
-            console.log(`User email: ${user.email}`);
-            console.log(`User role: ${user.role}`);
-            console.log(`User GC account ID: ${user.gc_account_id}`);
-            console.log(`User is owner: ${user.is_owner}`);
-            console.log(`User profile completed: ${user.has_completed_profile}`);
-            console.log(`User created at: ${user.created_at}`);
-          }}
-        >
-          Debug User Info
-        </DropdownMenuItem>
+        {process.env.NODE_ENV === 'development' && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              className="cursor-pointer flex items-center text-gray-500"
+              onClick={() => {
+                console.log(`User ID: ${user.id}`);
+                console.log(`User full name: ${user.full_name}`);
+                console.log(`User email: ${user.email}`);
+                console.log(`User role: ${user.role}`);
+                console.log(`User GC account ID: ${user.gc_account_id}`);
+                console.log(`User is owner: ${user.is_owner}`);
+                console.log(`User profile completed: ${user.has_completed_profile}`);
+                console.log(`User created at: ${user.created_at}`);
+              }}
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              <span>Debug User Info</span>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

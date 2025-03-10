@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import {
   Table,
@@ -54,7 +53,7 @@ export const UserList = ({
   }, [users, searchQuery]);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <UserListHeader 
         onCreateUser={onCreateUser}
         onRefresh={onRefresh}
@@ -66,16 +65,16 @@ export const UserList = ({
         setSearchQuery={setSearchQuery}
       />
       
-      <div className="rounded-md border">
+      <div className="rounded-lg border border-gray-200/60 overflow-hidden shadow-sm">
         <Table>
-          <TableHeader>
+          <TableHeader className="bg-gray-50">
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Profile Complete</TableHead>
-              {canManageUsers && <TableHead className="text-right">Actions</TableHead>}
+              <TableHead className="font-medium text-cnstrct-navy">Name</TableHead>
+              <TableHead className="font-medium text-cnstrct-navy">Email</TableHead>
+              <TableHead className="font-medium text-cnstrct-navy">Phone</TableHead>
+              <TableHead className="font-medium text-cnstrct-navy">Role</TableHead>
+              <TableHead className="font-medium text-cnstrct-navy">Profile Complete</TableHead>
+              {canManageUsers && <TableHead className="text-right font-medium text-cnstrct-navy">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <UserTableBody 

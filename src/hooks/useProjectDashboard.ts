@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -173,18 +172,54 @@ export function useProjectDashboard(projectId: string | undefined) {
     queryFn: async () => {
       if (!['gc_admin', 'platform_admin'].includes(userRole?.role || '')) return [];
 
-      const { data, error } = await supabase
-        .from('expenses')
-        .select(`
-          *,
-          project:projects(name)
-        `)
-        .eq('project_id', projectId);
+      try {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select(`
+            *,
+            project:projects(name),
+            payments(*)
+          `)
+          .eq('project_id', projectId);
 
-      if (error) throw error;
-      return data;
+        if (error) {
+          console.error('Error fetching GC expenses:', error);
+          throw error;
+        }
+
+        // Process and sanitize the data to ensure it matches expected types
+        return data?.map(expense => ({
+          id: expense.id,
+          project_id: expense.project_id || '',
+          gc_account_id: expense.gc_account_id || '',
+          contractor_id: expense.contractor_id,
+          name: expense.name || 'Unnamed Expense',
+          payee: expense.payee || 'Unknown',
+          amount: typeof expense.amount === 'number' ? expense.amount : 
+                 (typeof expense.amount === 'string' ? parseFloat(expense.amount) || 0 : 0),
+          amount_due: typeof expense.amount_due === 'number' ? expense.amount_due : 
+                     (typeof expense.amount_due === 'string' ? parseFloat(expense.amount_due) || 0 : 0),
+          expense_date: expense.expense_date || new Date().toISOString(),
+          expense_type: expense.expense_type || 'other',
+          payment_status: expense.payment_status || 'due',
+          expense_number: expense.expense_number || '',
+          notes: expense.notes || '',
+          created_at: expense.created_at || new Date().toISOString(),
+          updated_at: expense.updated_at || new Date().toISOString(),
+          project: expense.project || { name: 'Unknown Project' },
+          payments: Array.isArray(expense.payments) ? expense.payments.map(payment => ({
+            ...payment,
+            amount: typeof payment.amount === 'number' ? payment.amount : 
+                   (typeof payment.amount === 'string' ? parseFloat(payment.amount) || 0 : 0)
+          })) : [],
+          ...expense
+        })) || [];
+      } catch (error) {
+        console.error('Error in gcExpenses query:', error);
+        return [];
+      }
     },
-    enabled: !!userRole,
+    enabled: !!userRole && !!projectId,
   });
 
   return {

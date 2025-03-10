@@ -1,15 +1,16 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { GCUserProfile } from "../types";
 
 export const useCurrentUserProfile = () => {
-  const { data: currentUserProfile, isLoading } = useQuery({
+  const { data: currentUserProfile, isLoading } = useQuery<GCUserProfile>({
     queryKey: ['current-user-profile'],
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('No user found');
 
       console.log("Current auth user ID:", user.id);
+      console.log("Current auth user email:", user.email);
 
       const { data, error } = await supabase
         .from('profiles')
@@ -26,7 +27,54 @@ export const useCurrentUserProfile = () => {
       console.log("Current user role:", data?.role);
       console.log("Current user gc_account_id:", data?.gc_account_id);
       
-      return data;
+      // Add email from auth user to the profile data
+      const profileWithEmail: GCUserProfile = {
+        ...data,
+        email: user.email,
+        // Ensure all required fields have values
+        account_status: data.account_status || '',
+        address: data.address || '',
+        bio: data.bio || '',
+        company_name: data.company_name || '',
+        created_at: data.created_at || '',
+        has_completed_profile: data.has_completed_profile || false,
+        license_number: data.license_number || '',
+        phone_number: data.phone_number || '',
+        updated_at: data.updated_at || '',
+        website: data.website || ''
+      };
+      
+      // If we have a gc_account_id, check if it exists and get its details
+      if (data?.gc_account_id) {
+        console.log("Checking GC account details...");
+        const { data: gcAccount, error: gcError } = await supabase
+          .from('gc_accounts')
+          .select('*')
+          .eq('id', data.gc_account_id)
+          .single();
+          
+        if (gcError) {
+          console.error("Error fetching GC account details:", gcError);
+        } else {
+          console.log("GC account details:", gcAccount);
+        }
+        
+        // Check how many users are associated with this gc_account_id
+        const { count, error: countError } = await supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .eq('gc_account_id', data.gc_account_id);
+          
+        if (countError) {
+          console.error("Error counting team members:", countError);
+        } else {
+          console.log(`Number of users with gc_account_id ${data.gc_account_id}:`, count);
+        }
+      } else {
+        console.warn("User does not have a gc_account_id");
+      }
+      
+      return profileWithEmail;
     }
   });
 

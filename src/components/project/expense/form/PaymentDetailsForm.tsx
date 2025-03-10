@@ -1,4 +1,3 @@
-
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { PaymentDetailsData } from "../types";
@@ -17,9 +16,16 @@ interface PaymentDetailsFormProps {
   amountDue: number;
   onSubmit: (data: PaymentDetailsData) => Promise<void>;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
-export function PaymentDetailsForm({ expenseAmount, amountDue, onSubmit, onCancel }: PaymentDetailsFormProps) {
+export function PaymentDetailsForm({ 
+  expenseAmount, 
+  amountDue, 
+  onSubmit, 
+  onCancel,
+  isSubmitting = false 
+}: PaymentDetailsFormProps) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const form = useForm<PaymentDetailsData>({
@@ -33,6 +39,8 @@ export function PaymentDetailsForm({ expenseAmount, amountDue, onSubmit, onCance
   });
 
   const handleSubmit = async (data: PaymentDetailsData) => {
+    if (isSubmitting) return; // Prevent multiple submissions
+    
     try {
       setIsProcessing(true);
       await onSubmit(data);
@@ -42,6 +50,9 @@ export function PaymentDetailsForm({ expenseAmount, amountDue, onSubmit, onCance
       setIsProcessing(false);
     }
   };
+
+  // Determine if the form is in a submitting/processing state
+  const isFormSubmitting = isProcessing || isSubmitting;
 
   return (
     <Form {...form}>
@@ -72,16 +83,16 @@ export function PaymentDetailsForm({ expenseAmount, amountDue, onSubmit, onCance
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={isProcessing}
+            disabled={isFormSubmitting}
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            disabled={isProcessing}
+            disabled={isFormSubmitting}
             className="bg-[#9b87f5] hover:bg-[#7E69AB]"
           >
-            {isProcessing ? "Processing..." : "Submit Payment"}
+            {isFormSubmitting ? "Processing..." : "Submit Payment"}
           </Button>
         </div>
       </form>

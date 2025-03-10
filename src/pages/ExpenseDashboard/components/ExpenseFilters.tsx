@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +18,10 @@ interface ExpenseFiltersProps {
 
 export function ExpenseFilters({ filters, onFiltersChange }: ExpenseFiltersProps) {
   return (
-    <Card className="p-6 shadow-sm border-0">
+    <Card 
+      variant="glass" 
+      className="shadow-md border border-white/20 backdrop-blur-sm p-6"
+    >
       <div className="flex flex-col sm:flex-row gap-4">
         <Select
           value={filters.expenseType}
@@ -30,8 +32,9 @@ export function ExpenseFilters({ filters, onFiltersChange }: ExpenseFiltersProps
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="material">Material</SelectItem>
             <SelectItem value="labor">Labor</SelectItem>
-            <SelectItem value="materials">Materials</SelectItem>
+            <SelectItem value="equipment">Equipment</SelectItem>
             <SelectItem value="subcontractor">Subcontractor</SelectItem>
             <SelectItem value="other">Other</SelectItem>
           </SelectContent>
@@ -42,12 +45,13 @@ export function ExpenseFilters({ filters, onFiltersChange }: ExpenseFiltersProps
           onValueChange={(value: ExpenseStatus) => onFiltersChange({ ...filters, status: value })}
         >
           <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Payment Status" />
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="due">Due</SelectItem>
-            <SelectItem value="partially_paid">Partially Paid</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="rejected">Rejected</SelectItem>
             <SelectItem value="paid">Paid</SelectItem>
           </SelectContent>
         </Select>

@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -70,12 +69,12 @@ export default function ProjectCreationForm({ onSuccess }: { onSuccess?: () => v
           <DialogTitle>Create New Project</DialogTitle>
           <DialogDescription>
             Fill in the project details below to create a new project.
-            {userRole && (
-              <div className="mt-2 text-yellow-600">
-                Note: You will be automatically assigned as the Project Manager.
-              </div>
-            )}
           </DialogDescription>
+          {userRole && (
+            <div className="mt-2 text-yellow-600">
+              Note: You will be automatically assigned as the Project Manager.
+            </div>
+          )}
         </DialogHeader>
         <ScrollArea className="h-[calc(90vh-180px)]">
           <div className="pr-6">

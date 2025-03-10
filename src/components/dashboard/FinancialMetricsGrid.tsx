@@ -1,4 +1,3 @@
-
 import { BadgeDollarSign, Receipt, Wallet, Clock, Package, TrendingUp, LucideIcon } from "lucide-react";
 import { FinancialCard } from "./FinancialCard";
 import { Link } from "react-router-dom";
@@ -11,6 +10,7 @@ interface FinancialMetric {
   amount: number;
   link?: string;
   textColor?: string;
+  borderColor?: string;
 }
 
 interface FinancialMetricsGridProps {
@@ -29,30 +29,34 @@ export function FinancialMetricsGrid({ metrics }: FinancialMetricsGridProps) {
     {
       icon: BadgeDollarSign,
       iconColor: "text-green-600",
-      bgColor: "bg-green-100",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
       label: "Paid Invoices",
       amount: metrics.paidInvoices,
       link: "/invoices?status=paid"
     },
     {
       icon: Clock,
-      iconColor: "text-orange-600",
-      bgColor: "bg-orange-100",
+      iconColor: "text-amber-600",
+      bgColor: "bg-amber-50",
+      borderColor: "border-amber-200",
       label: "Pending Invoices",
       amount: metrics.pendingInvoices,
       link: "/invoices?status=pending_payment"
     },
     {
       icon: Package,
-      iconColor: "text-purple-600",
-      bgColor: "bg-purple-100",
+      iconColor: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+      borderColor: "border-indigo-200",
       label: "Uninvoiced Amount",
       amount: metrics.uninvoicedAmount
     },
     {
       icon: Receipt,
       iconColor: "text-red-600",
-      bgColor: "bg-red-100",
+      bgColor: "bg-red-50",
+      borderColor: "border-red-200",
       label: "Total Expenses",
       amount: metrics.totalExpenses,
       link: "/expenses"
@@ -60,7 +64,8 @@ export function FinancialMetricsGrid({ metrics }: FinancialMetricsGridProps) {
     {
       icon: Wallet,
       iconColor: "text-blue-600",
-      bgColor: "bg-blue-100",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
       label: "Net Profit",
       amount: metrics.netProfit,
       textColor: metrics.netProfit >= 0 ? 'text-blue-600' : 'text-red-600'
@@ -68,7 +73,8 @@ export function FinancialMetricsGrid({ metrics }: FinancialMetricsGridProps) {
     {
       icon: TrendingUp,
       iconColor: "text-emerald-600",
-      bgColor: "bg-emerald-100",
+      bgColor: "bg-emerald-50",
+      borderColor: "border-emerald-200",
       label: "Net Cash Flow",
       amount: metrics.netCashFlow,
       textColor: metrics.netCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'
@@ -76,14 +82,15 @@ export function FinancialMetricsGrid({ metrics }: FinancialMetricsGridProps) {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
       {financialMetrics.map((metric, index) => (
         metric.link ? (
-          <Link key={index} to={metric.link} className="block">
+          <Link key={index} to={metric.link} className="block transition-transform hover:scale-102 hover:shadow-card-hover">
             <FinancialCard
               icon={metric.icon}
               iconColor={metric.iconColor}
               bgColor={metric.bgColor}
+              borderColor={metric.borderColor}
               label={metric.label}
               amount={metric.amount}
               textColor={metric.textColor}
@@ -95,6 +102,7 @@ export function FinancialMetricsGrid({ metrics }: FinancialMetricsGridProps) {
             icon={metric.icon}
             iconColor={metric.iconColor}
             bgColor={metric.bgColor}
+            borderColor={metric.borderColor}
             label={metric.label}
             amount={metric.amount}
             textColor={metric.textColor}

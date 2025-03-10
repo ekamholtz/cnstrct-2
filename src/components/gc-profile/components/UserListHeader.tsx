@@ -1,5 +1,4 @@
-
-import { Plus, RefreshCw } from "lucide-react";
+import { Plus, RefreshCw, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface UserListHeaderProps {
@@ -11,16 +10,27 @@ interface UserListHeaderProps {
 export const UserListHeader = ({ onCreateUser, onRefresh, canManageUsers }: UserListHeaderProps) => {
   return (
     <div className="flex items-center justify-between">
-      <h2 className="text-2xl font-bold">Team Members</h2>
-      <div className="flex gap-2">
+      <div className="flex items-center">
+        <h2 className="text-lg font-semibold text-cnstrct-navy">Team Members</h2>
+      </div>
+      <div className="flex gap-3">
         {onRefresh && (
-          <Button variant="outline" onClick={onRefresh} size="icon" title="Refresh user list">
+          <Button 
+            variant="outline" 
+            onClick={onRefresh} 
+            size="icon" 
+            title="Refresh user list"
+            className="border-gray-200 hover:bg-gray-50 text-gray-600"
+          >
             <RefreshCw className="h-4 w-4" />
           </Button>
         )}
         {canManageUsers && (
-          <Button onClick={onCreateUser}>
-            <Plus className="h-4 w-4 mr-2" />
+          <Button 
+            onClick={onCreateUser}
+            className="bg-cnstrct-navy hover:bg-cnstrct-navy/90 text-white"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
             Invite User
           </Button>
         )}

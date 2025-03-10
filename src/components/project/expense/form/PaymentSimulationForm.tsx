@@ -24,6 +24,7 @@ interface PaymentSimulationFormProps {
   initialAmount: string;
   onSubmit: (data: SimulationFormData) => Promise<void>;
   onCancel: () => void;
+  isSubmitting?: boolean;
 }
 
 export function PaymentSimulationForm({
@@ -31,8 +32,9 @@ export function PaymentSimulationForm({
   initialAmount,
   onSubmit,
   onCancel,
+  isSubmitting = false
 }: PaymentSimulationFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const form = useForm<SimulationFormData>({
     resolver: zodResolver(simulationSchema),
@@ -45,15 +47,20 @@ export function PaymentSimulationForm({
   });
 
   const handleSubmit = async (data: SimulationFormData) => {
+    if (isSubmitting) return; // Prevent multiple submissions
+    
     try {
-      setIsSubmitting(true);
+      setIsProcessing(true);
       await onSubmit(data);
     } catch (error) {
-      console.error("Error simulating payment:", error);
+      console.error("Error processing payment simulation:", error);
     } finally {
-      setIsSubmitting(false);
+      setIsProcessing(false);
     }
   };
+
+  // Determine if the form is in a submitting/processing state
+  const isFormSubmitting = isProcessing || isSubmitting;
 
   return (
     <Form {...form}>
@@ -146,16 +153,16 @@ export function PaymentSimulationForm({
             type="button"
             variant="outline"
             onClick={onCancel}
-            disabled={isSubmitting}
+            disabled={isFormSubmitting}
           >
             Cancel
           </Button>
           <Button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isFormSubmitting}
             className="bg-[#9b87f5] hover:bg-[#7E69AB]"
           >
-            {isSubmitting ? "Processing..." : "Simulate Payment"}
+            {isFormSubmitting ? "Processing..." : "Simulate Payment"}
           </Button>
         </div>
       </form>

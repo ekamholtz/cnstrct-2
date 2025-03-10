@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { LucideIcon } from "lucide-react";
 
@@ -9,6 +8,7 @@ interface FinancialCardProps {
   label: string;
   amount: number;
   textColor?: string;
+  borderColor?: string;
 }
 
 export function FinancialCard({ 
@@ -17,18 +17,23 @@ export function FinancialCard({
   bgColor, 
   label, 
   amount,
-  textColor
+  textColor,
+  borderColor
 }: FinancialCardProps) {
   return (
-    <Card className="p-6 flex items-center space-x-4 w-full h-[100px]">
-      <div className={`${bgColor} p-3 rounded-full`}>
-        <Icon className={`h-6 w-6 ${iconColor}`} />
-      </div>
-      <div>
-        <p className="text-sm font-medium text-gray-500">{label}</p>
-        <p className={`text-2xl font-bold ${textColor || iconColor}`}>
-          ${amount.toLocaleString()}
-        </p>
+    <Card className={`p-4 w-full h-full border ${borderColor || 'border-gray-200'} rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200`}>
+      <div className="flex flex-col space-y-3">
+        <div className="flex items-center justify-between">
+          <div className={`${bgColor} p-2 rounded-lg`}>
+            <Icon className={`h-5 w-5 ${iconColor}`} />
+          </div>
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">{label}</span>
+        </div>
+        <div>
+          <p className={`text-xl font-bold ${textColor || iconColor}`}>
+            ${amount.toLocaleString()}
+          </p>
+        </div>
       </div>
     </Card>
   );

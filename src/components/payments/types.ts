@@ -1,4 +1,3 @@
-
 import { DateRange } from "react-day-picker";
 
 export type PaymentDirection = 'incoming' | 'outgoing';
@@ -40,6 +39,7 @@ export interface Payment {
   payment_processor_id?: string;
   processor_transaction_id?: string;
   processor_metadata?: Record<string, any>;
+  payment_reference?: string;
   simulation_mode: boolean;
   simulation_data?: Record<string, any>;
   notes?: string;

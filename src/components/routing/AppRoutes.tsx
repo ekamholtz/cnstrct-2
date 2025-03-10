@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -23,6 +22,9 @@ import ExpenseDetails from "@/pages/ExpenseDetails";
 import PaymentDetails from "@/pages/PaymentDetails";
 import PaymentsDashboard from "@/pages/PaymentsDashboard";
 import Help from "@/pages/Help";
+import ReportingDashboard from "@/pages/ReportingDashboard";
+import QBOCallback from "@/pages/qbo/QBOCallback";
+import Settings from "@/pages/Settings";
 
 export const AppRoutes = () => {
   return (
@@ -150,6 +152,14 @@ export const AppRoutes = () => {
         }
       />
       <Route
+        path="/reporting"
+        element={
+          <ProtectedRoute>
+            <ReportingDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/help"
         element={
           <ProtectedRoute>
@@ -179,6 +189,22 @@ export const AppRoutes = () => {
           <AdminRoute>
             <AdminTransactions />
           </AdminRoute>
+        }
+      />
+      <Route
+        path="/qbo/callback"
+        element={
+          <ProtectedRoute>
+            <QBOCallback />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
         }
       />
       <Route path="/landing" element={<Navigate to="/" replace />} />

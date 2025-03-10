@@ -1,4 +1,3 @@
-
 import { formatDistanceToNow } from "date-fns";
 import { FileText } from "lucide-react";
 import {
@@ -10,17 +9,30 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { StatusBadge } from "@/components/project/invoice/StatusBadge";
-import type { Expense } from "./types";
+import type { Expense as ExpenseType } from "./types";
 import { Progress } from "@/components/ui/progress";
+import { useNavigate } from "react-router-dom";
 
 interface ExpenseListProps {
-  expenses: (Expense & { project?: { name: string } })[];
+  expenses: ExpenseType[]; 
   loading?: boolean;
   showProjectName?: boolean;
 }
 
-// Helper function to map expense status to invoice status
-const mapExpenseStatusToInvoiceStatus = (status: Expense['payment_status']): "paid" | "pending_payment" | "cancelled" => {
+interface Expense {
+  id?: string;
+  name?: string;
+  payee?: string;
+  amount?: number | string;
+  payment_status?: string;
+  expense_date?: string;
+  created_at?: string;
+  payments?: {
+    amount?: number | string;
+  }[];
+}
+
+const mapExpenseStatusToInvoiceStatus = (status: string): "paid" | "pending_payment" | "cancelled" => {
   switch (status) {
     case "paid":
       return "paid";
@@ -32,14 +44,49 @@ const mapExpenseStatusToInvoiceStatus = (status: Expense['payment_status']): "pa
   }
 };
 
-export function ExpenseList({ expenses, loading }: ExpenseListProps) {
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const totalPaid = expenses.reduce((sum, exp) => {
-    return sum + (exp.payments?.reduce((pSum, p) => pSum + p.amount, 0) ?? 0);
+const safeGet = (obj: any, path: string, defaultValue: any = undefined) => {
+  try {
+    return path.split('.').reduce((o, p) => (o ? o[p] : defaultValue), obj);
+  } catch (e) {
+    return defaultValue;
+  }
+};
+
+export function ExpenseList({ expenses = [], loading = false }: ExpenseListProps) {
+  const navigate = useNavigate();
+  
+  // Ensure expenses is always a valid array with valid objects
+  const safeExpenses = Array.isArray(expenses) 
+    ? expenses.filter(exp => exp && typeof exp === 'object') 
+    : [];
+  
+  const totalExpenses = safeExpenses.reduce((sum, exp) => {
+    const amount = typeof exp?.amount === 'number' ? exp.amount : 
+                  (typeof exp?.amount === 'string' ? parseFloat(exp.amount) || 0 : 0);
+    return sum + amount;
+  }, 0);
+  
+  const totalPaid = safeExpenses.reduce((sum, exp) => {
+    // Safely handle payments that might be null, undefined, or not an array
+    const payments = Array.isArray(exp?.payments) ? exp.payments : [];
+    const paymentSum = payments.reduce((pSum, p) => {
+      // Handle potential null or undefined payment objects
+      if (!p || typeof p !== 'object') return pSum;
+      
+      const amount = typeof p.amount === 'number' ? p.amount : 
+                    (typeof p.amount === 'string' ? parseFloat(p.amount) || 0 : 0);
+      return pSum + amount;
+    }, 0);
+    return sum + paymentSum;
   }, 0);
 
-  const paidCount = expenses.filter(exp => exp.payment_status === 'paid').length;
-  const totalCount = expenses.length;
+  // Count expenses with payment_status = 'paid'
+  const paidCount = safeExpenses.filter(exp => exp?.payment_status === 'paid').length;
+  const totalCount = safeExpenses.length;
+
+  const handleRowClick = (expenseId: string) => {
+    navigate(`/expenses/${expenseId}`);
+  };
 
   if (loading) {
     return (
@@ -49,79 +96,116 @@ export function ExpenseList({ expenses, loading }: ExpenseListProps) {
     );
   }
 
+  if (safeExpenses.length === 0) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm p-6 text-center text-gray-500">
+        No expenses found.
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-semibold">Project Expenses</h2>
-        <div className="flex items-center gap-4">
-          <div className="text-orange-600">
-            Pending: ${(totalExpenses - totalPaid).toLocaleString()}
+    <div className="bg-white rounded-lg shadow-sm">
+      <div className="p-6">
+        <div className="flex flex-col md:flex-row justify-between mb-6">
+          <div className="mb-4 md:mb-0">
+            <h3 className="text-lg font-semibold text-gray-900">Expenses</h3>
+            <p className="text-sm text-gray-500">
+              {totalCount} expense{totalCount !== 1 ? 's' : ''} total
+            </p>
           </div>
-          <div>
-            Total: ${totalExpenses.toLocaleString()}
+          <div className="flex flex-col">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-gray-500 mr-4">Payment Progress:</span>
+              <span className="text-sm font-medium">
+                {paidCount} of {totalCount} paid
+              </span>
+            </div>
+            <Progress 
+              value={totalCount > 0 ? (paidCount / totalCount) * 100 : 0} 
+              className="h-2 w-full md:w-64" 
+              indicatorClassName="bg-green-500"
+            />
           </div>
         </div>
       </div>
 
-      <div>
-        <div className="flex justify-between text-sm text-gray-600 mb-2">
-          <span>Payment Progress</span>
-          <span>{paidCount} of {totalCount} expenses paid</span>
-        </div>
-        <Progress 
-          value={(paidCount / Math.max(totalCount, 1)) * 100} 
-          className="h-2 bg-gray-100 [&>div]:bg-green-500"
-        />
-      </div>
-
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Expense Number</TableHead>
-              <TableHead>Name</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {expenses.map((expense) => (
-              <TableRow key={expense.id}>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Expense #</TableHead>
+            <TableHead>Payee / Description</TableHead>
+            <TableHead>Project</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {safeExpenses.map((expense) => {
+            const id = expense?.id || `expense-${Math.random().toString(36).substr(2, 9)}`;
+            const name = expense?.name || 'Unnamed Expense';
+            const payee = expense?.payee || 'Unknown';
+            const amount = typeof expense?.amount === 'number' ? expense.amount : 0;
+            const status = expense?.payment_status || 'due';
+            const date = expense?.expense_date || expense?.created_at || new Date().toISOString();
+            const expenseNumber = expense?.expense_number || 'N/A';
+            const projectName = safeGet(expense, 'project.name', 'Unknown Project');
+            const expenseType = expense?.expense_type || 'other';
+            
+            // Format expense type for display
+            const formatExpenseType = (type: string) => {
+              switch(type) {
+                case 'labor': return 'Labor';
+                case 'materials': return 'Materials';
+                case 'subcontractor': return 'Subcontractor';
+                case 'other': return 'Other';
+                default: return type.charAt(0).toUpperCase() + type.slice(1);
+              }
+            };
+            
+            return (
+              <TableRow 
+                key={id} 
+                onClick={() => handleRowClick(id)}
+                className="cursor-pointer hover:bg-gray-50 transition-colors"
+              >
                 <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4 text-gray-500" />
-                    {expense.expense_number}
+                  <div className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2 text-gray-400" />
+                    <span>{expenseNumber}</span>
                   </div>
                 </TableCell>
-                <TableCell>{expense.name}</TableCell>
-                <TableCell>${expense.amount.toLocaleString()}</TableCell>
                 <TableCell>
-                  <StatusBadge status={mapExpenseStatusToInvoiceStatus(expense.payment_status)} />
+                  <div className="flex flex-col">
+                    <span className="font-medium text-base">{payee}</span>
+                    <span className="text-xs text-gray-500 mt-1">{name}</span>
+                  </div>
                 </TableCell>
                 <TableCell>
-                  {formatDistanceToNow(new Date(expense.expense_date), { addSuffix: true })}
+                  <div className="max-w-[150px] truncate" title={projectName}>
+                    {projectName}
+                  </div>
                 </TableCell>
-                <TableCell className="uppercase">{expense.expense_type}</TableCell>
                 <TableCell>
-                  <button className="text-gray-500 hover:text-gray-700">
-                    Mark as Paid
-                  </button>
+                  <div className="text-sm">
+                    {formatExpenseType(expenseType)}
+                  </div>
+                </TableCell>
+                <TableCell>${amount.toFixed(2)}</TableCell>
+                <TableCell>
+                  <div className="flex flex-col space-y-1">
+                    <StatusBadge status={mapExpenseStatusToInvoiceStatus(status)} />
+                    <div className="text-xs text-gray-500">
+                      {formatDistanceToNow(new Date(date), { addSuffix: true })}
+                    </div>
+                  </div>
                 </TableCell>
               </TableRow>
-            ))}
-            {expenses.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-6 text-gray-500">
-                  No expenses found
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+            );
+          })}
+        </TableBody>
+      </Table>
     </div>
   );
 }

@@ -3,19 +3,19 @@ import { UserRole } from "@/components/admin/users/types";
 export interface GCUserProfile {
   id: string;
   full_name: string;
-  email: string;
-  phone_number?: string;
+  email?: string | null; // Make email optional and nullable to match actual data
+  phone_number: string;
   role: UserRole;
   gc_account_id: string;
-  company_name?: string;
-  license_number?: string;
-  address?: string;
-  website?: string;
-  bio?: string;
+  company_name: string;
+  license_number: string;
+  address: string;
+  website: string;
+  bio: string;
   has_completed_profile: boolean;
-  account_status?: string;
-  created_at?: string;
-  updated_at?: string;
+  account_status: string;
+  created_at: string;
+  updated_at: string;
   is_owner?: boolean;
 }
 

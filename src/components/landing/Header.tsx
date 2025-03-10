@@ -1,6 +1,5 @@
-
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 export const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -23,7 +23,16 @@ export const Header = () => {
       setUser(session?.user || null);
     });
 
-    return () => subscription.unsubscribe();
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
   const handleLogout = async () => {
@@ -56,14 +65,16 @@ export const Header = () => {
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 bg-white z-50 shadow-sm">
+    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      scrolled ? 'bg-cnstrct-navy/90 backdrop-blur-md shadow-lg' : 'bg-transparent'
+    }`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           <div className="flex items-center">
             <img
               src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
               alt="CNSTRCT Logo"
-              className="h-12 w-auto cursor-pointer"
+              className="h-10 w-auto cursor-pointer"
               onClick={() => navigate("/")}
             />
           </div>
@@ -74,64 +85,89 @@ export const Header = () => {
               <a
                 key={item.label}
                 href={item.path}
-                className="text-cnstrct-navy hover:text-cnstrct-orange transition-colors"
+                className="text-white/80 hover:text-cnstrct-orange transition-colors text-sm font-medium"
               >
                 {item.label}
               </a>
             ))}
             {user ? (
               <>
-                <Button variant="outline" onClick={() => navigate("/dashboard")}>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate("/dashboard")}
+                  className="text-white hover:text-white hover:bg-white/10"
+                >
                   Dashboard
                 </Button>
                 <Button 
                   onClick={handleLogout}
-                  className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
+                  className="bg-cnstrct-orange hover:bg-cnstrct-orangeLight"
                 >
                   Sign Out
                 </Button>
               </>
             ) : (
               <>
-                <Button variant="outline" onClick={() => navigate("/auth")}>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => navigate("/auth")}
+                  className="text-white hover:text-white hover:bg-white/10"
+                >
                   Login
                 </Button>
                 <Button
-                  className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
+                  className="bg-cnstrct-orange hover:bg-cnstrct-orangeLight"
                   onClick={() => navigate("/auth")}
                 >
-                  Register
+                  Sign Up
                 </Button>
               </>
             )}
           </nav>
 
-          {/* Mobile Menu Button */}
-          <button className="md:hidden p-2" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-            <Menu className="h-6 w-6 text-cnstrct-navy" />
-          </button>
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-white hover:bg-white/10"
+            >
+              {isMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </Button>
+          </div>
         </div>
+      </div>
 
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <nav className="md:hidden py-4 border-t">
-            <div className="flex flex-col space-y-4">
-              {navItems.map((item) => (
-                <a
-                  key={item.label}
-                  href={item.path}
-                  className="text-cnstrct-navy hover:text-cnstrct-orange transition-colors"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  {item.label}
-                </a>
-              ))}
+      {/* Mobile Navigation */}
+      {isMenuOpen && (
+        <div className="md:hidden bg-cnstrct-navy/95 backdrop-blur-md">
+          <div className="container mx-auto px-4 py-4 space-y-4">
+            {navItems.map((item) => (
+              <a
+                key={item.label}
+                href={item.path}
+                className="block py-2 text-white/80 hover:text-cnstrct-orange transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                {item.label}
+              </a>
+            ))}
+            <div className="pt-4 border-t border-white/10 space-y-3">
               {user ? (
                 <>
-                  <Button variant="outline" onClick={() => {
-                    navigate("/dashboard");
-                    setIsMenuOpen(false);
-                  }}>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => {
+                      navigate("/dashboard");
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full justify-start text-white hover:text-white hover:bg-white/10"
+                  >
                     Dashboard
                   </Button>
                   <Button 
@@ -139,37 +175,38 @@ export const Header = () => {
                       handleLogout();
                       setIsMenuOpen(false);
                     }}
-                    className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
+                    className="w-full justify-start bg-cnstrct-orange hover:bg-cnstrct-orangeLight"
                   >
                     Sign Out
                   </Button>
                 </>
               ) : (
                 <>
-                  <Button
-                    variant="outline"
+                  <Button 
+                    variant="ghost" 
                     onClick={() => {
                       navigate("/auth");
                       setIsMenuOpen(false);
                     }}
+                    className="w-full justify-start text-white hover:text-white hover:bg-white/10"
                   >
                     Login
                   </Button>
                   <Button
-                    className="bg-cnstrct-orange hover:bg-cnstrct-orange/90"
                     onClick={() => {
                       navigate("/auth");
                       setIsMenuOpen(false);
                     }}
+                    className="w-full justify-start bg-cnstrct-orange hover:bg-cnstrct-orangeLight"
                   >
-                    Register
+                    Sign Up
                   </Button>
                 </>
               )}
             </div>
-          </nav>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

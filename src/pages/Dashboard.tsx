@@ -1,4 +1,3 @@
-
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatsOverview } from "@/components/dashboard/StatsOverview";
 import { ContractorFinancialSummary } from "@/components/dashboard/ContractorFinancialSummary";
@@ -10,6 +9,10 @@ import { AlertCircle } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { TeamMembersSection } from "@/components/dashboard/TeamMembersSection";
+import { TeamMembersDebug } from "@/debug/TeamMembersDebug";
+import { TargetGCAccountDebug } from "@/debug/TargetGCAccountDebug";
+import { AllProfilesDebug } from "@/debug/AllProfilesDebug";
+import { ProjectRelationshipsDebug } from "@/debug/ProjectRelationshipsDebug";
 
 export default function Dashboard() {
   const { data: projects = [], isLoading, error, refetch } = useContractorProjects();
@@ -53,78 +56,120 @@ export default function Dashboard() {
     enabled: !!userProfile?.gc_account_id,
   });
 
-  const isGcOrPm = userProfile?.role === 'gc_admin' || userProfile?.role === 'project_manager';
+  // Determine if user is a GC or PM
+  const isGcOrPm = userProfile?.role === 'gc_admin' || 
+                  userProfile?.role === 'project_manager' || 
+                  userProfile?.role === 'platform_admin';
+  
+  // Check if user has a GC account
   const hasGcAccount = !!userProfile?.gc_account_id;
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa]">
-      <div className="bg-[#172b70] text-white">
-        <MainNav />
-      </div>
-      <div className="container mx-auto px-4 py-8 mt-16 space-y-8">
-        {/* Dashboard Header */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
-          {isGcOrPm && userProfile ? (
-            <>
-              {userProfile.full_name && (
-                <p className="text-lg font-medium text-gray-700">Welcome, {userProfile.full_name}</p>
-              )}
-              {userProfile.company_name && (
-                <h1 className="text-2xl font-bold text-[#172b70] mt-1">{userProfile.company_name}</h1>
-              )}
-              {!hasGcAccount && (
-                <Alert variant="destructive" className="mt-4 bg-amber-50 border-amber-200 text-amber-700">
-                  <AlertCircle className="h-4 w-4 text-amber-500" />
-                  <AlertTitle>Company Setup Needed</AlertTitle>
-                  <AlertDescription>
-                    Please complete your company profile to fully use all features.
-                  </AlertDescription>
-                </Alert>
-              )}
-              <p className="text-gray-600 mt-2">Manage and track all your construction projects</p>
-            </>
-          ) : (
-            <>
-              <h1 className="text-2xl font-bold text-[#172b70] mb-2">General Contractor Dashboard</h1>
-              <div className="flex items-center text-gray-600">
-                <span>Manage and track all your construction projects</span>
+    <div className="flex min-h-screen flex-col bg-cnstrct-gray">
+      <MainNav />
+      <div className="flex-1 pt-16">
+        <div className="container mx-auto px-4 py-8 space-y-6">
+          {/* Dashboard Header */}
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="space-y-1">
+                {isGcOrPm && userProfile ? (
+                  <>
+                    {userProfile.full_name && (
+                      <p className="text-base font-medium text-gray-600">Welcome, {userProfile.full_name}</p>
+                    )}
+                    {userProfile.company_name && (
+                      <h1 className="text-2xl md:text-3xl font-bold text-cnstrct-navy">{userProfile.company_name}</h1>
+                    )}
+                    {!hasGcAccount && (
+                      <Alert variant="destructive" className="mt-4 bg-amber-50 border border-amber-200 text-amber-800">
+                        <AlertCircle className="h-4 w-4 text-amber-500" />
+                        <AlertTitle className="text-amber-800 font-medium">Company Setup Needed</AlertTitle>
+                        <AlertDescription className="text-amber-700">
+                          Please complete your company profile to fully use all features.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    <p className="text-gray-600 mt-1">Manage and track all your construction projects</p>
+                  </>
+                ) : (
+                  <>
+                    <h1 className="text-2xl md:text-3xl font-bold text-cnstrct-navy">General Contractor Dashboard</h1>
+                    <div className="flex items-center text-gray-600">
+                      <span>Manage and track all your construction projects</span>
+                    </div>
+                  </>
+                )}
               </div>
-            </>
-          )}
-          <div className="mt-4">
-            <DashboardHeader onProjectCreated={refetch} />
+              <div className="mt-4 md:mt-0">
+                <DashboardHeader onProjectCreated={refetch} />
+              </div>
+            </div>
           </div>
+
+          {/* Error display */}
+          {error && (
+            <Alert variant="destructive" className="bg-red-50 border border-red-200 text-red-800">
+              <AlertCircle className="h-4 w-4 text-red-500" />
+              <AlertTitle className="text-red-800 font-medium">Error</AlertTitle>
+              <AlertDescription className="text-red-700">
+                There was an error loading your projects. Please try refreshing the page.
+                {error instanceof Error ? ` Error: ${error.message}` : ''}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Stats Overview */}
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-cnstrct-navy mb-6 flex items-center">
+              <span className="inline-block w-1 h-6 bg-cnstrct-orange mr-3 rounded-full"></span>
+              Project Overview
+            </h2>
+            <StatsOverview projects={projects} />
+          </div>
+
+          {/* Financial Summary */}
+          <ContractorFinancialSummary />
+
+          {/* Projects List */}
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 shadow-lg rounded-xl p-6">
+            <h2 className="text-xl font-semibold text-cnstrct-navy mb-6 flex items-center">
+              <span className="inline-block w-1 h-6 bg-cnstrct-orange mr-3 rounded-full"></span>
+              Active Projects
+            </h2>
+            <ProjectsList projects={projects} loading={isLoading} />
+          </div>
+          
+          {/* Team Members Section */}
+          {isGcOrPm && <TeamMembersSection />}
+          
+          {/* Debug Components - Hidden in production */}
+          {process.env.NODE_ENV === 'development' && isGcOrPm && hasGcAccount && (
+            <div className="space-y-6 mt-8 bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+              <h2 className="text-lg font-semibold text-yellow-800">Debug Components (Only visible in development)</h2>
+              
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-yellow-100">
+                <h3 className="text-md font-semibold text-yellow-700 mb-4">Team Members Debug</h3>
+                <TeamMembersDebug />
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-yellow-100">
+                <h3 className="text-md font-semibold text-yellow-700 mb-4">Target GC Account Debug</h3>
+                <TargetGCAccountDebug />
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-yellow-100">
+                <h3 className="text-md font-semibold text-yellow-700 mb-4">All Profiles Debug</h3>
+                <AllProfilesDebug />
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-yellow-100">
+                <h3 className="text-md font-semibold text-yellow-700 mb-4">Project Relationships Debug</h3>
+                <ProjectRelationshipsDebug />
+              </div>
+            </div>
+          )}
         </div>
-
-        {/* Error display */}
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              There was an error loading your projects. Please try refreshing the page.
-              {error instanceof Error ? ` Error: ${error.message}` : ''}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Stats Overview */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-[#172b70] mb-6">Project Overview</h2>
-          <StatsOverview projects={projects} />
-        </div>
-
-        {/* Financial Summary */}
-        <ContractorFinancialSummary />
-
-        {/* Projects List */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h2 className="text-xl font-semibold text-[#172b70] mb-6">Active Projects</h2>
-          <ProjectsList projects={projects} loading={isLoading} />
-        </div>
-        
-        {/* Team Members Section */}
-        {isGcOrPm && <TeamMembersSection />}
       </div>
     </div>
   );

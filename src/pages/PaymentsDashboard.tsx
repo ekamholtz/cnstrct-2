@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PaymentsTable } from "@/components/payments/PaymentsTable";
 import { PaymentsFilter } from "@/components/payments/PaymentsFilter";
@@ -113,11 +112,17 @@ export default function PaymentsDashboard() {
           </div>
         </div>
 
-        <Card className="p-6 shadow-sm border-0">
+        <Card 
+          variant="glass" 
+          className="shadow-md border border-white/20 backdrop-blur-sm"
+        >
           <PaymentsFilter filters={filters} onFiltersChange={setFilters} />
         </Card>
 
-        <Card className="shadow-sm border-0">
+        <Card 
+          variant="glass" 
+          className="shadow-md border border-white/20 backdrop-blur-sm mt-6"
+        >
           <PaymentsTable payments={payments || []} isLoading={isLoading} />
         </Card>
       </div>

@@ -1,4 +1,3 @@
-
 import { Card } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Expense } from "../types";
@@ -21,7 +20,15 @@ export function ExpenseDetailsSection({ expense }: ExpenseDetailsSectionProps) {
 
   return (
     <Card className="p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">Expense Details</h2>
+      <div className="flex justify-between items-start mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Expense Details</h2>
+        {expense.expense_number && (
+          <div className="bg-gray-100 px-3 py-1 rounded-md">
+            <span className="text-sm text-gray-500">Expense #:</span>
+            <span className="ml-1 font-medium">{expense.expense_number}</span>
+          </div>
+        )}
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">

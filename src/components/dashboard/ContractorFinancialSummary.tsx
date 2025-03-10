@@ -1,7 +1,7 @@
-
 import { useContractorProjects } from "@/hooks/useContractorProjects";
 import { useContractorFinancials } from "@/hooks/useContractorFinancials";
 import { FinancialMetricsGrid } from "./FinancialMetricsGrid";
+import { TrendingUp } from "lucide-react";
 
 export function ContractorFinancialSummary() {
   const { data: projects = [] } = useContractorProjects();
@@ -17,8 +17,11 @@ export function ContractorFinancialSummary() {
   } = useContractorFinancials(projectIds);
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-xl font-semibold text-[#172b70] mb-6">Financial Overview</h2>
+    <div className="premium-card p-6">
+      <h2 className="text-xl font-semibold text-cnstrct-navy mb-6 flex items-center">
+        <span className="inline-block w-1 h-6 bg-cnstrct-orange mr-3 rounded-full"></span>
+        Financial Overview
+      </h2>
       <FinancialMetricsGrid 
         metrics={{
           paidInvoices: totalPaidInvoices,

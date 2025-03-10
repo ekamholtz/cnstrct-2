@@ -1,4 +1,3 @@
-
 import { z } from "zod";
 import type { Payment as BasePayment } from "@/components/payments/types";
 
@@ -32,25 +31,54 @@ export const paymentDetailsSchema = z.object({
 export type ExpenseFormStage1Data = z.infer<typeof expenseFormStage1Schema>;
 export type PaymentDetailsData = z.infer<typeof paymentDetailsSchema>;
 
+// More flexible Expense interface that handles potential database inconsistencies
 export interface Expense {
   id: string;
   project_id: string;
   // contractor_id is being phased out in favor of gc_account_id
   contractor_id?: string;
-  gc_account_id: string;
+  gc_account_id?: string;
   name: string;
   payee: string;
   amount: number;
-  amount_due: number;
+  amount_due?: number;
   expense_date: string;
-  expense_type: "labor" | "materials" | "subcontractor" | "other";
-  payment_status: "due" | "partially_paid" | "paid";
-  expense_number: string;
+  expense_type?: "labor" | "materials" | "subcontractor" | "other";
+  payment_status?: "due" | "partially_paid" | "paid";
+  expense_number?: string;
   notes?: string;
-  created_at: string;
-  updated_at: string;
-  project?: {
-    name: string;
-  };
+  created_at?: string;
+  updated_at?: string;
   payments?: BasePayment[];
+  project?: { 
+    name?: string;
+    [key: string]: any;
+  };
+  [key: string]: any; // Allow for any additional properties
+}
+
+// A more permissive version of the Expense type for database results
+export interface DatabaseExpense {
+  id: string;
+  project_id?: string;
+  gc_account_id?: string;
+  contractor_id?: string;
+  name?: string;
+  payee?: string;
+  amount?: number;
+  amount_due?: number;
+  expense_date?: string;
+  expense_type?: string;
+  payment_status?: string;
+  expense_number?: string;
+  notes?: string;
+  created_at?: string;
+  updated_at?: string;
+  payments?: any[];
+  project?: { 
+    name?: string;
+    [key: string]: any;
+  };
+  _originalData?: any; // For debugging purposes
+  [key: string]: any; // Allow for any additional properties from the database
 }

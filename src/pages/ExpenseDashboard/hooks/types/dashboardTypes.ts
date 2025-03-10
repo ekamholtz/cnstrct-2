@@ -1,6 +1,6 @@
-
 import { ExpenseFilters } from "../../types";
 import { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
+import { UseMutationResult } from "@tanstack/react-query";
 
 export type CreateExpenseFunction = (
   data: ExpenseFormStage1Data,
@@ -14,4 +14,15 @@ export interface UseExpenseDashboardResult {
   expenses: any[] | null;
   isLoading: boolean;
   handleCreateExpense: CreateExpenseFunction;
+  processPaymentMutation: UseMutationResult<any, Error, {
+    expenseId: string;
+    amount: number;
+    paymentDetails: {
+      payment_method_code: string;
+      payment_date: string;
+      amount: number;
+      notes?: string;
+    };
+    expensesTable?: 'expenses' | 'homeowner_expenses';
+  }>;
 }

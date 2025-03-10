@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/form";
 import { loginSchema, type LoginFormData } from "./authSchemas";
 import { useToast } from "@/components/ui/use-toast";
+import { Mail, Lock } from "lucide-react";
 
 interface LoginFormProps {
   onSubmit: (values: LoginFormData) => Promise<void>;
@@ -30,22 +31,25 @@ export const LoginForm = ({ onSubmit, loading, onForgotPassword }: LoginFormProp
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-white">Email</FormLabel>
+              <FormLabel className="text-gray-700 font-medium">Email</FormLabel>
               <FormControl>
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  {...field}
-                  className="bg-white"
-                />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    {...field}
+                    className="bg-white/70 border-gray-200 pl-10 py-6 rounded-xl focus:ring-cnstrct-orange focus:border-cnstrct-orange"
+                  />
+                </div>
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-red-500" />
             </FormItem>
           )}
         />
@@ -55,37 +59,39 @@ export const LoginForm = ({ onSubmit, loading, onForgotPassword }: LoginFormProp
           name="password"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-white">Password</FormLabel>
+              <div className="flex justify-between items-center">
+                <FormLabel className="text-gray-700 font-medium">Password</FormLabel>
+                <button
+                  type="button"
+                  className="text-sm text-cnstrct-orange hover:text-cnstrct-orange/80 font-medium"
+                  onClick={onForgotPassword}
+                >
+                  Forgot password?
+                </button>
+              </div>
               <FormControl>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  {...field}
-                  className="bg-white"
-                />
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    {...field}
+                    className="bg-white/70 border-gray-200 pl-10 py-6 rounded-xl focus:ring-cnstrct-orange focus:border-cnstrct-orange"
+                  />
+                </div>
               </FormControl>
-              <FormMessage />
+              <FormMessage className="text-red-500" />
             </FormItem>
           )}
         />
 
         <Button
           type="submit"
-          className="w-full bg-cnstrct-orange hover:bg-cnstrct-orange/90"
+          className="w-full bg-gradient-to-r from-cnstrct-orange to-cnstrct-orange/90 hover:from-cnstrct-orange/90 hover:to-cnstrct-orange text-white py-6 rounded-xl mt-6 font-medium text-base shadow-lg hover:shadow-xl transition-all"
           disabled={loading}
         >
-          {loading ? "Loading..." : "Sign In"}
+          {loading ? "Signing in..." : "Sign In"}
         </Button>
-
-        <div className="text-center">
-          <button
-            type="button"
-            className="text-sm text-cnstrct-orange hover:underline"
-            onClick={onForgotPassword}
-          >
-            Forgot your password?
-          </button>
-        </div>
       </form>
     </Form>
   );

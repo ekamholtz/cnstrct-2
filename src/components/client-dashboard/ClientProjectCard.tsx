@@ -1,4 +1,3 @@
-
 import { ClientProject } from "@/types/project-types";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -37,10 +36,13 @@ export function ClientProjectCard({ project }: ClientProjectCardProps) {
 
   return (
     <Link to={`/project/${project.id}`}>
-      <Card className="hover:shadow-lg transition-shadow duration-200 cursor-pointer">
+      <Card 
+        variant="glass" 
+        className="hover:shadow-lg transition-all duration-200 cursor-pointer border border-white/20"
+      >
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
-            <h3 className="font-semibold text-lg text-gray-900">{project.name}</h3>
+            <h3 className="font-semibold text-lg">{project.name}</h3>
             <div className="flex items-center gap-3">
               <Badge className={`${getStatusColor(project.status)}`}>
                 {formatStatus(project.status)}
@@ -51,7 +53,7 @@ export function ClientProjectCard({ project }: ClientProjectCardProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            <div className="flex items-start gap-2 text-gray-600">
+            <div className="flex items-start gap-2">
               <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
               <p className="text-sm">{project.address}</p>
             </div>

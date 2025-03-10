@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building2, Clock, DollarSign, Users } from "lucide-react";
@@ -62,6 +61,9 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       label: "Active Projects",
       value: projects.filter(p => p.status === "active").length,
       icon: Building2,
+      iconColor: "text-cnstrct-navy",
+      bgColor: "bg-blue-50",
+      borderColor: "border-blue-200",
       description: "Current ongoing projects",
       link: "/gc-projects"
     },
@@ -69,12 +71,18 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       label: "Pending Approvals",
       value: pendingApprovals,
       icon: Clock,
+      iconColor: "text-amber-600",
+      bgColor: "bg-amber-50",
+      borderColor: "border-amber-200",
       description: "Awaiting client approval"
     },
     {
       label: "Total Active Project Value",
       value: `$${totalContractValue.toLocaleString()}`,
       icon: DollarSign,
+      iconColor: "text-green-600",
+      bgColor: "bg-green-50",
+      borderColor: "border-green-200",
       description: "Active projects",
       link: "/gc-projects"
     },
@@ -82,30 +90,37 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       label: "Active Clients",
       value: activeClients,
       icon: Users,
+      iconColor: "text-indigo-600",
+      bgColor: "bg-indigo-50",
+      borderColor: "border-indigo-200",
       description: "Currently working with"
     }
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {stats.map((stat) => {
         const CardWrapper = stat.link ? Link : 'div';
         return (
           <CardWrapper 
             key={stat.label} 
             to={stat.link || ''} 
-            className={stat.link ? "block transition-transform hover:scale-[1.02]" : undefined}
+            className={stat.link ? "block transition-all hover:scale-102 hover:shadow-card-hover" : undefined}
           >
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {stat.label}
-                </CardTitle>
-                <stat.icon className="h-4 w-4 text-gray-500" />
+            <Card className={`border ${stat.borderColor} shadow-sm h-full`}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-center">
+                  <div className={`${stat.bgColor} p-2 rounded-lg`}>
+                    <stat.icon className={`h-5 w-5 ${stat.iconColor}`} />
+                  </div>
+                  <CardTitle className="text-sm font-medium text-gray-600">
+                    {stat.label}
+                  </CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="text-xs text-gray-500">{stat.description}</p>
+                <div className="text-2xl font-bold text-cnstrct-navy">{stat.value}</div>
+                <p className="text-xs text-gray-500 mt-1">{stat.description}</p>
               </CardContent>
             </Card>
           </CardWrapper>

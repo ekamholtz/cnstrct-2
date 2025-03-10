@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { ExpenseFilters } from "../types";
@@ -144,13 +144,14 @@ export function useExpenseDashboard(): UseExpenseDashboardResult {
       
       return payment;
     },
-    onSuccess: () => {
+    onSuccess: async (_, variables) => {
       // Invalidate both the expenses list and the project-specific queries
+      const projectId = variables.expenseId.split('-')[0]; // Assuming the format is projectId-expenseNumber
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['expenses'] }),
-        queryClient.invalidateQueries({ queryKey: ['project', data.project_id] }),
-        queryClient.invalidateQueries({ queryKey: ['homeowner-expenses', data.project_id] }),
-        queryClient.invalidateQueries({ queryKey: ['expenses', data.project_id] })
+        queryClient.invalidateQueries({ queryKey: ['project', projectId] }),
+        queryClient.invalidateQueries({ queryKey: ['homeowner-expenses', projectId] }),
+        queryClient.invalidateQueries({ queryKey: ['expenses', projectId] })
       ]);
     },
     onError: (error) => {

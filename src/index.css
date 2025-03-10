@@ -1,3 +1,6 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&display=swap');
+@import './styles/grid-pattern.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -5,77 +8,172 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 47.4% 11.2%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 47.4% 11.2%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 47.4% 11.2%;
- 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
- 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
- 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
- 
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
- 
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
- 
+
     --radius: 0.5rem;
   }
- 
+
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
- 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
- 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
- 
+
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
- 
-    --border: 216 34% 17%;
-    --input: 216 34% 17%;
- 
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
- 
+
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
- 
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
- 
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
- 
-    --ring: 217.2 32.6% 17.5%;
- 
-    --radius: 0.5rem;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
   body {
     @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .premium-card {
+    @apply bg-white rounded-lg shadow-card hover:shadow-card-hover transition-all duration-200;
+  }
+  
+  .premium-button {
+    @apply bg-cnstrct-navy hover:bg-cnstrct-navyLight text-white font-medium rounded-md px-4 py-2 transition-colors duration-200;
+  }
+  
+  .premium-button-secondary {
+    @apply bg-white hover:bg-cnstrct-gray text-cnstrct-navy border border-cnstrct-grayDark font-medium rounded-md px-4 py-2 transition-colors duration-200;
+  }
+  
+  .premium-button-accent {
+    @apply bg-cnstrct-orange hover:bg-cnstrct-orangeLight text-white font-medium rounded-md px-4 py-2 transition-colors duration-200;
+  }
+  
+  .premium-input {
+    @apply border border-cnstrct-grayDark rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cnstrct-navy/20 transition-all duration-200;
+  }
+  
+  .premium-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors;
+  }
+  
+  .premium-badge-success {
+    @apply premium-badge bg-green-100 text-green-800;
+  }
+  
+  .premium-badge-warning {
+    @apply premium-badge bg-amber-100 text-amber-800;
+  }
+  
+  .premium-badge-error {
+    @apply premium-badge bg-red-100 text-red-800;
+  }
+  
+  .premium-badge-info {
+    @apply premium-badge bg-blue-100 text-blue-800;
+  }
+  
+  .btn-primary {
+    @apply bg-cnstrct-navy text-white px-4 py-2 rounded-md hover:bg-cnstrct-navy/90 transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply bg-white text-cnstrct-navy border border-cnstrct-navy/20 px-4 py-2 rounded-md hover:bg-gray-50 transition-colors;
+  }
+  
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  
+  .badge-primary {
+    @apply bg-cnstrct-navy text-white;
+  }
+  
+  .badge-secondary {
+    @apply bg-gray-100 text-gray-800;
+  }
+  
+  .badge-success {
+    @apply bg-green-100 text-green-800;
+  }
+  
+  .badge-warning {
+    @apply bg-amber-100 text-amber-800;
+  }
+  
+  .badge-error {
+    @apply bg-red-100 text-red-800;
+  }
+  
+  .badge-info {
+    @apply bg-blue-100 text-blue-800;
+  }
+  
+  .shadow-premium {
+    @apply shadow-[0_4px_12px_rgba(0,0,0,0.05)];
+  }
+  
+  .shadow-card-hover {
+    @apply shadow-[0_8px_16px_rgba(0,0,0,0.08)];
+  }
+  
+  .hover\:scale-102:hover {
+    transform: scale(1.02);
+  }
+  
+  /* Custom grid background pattern */
+  .bg-grid-white {
+    background-size: 100px 100px;
+    background-image: 
+      linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
   }
 }
 
@@ -88,4 +186,24 @@
 .hide-scrollbar {
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+/* Custom scrollbar for the rest of the app */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }

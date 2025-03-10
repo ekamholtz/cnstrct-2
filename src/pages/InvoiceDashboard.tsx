@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -122,7 +121,10 @@ export default function InvoiceDashboard() {
         </div>
 
         {/* Filters */}
-        <Card className="p-6 shadow-sm border-0">
+        <Card 
+          variant="glass" 
+          className="shadow-md border border-white/20 backdrop-blur-sm p-6"
+        >
           <div className="flex flex-col sm:flex-row gap-4">
             <Select
               value={filters.status}
@@ -180,7 +182,10 @@ export default function InvoiceDashboard() {
         </Card>
 
         {/* Invoice List */}
-        <Card className="shadow-sm border-0">
+        <Card 
+          variant="glass" 
+          className="shadow-md border border-white/20 backdrop-blur-sm mt-6"
+        >
           <Table>
             <TableHeader>
               <TableRow>

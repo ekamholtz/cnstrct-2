@@ -116,19 +116,28 @@ const AdminDashboard = () => {
       <AdminNav />
       <div className="flex-1 container mx-auto p-6 mt-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="p-6">
+          <Card 
+            variant="glass" 
+            className="shadow-md border border-white/20 backdrop-blur-sm p-6"
+          >
             <h3 className="text-lg font-semibold mb-2">Total Users</h3>
             <p className="text-3xl font-bold">
               {statsLoading ? 'Loading...' : formatValue(stats?.total_users, 'total_users')}
             </p>
           </Card>
-          <Card className="p-6">
+          <Card 
+            variant="glass" 
+            className="shadow-md border border-white/20 backdrop-blur-sm p-6"
+          >
             <h3 className="text-lg font-semibold mb-2">Active Projects</h3>
             <p className="text-3xl font-bold">
               {statsLoading ? 'Loading...' : formatValue(stats?.active_projects, 'active_projects')}
             </p>
           </Card>
-          <Card className="p-6">
+          <Card 
+            variant="glass" 
+            className="shadow-md border border-white/20 backdrop-blur-sm p-6"
+          >
             <h3 className="text-lg font-semibold mb-2">Total Revenue</h3>
             <p className="text-3xl font-bold">
               {statsLoading ? 'Loading...' : formatValue(stats?.total_revenue, 'total_revenue')}
@@ -138,7 +147,10 @@ const AdminDashboard = () => {
         
         <div className="mt-8">
           <h2 className="text-2xl font-bold mb-4">Recent Activity</h2>
-          <Card className="p-6">
+          <Card 
+            variant="glass" 
+            className="shadow-md border border-white/20 backdrop-blur-sm p-6"
+          >
             {adminActions && adminActions.length > 0 ? (
               <div className="space-y-4">
                 {adminActions.map((action) => (

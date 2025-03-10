@@ -1,4 +1,3 @@
-
 import { MainNav } from "@/components/navigation/MainNav";
 
 interface DashboardLayoutProps {

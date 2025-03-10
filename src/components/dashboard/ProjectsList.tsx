@@ -1,10 +1,12 @@
-
 import { Project } from "@/types/project";
 import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateProjectCompletion } from "@/utils/project-calculations";
+import { ProjectCard } from "./ProjectCard";
+import { ChevronRight, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -47,54 +49,57 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cnstrct-navy"></div>
       </div>
     );
   }
 
+  // Show only the most recent 3 projects
+  const recentProjects = [...projects].sort((a, b) => {
+    const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
+    const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
+    return dateB.getTime() - dateA.getTime();
+  }).slice(0, 3);
+
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="p-6 border-b border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-900">Recent Projects</h2>
-      </div>
-      <div className="divide-y divide-gray-200">
-        {projects.length > 0 ? (
-          projects.map((project) => (
-            <Link 
-              key={project.id} 
-              to={`/project/${project.id}`}
-              className="block"
-            >
-              <div className="p-6 hover:bg-gray-50 transition-colors duration-200">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-900">{project.name}</h3>
-                    <p className="text-sm text-gray-500">{project.address}</p>
-                  </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    project.status === 'active' 
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}>
-                    {project.status}
-                  </span>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Progress</span>
-                    <span className="text-sm font-medium">{calculateProjectCompletion(getProjectMilestones(project.id))}% Complete</span>
-                  </div>
-                  <Progress value={calculateProjectCompletion(getProjectMilestones(project.id))} className="h-2" />
-                </div>
-              </div>
-            </Link>
-          ))
-        ) : (
-          <div className="text-center p-8 text-gray-500">
-            No projects found. Create your first project to get started.
+    <div>
+      {projects.length > 0 ? (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {recentProjects.map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
           </div>
-        )}
-      </div>
+          
+          {projects.length > 3 && (
+            <div className="mt-6 flex justify-center">
+              <Link to="/gc-projects">
+                <Button variant="outline" className="group">
+                  View All Projects
+                  <ChevronRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </Button>
+              </Link>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="text-center p-12 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="rounded-full bg-cnstrct-grayDark/10 p-3">
+              <Plus className="h-6 w-6 text-cnstrct-navy" />
+            </div>
+            <h3 className="text-lg font-medium text-cnstrct-navy">No projects found</h3>
+            <p className="text-gray-500 max-w-md">
+              Create your first project to start tracking progress and managing your construction workflow.
+            </p>
+            <Link to="/create-project">
+              <Button className="mt-2 bg-cnstrct-navy hover:bg-cnstrct-navy/90">
+                Create Project
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,3 @@
-
 import { DollarSign } from "lucide-react";
 import { InvoiceTable } from "./InvoiceTable";
 import { useInvoices } from "./hooks/useInvoices";
@@ -7,10 +6,14 @@ import { Progress } from "@/components/ui/progress";
 
 interface ProjectInvoicesProps {
   projectId: string;
+  invoices?: any[];
 }
 
-export function ProjectInvoices({ projectId }: ProjectInvoicesProps) {
-  const { invoices, isLoading, markAsPaid } = useInvoices(projectId);
+export function ProjectInvoices({ projectId, invoices: passedInvoices }: ProjectInvoicesProps) {
+  const { invoices: fetchedInvoices, isLoading, markAsPaid } = useInvoices(projectId);
+  
+  // Use passed invoices if available, otherwise use fetched invoices
+  const invoices = passedInvoices || fetchedInvoices;
 
   if (isLoading) {
     return (

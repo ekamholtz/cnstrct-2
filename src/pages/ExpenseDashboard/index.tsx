@@ -1,4 +1,3 @@
-
 import { MainNav } from "@/components/navigation/MainNav";
 import { Card } from "@/components/ui/card";
 import { HomeownerExpenseList } from "@/components/homeowner/expenses/HomeownerExpenseList";
@@ -34,7 +33,10 @@ export default function ExpenseDashboard() {
           filters={filters}
           onFiltersChange={setFilters}
         />
-        <Card className="shadow-sm border-0">
+        <Card 
+          variant="glass" 
+          className="shadow-md border border-white/20 backdrop-blur-sm mt-6"
+        >
           {isHomeowner ? (
             <HomeownerExpenseList
               expenses={expenses as any[] || []}
