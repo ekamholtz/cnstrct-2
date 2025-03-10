@@ -1,9 +1,9 @@
 
-import { Building2, CreditCard, MessageSquare, ChartBar, ArrowDownToLine } from "lucide-react";
+import { Building2, CreditCard, MessageSquare, ChartBar, ArrowDownToLine, Clock, Shield } from "lucide-react";
 import { Glow } from "@/components/ui/glow";
 
 export const Features = () => {
-  const topRowFeatures = [
+  const features = [
     {
       icon: Building2,
       title: "Project Management",
@@ -14,9 +14,6 @@ export const Features = () => {
       title: "Automated Invoicing",
       description: "Generate and process invoices automatically, streamlining your payment workflows.",
     },
-  ];
-
-  const bottomRowFeatures = [
     {
       icon: ArrowDownToLine,
       title: "Flexible Vendor Payments",
@@ -49,38 +46,19 @@ export const Features = () => {
           </p>
         </div>
 
-        <div className="space-y-6">
-          {/* Top row - 2 boxes */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 justify-items-center">
-            {topRowFeatures.map((feature, index) => (
-              <div
-                key={feature.title}
-                className={`bg-white p-6 rounded-lg shadow-sm hover:shadow-card-hover transition-all duration-300 w-full max-w-xl transform hover:-translate-y-1 animate-[fadeIn_0.5s_ease-out_${index * 0.1}s] opacity-0 [animation-fill-mode:forwards]`}
-              >
-                <feature.icon className="h-12 w-12 text-cnstrct-orange mb-4" />
-                <h3 className="text-xl font-semibold text-cnstrct-navy mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Bottom row - 3 boxes */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 justify-items-center">
-            {bottomRowFeatures.map((feature, index) => (
-              <div
-                key={feature.title}
-                className={`bg-white p-6 rounded-lg shadow-sm hover:shadow-card-hover transition-all duration-300 w-full max-w-lg transform hover:-translate-y-1 animate-[fadeIn_0.5s_ease-out_${0.3 + index * 0.1}s] opacity-0 [animation-fill-mode:forwards]`}
-              >
-                <feature.icon className="h-12 w-12 text-cnstrct-orange mb-4" />
-                <h3 className="text-xl font-semibold text-cnstrct-navy mb-2">
-                  {feature.title}
-                </h3>
-                <p className="text-gray-600">{feature.description}</p>
-              </div>
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
+          {features.map((feature, index) => (
+            <div
+              key={feature.title}
+              className={`bg-white p-6 rounded-lg shadow-sm hover:shadow-card-hover transition-all duration-300 w-full max-w-md transform hover:-translate-y-1 animate-[fadeIn_0.5s_ease-out_${index * 0.1}s] opacity-0 [animation-fill-mode:forwards]`}
+            >
+              <feature.icon className="h-12 w-12 text-cnstrct-orange mb-4" />
+              <h3 className="text-xl font-semibold text-cnstrct-navy mb-2">
+                {feature.title}
+              </h3>
+              <p className="text-gray-600">{feature.description}</p>
+            </div>
+          ))}
         </div>
       </div>
     </section>
