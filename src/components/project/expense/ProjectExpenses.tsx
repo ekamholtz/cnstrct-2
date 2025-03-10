@@ -1,16 +1,15 @@
-
 import { DollarSign } from "lucide-react";
 import { ExpenseForm } from "./ExpenseForm";
 import { ExpenseList } from "./ExpenseList";
 import { useExpenses } from "./hooks/useExpenses";
-import type { ExpenseFormStage1Data, PaymentDetailsData } from "./types";
+import type { ExpenseFormStage1Data, PaymentDetailsData, Expense } from "./types";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Progress } from "@/components/ui/progress";
 
 interface ProjectExpensesProps {
   projectId: string;
-  expenses: any[];
+  expenses: Expense[];
 }
 
 export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
@@ -52,9 +51,11 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
   };
 
   // Calculate totals and progress
-  const totalExpenses = expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+  const totalExpenses = expenses?.reduce((sum, exp) => sum + (exp.amount || 0), 0) || 0;
   const totalPaid = expenses?.reduce((sum, exp) => {
-    return sum + (exp.payments?.reduce((pSum, p) => pSum + p.amount, 0) ?? 0);
+    // Safely handle payments array which might be undefined
+    const paymentsTotal = exp.payments?.reduce((pSum, p) => pSum + (p.amount || 0), 0) ?? 0;
+    return sum + paymentsTotal;
   }, 0) || 0;
   const pendingAmount = totalExpenses - totalPaid;
   const totalExpensesCount = expenses?.length || 0;

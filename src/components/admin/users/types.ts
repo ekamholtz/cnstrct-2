@@ -1,5 +1,4 @@
-
-export type UserRole = 'platform_admin' | 'gc_admin' | 'project_manager' | 'homeowner';
+export type UserRole = 'platform_admin' | 'gc_admin' | 'project_manager' | 'homeowner' | 'contractor';
 
 export type UserProfile = {
   id: string;

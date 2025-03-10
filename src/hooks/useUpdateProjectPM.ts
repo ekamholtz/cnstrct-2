@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -58,7 +58,7 @@ export const useUpdateProjectPM = () => {
 
 // Add backwards compatibility for older versions of React Query
 export type MutationResultCompat<TData, TError, TVariables, TContext> = 
-  Omit<ReturnType<typeof useMutation<TData, TError, TVariables, TContext>>, 'status'> & {
+  UseMutationResult<TData, TError, TVariables, TContext> & {
     // Include both properties for compatibility
     isLoading: boolean;
     isPending: boolean;

@@ -26,10 +26,23 @@ export const fetchHistoricalProjects = async (gcAccountId: string) => {
 
     console.log(`Fetched ${projects?.length || 0} historical projects`);
     
+    // Ensure each project has invoices and expenses arrays to prevent errors in PnL calculations
+    const projectsWithDefaults = projects.map(project => {
+      // Create a properly typed project object with pm property
+      const typedProject: any = {
+        ...project,
+        invoices: project.invoices || [],
+        expenses: project.expenses || [],
+        pm: undefined // Initialize the pm property
+      };
+      
+      return typedProject;
+    });
+    
     // If we have projects, fetch the project managers separately
-    if (projects && projects.length > 0) {
+    if (projectsWithDefaults && projectsWithDefaults.length > 0) {
       // Get unique PM user IDs
-      const pmUserIds = projects
+      const pmUserIds = projectsWithDefaults
         .map(project => project.pm_user_id)
         .filter(id => id !== null && id !== undefined);
       
@@ -49,41 +62,20 @@ export const fetchHistoricalProjects = async (gcAccountId: string) => {
         } else if (projectManagers) {
           console.log(`Fetched ${projectManagers.length} project managers`);
           
-          // Create a map of PM IDs to PM data
-          const pmMap = new Map();
-          projectManagers.forEach(pm => {
-            pmMap.set(pm.id, pm);
-          });
-          
-          // Add the PM data to each project
-          projects.forEach(project => {
-            // Use type assertion to extend the project object
-            const extendedProject = project as typeof project & { pm?: { id: string, full_name: string } };
-            
-            if (extendedProject.pm_user_id && pmMap.has(extendedProject.pm_user_id)) {
-              extendedProject.pm = pmMap.get(extendedProject.pm_user_id);
-            } else {
-              extendedProject.pm = { id: extendedProject.pm_user_id, full_name: 'Unknown' };
+          // Add project manager details to each project
+          projectsWithDefaults.forEach(project => {
+            if (project.pm_user_id) {
+              const pm = projectManagers.find(pm => pm.id === project.pm_user_id);
+              if (pm) {
+                project.pm = pm;
+              }
             }
           });
         }
       }
-      
-      // Log some sample data to debug
-      if (projects.length > 0) {
-        const sampleProject = projects[0] as typeof projects[0] & { pm?: { id: string, full_name: string } };
-        console.log('Sample project data:', {
-          id: sampleProject.id,
-          name: sampleProject.name,
-          status: sampleProject.status,
-          invoices: sampleProject.invoices?.length || 0,
-          expenses: sampleProject.expenses?.length || 0,
-          pm: sampleProject.pm
-        });
-      }
     }
     
-    return projects || [];
+    return projectsWithDefaults;
   } catch (error) {
     console.error('Error in fetchHistoricalProjects:', error);
     throw error;
@@ -95,18 +87,22 @@ export const fetchHistoricalProjects = async (gcAccountId: string) => {
  */
 export const calculateProjectPnL = (project: any) => {
   try {
-    // Check if project has required data
-    if (!project || !project.invoices || !project.expenses) {
-      console.warn('Project missing required data for PnL calculation:', project?.id);
-      return {
-        revenue: 0,
-        expenses: 0,
-        profit: 0,
-        profitMargin: 0,
-        cashIn: 0,
-        cashOut: 0,
-        netCashFlow: 0
-      };
+    // Ensure project has required data structures
+    if (!project) {
+      console.warn('Missing project data for PnL calculation');
+      return getDefaultPnLValues();
+    }
+    
+    // Ensure invoices is an array
+    if (!project.invoices || !Array.isArray(project.invoices)) {
+      console.warn('Project missing invoices array for PnL calculation:', project?.id);
+      project.invoices = [];
+    }
+    
+    // Ensure expenses is an array
+    if (!project.expenses || !Array.isArray(project.expenses)) {
+      console.warn('Project missing expenses array for PnL calculation:', project?.id);
+      project.expenses = [];
     }
     
     // Calculate total revenue (all invoiced amounts regardless of payment status)
@@ -144,18 +140,21 @@ export const calculateProjectPnL = (project: any) => {
       netCashFlow
     };
   } catch (error) {
-    console.error('Error calculating project PnL:', error);
-    return {
-      revenue: 0,
-      expenses: 0,
-      profit: 0,
-      profitMargin: 0,
-      cashIn: 0,
-      cashOut: 0,
-      netCashFlow: 0
-    };
+    console.error('Error calculating project PnL:', error instanceof Error ? error.message : 'Unknown error');
+    return getDefaultPnLValues();
   }
 };
+
+// Helper function to return default PnL values
+const getDefaultPnLValues = () => ({
+  revenue: 0,
+  expenses: 0,
+  profit: 0,
+  profitMargin: 0,
+  cashIn: 0,
+  cashOut: 0,
+  netCashFlow: 0
+});
 
 /**
  * Groups projects by project manager and calculates performance metrics
@@ -319,11 +318,18 @@ export const getMonthlyFinancialData = (projects: any[]) => {
     
     // Aggregate financial data by month
     projects.forEach(project => {
-      if (!project.invoices || !project.expenses) {
-        console.warn('Project missing invoices or expenses for monthly data:', project?.id);
-        return;
+      // Ensure project has invoices and expenses arrays
+      if (!project.invoices || !Array.isArray(project.invoices)) {
+        console.warn('Project missing invoices array for monthly data:', project?.id);
+        project.invoices = [];
       }
       
+      if (!project.expenses || !Array.isArray(project.expenses)) {
+        console.warn('Project missing expenses array for monthly data:', project?.id);
+        project.expenses = [];
+      }
+      
+      // Process invoices
       project.invoices.forEach((invoice: any) => {
         if (invoice.status === 'paid' && invoice.payment_date) {
           const paymentDate = new Date(invoice.payment_date);
@@ -372,7 +378,7 @@ export const getMonthlyFinancialData = (projects: any[]) => {
     console.log(`Calculated data for ${result.length} months`);
     return result;
   } catch (error) {
-    console.error('Error calculating monthly financial data:', error);
+    console.error('Error calculating monthly financial data:', error instanceof Error ? error.message : 'Unknown error');
     return [];
   }
 };

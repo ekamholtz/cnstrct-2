@@ -1,4 +1,3 @@
-
 import { ProjectHeader } from "./ProjectHeader";
 import { ProjectFinancialMetrics } from "./ProjectFinancialMetrics";
 import { TabbedContent } from "./TabbedContent";
@@ -10,6 +9,7 @@ interface ProjectDashboardContentProps {
   project: ClientProject;
   homeownerExpenses: any[];
   gcExpenses: any[];
+  invoices: any[];
   projectId: string;
   userRole: string | null;
 }
@@ -18,6 +18,7 @@ export function ProjectDashboardContent({
   project,
   homeownerExpenses,
   gcExpenses,
+  invoices,
   projectId,
   userRole
 }: ProjectDashboardContentProps) {
@@ -53,6 +54,7 @@ export function ProjectDashboardContent({
           <GCTabbedContent 
             projectId={projectId}
             expenses={gcExpenses}
+            invoices={invoices}
           />
         )}
       </div>
