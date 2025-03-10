@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Building, House } from "lucide-react";
-import { Mockup } from "@/components/ui/mockup";
 
 const Auth = () => {
   const [selectedRole, setSelectedRole] = useState<"gc_admin" | "homeowner" | null>(null);
@@ -26,8 +25,8 @@ const Auth = () => {
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow container mx-auto px-4 py-8 flex flex-col md:flex-row gap-8 items-center justify-center">
-        <div className="w-full max-w-md order-2 md:order-1">
+      <main className="flex-grow container mx-auto px-4 py-8 flex items-center justify-center">
+        <div className="w-full max-w-md">
           {!isLogin && !selectedRole ? (
             <div className="space-y-6">
               <div className="text-center">
@@ -76,18 +75,6 @@ const Auth = () => {
               }}
             />
           )}
-        </div>
-        
-        {/* Dashboard Preview */}
-        <div className="w-full max-w-xl order-1 md:order-2 animate-[slideUp_0.8s_ease-out]">
-          <h2 className="text-xl font-bold text-white mb-4 text-center">Powerful Dashboard at Your Fingertips</h2>
-          <Mockup type="browser" className="shadow-glow">
-            <img 
-              src="/lovable-uploads/9021191a-43ec-41eb-b28c-4082d44cd9ff.png" 
-              alt="CNSTRCT Dashboard Preview" 
-              className="w-full h-auto"
-            />
-          </Mockup>
         </div>
       </main>
 
