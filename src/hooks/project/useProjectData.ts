@@ -3,6 +3,26 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/components/ui/use-toast';
 import { useState } from 'react';
+import { Project } from '@/types/project';
+
+export interface ExtendedProject extends Project {
+  client?: {
+    id: string;
+    name: string;
+    email: string;
+    phone_number: string;
+  };
+  milestones: {
+    id: string;
+    name: string;
+    description: string | null;
+    status: 'pending' | 'completed' | null;
+    amount: number | null;
+    project_id: string;
+    created_at: string;
+    updated_at: string;
+  }[];
+}
 
 export function useProjectData(projectId: string | undefined) {
   const [permissionError, setPermissionError] = useState<string | null>(null);
@@ -24,9 +44,7 @@ export function useProjectData(projectId: string | undefined) {
             status,
             start_date,
             end_date,
-            budget,
-            owner_user_id,
-            contractor_id,
+            total_contract_value,
             pm_user_id,
             gc_account_id,
             client_id,
@@ -75,11 +93,18 @@ export function useProjectData(projectId: string | undefined) {
         }
 
         setPermissionError(null);
-        return {
+
+        // Ensure we're returning the correct type
+        const typedData: ExtendedProject = {
           ...data,
-          // Ensure address is never undefined for typescript
-          address: data.address || ''
+          client: data.client || undefined,
+          milestones: data.milestones || [],
+          address: data.address || '',
+          status: (data.status as 'draft' | 'active' | 'completed' | 'cancelled') || 'draft'
         };
+
+        return typedData;
+
       } catch (err) {
         console.error('Unexpected error in project fetch:', err);
         setPermissionError('An unexpected error occurred.');
@@ -88,7 +113,6 @@ export function useProjectData(projectId: string | undefined) {
     },
     enabled: !!projectId,
     retry: (failureCount, error: any) => {
-      // Don't retry on permission errors
       if (error?.code === '42501' || error?.message?.includes('permission') || error?.code === 'PGRST116') {
         return false;
       }
