@@ -41,41 +41,61 @@ export function useProjectExpenses(projectId: string | undefined) {
     queryFn: async () => {
       if (!projectId) return [];
 
-      const { data, error } = await supabase
-        .from('expenses')
-        .select(`
-          id,
-          project_id,
-          name,
-          payee,
-          amount,
-          amount_due,
-          expense_date,
-          expense_type,
-          payment_status,
-          expense_number,
-          notes,
-          created_at,
-          updated_at,
-          project:project_id (
-            name
-          ),
-          payments (
+      try {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select(`
             id,
+            project_id,
+            name,
+            payee,
             amount,
-            payment_date,
-            status,
-            notes
-          )
-        `)
-        .eq('project_id', projectId);
+            amount_due,
+            expense_date,
+            expense_type,
+            payment_status,
+            expense_number,
+            notes,
+            created_at,
+            updated_at
+          `)
+          .eq('project_id', projectId);
 
-      if (error) {
-        console.error('Error fetching GC expenses:', error);
+        if (error) {
+          console.error('Error fetching GC expenses:', error);
+          return [];
+        }
+
+        // Fetch payments separately using REST API to avoid type errors
+        const paymentsResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/payments?expense_id=in.(${data.map(e => e.id).join(',')})`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!paymentsResponse.ok) {
+          console.log('No payments found or error fetching payments');
+          return data.map(expense => ({ ...expense, payments: [] }));
+        }
+
+        const payments = await paymentsResponse.json();
+        
+        // Combine expenses with their payments
+        const expensesWithPayments = data.map(expense => ({
+          ...expense,
+          payments: payments.filter(p => p.expense_id === expense.id) || []
+        }));
+
+        return expensesWithPayments || [];
+      } catch (error) {
+        console.error('Error in gcExpenses query:', error);
         return [];
       }
-
-      return data || [];
     },
     enabled: !!projectId,
   });

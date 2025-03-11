@@ -20,17 +20,22 @@ export function useProjectDashboard(projectId: string | undefined) {
   const { data: userRole } = useQuery({
     queryKey: ['userRole'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
 
-      const { data } = await supabase
-        .from('profiles')
-        .select('role, gc_account_id')
-        .eq('id', user.id)
-        .single();
+        const { data } = await supabase
+          .from('profiles')
+          .select('role, gc_account_id')
+          .eq('id', user.id)
+          .single();
 
-      console.log('Current user role:', data?.role);
-      return { role: data?.role, gc_account_id: data?.gc_account_id };
+        console.log('Current user role:', data?.role);
+        return { role: data?.role, gc_account_id: data?.gc_account_id };
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+        return null;
+      }
     }
   });
 
@@ -70,6 +75,7 @@ export function useProjectDashboard(projectId: string | undefined) {
     enabled: !!projectId && !permissionError
   });
 
+  // Create a proper ClientProject object with all required fields
   const clientProject: ClientProject | null = project ? {
     ...project,
     address: project.address || '',
