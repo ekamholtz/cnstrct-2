@@ -8,7 +8,8 @@ import {
   getCurrentUserProfile,
   createClient,
   createProject,
-  createMilestones
+  createMilestones,
+  findClientByEmail
 } from "@/services";
 
 export const useProjectCreation = () => {
@@ -29,13 +30,35 @@ export const useProjectCreation = () => {
         throw new Error('You must be associated with a General Contractor company to create projects');
       }
 
-      // Create the client
-      const client = await createClient({
-        name: projectData.clientName,
-        address: projectData.clientAddress,
-        email: projectData.clientEmail,
-        phone_number: projectData.clientPhone
-      });
+      // Check if a client with this email already exists before creating
+      const normalizedEmail = projectData.clientEmail.toLowerCase().trim();
+      console.log('Checking for existing client with email:', normalizedEmail);
+      
+      let existingClient = null;
+      try {
+        existingClient = await findClientByEmail(normalizedEmail);
+      } catch (error) {
+        console.log('Error checking for existing client:', error);
+        // Continue with flow even if check fails
+      }
+
+      // Create or reuse the client
+      let client;
+      if (existingClient) {
+        console.log('Using existing client:', existingClient.id);
+        client = existingClient;
+      } else {
+        console.log('Creating new client');
+        // Create the client
+        client = await createClient({
+          name: projectData.clientName,
+          address: projectData.clientAddress,
+          email: projectData.clientEmail,
+          phone_number: projectData.clientPhone
+        });
+      }
+
+      console.log('Client for project:', client);
 
       // Create the project
       // Always assign the current user as PM for projects they create

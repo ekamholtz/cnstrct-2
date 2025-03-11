@@ -1,6 +1,8 @@
+
 import type { UseFormReturn } from "react-hook-form";
 import type { ProfileCompletionFormValues } from "@/hooks/profile/useProfileForm";
 import { supabase as defaultSupabase } from "@/integrations/supabase/client";
+import { findClientByEmail } from "@/services/clientService";
 
 // Define a type for the client data to help with TypeScript
 interface Client {
@@ -39,33 +41,24 @@ export const linkClientToUser = async (
   console.log("Attempting to link client for email:", normalizedEmail, "to user:", userId);
   
   try {
-    // Check for any existing client with this email (case insensitive)
-    // Using type casting to bypass TypeScript errors due to schema mismatch
-    const { data: existingClients, error: clientError } = await (supabaseClient as any)
-      .from('clients')
-      .select('*')
-      .ilike('email', normalizedEmail) as SupabaseResponse<Client[]>;
-
-    if (clientError) {
-      console.error("Error checking existing client:", clientError);
-      throw new Error("Failed to check client information");
-    }
+    // Use the service method to find an existing client
+    const existingClient = await findClientByEmail(normalizedEmail);
 
     // If we found any clients with this email
-    if (existingClients && existingClients.length > 0) {
-      console.log("Found existing client with this email:", existingClients[0].id);
+    if (existingClient) {
+      console.log("Found existing client with this email:", existingClient.id);
       
       // Check if the client is already linked to this user
-      if (existingClients[0].user_id === userId) {
+      if (existingClient.user_id === userId) {
         console.log("Client is already linked to this user");
-        return existingClients[0];
+        return existingClient;
       }
       
       // Update the existing client to link it to this user
       const { data: updatedClient, error: updateError } = await (supabaseClient as any)
         .from('clients')
         .update({ user_id: userId })
-        .eq('id', existingClients[0].id)
+        .eq('id', existingClient.id)
         .select() as SupabaseResponse<Client[]>;
         
       if (updateError) {
@@ -74,7 +67,7 @@ export const linkClientToUser = async (
       }
       
       console.log("Successfully linked existing client to user");
-      return updatedClient?.[0] || existingClients[0];
+      return updatedClient?.[0] || existingClient;
     }
     
     // No existing client found, create a new one
