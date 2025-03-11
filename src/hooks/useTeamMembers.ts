@@ -2,198 +2,162 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
 import { GCUserProfile } from "@/components/gc-profile/types";
+import { UserRole } from "@/components/auth/authSchemas";
 
-// The specific gc_account_id from the user's profile (corrected from the screenshot)
-const TARGET_GC_ACCOUNT_ID = "eed9e4ee-3110-4267-80ac-cd8e98be59f3";
+// Define the UI role type that's expected by components
+export type UIRole = "contractor" | "homeowner" | "project_manager";
 
-// Define a type for our profile with email
-interface ProfileWithEmail extends GCUserProfile {
-  email: string | null;
-  account_status: string;
-  address: string;
-  bio: string;
-  company_name: string;
-  created_at: string;
-  has_completed_profile: boolean;
-  license_number: string;
-  phone_number: string;
-  updated_at: string;
-  website: string;
+// Define a team member with properly typed fields, including all fields that might be accessed
+export interface TeamMember {
+  id: string;
+  gc_account_id?: string;
+  full_name: string;
+  email: string;
+  role: UIRole;
+  // Include additional fields that are accessed by components
+  company_name?: string;
+  phone_number?: string;
+  address?: string;
+  license_number?: string;
+  website?: string;
+  bio?: string;
+  has_completed_profile?: boolean;
+  account_status?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-export const useTeamMembers = () => {
-  const { 
-    currentUserProfile,
-    isGCAdmin,
-    isPlatformAdmin,
-    isLoading: isLoadingProfile 
-  } = useCurrentUserProfile();
-
-  console.log("useTeamMembers hook called with currentUserProfile:", {
-    id: currentUserProfile?.id,
-    gc_account_id: currentUserProfile?.gc_account_id,
-    role: currentUserProfile?.role
-  });
-
-  // Check if this user has the target gc_account_id we're debugging
-  const hasTargetGcAccountId = currentUserProfile?.gc_account_id === TARGET_GC_ACCOUNT_ID;
-  if (hasTargetGcAccountId) {
-    console.log("IMPORTANT: This user has the target gc_account_id we're debugging!");
+/**
+ * Safely map user roles from auth system to UI roles
+ * This ensures backward compatibility with components expecting specific role values
+ */
+export function mapUserRoleToUIRole(userRole: UserRole | null | undefined): UIRole {
+  if (!userRole) return "contractor"; // Default fallback
+  
+  // Map admin roles to project_manager for UI compatibility
+  switch(userRole) {
+    case "gc_admin":
+    case "platform_admin":
+    case "employee":
+      return "project_manager";
+    case "homeowner":
+      return "homeowner";
+    case "contractor":
+    case "client":
+    default:
+      return "contractor";
   }
+}
 
-  // Query to fetch team members based on gc_account_id
-  const { data: teamMembers, isLoading: isLoadingTeam, refetch, error: teamMembersError } = useQuery({
-    queryKey: ['team-members', currentUserProfile?.gc_account_id],
+/**
+ * Hook to fetch team members associated with the current user's gc_account_id
+ */
+export function useTeamMembers() {
+  const { currentUserProfile, isLoading: isLoadingProfile } = useCurrentUserProfile();
+  
+  const { data, isLoading, refetch, error } = useQuery<TeamMember[]>({
+    queryKey: ["teamMembers", currentUserProfile?.gc_account_id],
     queryFn: async () => {
-      console.log("Fetching team members with gc_account_id:", currentUserProfile?.gc_account_id);
-      
       if (!currentUserProfile?.gc_account_id) {
-        console.log("No gc_account_id available, returning empty array");
+        console.log("No gc_account_id found for current user");
         return [];
       }
-
+      
       try {
-        // IMPORTANT FIX: Get all profiles and manually filter
-        // This is the most reliable approach for UUID comparison
-        console.log("Fetching all profiles and manually filtering");
-        
-        const { data: allProfiles, error: allProfilesError } = await supabase
-          .from('profiles')
-          .select('*');
-
-        if (allProfilesError) {
-          console.error("Error fetching all profiles:", allProfilesError);
-          throw allProfilesError;
-        }
-
-        console.log(`Found ${allProfiles?.length || 0} total profiles in database`);
-        
-        // Manually filter profiles with matching gc_account_id
-        // IMPORTANT: We need to normalize the UUID format to ensure consistent comparison
-        const normalizeUUID = (uuid: string | null | undefined): string => {
-          if (!uuid) return '';
-          // Remove all non-alphanumeric characters and convert to lowercase
-          return uuid.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-        };
-        
-        const normalizedTargetUUID = normalizeUUID(currentUserProfile.gc_account_id);
-        console.log("Normalized target UUID:", normalizedTargetUUID);
-        
-        let profiles = allProfiles?.filter(p => {
-          const normalizedProfileUUID = normalizeUUID(p.gc_account_id);
-          const isMatch = normalizedProfileUUID === normalizedTargetUUID;
-          
-          if (isMatch) {
-            console.log(`Found matching profile: ${p.full_name} (${p.id})`);
-            console.log(`  Original UUID: ${p.gc_account_id}`);
-            console.log(`  Normalized UUID: ${normalizedProfileUUID}`);
+        // Using fetch API instead of supabase client for better type control
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?select=id,gc_account_id,full_name,email,role,company_name,phone_number,address,license_number,website,bio,has_completed_profile,account_status,created_at,updated_at&gc_account_id=eq.${currentUserProfile.gc_account_id}`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
+              'Content-Type': 'application/json'
+            }
           }
-          
-          return isMatch;
-        }) || [];
+        );
         
-        console.log(`Manual filtering found ${profiles.length} matching profiles with gc_account_id: ${currentUserProfile.gc_account_id}`);
-        
-        // Debug: Check if the current user's profile is in the results
-        const currentUserInResults = profiles?.some(profile => profile.id === currentUserProfile.id);
-        console.log("Current user found in results:", currentUserInResults);
-        
-        // If no team members found but we have the current user's profile,
-        // create a fallback array with just the current user
-        if ((!profiles || profiles.length === 0) && currentUserProfile) {
-          console.log("No team members found in database, using fallback with current user");
-          const fallbackProfiles = [{
-            ...currentUserProfile,
-            email: null // We'll try to fetch this below
-          }];
-          
-          console.log("Fallback profiles:", fallbackProfiles);
-          profiles = fallbackProfiles;
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
         }
         
-        // Instead of using the admin API, we'll use the profile data we already have
-        // We won't have emails, but we can still display names and roles
-        const profilesWithEmails = profiles.map(profile => {
-          return { 
-            ...profile, 
-            email: null, // We can't get emails without admin access
-            // Ensure all required fields have values
-            account_status: profile.account_status || '',
-            address: profile.address || '',
-            bio: profile.bio || '',
-            company_name: profile.company_name || '',
-            created_at: profile.created_at || '',
-            has_completed_profile: profile.has_completed_profile || false,
-            license_number: profile.license_number || '',
-            phone_number: profile.phone_number || '',
-            updated_at: profile.updated_at || '',
-            website: profile.website || ''
-          };
-        });
-
-        console.log("Team members processed:", profilesWithEmails);
-        return profilesWithEmails;
-      } catch (error) {
-        console.error("Error in team members fetching process:", error);
+        const profiles = await response.json();
         
-        // If there's an error but we have the current user profile, return that as a fallback
-        if (currentUserProfile) {
-          console.log("Using fallback with current user due to error");
+        if (!profiles || profiles.length === 0) {
+          console.log("No team members found, using current user as fallback");
+          // Return current user as fallback
           return [{
-            ...currentUserProfile,
-            email: null,
-            // Ensure all required fields have values
-            account_status: currentUserProfile.account_status || '',
-            address: currentUserProfile.address || '',
-            bio: currentUserProfile.bio || '',
+            id: currentUserProfile.id,
+            gc_account_id: currentUserProfile.gc_account_id,
+            full_name: currentUserProfile.full_name || 'Unknown',
+            email: currentUserProfile.email || '',
+            role: mapUserRoleToUIRole(currentUserProfile.role),
             company_name: currentUserProfile.company_name || '',
-            created_at: currentUserProfile.created_at || '',
-            has_completed_profile: currentUserProfile.has_completed_profile || false,
-            license_number: currentUserProfile.license_number || '',
             phone_number: currentUserProfile.phone_number || '',
-            updated_at: currentUserProfile.updated_at || '',
-            website: currentUserProfile.website || ''
+            address: currentUserProfile.address || '',
+            license_number: currentUserProfile.license_number || '',
+            website: currentUserProfile.website || '',
+            bio: currentUserProfile.bio || '',
+            has_completed_profile: currentUserProfile.has_completed_profile || false,
+            account_status: currentUserProfile.account_status || '',
+            created_at: currentUserProfile.created_at || '',
+            updated_at: currentUserProfile.updated_at || ''
+          }];
+        }
+        
+        // Map the profiles to ensure they have the correct role type
+        return profiles.map((profile: any) => ({
+          id: profile.id,
+          gc_account_id: profile.gc_account_id,
+          full_name: profile.full_name || 'Unknown',
+          email: profile.email || '',
+          // Map the user role to a UI role
+          role: mapUserRoleToUIRole(profile.role as UserRole),
+          company_name: profile.company_name || '',
+          phone_number: profile.phone_number || '',
+          address: profile.address || '',
+          license_number: profile.license_number || '',
+          website: profile.website || '',
+          bio: profile.bio || '',
+          has_completed_profile: profile.has_completed_profile || false,
+          account_status: profile.account_status || '',
+          created_at: profile.created_at || '',
+          updated_at: profile.updated_at || ''
+        }));
+      } catch (err) {
+        console.error("Error fetching team members:", err);
+        
+        if (currentUserProfile) {
+          // Return current user as fallback in case of error
+          return [{
+            id: currentUserProfile.id,
+            gc_account_id: currentUserProfile.gc_account_id,
+            full_name: currentUserProfile.full_name || 'Unknown',
+            email: currentUserProfile.email || '',
+            role: mapUserRoleToUIRole(currentUserProfile.role),
+            company_name: currentUserProfile.company_name || '',
+            phone_number: currentUserProfile.phone_number || '',
+            address: currentUserProfile.address || '',
+            license_number: currentUserProfile.license_number || '',
+            website: currentUserProfile.website || '',
+            bio: currentUserProfile.bio || '',
+            has_completed_profile: currentUserProfile.has_completed_profile || false,
+            account_status: currentUserProfile.account_status || '',
+            created_at: currentUserProfile.created_at || '',
+            updated_at: currentUserProfile.updated_at || ''
           }];
         }
         
         return [];
       }
     },
-    enabled: !!currentUserProfile?.gc_account_id && !isLoadingProfile,
+    enabled: !!currentUserProfile?.gc_account_id,
   });
-
-  // Function to refetch team members
-  const refetchTeam = () => {
-    console.log("Refetching team members...");
-    return refetch();
-  };
-
-  // Log any errors that occurred
-  if (teamMembersError) {
-    console.error("Error in useTeamMembers hook:", teamMembersError);
-  }
-
-  // Special debugging for our target gc_account_id
-  if (hasTargetGcAccountId && teamMembers) {
-    console.log(`DEBUGGING TARGET GC_ACCOUNT_ID: Hook returned ${teamMembers.length} team members`);
-    teamMembers.forEach((member, index) => {
-      console.log(`Team member ${index + 1}:`, {
-        id: member.id,
-        name: member.full_name,
-        role: member.role,
-        gc_account_id: member.gc_account_id,
-        email: member.email
-      });
-    });
-  }
-
+  
+  // Create a type-safe return object
   return {
-    teamMembers: teamMembers || [],
-    isLoadingTeam: isLoadingTeam || isLoadingProfile,
-    refetchTeam,
-    gcAccountId: currentUserProfile?.gc_account_id,
-    isGCAdmin,
-    isPlatformAdmin,
-    error: teamMembersError
+    teamMembers: data || [],
+    isLoadingTeam: isLoading || isLoadingProfile,
+    refetch,
+    teamMembersError: error
   };
-};
+}
