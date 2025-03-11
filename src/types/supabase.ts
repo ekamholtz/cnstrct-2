@@ -376,6 +376,14 @@ export interface Database {
           created_at?: string | null
           updated_at?: string | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "gc_accounts_owner_id_fkey"
+            columns: ["owner_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       milestones: {
         Row: {
@@ -408,6 +416,14 @@ export interface Database {
           created_at?: string
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_project_id_fkey"
+            columns: ["project_id"]
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       clients: {
         Row: {
@@ -416,17 +432,17 @@ export interface Database {
           email: string
           phone_number?: string
           address?: string
-          gc_account_id: string
+          user_id?: string
           created_at: string
           updated_at: string
         }
         Insert: {
-          id: string
+          id?: string
           name: string
           email: string
           phone_number?: string
           address?: string
-          gc_account_id: string
+          user_id?: string
           created_at?: string
           updated_at?: string
         }
@@ -436,7 +452,7 @@ export interface Database {
           email?: string
           phone_number?: string
           address?: string
-          gc_account_id?: string
+          user_id?: string
           created_at?: string
           updated_at?: string
         }

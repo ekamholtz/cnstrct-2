@@ -112,6 +112,71 @@ export interface Database {
         ]
       }
       
+      homeowner_expenses: {
+        Row: {
+          id: string
+          project_id: string
+          homeowner_id: string
+          name: string
+          payee: string
+          amount: number
+          amount_due?: number
+          expense_date: string
+          expense_type: string
+          payment_status: string
+          expense_number?: string
+          notes?: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          homeowner_id: string
+          name: string
+          payee: string
+          amount: number
+          amount_due?: number
+          expense_date: string
+          expense_type: string
+          payment_status: string
+          expense_number?: string
+          notes?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          homeowner_id?: string
+          name?: string
+          payee?: string
+          amount?: number
+          amount_due?: number
+          expense_date?: string
+          expense_type?: string
+          payment_status?: string
+          expense_number?: string
+          notes?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homeowner_expenses_project_id_fkey"
+            columns: ["project_id"]
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homeowner_expenses_homeowner_id_fkey"
+            columns: ["homeowner_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      
       payments: {
         Row: {
           id: string
@@ -313,6 +378,123 @@ export interface Database {
           {
             foreignKeyName: "projects_pm_user_id_fkey"
             columns: ["pm_user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      
+      milestones: {
+        Row: {
+          id: string
+          project_id: string
+          name: string
+          description: string | null
+          status: string
+          due_date: string | null
+          amount: number
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          name: string
+          description?: string | null
+          status?: string
+          due_date?: string | null
+          amount: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          name?: string
+          description?: string | null
+          status?: string
+          due_date?: string | null
+          amount?: number
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "milestones_project_id_fkey"
+            columns: ["project_id"]
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      
+      clients: {
+        Row: {
+          id: string
+          gc_account_id: string
+          name: string
+          email: string | null
+          phone: string | null
+          address: string | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          gc_account_id: string
+          name: string
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          gc_account_id?: string
+          name?: string
+          email?: string | null
+          phone?: string | null
+          address?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            referencedRelation: "gc_accounts"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      
+      gc_accounts: {
+        Row: {
+          company_name: string
+          created_at: string | null
+          id: string
+          owner_id: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company_name: string
+          created_at?: string | null
+          id?: string
+          owner_id?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company_name?: string
+          created_at?: string | null
+          id?: string
+          owner_id?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gc_accounts_owner_id_fkey"
+            columns: ["owner_id"]
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           }

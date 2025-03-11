@@ -7,6 +7,7 @@ import { calculateProjectCompletion } from "@/utils/project-calculations";
 import { ProjectCard } from "./ProjectCard";
 import { ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Database } from "@/types/supabase";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -25,7 +26,8 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
 
       console.log("Fetching milestones for projects:", projects.map(p => p.id));
       
-      const { data, error } = await supabase
+      // Using type assertion to handle the table that's in the schema but not in the type
+      const { data, error } = await (supabase as any)
         .from('milestones')
         .select('*')
         .in('project_id', projects.map(p => p.id));
@@ -43,7 +45,8 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
 
   const getProjectMilestones = (projectId: string) => {
     if (!milestones) return [];
-    return milestones.filter(m => m.project_id === projectId);
+    // Add type safety by explicitly checking the project_id property
+    return milestones.filter((m: any) => m && typeof m === 'object' && m.project_id === projectId);
   };
 
   if (loading) {

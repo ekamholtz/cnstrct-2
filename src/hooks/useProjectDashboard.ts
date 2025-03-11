@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectSubscriptions } from './project/useProjectSubscriptions';
@@ -97,12 +96,12 @@ export function useProjectDashboard(projectId: string | undefined) {
 
   return {
     project: clientProject,
+    isLoading: isProjectLoading || isLoadingExpenses || isInvoicesLoading,
     homeownerExpenses,
     gcExpenses,
-    userRole: userRole?.role,
-    hasAdminRights,
-    isLoading: isProjectLoading || isLoadingExpenses || isInvoicesLoading,
     invoices,
+    hasAdminRights,
+    userRole: userRole?.role,
     permissionError
   };
 }

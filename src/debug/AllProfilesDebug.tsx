@@ -55,8 +55,8 @@ export const AllProfilesDebug = () => {
         console.log(`Found ${allProfiles?.length || 0} profiles`);
 
         // Get all GC accounts
-        const { data: allGcAccounts, error: gcAccountsError } = await supabase
-          .from('gc_accounts' as any)
+        const { data: allGcAccounts, error: gcAccountsError } = await (supabase as any)
+          .from('gc_accounts')
           .select('*');
 
         if (gcAccountsError) {
@@ -72,9 +72,18 @@ export const AllProfilesDebug = () => {
         // In a real app, you would store emails in the profiles table or use a different approach
         const profilesWithEmail = allProfiles?.map(profile => {
           // Generate a placeholder email based on the user's name
-          const placeholderEmail = profile.full_name 
-            ? `${profile.full_name.toLowerCase().replace(/\s+/g, '.')}@example.com`
-            : `user-${profile.id.substring(0, 8)}@example.com`;
+          let placeholderEmail = "";
+          
+          if (profile.full_name && typeof profile.full_name === 'string') {
+            placeholderEmail = `${profile.full_name.toLowerCase().replace(/\s+/g, '.')}@example.com`;
+          } else {
+            // Safely access the id property and convert to string if needed
+            const idValue = profile.id && typeof profile.id === 'object' 
+              ? JSON.stringify(profile.id).substring(0, 8) 
+              : (typeof profile.id === 'string' ? profile.id.substring(0, 8) : "unknown");
+              
+            placeholderEmail = `user-${idValue}@example.com`;
+          }
             
           return {
             ...profile,
@@ -171,7 +180,7 @@ export const AllProfilesDebug = () => {
                 <p><strong>GC Account ID:</strong> {currentUser.gc_account_id || 'N/A'}</p>
                 <p><strong>GC Account ID Length:</strong> {currentUser.gc_account_id?.length || 0}</p>
                 <p><strong>GC Account ID (Hex):</strong> {typeof currentUser.gc_account_id === 'string' ? 
-                  Array.from(currentUser.gc_account_id).map((c: string) => c.charCodeAt(0).toString(16).padStart(2, '0')).join(' ') : 
+                  Array.from(currentUser.gc_account_id).map((c: string) => typeof c === 'string' ? c.charCodeAt(0).toString(16).padStart(2, '0') : 'N/A').join(' ') : 
                   'Not available'}</p>
               </div>
             ) : (

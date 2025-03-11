@@ -23,17 +23,23 @@ export function ProjectExpenses({ projectId, expenses }: ProjectExpensesProps) {
     paymentDetails?: PaymentDetailsData
   ) => {
     try {
-      // Create the expense with normalized status
-      const expense = await createExpense({
-        ...data,
-        payment_status: status.toLowerCase() as 'due' | 'paid' | 'partially_paid'
-      });
+      // Create the expense - note that payment_status is handled internally by useCreateExpense
+      // The status parameter is only used to determine if we need to create a payment
+      const expense = await createExpense(data);
       
-      // If payment details are provided, create a payment record
-      if (paymentDetails && expense) {
+      // If payment details are provided and status is not 'due', create a payment record
+      if (paymentDetails && expense && status !== 'due') {
+        // Convert amount from string to number for the API
+        const paymentAmount = typeof paymentDetails.amount === 'string'
+          ? parseFloat(paymentDetails.amount)
+          : paymentDetails.amount;
+          
+        // Call createPayment with the correct parameter structure
         await createPayment({
           expenseId: expense.id,
-          paymentData: paymentDetails
+          amount: paymentAmount,
+          paymentDetails,
+          expensesTable: 'expenses'
         });
       }
 

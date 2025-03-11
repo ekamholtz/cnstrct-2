@@ -4,6 +4,7 @@ import { Building2, Clock, DollarSign, Users } from "lucide-react";
 import { Project } from "@/types/project";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
+import { Database } from "@/types/supabase";
 
 interface StatsOverviewProps {
   projects: Project[];
@@ -20,7 +21,8 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       if (!user) return;
 
       // Get pending approvals count (milestones pending approval)
-      const { data: pendingData, error: pendingError } = await supabase
+      // Using type assertion to handle the table that's in the schema but not in the type
+      const { data: pendingData, error: pendingError } = await (supabase as any)
         .from('milestones')
         .select('id', { count: 'exact' })
         .eq('status', 'pending')
@@ -31,18 +33,26 @@ export function StatsOverview({ projects }: StatsOverviewProps) {
       }
 
       // Get total contract value from active projects' milestones
-      const { data: milestonesData, error: milestonesError } = await supabase
+      // Using type assertion to handle the table that's in the schema but not in the type
+      const { data: milestonesData, error: milestonesError } = await (supabase as any)
         .from('milestones')
         .select('amount')
         .in('project_id', projects.filter(p => p.status === 'active').map(p => p.id));
 
-      if (!milestonesError) {
-        const total = milestonesData?.reduce((sum, milestone) => sum + (milestone.amount || 0), 0) || 0;
+      if (!milestonesError && milestonesData) {
+        const total = milestonesData.reduce((sum: number, milestone: any) => 
+          sum + (milestone && typeof milestone === 'object' && typeof milestone.amount === 'number' ? milestone.amount : 0), 
+          0
+        );
         setTotalContractValue(total);
       }
 
       // Get unique active clients count
-      const uniqueClientIds = [...new Set(projects.map(p => p.client_id))];
+      // Using optional chaining and type assertion to safely access client_id
+      const uniqueClientIds = [...new Set(projects
+        .map(p => (p as any).client_id)
+        .filter(id => id !== undefined && id !== null)
+      )];
       setActiveClients(uniqueClientIds.length);
     };
 

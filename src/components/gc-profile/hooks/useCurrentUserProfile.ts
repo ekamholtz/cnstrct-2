@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { GCUserProfile } from "../types";
+import { Database } from "@/types/supabase";
 
 export const useCurrentUserProfile = () => {
   const { data: currentUserProfile, isLoading } = useQuery<GCUserProfile>({
@@ -28,9 +29,9 @@ export const useCurrentUserProfile = () => {
       console.log("Current user gc_account_id:", data?.gc_account_id);
       
       // Add email from auth user to the profile data
-      const profileWithEmail: GCUserProfile = {
+      const profileWithEmail = {
         ...data,
-        email: user.email,
+        email: user.email || '',
         // Ensure all required fields have values
         account_status: data.account_status || '',
         address: data.address || '',
@@ -41,13 +42,16 @@ export const useCurrentUserProfile = () => {
         license_number: data.license_number || '',
         phone_number: data.phone_number || '',
         updated_at: data.updated_at || '',
-        website: data.website || ''
-      };
+        website: data.website || '',
+        // Ensure gc_account_id is defined
+        gc_account_id: data.gc_account_id || ''
+      } as GCUserProfile;
       
       // If we have a gc_account_id, check if it exists and get its details
       if (data?.gc_account_id) {
         console.log("Checking GC account details...");
-        const { data: gcAccount, error: gcError } = await supabase
+        // Using type assertion to handle the table that's in the schema but not in the type
+        const { data: gcAccount, error: gcError } = await (supabase as any)
           .from('gc_accounts')
           .select('*')
           .eq('id', data.gc_account_id)
@@ -84,7 +88,8 @@ export const useCurrentUserProfile = () => {
     queryFn: async () => {
       if (!currentUserProfile?.id || !currentUserProfile?.gc_account_id) return false;
 
-      const { data, error } = await supabase
+      // Using type assertion to handle the table that's in the schema but not in the type
+      const { data, error } = await (supabase as any)
         .from('gc_accounts')
         .select('owner_id')
         .eq('id', currentUserProfile.gc_account_id)
@@ -95,7 +100,9 @@ export const useCurrentUserProfile = () => {
         return false;
       }
 
-      const isOwner = data.owner_id === currentUserProfile.id;
+      // Using optional chaining to safely access owner_id
+      const isOwner = data && typeof data === 'object' && 'owner_id' in data ? 
+        data.owner_id === currentUserProfile.id : false;
       console.log("User is company owner:", isOwner);
       return isOwner;
     },

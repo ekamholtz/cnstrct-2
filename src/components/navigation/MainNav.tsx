@@ -83,6 +83,9 @@ export function MainNav() {
 
   const handleNavigation = (path: string) => {
     console.log("MainNav - Navigating to:", path);
+    if (path === '/invoice' || path === '/invoices' || path === '/client-invoices') {
+      console.log("MainNav - Invoice navigation triggered");
+    }
     navigate(path);
     setIsMenuOpen(false);
   };
@@ -95,7 +98,10 @@ export function MainNav() {
                        profile?.role === 'platform_admin' ? '/admin/projects' :
                        '/gc-projects';
 
-  const invoicesRoute = profile?.role === 'homeowner' ? '/invoice' : '/invoices';
+  // Role-based invoice route
+  const invoicesRoute = profile?.role === 'homeowner' ? '/client-invoices' : 
+                       profile?.role === 'platform_admin' ? '/admin/invoices' :
+                       '/invoices';
 
   const showReporting = profile?.role === 'gc_admin' || profile?.role === 'platform_admin';
 
@@ -109,8 +115,8 @@ export function MainNav() {
   ];
 
   const isActive = (path: string) => {
-    if (path === '/invoice' || path === '/invoices') {
-      return location.pathname === '/invoice' || location.pathname === '/invoices';
+    if (path === '/invoice' || path === '/invoices' || path === '/client-invoices') {
+      return location.pathname === '/invoice' || location.pathname === '/invoices' || location.pathname === '/client-invoices';
     }
     return location.pathname === path;
   };

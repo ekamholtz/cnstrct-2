@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { ExpandableCard } from "@/components/ui/expandable-card";
+import { Database } from "@/types/supabase";
 
 interface ProjectCardProps {
   project: {
@@ -25,7 +26,8 @@ export function ProjectCard({ project }: ProjectCardProps) {
   const { data: milestones } = useQuery({
     queryKey: ['milestones', project.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Using type assertion to handle the table that's in the schema but not in the type
+      const { data, error } = await (supabase as any)
         .from('milestones')
         .select('*')
         .eq('project_id', project.id);
@@ -70,11 +72,14 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
       // Fetch client details if available
       let clientData = null;
-      if (projectData.client_id) {
-        const { data: client, error: clientError } = await supabase
+      // Using optional chaining to avoid property access errors
+      const clientId = (projectData as any).client_id;
+      if (clientId) {
+        // Using type assertion to handle the table that's in the schema but not in the type
+        const { data: client, error: clientError } = await (supabase as any)
           .from('clients')
           .select('name, email, phone_number')
-          .eq('id', projectData.client_id)
+          .eq('id', clientId)
           .single();
         
         if (!clientError) {
@@ -83,14 +88,15 @@ export function ProjectCard({ project }: ProjectCardProps) {
       }
 
       // Fetch milestones to calculate contract value
-      const { data: milestonesData, error: milestonesError } = await supabase
+      // Using type assertion to handle the table that's in the schema but not in the type
+      const { data: milestonesData, error: milestonesError } = await (supabase as any)
         .from('milestones')
         .select('amount')
         .eq('project_id', projectData.id);
       
       let contractValue = 0;
       if (!milestonesError && milestonesData) {
-        contractValue = milestonesData.reduce((sum, milestone) => 
+        contractValue = milestonesData.reduce((sum: number, milestone: any) => 
           sum + (milestone.amount || 0), 0);
       }
 
@@ -108,12 +114,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
       return 0;
     }
 
-    const totalAmount = milestones.reduce((sum, milestone) => 
+    const totalAmount = milestones.reduce((sum: number, milestone: any) => 
       sum + (milestone.amount || 0), 0);
     
     const completedAmount = milestones
-      .filter(milestone => milestone.status === 'completed')
-      .reduce((sum, milestone) => sum + (milestone.amount || 0), 0);
+      .filter((milestone: any) => milestone.status === 'completed')
+      .reduce((sum: number, milestone: any) => sum + (milestone.amount || 0), 0);
 
     return totalAmount > 0 ? Math.round((completedAmount / totalAmount) * 100) : 0;
   };

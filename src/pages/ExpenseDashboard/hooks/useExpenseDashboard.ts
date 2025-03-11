@@ -14,6 +14,7 @@ import {
   generateExpenseNumber
 } from "../services";
 import { UseExpenseDashboardResult } from "./types/dashboardTypes";
+import { makeMutationCompatible } from "@/utils/queryCompatibility";
 
 export function useExpenseDashboard(): UseExpenseDashboardResult {
   const queryClient = useQueryClient();
@@ -49,65 +50,67 @@ export function useExpenseDashboard(): UseExpenseDashboardResult {
       const expenseNumber = generateExpenseNumber();
       console.log('Creating expense with expense number:', expenseNumber);
       
-      let newExpense;
+      let expenseId: string;
       
       if (isHomeowner) {
-        // Homeowner flow - save to homeowner_expenses
-        newExpense = await createHomeownerExpense({
+        // Create homeowner expense
+        const homeownerExpense = await createHomeownerExpense({
           data,
           status,
           userId: user.id,
           expenseNumber
         });
+        expenseId = homeownerExpense.id;
       } else {
-        // GC or Project Manager flow - save to expenses
-        newExpense = await createGCExpense({
+        // Create GC expense
+        const gcExpense = await createGCExpense({
           data,
           status,
           expenseNumber
         });
+        expenseId = gcExpense.id;
       }
-
-      // If payment details are provided, create a payment
-      if (paymentDetails && newExpense) {
-        const payment = await createExpensePayment({
-          expenseId: newExpense.id,
-          paymentDetails,
+      
+      console.log('Created expense with ID:', expenseId);
+      
+      // If payment details are provided and the expense is paid, create payment record
+      if (paymentDetails && (status === 'paid' || status === 'partially_paid')) {
+        console.log('Creating payment record for expense:', expenseId);
+        
+        // Ensure all required fields are present in paymentDetails
+        const validPaymentDetails = {
+          payment_method_code: paymentDetails.payment_method_code || 'check',
+          payment_date: paymentDetails.payment_date || new Date().toISOString().split('T')[0],
+          amount: typeof paymentDetails.amount === 'number' ? paymentDetails.amount : parseFloat(paymentDetails.amount || '0'),
+          notes: paymentDetails.notes
+        };
+        
+        await createExpensePayment({
+          expenseId,
+          paymentDetails: validPaymentDetails,
           expensesTable
         });
-        
-        // Update expense amount_due and status based on payment
-        await updateExpenseAfterPayment(
-          newExpense.id,
-          newExpense.amount,
-          parseFloat(paymentDetails.amount),
-          expensesTable
-        );
       }
-
-      // Invalidate both the expenses list and the project-specific queries
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['expenses'] }),
-        queryClient.invalidateQueries({ queryKey: ['project', data.project_id] }),
-        queryClient.invalidateQueries({ queryKey: ['homeowner-expenses', data.project_id] }),
-        queryClient.invalidateQueries({ queryKey: ['expenses', data.project_id] })
-      ]);
-
+      
+      // Refresh expenses list
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      
       toast({
-        title: "Success",
-        description: "Expense created successfully" + (paymentDetails ? " with payment" : ""),
+        title: "Expense Created",
+        description: "The expense has been successfully created.",
       });
+      
     } catch (error) {
       console.error('Error creating expense:', error);
       toast({
-        variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create expense. Please try again.",
+        description: "Failed to create expense. Please try again.",
+        variant: "destructive",
       });
-      throw error;
     }
   };
 
+  // Create a payment for an expense
   const processPaymentMutation = useMutation({
     mutationFn: async ({
       expenseId,
@@ -128,49 +131,43 @@ export function useExpenseDashboard(): UseExpenseDashboardResult {
       console.log('Processing payment:', { expenseId, amount, paymentDetails, expensesTable });
       
       // Create payment record
-      const payment = await createExpensePayment({
+      const paymentId = await createExpensePayment({
         expenseId,
         paymentDetails,
         expensesTable
       });
       
-      // Update expense status
-      await updateExpenseAfterPayment(
-        expenseId,
-        amount,
-        paymentDetails.amount,
-        expensesTable
-      );
+      // Update expense record
+      await updateExpenseAfterPayment(expenseId, amount, paymentDetails.amount, expensesTable);
       
-      return payment;
+      return paymentId;
     },
-    onSuccess: async (_, variables) => {
-      // Invalidate both the expenses list and the project-specific queries
-      const projectId = variables.expenseId.split('-')[0]; // Assuming the format is projectId-expenseNumber
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['expenses'] }),
-        queryClient.invalidateQueries({ queryKey: ['project', projectId] }),
-        queryClient.invalidateQueries({ queryKey: ['homeowner-expenses', projectId] }),
-        queryClient.invalidateQueries({ queryKey: ['expenses', projectId] })
-      ]);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
+      toast({
+        title: "Payment Processed",
+        description: "The payment has been successfully processed.",
+      });
     },
     onError: (error) => {
       console.error('Error processing payment:', error);
       toast({
-        variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to process payment. Please try again.",
+        description: "Failed to process payment. Please try again.",
+        variant: "destructive",
       });
-      throw error;
-    },
+    }
   });
+
+  // Use the compatibility wrapper to ensure isLoading is available
+  const processPaymentMutationWithCompat = makeMutationCompatible(processPaymentMutation);
 
   return {
     filters,
     setFilters,
-    expenses,
+    expenses: Array.isArray(expenses) ? expenses : [],
     isLoading,
     handleCreateExpense,
-    processPaymentMutation,
+    processPaymentMutation: processPaymentMutationWithCompat
   };
 }

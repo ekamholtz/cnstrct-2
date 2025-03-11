@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -10,7 +9,8 @@ import Dashboard from "@/pages/Dashboard";
 import GCProjects from "@/pages/GCProjects";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientProjectsPage from "@/pages/ClientProjectsPage";
-import ClientInvoiceDashboard from "@/pages/ClientInvoiceDashboard"; // New import
+import ClientInvoicesPage from "@/pages/ClientInvoicesPage";
+import ClientInvoiceDashboard from "@/pages/ClientInvoiceDashboard"; // Support both implementations
 import ProjectDashboard from "@/pages/ProjectDashboard";
 import InvoiceDashboard from "@/pages/InvoiceDashboard";
 import InvoiceDetails from "@/pages/InvoiceDetails";
@@ -86,6 +86,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <ClientProjectsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/client-invoices"
+        element={
+          <ProtectedRoute>
+            <ClientInvoicesPage />
           </ProtectedRoute>
         }
       />
