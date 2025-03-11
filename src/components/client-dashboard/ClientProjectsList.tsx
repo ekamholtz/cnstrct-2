@@ -53,6 +53,8 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
     queryKey: ['client-projects', limit],
     queryFn: async () => {
       try {
+        console.log('Starting project fetch...');
+        
         // Get current user
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
@@ -69,24 +71,17 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
 
         console.log('Starting project fetch for user:', user.id);
 
-        // First, get client records for this user using REST API
-        const clientResponse = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/clients?user_id=eq.${user.id}`,
-          {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
+        // First, get client records for this user
+        const { data: clientsData, error: clientError } = await supabase
+          .from('clients')
+          .select('*')
+          .eq('user_id', user.id);
 
-        if (!clientResponse.ok) {
-          console.error('Error finding client records:', clientResponse.statusText);
+        if (clientError) {
+          console.error('Error finding client records:', clientError);
           throw new Error('Error finding client records');
         }
 
-        const clientsData = await clientResponse.json();
         console.log('Client data found:', clientsData);
 
         if (!clientsData || clientsData.length === 0) {
@@ -98,48 +93,34 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
         const clientData = clientsData[0];
 
         // Now fetch projects using the client ID
-        const projectsResponse = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/projects?client_id=eq.${clientData.id}${limit ? `&limit=${limit}` : ''}`,
-          {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=representation'
-            }
-          }
-        );
+        const { data: projectsData, error: projectsError } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('client_id', clientData.id)
+          .limit(limit || 100);
 
-        if (!projectsResponse.ok) {
-          console.error('Error fetching projects:', projectsResponse.statusText);
+        if (projectsError) {
+          console.error('Error fetching projects:', projectsError);
           throw new Error('Error fetching projects');
         }
 
-        const projectsData = await projectsResponse.json();
         console.log('Projects found:', projectsData);
         
         // For each project, fetch its milestones
         const clientProjects: ClientProject[] = await Promise.all(
           projectsData.map(async (project: any) => {
-            const milestonesResponse = await fetch(
-              `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/milestones?project_id=eq.${project.id}`,
-              {
-                headers: {
-                  'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-                  'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-                  'Content-Type': 'application/json'
-                }
-              }
-            );
+            const { data: milestones, error: milestonesError } = await supabase
+              .from('milestones')
+              .select('*')
+              .eq('project_id', project.id);
             
-            let milestones: SimplifiedMilestone[] = [];
-            if (milestonesResponse.ok) {
-              milestones = await milestonesResponse.json();
+            if (milestonesError) {
+              console.error('Error fetching milestones:', milestonesError);
             }
             
             return {
               ...project,
-              milestones,
+              milestones: milestones || [],
               address: project.address || '',
               status: project.status || 'draft'
             } as ClientProject;
@@ -162,7 +143,9 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
         });
         navigate('/auth');
       }
-    }
+    },
+    retry: 1,
+    refetchOnWindowFocus: false
   });
 
   if (isLoading) {
