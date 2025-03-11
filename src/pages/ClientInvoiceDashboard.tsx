@@ -35,7 +35,25 @@ export default function ClientInvoiceDashboard() {
       
       <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
         <h2 className="text-xl font-semibold text-[#172b70] mb-6">Invoice Summary</h2>
-        <ClientInvoiceSummary />
+        {isLoading ? (
+          <div className="flex justify-center items-center h-48">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        ) : error ? (
+          <div className="text-red-500">
+            Failed to load invoice summary. Please try again later.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="bg-blue-50 p-4 rounded-lg flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-blue-700">Pending Payments</h3>
+                <p className="text-sm text-blue-600">Invoices awaiting payment</p>
+              </div>
+              <div className="text-2xl font-bold text-blue-700">${(data?.totalPending || 0).toLocaleString()}</div>
+            </div>
+          </div>
+        )}
       </div>
       
       {isLoading ? (
