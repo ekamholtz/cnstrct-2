@@ -84,7 +84,7 @@ export function MainNav() {
 
   const handleNavigation = (path: string) => {
     console.log("MainNav - Navigating to:", path);
-    if (path === '/invoice' || path === '/invoices') {
+    if (path === '/invoice' || path === '/invoices' || path === '/client-invoices') {
       console.log("MainNav - Invoice navigation triggered");
     }
     navigate(path);
@@ -99,8 +99,10 @@ export function MainNav() {
                        profile?.role === 'platform_admin' ? '/admin/projects' :
                        '/gc-projects';
 
-  // Simplified invoice route logic
-  const invoicesRoute = '/invoice';
+  // Role-based invoice route
+  const invoicesRoute = profile?.role === 'homeowner' ? '/client-invoices' : 
+                       profile?.role === 'platform_admin' ? '/admin/invoices' :
+                       '/invoice';
 
   // Only show reporting for GC admins and platform admins
   const showReporting = profile?.role === 'gc_admin' || profile?.role === 'platform_admin';
@@ -115,8 +117,8 @@ export function MainNav() {
   ];
 
   const isActive = (path: string) => {
-    if (path === '/invoice') {
-      return location.pathname === '/invoice' || location.pathname === '/invoices';
+    if (path === '/invoice' || path === '/client-invoices') {
+      return location.pathname === '/invoice' || location.pathname === '/invoices' || location.pathname === '/client-invoices';
     }
     return location.pathname === path;
   };

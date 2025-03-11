@@ -9,6 +9,7 @@ import Dashboard from "@/pages/Dashboard";
 import GCProjects from "@/pages/GCProjects";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientProjectsPage from "@/pages/ClientProjectsPage";
+import ClientInvoicesPage from "@/pages/ClientInvoicesPage";
 import ProjectDashboard from "@/pages/ProjectDashboard";
 import InvoiceDashboard from "@/pages/InvoiceDashboard";
 import InvoiceDetails from "@/pages/InvoiceDetails";
@@ -84,6 +85,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <ClientProjectsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/client-invoices"
+        element={
+          <ProtectedRoute>
+            <ClientInvoicesPage />
           </ProtectedRoute>
         }
       />

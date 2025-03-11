@@ -1,11 +1,12 @@
 import { useMutation, useQueryClient, UseMutationResult } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { makeMutationCompatible, MutationResultCompat } from "@/utils/queryCompatibility";
 
 export const useUpdateProjectPM = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: async ({ 
       projectId, 
       pmUserId 
@@ -19,48 +20,39 @@ export const useUpdateProjectPM = () => {
         const { data, error } = await supabase
           .from('projects')
           .update({ pm_user_id: pmUserId })
-          .eq('id', projectId)
-          .select()
-          .single();
-
+          .eq('id', projectId);
+        
         if (error) {
-          console.error("Error updating project PM:", error);
           throw error;
         }
-
+        
         return data;
       } catch (error) {
-        console.error("Error in useUpdateProjectPM:", error);
+        console.error("Error updating project PM:", error);
         throw error;
       }
     },
-    onSuccess: (data, variables) => {
-      // Invalidate the project query to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['project', variables.projectId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['project'] });
       
       toast({
-        title: "Project Manager Updated",
-        description: "The project manager has been successfully updated.",
-        variant: "default",
+        title: "Project updated",
+        description: "Project manager has been updated successfully.",
       });
     },
     onError: (error) => {
-      console.error("Mutation error:", error);
+      console.error("Error in project PM update mutation:", error);
       
       toast({
-        title: "Error",
-        description: "Failed to update project manager. Please try again.",
+        title: "Update failed",
+        description: "There was an error updating the project manager. Please try again.",
         variant: "destructive",
       });
     }
   });
+
+  return makeMutationCompatible(mutation);
 };
 
-// Add backwards compatibility for older versions of React Query
-export type MutationResultCompat<TData, TError, TVariables, TContext> = 
-  UseMutationResult<TData, TError, TVariables, TContext> & {
-    // Include both properties for compatibility
-    isLoading: boolean;
-    isPending: boolean;
-    status: 'idle' | 'loading' | 'success' | 'error' | 'pending';
-  };
+export type { MutationResultCompat } from "@/utils/queryCompatibility";

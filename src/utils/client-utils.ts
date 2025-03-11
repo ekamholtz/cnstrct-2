@@ -1,90 +1,124 @@
-
 import type { UseFormReturn } from "react-hook-form";
 import type { ProfileCompletionFormValues } from "@/hooks/profile/useProfileForm";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase as defaultSupabase } from "@/integrations/supabase/client";
 
+// Define a type for the client data to help with TypeScript
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  phone_number?: string;
+  address?: string;
+  user_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// Type for Supabase response
+interface SupabaseResponse<T> {
+  data: T | null;
+  error: any;
+}
+
+/**
+ * Links a client to a user based on email address
+ * Prevents duplicate clients by checking for existing email addresses
+ * Updates existing clients instead of creating new ones when the email already exists
+ * 
+ * @param userId - The user ID to link the client to
+ * @param userEmail - The email address to search for
+ * @param supabaseClient - Optional supabase client instance (uses default if not provided)
+ */
 export const linkClientToUser = async (
+  userId: string,
+  userEmail: string,
+  supabaseClient = defaultSupabase
+) => {
+  // Normalize email to lowercase and trim whitespace to ensure consistent matching
+  const normalizedEmail = userEmail.toLowerCase().trim();
+  console.log("Attempting to link client for email:", normalizedEmail, "to user:", userId);
+  
+  try {
+    // Check for any existing client with this email (case insensitive)
+    // Using type casting to bypass TypeScript errors due to schema mismatch
+    const { data: existingClients, error: clientError } = await (supabaseClient as any)
+      .from('clients')
+      .select('*')
+      .ilike('email', normalizedEmail) as SupabaseResponse<Client[]>;
+
+    if (clientError) {
+      console.error("Error checking existing client:", clientError);
+      throw new Error("Failed to check client information");
+    }
+
+    // If we found any clients with this email
+    if (existingClients && existingClients.length > 0) {
+      console.log("Found existing client with this email:", existingClients[0].id);
+      
+      // Check if the client is already linked to this user
+      if (existingClients[0].user_id === userId) {
+        console.log("Client is already linked to this user");
+        return existingClients[0];
+      }
+      
+      // Update the existing client to link it to this user
+      const { data: updatedClient, error: updateError } = await (supabaseClient as any)
+        .from('clients')
+        .update({ user_id: userId })
+        .eq('id', existingClients[0].id)
+        .select() as SupabaseResponse<Client[]>;
+        
+      if (updateError) {
+        console.error("Error updating client:", updateError);
+        throw new Error("Failed to link client to your account");
+      }
+      
+      console.log("Successfully linked existing client to user");
+      return updatedClient?.[0] || existingClients[0];
+    }
+    
+    // No existing client found, create a new one
+    console.log("No existing client found, creating new client record");
+    
+    // Create a new client record
+    const { data: newClient, error: createError } = await (supabaseClient as any)
+      .from('clients')
+      .insert([
+        { 
+          email: normalizedEmail,
+          user_id: userId,
+          name: normalizedEmail.split('@')[0] // Use part of email as temporary name
+        }
+      ])
+      .select() as SupabaseResponse<Client[]>;
+      
+    if (createError) {
+      console.error("Error creating client:", createError);
+      throw new Error("Failed to create client record");
+    }
+    
+    if (!newClient || newClient.length === 0) {
+      throw new Error("Failed to create client record - no rows returned");
+    }
+    
+    console.log("Successfully created new client:", newClient[0].id);
+    return newClient[0];
+    
+  } catch (error) {
+    console.error("Error in linkClientToUser:", error);
+    throw error;
+  }
+};
+
+/**
+ * Original function kept for backward compatibility
+ * @deprecated Use the new linkClientToUser function instead
+ */
+export const linkClientToUserOld = async (
   userEmail: string, 
   userId: string,
   form: UseFormReturn<ProfileCompletionFormValues>
 ) => {
-  const normalizedEmail = userEmail.toLowerCase();
-  console.log("Attempting to link client for email:", normalizedEmail);
-  
-  let { data: existingClient, error: clientError } = await supabase
-    .from('clients')
-    .select('*')
-    .eq('email', normalizedEmail)
-    .maybeSingle();
-
-  if (!existingClient) {
-    console.log("No exact match found, trying case-insensitive search");
-    const { data: allClients, error: checkError } = await supabase
-      .from('clients')
-      .select('*')
-      .ilike('email', normalizedEmail);
-
-    if (checkError) {
-      console.error("Error in case-insensitive search:", checkError);
-    } else if (allClients && allClients.length > 0) {
-      console.log("Found clients with case-insensitive match:", allClients);
-      existingClient = allClients[0];
-    }
-  }
-
-  if (clientError) {
-    console.error("Error checking existing client:", clientError);
-    throw new Error("Failed to check client information");
-  }
-
-  if (!existingClient) {
-    console.log("No existing client found, creating new client");
-    const { data: newClient, error: createError } = await supabase
-      .from('clients')
-      .insert({
-        email: normalizedEmail,
-        user_id: userId,
-        name: form.getValues().fullName,
-        address: form.getValues().address,
-        phone_number: form.getValues().phoneNumber,
-      })
-      .select()
-      .single();
-
-    if (createError) {
-      console.error("Error creating new client:", createError);
-      throw new Error("Failed to create new client");
-    }
-
-    return newClient;
-  }
-
-  if (existingClient.user_id === userId) {
-    console.log("Client already linked to this user");
-    return existingClient;
-  }
-
-  console.log("Found existing client, attempting to link:", existingClient);
-
-  const { data: updatedClient, error: updateError } = await supabase
-    .from('clients')
-    .update({ 
-      user_id: userId,
-      email: normalizedEmail,
-      name: form.getValues().fullName,
-      address: form.getValues().address,
-      phone_number: form.getValues().phoneNumber,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', existingClient.id)
-    .select()
-    .single();
-
-  if (updateError) {
-    console.error("Error updating client:", updateError);
-    throw new Error(`Failed to link client account: ${updateError.message}`);
-  }
-
-  console.log("Successfully linked client. Updated record:", updatedClient);
-  return updatedClient;
+  // Call the new function with the parameters rearranged
+  return linkClientToUser(userId, userEmail);
 };

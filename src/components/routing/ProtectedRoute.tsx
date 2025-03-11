@@ -4,15 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
 import { MainNav } from "@/components/navigation/MainNav";
 import { useAuth } from "@/hooks/useAuth";
-import { Database } from "@/integrations/supabase/types";
+import { Database } from "@/integrations/supabase/database.types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(true);
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
   const location = useLocation();
 
   useEffect(() => {
@@ -46,15 +46,16 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             .insert({
               id: user.id,
               full_name: user.user_metadata.full_name || '',
-              role: user.user_metadata.role,
+              email: user.email || '',
+              role: user.user_metadata.role || 'contractor',
               has_completed_profile: true
-            } as Partial<Profile>);
+            });
 
           if (insertError) {
             console.error("Error creating profile:", insertError);
           }
           setHasCompletedProfile(true);
-          setUserRole(user.user_metadata.role);
+          setUserRole(user.user_metadata.role || 'contractor');
         } else {
           setHasCompletedProfile(data.has_completed_profile);
           setUserRole(data.role);
@@ -72,7 +73,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user, authLoading]);
 
-  if (loading || authLoading) {
+  if (loading) {
     console.log("Loading...");
     return null;
   }

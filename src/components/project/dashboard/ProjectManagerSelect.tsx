@@ -11,37 +11,29 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useTeamMembers } from "@/hooks/useTeamMembers";
-import { useUpdateProjectPM, MutationResultCompat } from "@/hooks/useUpdateProjectPM";
+import { useUpdateProjectPM } from "@/hooks/useUpdateProjectPM";
 import { ClientProject } from "@/types/project-types";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { makeMutationCompatible } from "@/utils/queryCompatibility";
 
 interface ProjectManagerSelectProps {
   project: ClientProject;
   isGCAdmin: boolean;
 }
 
-// Define the types for the project PM update mutation
-type ProjectPMUpdateData = any; // Response data type
-type ProjectPMUpdateError = Error; // Error type
-type ProjectPMUpdateVariables = { projectId: string; pmUserId: string | null }; // Variables type
-type ProjectPMUpdateContext = unknown; // Context type
-
 export function ProjectManagerSelect({ project, isGCAdmin }: ProjectManagerSelectProps) {
   const [open, setOpen] = useState(false);
   const [selectedPM, setSelectedPM] = useState<string | null>(project.pm_user_id || null);
   const [searchQuery, setSearchQuery] = useState("");
   const { teamMembers, isLoadingTeam } = useTeamMembers();
-  // Cast the mutation result to MutationResultCompat with the appropriate type arguments
-  const updateProjectPM = useUpdateProjectPM() as MutationResultCompat<
-    ProjectPMUpdateData,
-    ProjectPMUpdateError,
-    ProjectPMUpdateVariables,
-    ProjectPMUpdateContext
-  >;
+  
+  // Use the compatibility helper to ensure isLoading is available
+  const updateProjectPMMutation = useUpdateProjectPM();
+  const updateProjectPM = makeMutationCompatible(updateProjectPMMutation);
   
   // Find the current PM in the team members list
   const currentPM = teamMembers?.find(member => member.id === project.pm_user_id);
@@ -70,7 +62,10 @@ export function ProjectManagerSelect({ project, isGCAdmin }: ProjectManagerSelec
   });
 
   // Use isPending for loading state (compatible with both old and new React Query versions)
-  if (isLoadingTeam || updateProjectPM.isPending) {
+  // Check both isLoading and isPending properties for compatibility
+  const isUpdating = updateProjectPM.isPending || updateProjectPM.isLoading;
+  
+  if (isLoadingTeam || isUpdating) {
     return (
       <div className="flex items-center gap-2">
         <div className="text-sm font-medium text-gray-500">Project Manager:</div>
@@ -163,9 +158,9 @@ export function ProjectManagerSelect({ project, isGCAdmin }: ProjectManagerSelec
                 </Button>
                 <Button 
                   onClick={handleConfirmPM} 
-                  disabled={updateProjectPM.isPending}
+                  disabled={isUpdating}
                 >
-                  {updateProjectPM.isPending ? "Saving..." : "Confirm"}
+                  {isUpdating ? "Saving..." : "Confirm"}
                 </Button>
               </DialogFooter>
             </DialogContent>

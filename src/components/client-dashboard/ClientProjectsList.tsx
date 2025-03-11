@@ -1,151 +1,175 @@
-
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { ClientProjectCard } from "./ClientProjectCard";
-import { ClientProject, SimplifiedMilestone } from "@/types/project-types";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { linkClientToUser } from "@/utils/client-utils";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
-interface ClientProjectsListProps {
-  limit?: number;
+interface Project {
+  id: string;
+  name: string;
+  description: string;
+  status: string;
+  created_at: string;
 }
 
-export function ClientProjectsList({ limit }: ClientProjectsListProps) {
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  user_id?: string;
+}
+
+type SupabaseResponse<T> = {
+  data: T | null;
+  error: Error | null;
+};
+
+// Helper function to fetch projects for a client
+const fetchProjectsForClient = async (clientId: string) => {
+  console.log('Fetching projects for client ID:', clientId);
+  
+  const { data: projects, error } = await (supabase as any)
+    .from('projects')
+    .select('*')
+    .eq('client_id', clientId) as SupabaseResponse<Project[]>;
+    
+  if (error) {
+    console.error('Error fetching projects:', error);
+    throw error;
+  }
+  
+  console.log('Projects found:', projects?.length || 0);
+  return projects || [];
+};
+
+// Helper function to find a client by user ID or email
+const findClientByUserIdOrEmail = async (userId: string, userEmail: string) => {
+  console.log('Looking up client for user ID:', userId, 'and email:', userEmail);
+  
+  // Normalize email to lowercase
+  const normalizedEmail = userEmail.toLowerCase();
+  
+  // First try to find client by user_id
+  const { data: clientsByUserId, error: userIdError } = await (supabase as any)
+    .from('clients')
+    .select('*')
+    .eq('user_id', userId) as SupabaseResponse<Client[]>;
+    
+  if (userIdError) {
+    console.error('Error finding client by user ID:', userIdError);
+  }
+  
+  // If found by user_id, return the first client
+  if (clientsByUserId && clientsByUserId.length > 0) {
+    console.log('Client found by user ID:', clientsByUserId[0].id);
+    return clientsByUserId[0];
+  }
+  
+  // If not found by user_id, try to find by email (case insensitive)
+  console.log('No client found by user ID, trying email lookup with:', normalizedEmail);
+  const { data: clientsByEmail, error: emailError } = await (supabase as any)
+    .from('clients')
+    .select('*')
+    .ilike('email', normalizedEmail) as SupabaseResponse<Client[]>;
+    
+  if (emailError) {
+    console.error('Error finding client by email:', emailError);
+    throw emailError;
+  }
+  
+  // If found by email, link the client to the user and return it
+  if (clientsByEmail && clientsByEmail.length > 0) {
+    console.log('Client found by email:', clientsByEmail[0].id);
+    
+    // Link the client to the user
+    try {
+      await linkClientToUser(userId, normalizedEmail, supabase);
+      console.log('Successfully linked client to user');
+    } catch (linkError) {
+      console.error('Error linking client to user:', linkError);
+    }
+    
+    return clientsByEmail[0];
+  }
+  
+  console.log('No client found by user ID or email');
+  return null;
+};
+
+export function ClientProjectsList({ limit }: { limit?: number } = {}) {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [client, setClient] = useState<Client | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check authentication status on component mount
   useEffect(() => {
-    const checkAuth = async () => {
+    const fetchData = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        setLoading(true);
         
-        if (error) {
-          console.error('Auth error:', error);
-          toast({
-            variant: "destructive",
-            title: "Authentication Error",
-            description: "Please log in again to continue.",
-          });
-          navigate('/auth');
-          return;
-        }
-
-        if (!session) {
-          console.log('No session found, redirecting to auth');
-          navigate('/auth');
-          return;
-        }
-
-        console.log('Session found for user:', session.user.id);
-      } catch (error) {
-        console.error('Session check error:', error);
-        navigate('/auth');
-      }
-    };
-
-    checkAuth();
-  }, [navigate, toast]);
-
-  const { data: projects, isLoading, error } = useQuery({
-    queryKey: ['client-projects', limit],
-    queryFn: async () => {
-      try {
-        // Get current user
+        // Get the current user
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
         if (userError) {
-          console.error('Error getting user:', userError);
           throw userError;
         }
-
+        
         if (!user) {
-          console.log('No user found, redirecting to auth');
+          console.error('No authenticated user found');
           navigate('/auth');
-          throw new Error('No user found');
+          return;
         }
-
-        console.log('Starting project fetch for user:', user.id);
-
-        // First, get all client records for this user directly from auth user data
-        // This avoids the need to query the profiles table which has RLS issues
-        const { data: clientsData, error: clientError } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('user_id', user.id);
-
-        if (clientError) {
-          console.error('Error finding client records:', clientError);
-          throw clientError;
-        }
-
-        console.log('Client data found:', clientsData);
-
-        if (!clientsData || clientsData.length === 0) {
-          console.log('No client record found for user:', user.id);
-          return [];
-        }
-
-        // Get the first client record (there should typically only be one)
-        const clientData = clientsData[0];
-
-        let query = supabase
-          .from('projects')
-          .select(`
-            *,
-            milestones (
-              id,
-              name,
-              amount,
-              status
-            )
-          `)
-          .eq('client_id', clientData.id)
-          .not('client_id', 'is', null)
-          .order('created_at', { ascending: false });
-
-        // Apply limit if provided
-        if (limit) {
-          query = query.limit(limit);
-        }
-
-        const { data: projectsData, error: projectsError } = await query;
-
-        if (projectsError) {
-          console.error('Error fetching projects:', projectsError);
-          throw projectsError;
-        }
-
-        console.log('Projects found:', projectsData);
         
-        // Transform the data to match our ClientProject type
-        const clientProjects: ClientProject[] = projectsData?.map(project => ({
-          ...project,
-          milestones: project.milestones as SimplifiedMilestone[]
-        })) || [];
+        console.log('User authenticated:', user.id);
+        console.log('User email:', user.email);
         
-        return clientProjects;
-      } catch (error) {
-        console.error('Projects fetch error:', error);
-        throw error;
-      }
-    },
-    meta: {
-      onError: (error: Error) => {
-        console.error('Query error:', error);
+        if (!user.email) {
+          throw new Error('User email not found');
+        }
+        
+        // Find client by user ID or email
+        const foundClient = await findClientByUserIdOrEmail(user.id, user.email);
+        
+        if (!foundClient) {
+          console.log('No client found for this user');
+          setError('No client profile found for your account.');
+          setLoading(false);
+          return;
+        }
+        
+        setClient(foundClient);
+        console.log('Client set:', foundClient.id, foundClient.name);
+        
+        // Fetch projects for the client
+        const clientProjects = await fetchProjectsForClient(foundClient.id);
+        setProjects(clientProjects);
+        
+      } catch (err) {
+        console.error('Error in ClientProjectsList:', err);
+        setError('Failed to load your projects. Please try again later.');
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load projects. Please try logging in again.",
+          description: "Failed to load your projects. Please try again later.",
         });
-        navigate('/auth');
+      } finally {
+        setLoading(false);
       }
-    }
-  });
+    };
 
-  if (isLoading) {
+    fetchData();
+  }, [navigate, toast]);
+
+  const handleViewProject = (projectId: string) => {
+    navigate(`/project/${projectId}`);
+  };
+
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-48">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -155,20 +179,17 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
 
   if (error) {
     return (
-      <Alert variant="destructive">
-        <AlertDescription>
-          Failed to load projects. Please try again later.
-          {error instanceof Error ? ` Error: ${error.message}` : ''}
-        </AlertDescription>
+      <Alert>
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
 
-  if (!projects || projects.length === 0) {
+  if (projects.length === 0) {
     return (
       <Alert>
         <AlertDescription>
-          No projects found. When contractors create projects for you, they will appear here.
+          No projects found. When your contractor creates projects for you, they will appear here.
         </AlertDescription>
       </Alert>
     );
@@ -176,8 +197,41 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {projects?.map((project) => (
-        <ClientProjectCard key={project.id} project={project} />
+      {projects.map((project) => (
+        <Card key={project.id} className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <CardTitle className="text-lg">{project.name}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-gray-500 mb-4 line-clamp-2">
+              {project.description || "No description provided"}
+            </p>
+            <div className="flex justify-between items-center">
+              <span
+                className={`px-2 py-1 text-xs rounded-full ${
+                  project.status === "completed"
+                    ? "bg-green-100 text-green-800"
+                    : project.status === "in_progress"
+                    ? "bg-blue-100 text-blue-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {project.status === "in_progress"
+                  ? "In Progress"
+                  : project.status === "completed"
+                  ? "Completed"
+                  : project.status || "Unknown"}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleViewProject(project.id)}
+              >
+                View Details
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );

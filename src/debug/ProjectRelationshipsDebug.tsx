@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
+import { Database } from '@/integrations/supabase/database.types';
 
 // Define a type for project users
 interface ProjectUser {
@@ -62,58 +63,46 @@ export const ProjectRelationshipsDebug = () => {
         setProjects(projectsData || []);
         console.log(`Found ${projectsData?.length || 0} projects`);
 
-        // Use direct SQL query with type assertion to avoid TypeScript errors
-        const { data: projectUsersData, error: projectUsersError } = await supabase
-          .from('project_users' as any)
-          .select('*');
-            
-        if (projectUsersError) {
-          setError(`Error fetching project users: ${projectUsersError.message}`);
-          setLoading(false);
-          return;
-        }
-          
-        // Safely process the data with type checking
+        // Since 'project_users' table doesn't exist, we'll use the project's relationships
+        // Use relationships from projects table itself
+        // Project relationships are managed via contractor_id, owner_user_id, and pm_user_id fields
         const typedProjectUsers: ProjectUser[] = [];
         
-        if (Array.isArray(projectUsersData)) {
-          for (const rawItem of projectUsersData) {
-            // Skip null items
-            if (rawItem === null || typeof rawItem !== 'object') {
-              continue;
-            }
-            
-            // Safe access with proper type checking
-            const item = rawItem as Record<string, unknown>;
-            
-            // Convert values to string with proper type checking
-            const id = typeof item.id === 'string' ? item.id : 
-                      item.id ? String(item.id) : '';
-                      
-            const project_id = typeof item.project_id === 'string' ? item.project_id : 
-                              item.project_id ? String(item.project_id) : '';
-                              
-            const user_id = typeof item.user_id === 'string' ? item.user_id : 
-                           item.user_id ? String(item.user_id) : '';
-                           
-            const role = typeof item.role === 'string' ? item.role : 
-                        item.role ? String(item.role) : undefined;
-                        
-            const created_at = typeof item.created_at === 'string' ? item.created_at : 
-                              item.created_at ? String(item.created_at) : undefined;
-            
+        // For each project, extract user relationships
+        projectsData?.forEach(project => {
+          // Extract owner relationship
+          if (project.owner_user_id) {
             typedProjectUsers.push({
-              id,
-              project_id,
-              user_id,
-              role,
-              created_at
+              id: `owner-${project.id}`,
+              project_id: project.id,
+              user_id: project.owner_user_id,
+              role: 'owner'
             });
           }
-        }
+          
+          // Extract contractor relationship
+          if (project.contractor_id) {
+            typedProjectUsers.push({
+              id: `contractor-${project.id}`,
+              project_id: project.id,
+              user_id: project.contractor_id,
+              role: 'contractor'
+            });
+          }
+          
+          // Extract project manager relationship
+          if (project.pm_user_id) {
+            typedProjectUsers.push({
+              id: `pm-${project.id}`,
+              project_id: project.id,
+              user_id: project.pm_user_id,
+              role: 'project_manager'
+            });
+          }
+        });
         
         setProjectUsers(typedProjectUsers);
-        console.log(`Found ${typedProjectUsers.length} project user relationships`);
+        console.log(`Created ${typedProjectUsers.length} project user relationships from project data`);
 
         // Get all profiles
         const { data: allProfiles, error: allProfilesError } = await supabase

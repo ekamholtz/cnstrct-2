@@ -1,6 +1,7 @@
 import { ExpenseFilters } from "../../types";
 import { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
 import { UseMutationResult } from "@tanstack/react-query";
+import { MutationResultCompat } from "@/utils/queryCompatibility";
 
 export type CreateExpenseFunction = (
   data: ExpenseFormStage1Data,
@@ -11,10 +12,10 @@ export type CreateExpenseFunction = (
 export interface UseExpenseDashboardResult {
   filters: ExpenseFilters;
   setFilters: React.Dispatch<React.SetStateAction<ExpenseFilters>>;
-  expenses: any[] | null;
+  expenses: any[]; 
   isLoading: boolean;
   handleCreateExpense: CreateExpenseFunction;
-  processPaymentMutation: UseMutationResult<any, Error, {
+  processPaymentMutation: MutationResultCompat<any, Error, {
     expenseId: string;
     amount: number;
     paymentDetails: {

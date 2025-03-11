@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useMemo } from "react";
 import { getProjectInvoices } from "@/services/invoiceService";
+import { Database } from "@/integrations/supabase/database.types";
 
 export function useProjectDashboard(projectId: string | undefined) {
   const navigate = useNavigate();
@@ -76,6 +77,7 @@ export function useProjectDashboard(projectId: string | undefined) {
     queryFn: async () => {
       if (!projectId) return null;
 
+      // Type-safe query approach without using 'as any'
       const { data, error } = await supabase
         .from('projects')
         .select(`
@@ -84,26 +86,13 @@ export function useProjectDashboard(projectId: string | undefined) {
           description,
           address,
           status,
-          start_date,
-          end_date,
-          budget,
           owner_user_id,
           contractor_id,
           pm_user_id,
           gc_account_id,
           created_at,
           updated_at,
-          milestones (
-            id,
-            name,
-            description,
-            status,
-            due_date,
-            amount,
-            project_id,
-            created_at,
-            updated_at
-          )
+          milestones(*)
         `)
         .eq('id', projectId)
         .single();
@@ -205,14 +194,11 @@ export function useProjectDashboard(projectId: string | undefined) {
           notes,
           created_at,
           updated_at,
-          project:project_id (
-            name
-          ),
-          payments (
+          project:project_id(name),
+          payments(
             id,
             amount,
             payment_date,
-            payment_method,
             status
           )
         `)
