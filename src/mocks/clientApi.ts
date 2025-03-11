@@ -1,86 +1,95 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Invoice } from "@/components/project/invoice/types";
 
-/**
- * Gets client projects based on the current user
- */
-export const getClientProjects = async () => {
+// Get client projects
+export async function getClientProjects() {
+  console.log("Fetching mock client projects");
+  
   try {
-    // First get the user ID
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      console.error("No authenticated user found");
-      return [];
-    }
-
-    // Get client records associated with this user
-    const { data: clients, error: clientError } = await supabase
-      .from('clients')
-      .select('id')
-      .eq('user_id', user.id);
-
-    if (clientError || !clients?.length) {
-      console.error("Error fetching client or no client found:", clientError);
-      return [];
-    }
-
-    const clientId = clients[0].id;
-
-    // Get projects for this client
-    const { data: projects, error: projectError } = await supabase
+    // In a real implementation, this would filter by the authenticated user
+    // For now, we'll just return all projects as a mock
+    const { data, error } = await supabase
       .from('projects')
       .select('*')
-      .eq('client_id', clientId);
-
-    if (projectError) {
-      console.error("Error fetching projects:", projectError);
-      return [];
-    }
-
-    return projects || [];
-  } catch (error) {
-    console.error("Error in getClientProjects:", error);
-    return [];
-  }
-};
-
-/**
- * Gets all invoices for a set of project IDs
- */
-export const getClientInvoices = async (projectIds: string[]): Promise<Invoice[]> => {
-  try {
-    if (!projectIds.length) return [];
-
-    // Get invoices that match these project IDs
-    const { data, error } = await supabase
-      .rpc('get_client_invoices', { project_ids: projectIds });
-
+      .limit(5);
+    
     if (error) {
-      console.error("Error fetching invoices:", error);
+      console.error("Error fetching client projects:", error);
       return [];
     }
-
-    // Transform to match the Invoice type
-    return (data || []).map(invoice => ({
-      id: invoice.id,
-      invoice_number: invoice.invoice_number,
-      amount: invoice.amount,
-      status: invoice.status,
-      created_at: invoice.created_at,
-      milestone_id: invoice.milestone_id,
-      milestone_name: invoice.milestone_name || '',
-      project_name: invoice.project_name || '',
-      project_id: invoice.project_id,
-      payment_method: invoice.payment_method,
-      payment_date: invoice.payment_date,
-      payment_reference: invoice.payment_reference,
-      payment_gateway: invoice.payment_gateway,
-      simulation_data: invoice.simulation_data,
-      updated_at: invoice.updated_at
-    }));
+    
+    return data || [];
   } catch (error) {
-    console.error("Error in getClientInvoices:", error);
+    console.error("Exception in getClientProjects:", error);
     return [];
   }
-};
+}
+
+// Get client invoices for given project IDs
+export async function getClientInvoices(projectIds: string[]) {
+  console.log("Fetching mock client invoices for projects:", projectIds);
+  
+  if (!projectIds.length) {
+    return { invoices: [], totalPending: 0 };
+  }
+  
+  try {
+    // Try to use our custom function if it exists
+    try {
+      const { data, error } = await supabase.rpc('get_client_invoices', {
+        project_ids: projectIds
+      });
+      
+      if (!error && data) {
+        console.log("Successfully fetched invoices using RPC function:", data);
+        
+        // Calculate total pending
+        const totalPending = data
+          .filter((invoice: any) => invoice.status === 'pending_payment')
+          .reduce((sum: number, invoice: any) => sum + Number(invoice.amount), 0);
+        
+        return {
+          invoices: data,
+          totalPending
+        };
+      }
+    } catch (rpcError) {
+      console.warn("RPC function not available, falling back to direct query:", rpcError);
+    }
+    
+    // Fallback to direct query if RPC fails
+    const { data, error } = await supabase
+      .from('invoices')
+      .select(`
+        *,
+        milestone:milestone_id(name),
+        project:project_id(name)
+      `)
+      .in('project_id', projectIds);
+    
+    if (error) {
+      console.error("Error fetching client invoices:", error);
+      return { invoices: [], totalPending: 0 };
+    }
+    
+    // Transform data to expected format
+    const invoices = (data || []).map((invoice: any) => ({
+      ...invoice,
+      milestone_name: invoice.milestone?.name || 'Unknown Milestone',
+      project_name: invoice.project?.name || 'Unknown Project'
+    }));
+    
+    // Calculate total pending
+    const totalPending = invoices
+      .filter((invoice: any) => invoice.status === 'pending_payment')
+      .reduce((sum: number, invoice: any) => sum + Number(invoice.amount), 0);
+    
+    return {
+      invoices,
+      totalPending
+    };
+  } catch (error) {
+    console.error("Exception in getClientInvoices:", error);
+    return { invoices: [], totalPending: 0 };
+  }
+}

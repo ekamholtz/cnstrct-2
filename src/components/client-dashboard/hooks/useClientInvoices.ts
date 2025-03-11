@@ -1,56 +1,52 @@
 
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
-import { useAuth } from "@/hooks/useAuth";
 import { Invoice } from "@/components/project/invoice/types";
 
-export const useClientInvoices = () => {
-  const { user } = useAuth();
+export interface ClientInvoicesData {
+  invoices: Invoice[];
+  totalPending: number;
+}
 
+export function useClientInvoices() {
   return useQuery({
     queryKey: ['client-invoices'],
-    queryFn: async () => {
+    queryFn: async (): Promise<ClientInvoicesData> => {
       try {
-        console.log("Fetching client invoices for user:", user?.id);
-        
-        // First, get the client's projects
+        // First, fetch client projects
         const projectsResponse = await axios.get('/api/client/projects');
         const projects = projectsResponse.data || [];
         
-        console.log("Client projects:", projects);
-        
         if (!projects.length) {
-          console.log("No projects found for client");
+          console.log('No client projects found');
           return { invoices: [], totalPending: 0 };
         }
         
-        // Get all invoices for these projects
-        const projectIds = projects.map(project => project.id);
+        // Extract project IDs
+        const projectIds = projects.map((p: any) => p.id);
+        console.log('Client project IDs:', projectIds);
+        
+        // Fetch invoices for these projects
         const invoicesResponse = await axios.get('/api/client/invoices', {
           params: { projectIds: projectIds.join(',') }
         });
         
-        const invoices = invoicesResponse.data || [];
-        console.log("Client invoices:", invoices);
+        const invoices = invoicesResponse.data?.invoices || [];
+        console.log('Client invoices:', invoices);
         
         // Calculate total pending amount
         const totalPending = invoices
-          .filter(invoice => invoice.status === 'pending_payment')
-          .reduce((sum, invoice) => sum + invoice.amount, 0);
-        
+          .filter((invoice: Invoice) => invoice.status === 'pending_payment')
+          .reduce((sum: number, invoice: Invoice) => sum + invoice.amount, 0);
+          
         return {
           invoices,
           totalPending
         };
       } catch (error) {
-        console.error("Error fetching client invoices:", error);
-        // Instead of throwing error, return empty data
-        return { invoices: [], totalPending: 0 };
+        console.error('Error fetching client invoices:', error);
+        throw error;
       }
-    },
-    // Add error handling at the query level
-    onError: (error) => {
-      console.error("Query error in useClientInvoices:", error);
     }
   });
-};
+}
