@@ -49,12 +49,24 @@ export const createClient = async (clientData: {
 export const findClientByEmail = async (email: string) => {
   const normalizedEmail = email.toLowerCase().trim();
   
+  console.log('Searching for client with email:', normalizedEmail);
+  
   const { data, error } = await supabase
     .from('clients')
     .select('*')
     .ilike('email', normalizedEmail)
     .limit(1);
     
-  if (error) throw error;
+  if (error) {
+    console.error('Error finding client by email:', error);
+    throw error;
+  }
+  
+  if (data && data.length > 0) {
+    console.log('Found client:', data[0].id);
+  } else {
+    console.log('No client found with email:', normalizedEmail);
+  }
+  
   return data && data.length > 0 ? data[0] : null;
 };

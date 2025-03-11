@@ -44,7 +44,7 @@ export const linkClientToUser = async (
     // Use the service method to find an existing client
     const existingClient = await findClientByEmail(normalizedEmail);
 
-    // If we found any clients with this email
+    // If we found a client with this email
     if (existingClient) {
       console.log("Found existing client with this email:", existingClient.id);
       
