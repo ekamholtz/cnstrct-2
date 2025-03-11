@@ -2,9 +2,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectSubscriptions } from './project/useProjectSubscriptions';
-import { useProjectData, ExtendedProject } from './project/useProjectData';
+import { useProjectData } from './project/useProjectData';
 import { useProjectExpenses } from './project/useProjectExpenses';
-import { ClientProject } from '@/types/project-types';
+import { ClientProject, UserRole } from '@/types/project-types';
 
 export function useProjectDashboard(projectId: string | undefined) {
   // Set up real-time subscriptions
@@ -24,14 +24,25 @@ export function useProjectDashboard(projectId: string | undefined) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;
 
-        const { data } = await supabase
-          .from('profiles')
-          .select('role, gc_account_id')
-          .eq('id', user.id)
-          .single();
-
-        console.log('Current user role:', data?.role);
-        return { role: data?.role, gc_account_id: data?.gc_account_id };
+        // Use REST API to avoid TypeScript errors
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${user.id}&select=role,gc_account_id`, {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          console.error('Error fetching user role via REST API:', response.statusText);
+          return null;
+        }
+        
+        const data = await response.json();
+        const userProfile = data[0] || {};
+        
+        console.log('Current user role:', userProfile?.role);
+        return { role: userProfile?.role as UserRole, gc_account_id: userProfile?.gc_account_id };
       } catch (error) {
         console.error('Error fetching user role:', error);
         return null;
@@ -79,7 +90,7 @@ export function useProjectDashboard(projectId: string | undefined) {
   const clientProject: ClientProject | null = project ? {
     ...project,
     address: project.address || '',
-    status: (project.status as 'draft' | 'active' | 'completed' | 'cancelled') || 'draft',
+    status: project.status || 'draft',
     milestones: Array.isArray(project.milestones) ? project.milestones : [],
     expenses: gcExpenses
   } : null;

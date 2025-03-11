@@ -1,4 +1,5 @@
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { ClientProject } from '@/types/project-types';
@@ -41,7 +42,7 @@ export function useProjectData(projectId: string | undefined) {
         ...data,
         milestones: data.milestones || [],
         address: data.address || '',
-        status: data.status || 'draft'
+        status: (data.status as 'draft' | 'active' | 'completed' | 'cancelled') || 'draft'
       };
 
       return transformedProject;
