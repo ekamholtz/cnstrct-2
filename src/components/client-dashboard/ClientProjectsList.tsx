@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { linkClientToUser } from "@/utils/client-utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ClientProject, SimplifiedMilestone } from "@/types/project-types";
 
 interface Project {
   id: string;
@@ -124,115 +125,161 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
           navigate('/auth');
           return;
         }
-        
-        console.log('User authenticated:', user.id);
-        console.log('User email:', user.email);
-        
-        if (!user.email) {
-          throw new Error('User email not found');
+
+        console.log('Starting project fetch for user:', user.id);
+
+        // First, get client records for this user using REST API
+        const clientResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/clients?user_id=eq.${user.id}`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+
+        if (!clientResponse.ok) {
+          console.error('Error finding client records:', clientResponse.statusText);
+          throw new Error('Error finding client records');
         }
-        
-        // Find client by user ID or email
-        const foundClient = await findClientByUserIdOrEmail(user.id, user.email);
-        
-        if (!foundClient) {
-          console.log('No client found for this user');
-          setError('No client profile found for your account.');
+
+        const clientsData = await clientResponse.json();
+        console.log('Client data found:', clientsData);
+
+        if (!clientsData || clientsData.length === 0) {
+          console.log('No client record found for user:', user.id);
+          setProjects([]);
           setLoading(false);
           return;
         }
-        
-        setClient(foundClient);
-        console.log('Client set:', foundClient.id, foundClient.name);
-        
-        // Fetch projects for the client
-        const clientProjects = await fetchProjectsForClient(foundClient.id);
-        setProjects(clientProjects);
-        
+
+        // Get the first client record (there should typically only be one)
+        const clientData = clientsData[0];
+        setClient(clientData);
+
+        // Now fetch projects using the client ID
+        const projectsResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/projects?client_id=eq.${clientData.id}${limit ? `&limit=${limit}` : ''}`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            }
+          }
+        );
+
+        if (!projectsResponse.ok) {
+          console.error('Error fetching projects:', projectsResponse.statusText);
+          throw new Error('Error fetching projects');
+        }
+
+        const projectsData = await projectsResponse.json();
+        console.log('Projects found:', projectsData);
+        setProjects(projectsData || []);
+        setLoading(false);
       } catch (err) {
         console.error('Error in ClientProjectsList:', err);
-        setError('Failed to load your projects. Please try again later.');
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load your projects. Please try again later.",
-        });
-      } finally {
+        setError(err instanceof Error ? err.message : String(err));
         setLoading(false);
+        toast({
+          title: "Error",
+          description: "Failed to load projects. Please try again later.",
+          variant: "destructive"
+        });
       }
     };
 
     fetchData();
-  }, [navigate, toast]);
+  }, [navigate, toast, limit]);
 
-  const handleViewProject = (projectId: string) => {
+  const handleProjectClick = (projectId: string) => {
     navigate(`/project/${projectId}`);
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-48">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <div className="animate-pulse">
+        <Card className="mb-8">
+          <CardHeader>
+            <div className="h-7 bg-slate-200 rounded w-1/3"></div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="h-12 bg-slate-200 rounded"></div>
+              <div className="h-12 bg-slate-200 rounded"></div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   if (error) {
     return (
-      <Alert>
-        <AlertDescription>{error}</AlertDescription>
+      <Alert variant="destructive" className="mb-8">
+        <AlertDescription>
+          {error}
+        </AlertDescription>
       </Alert>
     );
   }
 
   if (projects.length === 0) {
     return (
-      <Alert>
-        <AlertDescription>
-          No projects found. When your contractor creates projects for you, they will appear here.
-        </AlertDescription>
-      </Alert>
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Your Projects</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground mb-4">You don't have any projects yet.</p>
+          {client && (
+            <Button onClick={() => navigate('/client-projects')}>
+              View All Projects
+            </Button>
+          )}
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {projects.map((project) => (
-        <Card key={project.id} className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <CardTitle className="text-lg">{project.name}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500 mb-4 line-clamp-2">
-              {project.description || "No description provided"}
-            </p>
-            <div className="flex justify-between items-center">
-              <span
-                className={`px-2 py-1 text-xs rounded-full ${
-                  project.status === "completed"
-                    ? "bg-green-100 text-green-800"
-                    : project.status === "in_progress"
-                    ? "bg-blue-100 text-blue-800"
-                    : "bg-gray-100 text-gray-800"
-                }`}
-              >
-                {project.status === "in_progress"
-                  ? "In Progress"
-                  : project.status === "completed"
-                  ? "Completed"
-                  : project.status || "Unknown"}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleViewProject(project.id)}
-              >
-                View Details
-              </Button>
+    <Card className="mb-8">
+      <CardHeader>
+        <CardTitle>Your Projects</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {projects.map((project) => (
+            <div 
+              key={project.id}
+              className="p-4 border rounded-lg hover:bg-muted transition-colors cursor-pointer"
+              onClick={() => handleProjectClick(project.id)}
+            >
+              <h3 className="font-semibold">{project.name}</h3>
+              <p className="text-sm text-muted-foreground">{project.description}</p>
+              <div className="flex justify-between items-center mt-2">
+                <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded">
+                  {project.status}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  Created: {new Date(project.created_at).toLocaleDateString()}
+                </span>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+          ))}
+        </div>
+        {projects.length > 0 && client && (
+          <div className="mt-4">
+            <Button variant="outline" onClick={() => navigate('/client-projects')}>
+              View All Projects
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

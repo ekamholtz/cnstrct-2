@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -117,11 +118,8 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // Handle homeowner accessing GC routes
-  if (currentRole === 'homeowner' && 
-      ['/invoice', '/invoices'].includes(location.pathname)) {
-    return <Navigate to="/client-dashboard" replace />;
-  }
+  // REMOVED THE HOMEOWNER INVOICE REDIRECTION: Allow homeowners to access invoice pages
+  // This allows the homeowner to view their invoices
 
   const Navigation = currentRole === 'admin' ? AdminNav : MainNav;
   

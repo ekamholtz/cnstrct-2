@@ -1,63 +1,82 @@
-import { ClientProject } from "@/types/project-types";
-import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Building2, Calendar, ClipboardList, MapPin } from "lucide-react";
+import { ClientProject } from "@/types/project-types";
 import { Link } from "react-router-dom";
-import { MapPin } from "lucide-react";
-import { calculateProjectCompletion } from "@/utils/project-calculations";
+import { formatCurrency } from "@/utils/format";
 
 interface ClientProjectCardProps {
   project: ClientProject;
 }
 
 export function ClientProjectCard({ project }: ClientProjectCardProps) {
-  const completionPercentage = calculateProjectCompletion(project.milestones);
-
+  // Calculate progress based on completed milestones
+  const totalMilestones = project.milestones?.length || 0;
+  const completedMilestones = project.milestones?.filter(m => m.status === 'completed')?.length || 0;
+  const progress = totalMilestones > 0 ? Math.round((completedMilestones / totalMilestones) * 100) : 0;
+  
+  // Format the address nicely
+  const formattedAddress = project.address || 'No address provided';
+  
+  // Determine status color
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'planning':
-        return 'bg-blue-100 text-blue-800';
-      case 'in_progress':
-        return 'bg-green-100 text-green-800';
-      case 'pending_approval':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'completed':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+    switch (status.toLowerCase()) {
+      case 'active': return 'bg-green-100 text-green-800';
+      case 'completed': return 'bg-blue-100 text-blue-800';
+      case 'on hold': return 'bg-yellow-100 text-yellow-800';
+      case 'draft': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const formatStatus = (status: string) => {
-    return status.split('_').map(word => 
-      word.charAt(0).toUpperCase() + word.slice(1)
-    ).join(' ');
   };
 
   return (
     <Link to={`/project/${project.id}`}>
-      <Card 
-        variant="glass" 
-        className="hover:shadow-lg transition-all duration-200 cursor-pointer border border-white/20"
-      >
+      <Card className="h-full cursor-pointer hover:shadow-md transition-shadow">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
-            <h3 className="font-semibold text-lg">{project.name}</h3>
-            <div className="flex items-center gap-3">
-              <Badge className={`${getStatusColor(project.status)}`}>
-                {formatStatus(project.status)}
-              </Badge>
-              <span className="text-sm font-medium">{completionPercentage}%</span>
-            </div>
+            <CardTitle className="text-lg font-semibold text-[#172b70]">{project.name}</CardTitle>
+            <Badge className={getStatusColor(project.status)}>
+              {project.status.charAt(0).toUpperCase() + project.status.slice(1)}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-start gap-2">
-              <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
-              <p className="text-sm">{project.address}</p>
+          <div className="space-y-4">
+            <div className="flex items-start space-x-2">
+              <MapPin className="h-4 w-4 text-gray-500 mt-0.5" />
+              <span className="text-sm text-gray-600">{formattedAddress}</span>
             </div>
-            <Progress value={completionPercentage} className="h-2" />
+            
+            {/* Progress bar */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs text-gray-600">
+                <span>Progress</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  className="bg-[#172b70] h-2 rounded-full"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-2">
+              <ClipboardList className="h-4 w-4 text-gray-500 mt-0.5" />
+              <span className="text-sm text-gray-600">
+                {completedMilestones} of {totalMilestones} milestones completed
+              </span>
+            </div>
+            
+            {project.total_contract_value ? (
+              <div className="flex items-start space-x-2">
+                <Building2 className="h-4 w-4 text-gray-500 mt-0.5" />
+                <span className="text-sm text-gray-600">
+                  Contract value: {formatCurrency(project.total_contract_value)}
+                </span>
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>

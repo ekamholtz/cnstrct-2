@@ -36,7 +36,6 @@ export function MainNav() {
   const location = useLocation();
   const { toast } = useToast();
 
-  // Handle scroll effect for nav bar
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -102,9 +101,8 @@ export function MainNav() {
   // Role-based invoice route
   const invoicesRoute = profile?.role === 'homeowner' ? '/client-invoices' : 
                        profile?.role === 'platform_admin' ? '/admin/invoices' :
-                       '/invoice';
+                       '/invoices';
 
-  // Only show reporting for GC admins and platform admins
   const showReporting = profile?.role === 'gc_admin' || profile?.role === 'platform_admin';
 
   const navItems = [
@@ -117,7 +115,7 @@ export function MainNav() {
   ];
 
   const isActive = (path: string) => {
-    if (path === '/invoice' || path === '/client-invoices') {
+    if (path === '/invoice' || path === '/invoices' || path === '/client-invoices') {
       return location.pathname === '/invoice' || location.pathname === '/invoices' || location.pathname === '/client-invoices';
     }
     return location.pathname === path;
