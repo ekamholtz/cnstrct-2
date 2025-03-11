@@ -1,3 +1,4 @@
+
 import { ProjectHeader } from "./ProjectHeader";
 import { ProjectFinancialMetrics } from "./ProjectFinancialMetrics";
 import { TabbedContent } from "./TabbedContent";
@@ -23,7 +24,7 @@ export function ProjectDashboardContent({
   userRole
 }: ProjectDashboardContentProps) {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 mt-16"> {/* Added mt-16 for proper spacing below the fixed header */}
       <ProjectHeader project={project} />
       
       {/* Add Financial Metrics Section */}
