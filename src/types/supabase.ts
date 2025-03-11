@@ -211,7 +211,7 @@ export interface Database {
           full_name: string
           email: string
           phone_number: string | null
-          role: "homeowner" | "contractor" | "project_manager"
+          role: "homeowner" | "contractor" | "project_manager" | "gc_admin" | "platform_admin"
           gc_account_id: string
           company_name: string | null
           license_number: string | null
@@ -229,7 +229,7 @@ export interface Database {
           full_name: string
           email: string
           phone_number?: string | null
-          role: "homeowner" | "contractor" | "project_manager"
+          role: "homeowner" | "contractor" | "project_manager" | "gc_admin" | "platform_admin"
           gc_account_id: string
           company_name?: string | null
           license_number?: string | null
@@ -247,7 +247,7 @@ export interface Database {
           full_name?: string
           email?: string
           phone_number?: string | null
-          role?: "homeowner" | "contractor" | "project_manager"
+          role?: "homeowner" | "contractor" | "project_manager" | "gc_admin" | "platform_admin"
           gc_account_id?: string
           company_name?: string | null
           license_number?: string | null
@@ -358,28 +358,31 @@ export interface Database {
         Row: {
           id: string
           name: string
-          owner_id: string
-          created_at: string | null
-          updated_at: string | null
+          account_status: string
+          created_at: string
+          updated_at: string
+          owner_user_id?: string
         }
         Insert: {
-          id: string
+          id?: string
           name: string
-          owner_id: string
-          created_at?: string | null
-          updated_at?: string | null
+          account_status?: string
+          created_at?: string
+          updated_at?: string
+          owner_user_id?: string
         }
         Update: {
           id?: string
           name?: string
-          owner_id?: string
-          created_at?: string | null
-          updated_at?: string | null
+          account_status?: string
+          created_at?: string
+          updated_at?: string
+          owner_user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "gc_accounts_owner_id_fkey"
-            columns: ["owner_id"]
+            foreignKeyName: "gc_accounts_owner_user_id_fkey"
+            columns: ["owner_user_id"]
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
@@ -390,31 +393,40 @@ export interface Database {
           id: string
           project_id: string
           name: string
-          amount: number
-          status: string
           description?: string
+          amount: number
+          due_date?: string
+          status: string
+          order_index: number
           created_at: string
           updated_at: string
+          invoice_id?: string
         }
         Insert: {
-          id: string
+          id?: string
           project_id: string
           name: string
-          amount: number
-          status: string
           description?: string
+          amount: number
+          due_date?: string
+          status?: string
+          order_index?: number
           created_at?: string
           updated_at?: string
+          invoice_id?: string
         }
         Update: {
           id?: string
           project_id?: string
           name?: string
-          amount?: number
-          status?: string
           description?: string
+          amount?: number
+          due_date?: string
+          status?: string
+          order_index?: number
           created_at?: string
           updated_at?: string
+          invoice_id?: string
         }
         Relationships: [
           {
@@ -429,33 +441,53 @@ export interface Database {
         Row: {
           id: string
           name: string
-          email: string
-          phone_number?: string
+          email?: string
+          phone?: string
           address?: string
-          user_id?: string
+          notes?: string
+          gc_account_id: string
           created_at: string
           updated_at: string
+          client_user_id?: string
         }
         Insert: {
           id?: string
           name: string
-          email: string
-          phone_number?: string
+          email?: string
+          phone?: string
           address?: string
-          user_id?: string
+          notes?: string
+          gc_account_id: string
           created_at?: string
           updated_at?: string
+          client_user_id?: string
         }
         Update: {
           id?: string
           name?: string
           email?: string
-          phone_number?: string
+          phone?: string
           address?: string
-          user_id?: string
+          notes?: string
+          gc_account_id?: string
           created_at?: string
           updated_at?: string
+          client_user_id?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "clients_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            referencedRelation: "gc_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_client_user_id_fkey"
+            columns: ["client_user_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       homeowner_expenses: {
         Row: {
@@ -464,11 +496,11 @@ export interface Database {
           name: string
           amount: number
           expense_date: string
-          expense_type: string
-          payment_status: string
           notes?: string
           created_at: string
           updated_at: string
+          client_id?: string
+          receipt_url?: string
         }
         Insert: {
           id?: string
@@ -476,11 +508,11 @@ export interface Database {
           name: string
           amount: number
           expense_date: string
-          expense_type: string
-          payment_status?: string
           notes?: string
           created_at?: string
           updated_at?: string
+          client_id?: string
+          receipt_url?: string
         }
         Update: {
           id?: string
@@ -488,11 +520,11 @@ export interface Database {
           name?: string
           amount?: number
           expense_date?: string
-          expense_type?: string
-          payment_status?: string
           notes?: string
           created_at?: string
           updated_at?: string
+          client_id?: string
+          receipt_url?: string
         }
         Relationships: [
           {
@@ -500,59 +532,86 @@ export interface Database {
             columns: ["project_id"]
             referencedRelation: "projects"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homeowner_expenses_client_id_fkey"
+            columns: ["client_id"]
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
           }
         ]
       }
       invoices: {
         Row: {
           id: string
+          client_id: string
           project_id: string
-          milestone_id: string
-          gc_account_id: string
-          invoice_number: string
+          invoice_number?: string
+          description?: string
           amount: number
-          status: "pending_payment" | "paid" | "cancelled"
+          invoice_date?: string
+          due_date?: string
+          status: string
+          notes?: string
+          created_at: string
+          updated_at: string
+          milestone_id?: string
           payment_method?: string
           payment_date?: string
           payment_reference?: string
           payment_gateway?: string
+          payment_method_type?: string
           simulation_data?: Json
-          created_at: string
-          updated_at: string
         }
         Insert: {
           id?: string
+          client_id: string
           project_id: string
-          milestone_id: string
-          gc_account_id: string
-          invoice_number: string
+          invoice_number?: string
+          description?: string
           amount: number
-          status?: "pending_payment" | "paid" | "cancelled"
+          invoice_date?: string
+          due_date?: string
+          status?: string
+          notes?: string
+          created_at?: string
+          updated_at?: string
+          milestone_id?: string
           payment_method?: string
           payment_date?: string
           payment_reference?: string
           payment_gateway?: string
+          payment_method_type?: string
           simulation_data?: Json
-          created_at?: string
-          updated_at?: string
         }
         Update: {
           id?: string
+          client_id?: string
           project_id?: string
-          milestone_id?: string
-          gc_account_id?: string
           invoice_number?: string
+          description?: string
           amount?: number
-          status?: "pending_payment" | "paid" | "cancelled"
+          invoice_date?: string
+          due_date?: string
+          status?: string
+          notes?: string
+          created_at?: string
+          updated_at?: string
+          milestone_id?: string
           payment_method?: string
           payment_date?: string
           payment_reference?: string
           payment_gateway?: string
+          payment_method_type?: string
           simulation_data?: Json
-          created_at?: string
-          updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "invoices_project_id_fkey"
             columns: ["project_id"]
@@ -606,6 +665,81 @@ export interface Database {
             referencedColumns: ["id"]
           }
         ]
+      }
+      admin_actions: {
+        Row: {
+          id: string
+          admin_id: string
+          action_type: string
+          target_table: string
+          target_id: string
+          details: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          admin_id: string
+          action_type: string
+          target_table: string
+          target_id: string
+          details: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          admin_id?: string
+          action_type?: string
+          target_table?: string
+          target_id?: string
+          details?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_admin_id_fkey"
+            columns: ["admin_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      supported_payment_methods: {
+        Row: {
+          id: string
+          code: string
+          name: string
+          description: string
+          is_active: boolean
+          is_default: boolean
+          requires_gateway: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          name: string
+          description: string
+          is_active: boolean
+          is_default?: boolean
+          requires_gateway?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          name?: string
+          description?: string
+          is_active?: boolean
+          is_default?: boolean
+          requires_gateway?: boolean
+          created_at?: string
+          updated_at?: string
+        }
       }
     }
     Views: {

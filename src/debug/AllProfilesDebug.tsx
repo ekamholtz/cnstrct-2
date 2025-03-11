@@ -180,7 +180,7 @@ export const AllProfilesDebug = () => {
                 <p><strong>GC Account ID:</strong> {currentUser.gc_account_id || 'N/A'}</p>
                 <p><strong>GC Account ID Length:</strong> {currentUser.gc_account_id?.length || 0}</p>
                 <p><strong>GC Account ID (Hex):</strong> {typeof currentUser.gc_account_id === 'string' ? 
-                  Array.from(currentUser.gc_account_id).map((c: string) => typeof c === 'string' ? c.charCodeAt(0).toString(16).padStart(2, '0') : 'N/A').join(' ') : 
+                  Array.from(currentUser.gc_account_id).map((c: string) => (c as string).charCodeAt(0).toString(16).padStart(2, '0')).join(' ') : 
                   'Not available'}</p>
               </div>
             ) : (
