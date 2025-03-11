@@ -56,15 +56,6 @@ const ProjectDashboard = () => {
     );
   }
 
-  const clientProject: ClientProject = {
-    ...project,
-    address: project.address || '', // Ensure address is not undefined
-    status: (project.status as 'draft' | 'active' | 'completed' | 'cancelled') || 'draft',
-    milestones: Array.isArray(project.milestones) ? project.milestones : [],
-    // Explicitly add expenses for PnL calculations
-    expenses: gcExpenses
-  };
-
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
       <div className="bg-[#172b70] text-white">
@@ -72,7 +63,7 @@ const ProjectDashboard = () => {
       </div>
       <ErrorBoundary>
         <ProjectDashboardContent
-          project={clientProject}
+          project={project}
           homeownerExpenses={homeownerExpenses}
           gcExpenses={gcExpenses}
           invoices={invoices || []}

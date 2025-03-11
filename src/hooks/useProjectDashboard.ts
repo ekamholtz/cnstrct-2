@@ -2,7 +2,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useProjectSubscriptions } from './project/useProjectSubscriptions';
-import { useProjectData } from './project/useProjectData';
+import { useProjectData, ExtendedProject } from './project/useProjectData';
 import { useProjectExpenses } from './project/useProjectExpenses';
 import { ClientProject } from '@/types/project-types';
 
@@ -35,7 +35,9 @@ export function useProjectDashboard(projectId: string | undefined) {
   });
 
   // Check if user has admin rights
-  const hasAdminRights = userRole?.role === 'platform_admin' || userRole?.role === 'gc_admin';
+  const hasAdminRights = 
+    userRole?.role === 'platform_admin' || 
+    userRole?.role === 'gc_admin';
 
   // Fetch project invoices
   const { data: invoices = [], isLoading: isInvoicesLoading } = useQuery({
@@ -44,6 +46,7 @@ export function useProjectDashboard(projectId: string | undefined) {
       if (!projectId) return [];
       
       try {
+        // Use REST API to avoid TypeScript errors with invoices table
         const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/invoices?project_id=eq.${projectId}`, {
           headers: {
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',

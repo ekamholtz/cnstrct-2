@@ -5,6 +5,7 @@ import { toast } from '@/components/ui/use-toast';
 import { useState } from 'react';
 import { Project } from '@/types/project';
 
+// Define extended project type to include related data
 export interface ExtendedProject extends Project {
   client?: {
     id: string;
@@ -94,11 +95,11 @@ export function useProjectData(projectId: string | undefined) {
 
         setPermissionError(null);
 
-        // Ensure we're returning the correct type
+        // Ensure we're returning the correct type with proper defaults
         const typedData: ExtendedProject = {
           ...data,
           client: data.client || undefined,
-          milestones: data.milestones || [],
+          milestones: Array.isArray(data.milestones) ? data.milestones : [],
           address: data.address || '',
           status: (data.status as 'draft' | 'active' | 'completed' | 'cancelled') || 'draft'
         };
