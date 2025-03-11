@@ -82,6 +82,7 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
   }, [navigate, toast, limit]);
 
   const handleProjectClick = (projectId: string) => {
+    // Navigate to the project details page with the correct route
     navigate(`/project/${projectId}`);
   };
 

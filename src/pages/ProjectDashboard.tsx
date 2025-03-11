@@ -27,7 +27,12 @@ const ProjectDashboard = () => {
     if (!projectId) {
       navigate('/dashboard');
     }
-  }, [projectId, navigate]);
+    
+    console.log("ProjectDashboard - Current project ID:", projectId);
+    console.log("ProjectDashboard - Current user role:", userRole);
+    console.log("ProjectDashboard - Is loading:", isLoading);
+    console.log("ProjectDashboard - Project data:", project);
+  }, [projectId, navigate, userRole, isLoading, project]);
 
   if (isLoading) {
     return (
@@ -52,6 +57,36 @@ const ProjectDashboard = () => {
         <div className="container mx-auto px-4 py-8">
           <ProjectNotFound errorMessage={permissionError || "Project not found or you don't have permission to view it."} />
         </div>
+      </div>
+    );
+  }
+
+  // For mock projects, we need special handling
+  const isMockProject = projectId?.startsWith('mock-');
+  if (isMockProject) {
+    // Create placeholder data for mock projects
+    const mockProject = {
+      ...project,
+      id: projectId || '',
+      name: project.name || 'Mock Project',
+      description: project.description || 'This is a mock project for demonstration purposes.'
+    };
+    
+    return (
+      <div className="min-h-screen bg-[#f5f7fa]">
+        <div className="bg-[#172b70] text-white">
+          <MainNav />
+        </div>
+        <ErrorBoundary>
+          <ProjectDashboardContent
+            project={mockProject as ClientProject}
+            homeownerExpenses={[]}
+            gcExpenses={[]}
+            invoices={invoices || []}
+            projectId={projectId || ''}
+            userRole={userRole}
+          />
+        </ErrorBoundary>
       </div>
     );
   }
