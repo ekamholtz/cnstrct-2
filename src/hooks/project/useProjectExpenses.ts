@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -66,7 +65,7 @@ export function useProjectExpenses(projectId: string | undefined) {
           return [];
         }
 
-        // Fetch payments separately using REST API to avoid type errors
+        // Fetch payments using REST API
         const paymentsResponse = await fetch(
           `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/payments?expense_id=in.(${data.map(e => e.id).join(',')})`,
           {
@@ -78,20 +77,13 @@ export function useProjectExpenses(projectId: string | undefined) {
           }
         );
 
-        if (!paymentsResponse.ok) {
-          console.log('No payments found or error fetching payments');
-          return data.map(expense => ({ ...expense, payments: [] }));
-        }
-
         const payments = await paymentsResponse.json();
         
         // Combine expenses with their payments
-        const expensesWithPayments = data.map(expense => ({
+        return data.map(expense => ({
           ...expense,
           payments: payments.filter(p => p.expense_id === expense.id) || []
         }));
-
-        return expensesWithPayments || [];
       } catch (error) {
         console.error('Error in gcExpenses query:', error);
         return [];

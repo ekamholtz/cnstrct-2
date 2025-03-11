@@ -1,3 +1,4 @@
+
 export interface Milestone {
   id: string;
   name: string;
@@ -21,7 +22,8 @@ export interface ClientProject {
   client_id?: string;
   created_at: string;
   updated_at: string;
-  milestones?: SimplifiedMilestone[];
+  description?: string;
+  milestones: Milestone[];
   expenses?: any[]; // Add expenses array for PnL calculations
 }
 
