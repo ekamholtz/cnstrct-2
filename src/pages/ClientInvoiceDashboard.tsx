@@ -1,21 +1,26 @@
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { ClientDashboardLayout } from "@/components/layout/ClientDashboardLayout";
 import { ClientPageHeader } from "@/components/client-dashboard/ClientPageHeader";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { ClientInvoiceSummary } from "@/components/client-dashboard/ClientInvoiceSummary";
-import { useClientInvoices } from "@/components/client-dashboard/hooks/useClientInvoices";
-import { InvoiceList } from "@/components/client-dashboard/components/InvoiceList";
 
 export default function ClientInvoiceDashboard() {
-  const { data, isLoading, error } = useClientInvoices();
-  
+  const [isLoaded, setIsLoaded] = useState(false);
+
   useEffect(() => {
-    // Log data when it changes to help with debugging
-    console.log("Invoice data in dashboard:", data);
-  }, [data]);
+    // Simple effect to mark component as loaded after initial render
+    setIsLoaded(true);
+    
+    // Log for debugging
+    console.log("ClientInvoiceDashboard mounted");
+    
+    return () => {
+      console.log("ClientInvoiceDashboard unmounted");
+    };
+  }, []);
 
   return (
     <ClientDashboardLayout>
@@ -35,43 +40,14 @@ export default function ClientInvoiceDashboard() {
       
       <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
         <h2 className="text-xl font-semibold text-[#172b70] mb-6">Invoice Summary</h2>
-        {isLoading ? (
+        {isLoaded ? (
+          <ClientInvoiceSummary />
+        ) : (
           <div className="flex justify-center items-center h-48">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
           </div>
-        ) : error ? (
-          <div className="text-red-500">
-            Failed to load invoice summary. Please try again later.
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="bg-blue-50 p-4 rounded-lg flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-medium text-blue-700">Pending Payments</h3>
-                <p className="text-sm text-blue-600">Invoices awaiting payment</p>
-              </div>
-              <div className="text-2xl font-bold text-blue-700">${(data?.totalPending || 0).toLocaleString()}</div>
-            </div>
-          </div>
         )}
       </div>
-      
-      {isLoading ? (
-        <div className="flex justify-center items-center h-48 mt-6">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      ) : error ? (
-        <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
-          <div className="text-red-500">
-            Failed to load invoices. Please try again later.
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
-          <h2 className="text-xl font-semibold text-[#172b70] mb-6">Recent Invoices</h2>
-          <InvoiceList invoices={data?.invoices || []} />
-        </div>
-      )}
     </ClientDashboardLayout>
   );
 }
