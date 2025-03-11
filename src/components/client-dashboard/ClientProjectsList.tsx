@@ -69,18 +69,24 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
 
         console.log('Starting project fetch for user:', user.id);
 
-        // First, get all client records for this user directly from auth user data
-        // This avoids the need to query the profiles table which has RLS issues
-        const { data: clientsData, error: clientError } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('user_id', user.id);
+        // First, get client records for this user using REST API
+        const clientResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/clients?user_id=eq.${user.id}`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
 
-        if (clientError) {
-          console.error('Error finding client records:', clientError);
-          throw clientError;
+        if (!clientResponse.ok) {
+          console.error('Error finding client records:', clientResponse.statusText);
+          throw new Error('Error finding client records');
         }
 
+        const clientsData = await clientResponse.json();
         console.log('Client data found:', clientsData);
 
         if (!clientsData || clientsData.length === 0) {
@@ -91,40 +97,54 @@ export function ClientProjectsList({ limit }: ClientProjectsListProps) {
         // Get the first client record (there should typically only be one)
         const clientData = clientsData[0];
 
-        let query = supabase
-          .from('projects')
-          .select(`
-            *,
-            milestones (
-              id,
-              name,
-              amount,
-              status
-            )
-          `)
-          .eq('client_id', clientData.id)
-          .not('client_id', 'is', null)
-          .order('created_at', { ascending: false });
+        // Now fetch projects using the client ID
+        const projectsResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/projects?client_id=eq.${clientData.id}${limit ? `&limit=${limit}` : ''}`,
+          {
+            headers: {
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=representation'
+            }
+          }
+        );
 
-        // Apply limit if provided
-        if (limit) {
-          query = query.limit(limit);
+        if (!projectsResponse.ok) {
+          console.error('Error fetching projects:', projectsResponse.statusText);
+          throw new Error('Error fetching projects');
         }
 
-        const { data: projectsData, error: projectsError } = await query;
-
-        if (projectsError) {
-          console.error('Error fetching projects:', projectsError);
-          throw projectsError;
-        }
-
+        const projectsData = await projectsResponse.json();
         console.log('Projects found:', projectsData);
         
-        // Transform the data to match our ClientProject type
-        const clientProjects: ClientProject[] = projectsData?.map(project => ({
-          ...project,
-          milestones: project.milestones as SimplifiedMilestone[]
-        })) || [];
+        // For each project, fetch its milestones
+        const clientProjects: ClientProject[] = await Promise.all(
+          projectsData.map(async (project: any) => {
+            const milestonesResponse = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/milestones?project_id=eq.${project.id}`,
+              {
+                headers: {
+                  'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+                  'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+                  'Content-Type': 'application/json'
+                }
+              }
+            );
+            
+            let milestones: SimplifiedMilestone[] = [];
+            if (milestonesResponse.ok) {
+              milestones = await milestonesResponse.json();
+            }
+            
+            return {
+              ...project,
+              milestones,
+              address: project.address || '',
+              status: project.status || 'draft'
+            } as ClientProject;
+          })
+        );
         
         return clientProjects;
       } catch (error) {

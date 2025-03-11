@@ -59,7 +59,7 @@ export function useProjectDashboard(projectId: string | undefined) {
   const { data: invoices = [], isLoading: isInvoicesLoading } = useQuery({
     queryKey: ['project-invoices', projectId],
     queryFn: async () => {
-      if (!projectId) return [];
+      if (!projectId || permissionError) return [];
       
       try {
         // Use REST API to avoid TypeScript errors with invoices table

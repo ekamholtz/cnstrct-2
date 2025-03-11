@@ -18,34 +18,54 @@ export const useClientInvoices = () => {
 
       console.log('Step 1: Starting query with user:', user.id);
 
-      const { data: client, error: clientError } = await supabase
-        .from('clients')
-        .select('id, name, user_id')
-        .eq('user_id', user.id)
-        .single();
+      // Get client record using REST API
+      const clientResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/clients?user_id=eq.${user.id}&select=id,name,user_id`,
+        {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      if (clientError) {
-        console.error('Step 1 Error - Failed to fetch client:', clientError);
+      if (!clientResponse.ok) {
+        console.error('Step 1 Error - Failed to fetch client:', clientResponse.statusText);
         toast({
           variant: "destructive",
           title: "Error",
           description: "Failed to fetch client information",
         });
-        throw clientError;
+        throw new Error('Failed to fetch client');
       }
 
+      const clientsData = await clientResponse.json();
+      if (!clientsData || clientsData.length === 0) {
+        return { invoices: [], totalPending: 0 };
+      }
+      
+      const client = clientsData[0];
       console.log('Step 2: Found client:', client);
 
-      const { data: projects, error: projectsError } = await supabase
-        .from('projects')
-        .select('id, name')
-        .eq('client_id', client.id);
+      // Get projects
+      const projectsResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/projects?client_id=eq.${client.id}&select=id,name`,
+        {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      if (projectsError) {
-        console.error('Step 3 Error - Failed to fetch projects:', projectsError);
-        throw projectsError;
+      if (!projectsResponse.ok) {
+        console.error('Step 3 Error - Failed to fetch projects:', projectsResponse.statusText);
+        throw new Error('Failed to fetch projects');
       }
 
+      const projects = await projectsResponse.json();
       console.log('Step 3: Found projects:', projects);
 
       if (!projects?.length) {
@@ -53,17 +73,26 @@ export const useClientInvoices = () => {
         return { invoices: [], totalPending: 0 };
       }
 
-      const projectIds = projects.map(p => p.id);
-      const { data: milestones, error: milestonesError } = await supabase
-        .from('milestones')
-        .select('id, name, project_id')
-        .in('project_id', projectIds);
+      const projectIds = projects.map((p: any) => p.id);
+      
+      // Get milestones
+      const milestonesResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/milestones?project_id=in.(${projectIds.join(',')})&select=id,name,project_id`,
+        {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      if (milestonesError) {
-        console.error('Step 4 Error - Failed to fetch milestones:', milestonesError);
-        throw milestonesError;
+      if (!milestonesResponse.ok) {
+        console.error('Step 4 Error - Failed to fetch milestones:', milestonesResponse.statusText);
+        throw new Error('Failed to fetch milestones');
       }
 
+      const milestones = await milestonesResponse.json();
       console.log('Step 4: Found milestones:', milestones);
 
       if (!milestones?.length) {
@@ -71,66 +100,88 @@ export const useClientInvoices = () => {
         return { invoices: [], totalPending: 0 };
       }
 
-      const milestoneIds = milestones.map(m => m.id);
-      const { data: allPendingInvoices, error: pendingError } = await supabase
-        .from('invoices')
-        .select('amount')
-        .in('milestone_id', milestoneIds)
-        .eq('status', 'pending_payment');
+      const milestoneIds = milestones.map((m: any) => m.id);
+      
+      // Get total pending invoices amount
+      const pendingInvoicesResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/invoices?milestone_id=in.(${milestoneIds.join(',')})&status=eq.pending_payment&select=amount`,
+        {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      if (pendingError) throw pendingError;
+      if (!pendingInvoicesResponse.ok) {
+        throw new Error('Failed to fetch pending invoices');
+      }
 
-      const totalPending = allPendingInvoices?.reduce((sum, inv) => 
+      const allPendingInvoices = await pendingInvoicesResponse.json();
+      const totalPending = allPendingInvoices?.reduce((sum: number, inv: any) => 
         sum + Number(inv.amount), 0) || 0;
 
-      // Use standard format for querying with foreign table data
-      const { data: displayInvoices, error: invoiceError } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          milestone:milestone_id (
-            id,
-            name,
-            project:project_id (
-              id,
-              name
-            )
-          )
-        `)
-        .in('milestone_id', milestoneIds)
-        .eq('status', 'pending_payment')
-        .order('created_at', { ascending: true })
-        .limit(3);
+      // Get display invoices (limited to 3)
+      const displayInvoicesResponse = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/invoices?milestone_id=in.(${milestoneIds.join(',')})&status=eq.pending_payment&order=created_at.asc&limit=3`,
+        {
+          headers: {
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
 
-      if (invoiceError) {
-        console.error('Step 5 Error - Failed to fetch invoices:', invoiceError);
+      if (!displayInvoicesResponse.ok) {
+        console.error('Step 5 Error - Failed to fetch invoices:', displayInvoicesResponse.statusText);
         toast({
           variant: "destructive",
           title: "Error",
           description: "Failed to fetch invoices",
         });
-        throw invoiceError;
+        throw new Error('Failed to fetch invoices');
       }
 
+      const displayInvoices = await displayInvoicesResponse.json();
+
+      // Create a map of milestone IDs to names and project info
+      const milestoneMap = milestones.reduce((acc: Record<string, any>, milestone: any) => {
+        acc[milestone.id] = milestone;
+        return acc;
+      }, {});
+      
+      // Create a map of project IDs to names
+      const projectMap = projects.reduce((acc: Record<string, any>, project: any) => {
+        acc[project.id] = project;
+        return acc;
+      }, {});
+
       // Transform the data to match the Invoice type
-      const transformedInvoices: Invoice[] = displayInvoices?.map(invoice => ({
-        id: invoice.id,
-        invoice_number: invoice.invoice_number,
-        amount: invoice.amount,
-        status: invoice.status,
-        created_at: invoice.created_at,
-        updated_at: invoice.updated_at,
-        milestone_id: invoice.milestone_id,
-        milestone_name: invoice.milestone?.name,
-        project_name: invoice.milestone?.project?.name,
-        project_id: invoice.milestone?.project?.id,
-        payment_method: null,
-        payment_date: null,
-        payment_reference: null,
-        payment_gateway: null,
-        payment_method_type: null,
-        simulation_data: null
-      })) || [];
+      const transformedInvoices: Invoice[] = displayInvoices?.map((invoice: any) => {
+        const milestone = milestoneMap[invoice.milestone_id] || {};
+        const project = projectMap[milestone.project_id] || {};
+        
+        return {
+          id: invoice.id,
+          invoice_number: invoice.invoice_number,
+          amount: invoice.amount,
+          status: invoice.status,
+          created_at: invoice.created_at,
+          updated_at: invoice.updated_at,
+          milestone_id: invoice.milestone_id,
+          milestone_name: milestone.name,
+          project_name: project.name,
+          project_id: milestone.project_id,
+          payment_method: invoice.payment_method,
+          payment_date: invoice.payment_date,
+          payment_reference: invoice.payment_reference,
+          payment_gateway: invoice.payment_gateway,
+          payment_method_type: null,
+          simulation_data: invoice.simulation_data
+        };
+      }) || [];
 
       console.log('Step 5: Final result:', { transformedInvoices, totalPending });
       return { 
