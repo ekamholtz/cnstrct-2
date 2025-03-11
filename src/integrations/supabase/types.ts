@@ -892,6 +892,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      create_get_client_invoices_function: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       generate_invoice_number:
         | {
             Args: Record<PropertyKey, never>
@@ -903,6 +907,28 @@ export type Database = {
             }
             Returns: string
           }
+      get_client_invoices: {
+        Args: {
+          project_ids: string
+        }
+        Returns: {
+          id: string
+          milestone_id: string
+          project_id: string
+          invoice_number: string
+          amount: number
+          status: string
+          milestone_name: string
+          project_name: string
+          payment_method: string
+          payment_date: string
+          payment_reference: string
+          payment_gateway: string
+          simulation_data: Json
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_user_gc_account: {
         Args: Record<PropertyKey, never>
         Returns: string
