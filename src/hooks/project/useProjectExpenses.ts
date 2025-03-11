@@ -12,20 +12,16 @@ export function useProjectExpenses(projectId: string | undefined) {
       }
       
       try {
-        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/homeowner_expenses?project_id=eq.${projectId}`, {
-          headers: {
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
-            'Content-Type': 'application/json'
-          }
-        });
+        const { data, error } = await supabase
+          .from('homeowner_expenses')
+          .select('*')
+          .eq('project_id', projectId);
         
-        if (!response.ok) {
-          console.error('Error fetching homeowner expenses via REST API');
+        if (error) {
+          console.error('Error fetching homeowner expenses:', error);
           return [];
         }
         
-        const data = await response.json();
         return data || [];
       } catch (error) {
         console.error('Error fetching homeowner expenses:', error);
@@ -59,12 +55,12 @@ export function useProjectExpenses(projectId: string | undefined) {
           project:project_id (
             name
           ),
-          payments (
+          payments:expense_payments (
             id,
             amount,
             payment_date,
-            payment_method,
-            status
+            status,
+            notes
           )
         `)
         .eq('project_id', projectId);

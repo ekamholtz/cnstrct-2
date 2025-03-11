@@ -32,12 +32,17 @@ export function useProjectData(projectId: string | undefined) {
             client_id,
             created_at,
             updated_at,
+            client:client_id (
+              id,
+              name,
+              email,
+              phone_number
+            ),
             milestones (
               id,
               name,
               description,
               status,
-              due_date,
               amount,
               project_id,
               created_at,
@@ -50,7 +55,6 @@ export function useProjectData(projectId: string | undefined) {
         if (error) {
           console.error('Error fetching project:', error);
           
-          // Check for specific permission errors
           if (error.code === '42501' || error.message.includes('permission')) {
             setPermissionError('You do not have permission to view this project.');
             toast({
@@ -70,11 +74,10 @@ export function useProjectData(projectId: string | undefined) {
           return null;
         }
 
-        // Clear any previous permission errors
         setPermissionError(null);
-
         return {
           ...data,
+          // Ensure address is never undefined for typescript
           address: data.address || ''
         };
       } catch (err) {
@@ -85,7 +88,7 @@ export function useProjectData(projectId: string | undefined) {
     },
     enabled: !!projectId,
     retry: (failureCount, error: any) => {
-      // Don't retry permission errors
+      // Don't retry on permission errors
       if (error?.code === '42501' || error?.message?.includes('permission') || error?.code === 'PGRST116') {
         return false;
       }
