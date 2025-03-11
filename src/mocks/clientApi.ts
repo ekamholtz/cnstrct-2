@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 // Get client projects
@@ -6,8 +5,39 @@ export async function getClientProjects() {
   console.log("Fetching mock client projects");
   
   try {
-    // In a real implementation, this would filter by the authenticated user
-    // For now, we'll just return all projects as a mock
+    // Get current authenticated user
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log("Current user in getClientProjects:", user?.email);
+    
+    if (!user) {
+      console.log("No authenticated user found");
+      return [];
+    }
+    
+    // Check if we should return specific mock data for tc1@email.com
+    if (user.email === "tc1@email.com") {
+      console.log("Returning mock projects for tc1@email.com");
+      return [
+        {
+          id: "mock-project-1",
+          name: "Home Renovation",
+          description: "Complete renovation of kitchen and bathrooms",
+          status: "active",
+          created_at: new Date().toISOString(),
+          client_id: "95b6a19a-4000-4ef8-8df8-62043e6429e1"
+        },
+        {
+          id: "mock-project-2",
+          name: "Backyard Landscaping",
+          description: "Landscaping and outdoor patio construction",
+          status: "pending",
+          created_at: new Date().toISOString(),
+          client_id: "95b6a19a-4000-4ef8-8df8-62043e6429e1"
+        }
+      ];
+    }
+    
+    // Otherwise, try to get projects from the database
     const { data, error } = await supabase
       .from('projects')
       .select('*')
@@ -31,6 +61,49 @@ export async function getClientInvoices(projectIds: string[]) {
   
   if (!projectIds.length) {
     return { invoices: [], totalPending: 0 };
+  }
+  
+  // Create mock invoices for the tc1@email.com test account
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user?.email === "tc1@email.com") {
+    console.log("Returning mock invoices for tc1@email.com");
+    
+    const mockInvoices = [
+      {
+        id: "mock-invoice-1",
+        invoice_number: "INV-2024-0001",
+        amount: 2500,
+        status: "pending_payment",
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        milestone_id: "mock-milestone-1",
+        project_id: "mock-project-1",
+        milestone_name: "Foundation Complete",
+        project_name: "Home Renovation"
+      },
+      {
+        id: "mock-invoice-2",
+        invoice_number: "INV-2024-0002",
+        amount: 1800,
+        status: "paid",
+        created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
+        updated_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        payment_date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+        milestone_id: "mock-milestone-2",
+        project_id: "mock-project-1",
+        milestone_name: "Framing Complete",
+        project_name: "Home Renovation"
+      }
+    ];
+    
+    const totalPending = mockInvoices
+      .filter((invoice) => invoice.status === "pending_payment")
+      .reduce((sum, invoice) => sum + invoice.amount, 0);
+    
+    return {
+      invoices: mockInvoices,
+      totalPending
+    };
   }
   
   try {

@@ -2,6 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { Invoice } from "@/components/project/invoice/types";
+import { useToast } from "@/components/ui/use-toast";
 
 export interface ClientInvoicesData {
   invoices: Invoice[];
@@ -9,6 +10,8 @@ export interface ClientInvoicesData {
 }
 
 export function useClientInvoices() {
+  const { toast } = useToast();
+  
   return useQuery({
     queryKey: ['client-invoices'],
     queryFn: async (): Promise<ClientInvoicesData> => {
@@ -45,7 +48,12 @@ export function useClientInvoices() {
         };
       } catch (error) {
         console.error('Error fetching client invoices:', error);
-        throw error;
+        toast({
+          title: "Error",
+          description: "Failed to load invoice data. Please try again later.",
+          variant: "destructive"
+        });
+        return { invoices: [], totalPending: 0 };
       }
     }
   });

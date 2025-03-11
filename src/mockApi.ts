@@ -10,7 +10,11 @@ const mockApi = {
     
     // Handle client projects endpoint
     if (url === '/api/client/projects') {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("Current user in mockApi:", user?.email);
+      
       const projects = await getClientProjects();
+      console.log("Returned projects:", projects);
       return { data: projects };
     }
     
