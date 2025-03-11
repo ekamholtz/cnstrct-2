@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -9,6 +10,7 @@ import Dashboard from "@/pages/Dashboard";
 import GCProjects from "@/pages/GCProjects";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientProjectsPage from "@/pages/ClientProjectsPage";
+import ClientInvoiceDashboard from "@/pages/ClientInvoiceDashboard"; // New import
 import ProjectDashboard from "@/pages/ProjectDashboard";
 import InvoiceDashboard from "@/pages/InvoiceDashboard";
 import InvoiceDetails from "@/pages/InvoiceDetails";
@@ -95,6 +97,7 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      {/* For GC users */}
       <Route
         path="/invoices"
         element={
@@ -103,11 +106,12 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      {/* For client/homeowner users */}
       <Route
         path="/invoice"
         element={
           <ProtectedRoute>
-            <InvoiceDashboard />
+            <ClientInvoiceDashboard />
           </ProtectedRoute>
         }
       />
