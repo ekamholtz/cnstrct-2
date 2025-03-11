@@ -55,11 +55,11 @@ export const linkClientToUser = async (
       }
       
       // Update the existing client to link it to this user
-      const { data: updatedClient, error: updateError } = await (supabaseClient as any)
+      const { data: updatedClient, error: updateError } = await supabaseClient
         .from('clients')
         .update({ user_id: userId })
         .eq('id', existingClient.id)
-        .select() as SupabaseResponse<Client[]>;
+        .select().single();
         
       if (updateError) {
         console.error("Error updating client:", updateError);
@@ -67,35 +67,41 @@ export const linkClientToUser = async (
       }
       
       console.log("Successfully linked existing client to user");
-      return updatedClient?.[0] || existingClient;
+      return updatedClient;
     }
     
     // No existing client found, create a new one
     console.log("No existing client found, creating new client record");
     
+    // Get user's profile for additional information
+    const { data: userProfile } = await supabaseClient
+      .from('profiles')
+      .select('full_name, phone_number, address')
+      .eq('id', userId)
+      .single();
+    
     // Create a new client record
-    const { data: newClient, error: createError } = await (supabaseClient as any)
+    const { data: newClient, error: createError } = await supabaseClient
       .from('clients')
       .insert([
         { 
           email: normalizedEmail,
           user_id: userId,
-          name: normalizedEmail.split('@')[0] // Use part of email as temporary name
+          name: userProfile?.full_name || normalizedEmail.split('@')[0],
+          phone_number: userProfile?.phone_number,
+          address: userProfile?.address
         }
       ])
-      .select() as SupabaseResponse<Client[]>;
+      .select()
+      .single();
       
     if (createError) {
       console.error("Error creating client:", createError);
       throw new Error("Failed to create client record");
     }
     
-    if (!newClient || newClient.length === 0) {
-      throw new Error("Failed to create client record - no rows returned");
-    }
-    
-    console.log("Successfully created new client:", newClient[0].id);
-    return newClient[0];
+    console.log("Successfully created new client:", newClient.id);
+    return newClient;
     
   } catch (error) {
     console.error("Error in linkClientToUser:", error);
