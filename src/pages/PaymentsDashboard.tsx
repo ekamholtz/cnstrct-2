@@ -115,15 +115,15 @@ export default function PaymentsDashboard() {
       invoice: payment.invoice ? {
         invoice_number: payment.invoice.invoice_number,
         amount: payment.invoice.amount,
-        project: payment.invoice.project ? {
-          name: payment.invoice.project.name
-        } : { name: 'Unknown Project' }
+        project: {
+          name: payment.invoice.project ? payment.invoice.project.name : 'Unknown Project'
+        }
       } : undefined,
       expense: payment.expense ? {
         name: payment.expense.name,
-        project: payment.expense.project ? {
-          name: payment.expense.project.name
-        } : { name: 'Unknown Project' }
+        project: {
+          name: payment.expense.project ? payment.expense.project.name : 'Unknown Project'
+        }
       } : undefined
     };
     

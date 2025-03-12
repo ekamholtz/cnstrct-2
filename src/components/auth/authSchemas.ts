@@ -23,5 +23,5 @@ export const registerSchema = z
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 
-// Re-export UserRole from project-types
+// Re-export UserRole from project-types with correct syntax
 export type { UserRole };

@@ -34,7 +34,7 @@ const AdminTransactions = () => {
     due_date: undefined, // Optional field
     description: undefined, // Optional field
     notes: undefined // Optional field
-  }));
+  } as Invoice));
 
   const expenses = (rawExpenses || []).map(expense => ({
     id: expense.id,
@@ -44,12 +44,12 @@ const AdminTransactions = () => {
     expense_date: expense.expense_date,
     notes: expense.notes,
     project_id: expense.project_id,
-    project: expense.projects ? { name: expense.projects.name } : undefined,
+    project: { name: expense.projects ? expense.projects.name : 'Unknown' },
     expense_type: "other" as const, // Default to "other" if not specified
     payment_status: "due" as const, // Default to "due" if not specified
     created_at: expense.expense_date, // Use expense_date as fallback
     updated_at: expense.expense_date // Use expense_date as fallback
-  }));
+  } as Expense));
 
   return (
     <div className="flex flex-col min-h-screen bg-gray-50">
@@ -71,8 +71,8 @@ const AdminTransactions = () => {
 
         <TransactionsTable
           transactionType={transactionType}
-          invoices={invoices as Invoice[]}
-          expenses={expenses as Expense[]}
+          invoices={invoices}
+          expenses={expenses}
         />
       </div>
     </div>

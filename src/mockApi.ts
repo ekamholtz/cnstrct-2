@@ -48,7 +48,7 @@ const mockApi = {
   }
 };
 
-// Use type assertions to fix the type incompatibility
+// Use type assertions to fix the type incompatibility - we know our implementation is compatible
 axios.get = mockApi.get as typeof axios.get;
 
 // Add a function to initialize the mock API
