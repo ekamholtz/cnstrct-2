@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const profileSchema = z.object({
   full_name: z.string().min(1, "Full name is required"),
-  address: z.string().optional(), // Changed from required to optional to match database schema
+  address: z.string().optional(), // Keep as optional to match database schema
   phone_number: z.string().optional(),
   bio: z.string().optional(),
   company_name: z.string().optional(),
@@ -18,7 +18,7 @@ export interface Profile {
   id: string;
   full_name: string;
   email: string;
-  address?: string; // Changed from required to optional
+  address?: string; // Keep as optional to match usage patterns
   phone_number?: string;
   bio?: string;
   company_name?: string;

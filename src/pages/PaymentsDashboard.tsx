@@ -1,3 +1,4 @@
+
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PaymentsTable } from "@/components/payments/PaymentsTable";
 import { PaymentsFilter } from "@/components/payments/PaymentsFilter";
@@ -20,7 +21,7 @@ export default function PaymentsDashboard() {
     projectId: undefined,
   });
 
-  const { data: payments, isLoading } = useQuery({
+  const { data: rawPayments, isLoading } = useQuery({
     queryKey: ['payments', filters],
     queryFn: async () => {
       console.log('Fetching payments with filters:', filters);
@@ -86,8 +87,47 @@ export default function PaymentsDashboard() {
         throw error;
       }
       
-      return data as Payment[];
+      return data;
     },
+  });
+
+  // Transform raw payment data to match the Payment type
+  const payments: Payment[] = (rawPayments || []).map(payment => {
+    // Format the invoice and expense data to match required types
+    const formattedPayment: Payment = {
+      id: payment.id,
+      direction: payment.direction as Payment['direction'],
+      amount: payment.amount,
+      payment_method_code: payment.payment_method_code as Payment['payment_method_code'],
+      status: payment.status as Payment['status'],
+      invoice_id: payment.invoice_id,
+      expense_id: payment.expense_id,
+      payment_processor_id: payment.payment_processor_id,
+      processor_transaction_id: payment.processor_transaction_id,
+      processor_metadata: payment.processor_metadata,
+      simulation_mode: payment.simulation_mode,
+      simulation_data: payment.simulation_data,
+      notes: payment.notes,
+      payment_date: payment.payment_date,
+      created_at: payment.created_at,
+      updated_at: payment.updated_at,
+      // Format invoice and expense to match required types
+      invoice: payment.invoice ? {
+        invoice_number: payment.invoice.invoice_number,
+        amount: payment.invoice.amount,
+        project: payment.invoice.project ? {
+          name: payment.invoice.project.name
+        } : { name: 'Unknown Project' }
+      } : undefined,
+      expense: payment.expense ? {
+        name: payment.expense.name,
+        project: payment.expense.project ? {
+          name: payment.expense.project.name
+        } : { name: 'Unknown Project' }
+      } : undefined
+    };
+    
+    return formattedPayment;
   });
 
   return (
@@ -123,7 +163,7 @@ export default function PaymentsDashboard() {
           variant="glass" 
           className="shadow-md border border-white/20 backdrop-blur-sm mt-6"
         >
-          <PaymentsTable payments={payments || []} isLoading={isLoading} />
+          <PaymentsTable payments={payments} isLoading={isLoading} />
         </Card>
       </div>
     </div>

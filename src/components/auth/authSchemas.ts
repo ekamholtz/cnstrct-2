@@ -1,6 +1,6 @@
 
 import * as z from "zod";
-import { UserRole } from "@/components/admin/users/types";
+import { UserRole } from "@/types/project-types";
 
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -22,3 +22,6 @@ export const registerSchema = z
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
+
+// Re-export UserRole from project-types
+export { UserRole };

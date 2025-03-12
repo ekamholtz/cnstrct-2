@@ -1,253 +1,222 @@
-import { useToast } from "@/hooks/use-toast";
-import { useQueryClient } from "@tanstack/react-query";
-import { useFetchExpenses } from "./useFetchExpenses";
-import { useCreateExpense } from "./useCreateExpense";
-import { useProcessPayment } from "./useProcessPayment";
-import { validateExpenseData } from "../utils/expenseUtils";
-import { ExpenseFormStage1Data, PaymentDetailsData, Expense } from "../types";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+import type { Expense, ExpenseFormStage1Data, PaymentDetailsData } from "../types";
 
-/**
- * Custom hook to manage expenses for a specific project
- * @param projectId The ID of the project to manage expenses for
- * @returns Object containing expenses data, loading state, and functions to create expenses and payments
- */
-export function useExpenses(projectId: string) {
-  if (!projectId) {
-    console.error("useExpenses called without a projectId");
-    return {
-      expenses: [],
-      isLoading: false,
-      createExpense: async () => { throw new Error("Project ID is required to create expenses"); },
-      createPayment: async () => { throw new Error("Project ID is required to create payments"); },
-      error: new Error("Project ID is required"),
-    };
+interface ProcessPaymentParams {
+  expenseId: string;
+  amount: number;
+  paymentDetails: {
+    payment_method_code: string;
+    payment_date: string;
+    amount: number;
+    notes?: string;
+  };
+  expensesTable?: 'expenses' | 'homeowner_expenses';
+}
+
+const processPaymentFn = async ({ expenseId, amount, paymentDetails, expensesTable = 'expenses' }: ProcessPaymentParams) => {
+  const { payment_method_code, payment_date, notes } = paymentDetails;
+
+  const { data, error } = await supabase.from(expensesTable).update({
+    payment_status: 'paid',
+  }).eq('id', expenseId);
+
+  if (error) {
+    console.error("Error updating expense payment status:", error);
+    throw new Error("Failed to update expense payment status");
   }
 
-  const { toast } = useToast();
+  const { error: paymentError } = await supabase.from('payments').insert({
+    amount,
+    payment_method_code,
+    payment_date,
+    notes,
+    expense_id: expenseId,
+    direction: 'outgoing',
+    status: 'completed'
+  });
+
+  if (paymentError) {
+    console.error("Error creating payment:", paymentError);
+    throw new Error("Failed to create payment");
+  }
+
+  return data;
+};
+
+export function useExpenses(projectId?: string) {
   const queryClient = useQueryClient();
-  
-  // Use the fetch expenses hook
-  const { 
-    data: expenses = [], 
-    isLoading, 
-    error: fetchError 
-  } = useFetchExpenses(projectId);
-  
-  // Use the create expense mutation
-  const { 
-    mutateAsync: createExpenseMutation,
-    isPending: isCreating,
-    error: createError
-  } = useCreateExpense(projectId);
-  
-  // Use the process payment mutation
-  const {
-    mutateAsync: processPaymentMutation,
-    isPending: isProcessingPayment,
-    error: paymentError
-  } = useProcessPayment();
+  const { toast } = useToast();
 
-  // Combine all errors
-  const combinedError = fetchError || createError || paymentError || null;
+  const { data: expenses, isLoading, refetch: refetchExpenses } = useQuery({
+    queryKey: ['expenses', projectId],
+    queryFn: async () => {
+      if (!projectId) return [];
 
-  /**
-   * Validates and creates an expense
-   * @param data The expense data to create
-   * @returns The created expense
-   */
-  const validateAndCreateExpense = async (data: ExpenseFormStage1Data): Promise<Expense | null> => {
-    try {
-      console.log('Creating expense with data:', data);
-      
-      // Validate the expense data
-      const validationError = validateExpenseData(data);
-      if (validationError) {
-        console.error('Expense validation failed:', validationError);
-        throw new Error(`Expense validation failed: ${validationError}`);
+      const { data, error } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('expense_date', { ascending: false });
+
+      if (error) {
+        console.error("Error fetching expenses:", error);
+        throw error;
       }
-      
-      // Ensure project_id is set
-      const expenseData = {
-        ...data,
-        project_id: projectId,
-      };
-      
-      // Create the expense
-      const result = await createExpenseMutation(expenseData);
-      
-      if (!result) {
-        console.error('Expense creation returned null result');
-        throw new Error('Failed to create expense');
-      }
-      
-      console.log('Expense created successfully:', result);
-      
-      // Invalidate queries to ensure UI is updated
-      queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
-      
-      return result;
-    } catch (error) {
-      console.error('Error in validateAndCreateExpense:', error);
-      
-      // Show toast notification
+
+      return data as Expense[];
+    },
+    enabled: !!projectId,
+  });
+
+  const paymentMutation = useMutation({
+    mutationFn: processPaymentFn,
+    onSuccess: () => {
+      queryClient.invalidateQueries(['expenses', projectId]);
+    },
+    onError: (error: any) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create expense",
+        description: error.message || "Failed to process payment. Please try again.",
       });
-      
-      throw error;
-    }
-  };
+    },
+  });
 
-  /**
-   * Creates a payment for an expense
-   * @param params Parameters for creating a payment
-   * @returns The created payment
-   */
-  const createPayment = async ({
-    expenseId,
-    amount,
-    paymentDetails,
-    expensesTable = 'expenses'
-  }: {
-    expenseId: string;
-    amount: number;
-    paymentDetails: PaymentDetailsData;
-    expensesTable: string;
-  }) => {
+  const handleCreateExpense = async (
+    data: ExpenseFormStage1Data,
+    status: 'due' | 'paid' | 'partially_paid',
+    paymentDetails?: PaymentDetailsData
+  ) => {
     try {
-      if (!expenseId) {
-        throw new Error("Expense ID is required to create a payment");
+      const amount = Number(data.amount);
+      const expenseDate = data.expense_date;
+
+      const { error } = await supabase
+        .from('expenses')
+        .insert([
+          {
+            ...data,
+            amount: amount,
+            expense_date: expenseDate,
+            payment_status: status,
+          },
+        ]);
+
+      if (error) {
+        console.error("Error creating expense:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to create expense. Please try again.",
+        });
+        return;
       }
 
-      // Ensure payment amount is a valid number
-      const paymentAmount = typeof paymentDetails.amount === 'string'
-        ? parseFloat(paymentDetails.amount) || 0
-        : (typeof paymentDetails.amount === 'number' ? paymentDetails.amount : 0);
+      toast({
+        title: "Expense created",
+        description: "The expense has been created successfully.",
+      });
 
-      if (paymentAmount <= 0) {
-        throw new Error("Payment amount must be greater than zero");
-      }
+      // If the status is 'paid', process the payment immediately
+      if (status === 'paid' && paymentDetails) {
+        // Cast to number to ensure it's handled correctly
+        paymentDetails.amount = Number(paymentDetails.amount);
 
-      // Create the payment record
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('payments')
-        .insert({
-          expense_id: expenseId,
-          amount: paymentAmount,
-          payment_method_code: paymentDetails.payment_method_code || 'transfer',
-          payment_date: paymentDetails.payment_date || new Date().toISOString().split('T')[0],
-          notes: paymentDetails.notes || '',
-          direction: 'outgoing'
-        })
-        .select()
-        .single();
-
-      if (paymentError) {
-        console.error("Error creating payment:", paymentError);
-        throw new Error(`Failed to create payment: ${paymentError.message}`);
-      }
-
-      if (!paymentData) {
-        console.warn("No payment data returned after insertion");
-        return null;
-      }
-
-      console.log("Payment created successfully:", paymentData);
-
-      // Get the expense to update its payment status
-      try {
-        // Use a more specific type assertion and add proper null checks
-        const { data: expenseData, error: expenseError } = await supabase
-          .from(expensesTable as any)
-          .select('amount, payments(amount)')
-          .eq('id', expenseId)
+        // Get the newly created expense
+        const { data: newExpense, error: newExpenseError } = await supabase
+          .from('expenses')
+          .select('*')
+          .eq('project_id', projectId)
+          .eq('name', data.name)
+          .order('created_at', { ascending: false })
+          .limit(1)
           .single();
 
-        if (expenseError) {
-          console.error("Error fetching expense for payment status update:", expenseError);
-          // Don't throw here, we've already created the payment
-        } else if (expenseData) {
-          // Use a type assertion for expenseData to avoid TypeScript errors
-          const typedExpenseData = expenseData as { 
-            amount?: number | string; 
-            payments?: Array<{ amount?: number | string }> 
-          };
-          
-          // Safely calculate total payments
-          const expenseAmount = typeof typedExpenseData.amount === 'number' 
-            ? typedExpenseData.amount 
-            : (parseFloat(String(typedExpenseData.amount || 0)) || 0);
-            
-          let totalPayments = 0;
-          
-          // Ensure payments is an array and calculate total
-          if (typedExpenseData.payments && Array.isArray(typedExpenseData.payments)) {
-            totalPayments = typedExpenseData.payments.reduce((sum, payment) => {
-              const paymentAmount = typeof payment?.amount === 'number'
-                ? payment.amount
-                : (parseFloat(String(payment?.amount || 0)) || 0);
-              return sum + paymentAmount;
-            }, 0);
-          }
-          
-          // Add the new payment amount
-          totalPayments += paymentAmount;
-          
-          // Determine payment status
-          let paymentStatus: 'due' | 'partially_paid' | 'paid' = 'due';
-          if (totalPayments >= expenseAmount) {
-            paymentStatus = 'paid';
-          } else if (totalPayments > 0) {
-            paymentStatus = 'partially_paid';
-          }
-          
-          // Update the expense payment status
-          const { error: updateError } = await supabase
-            .from(expensesTable as any)
-            .update({
-              payment_status: paymentStatus,
-              amount_due: Math.max(0, expenseAmount - totalPayments)
-            })
-            .eq('id', expenseId);
-            
-          if (updateError) {
-            console.error("Error updating expense payment status:", updateError);
-            // Don't throw here, we've already created the payment
-          }
+        if (newExpenseError) {
+          console.error("Error fetching new expense:", newExpenseError);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to fetch new expense. Please try again.",
+          });
+          return;
         }
-      } catch (err) {
-        console.error("Error processing expense payment status update:", err);
-        // Continue execution as we've already created the payment
+
+        // Using processPayment function directly instead of mutateAsync
+        await paymentMutation.mutateAsync({
+          expenseId: newExpense.id,
+          amount: paymentDetails.amount,
+          paymentDetails: {
+            payment_method_code: paymentDetails.payment_method_code,
+            payment_date: paymentDetails.payment_date,
+            amount: paymentDetails.amount,
+            notes: paymentDetails.notes
+          },
+          expensesTable: 'expenses'
+        });
       }
 
-      // Invalidate queries to ensure UI is updated
-      queryClient.invalidateQueries({ queryKey: ['expenses', projectId] });
-      queryClient.invalidateQueries({ queryKey: ['payments'] });
-
-      return paymentData;
+      // Refetch expenses after creating a new expense
+      refetchExpenses();
     } catch (error) {
-      console.error("Error in createPayment:", error);
-      
-      // Show toast notification
+      console.error("Error creating expense:", error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to create payment",
+        description: "Failed to create expense. Please try again.",
       });
-      
-      throw error;
     }
   };
+  
+  const processPayment = async (expense: Expense, paymentDetails: PaymentDetailsData) => {
+    try {
+      // Cast to number to ensure it's handled correctly
+      const amount = Number(paymentDetails.amount);
+      
+      // Using processPayment function directly instead of mutateAsync
+      await paymentMutation.mutateAsync({
+        expenseId: expense.id,
+        amount,
+        paymentDetails: {
+          payment_method_code: paymentDetails.payment_method_code,
+          payment_date: paymentDetails.payment_date,
+          amount: paymentDetails.amount,
+          notes: paymentDetails.notes
+        },
+        expensesTable: 'expenses'
+      });
+      
+      // Refetch expenses after payment processing
+      refetchExpenses();
+      
+      toast({
+        title: "Payment processed",
+        description: "The payment has been processed successfully.",
+      });
+      
+      return true;
+    } catch (error) {
+      console.error("Error processing payment:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to process payment. Please try again.",
+      });
+      return false;
+    }
+  };
+  
+  // Replace isPending with isProcessing for consistency
+  const isProcessingPayment = paymentMutation.isPending;
 
-  // Return the hook result
   return {
-    expenses: Array.isArray(expenses) ? expenses : [],
-    isLoading: isLoading || isCreating || isProcessingPayment,
-    createExpense: validateAndCreateExpense,
-    createPayment,
-    error: combinedError,
+    expenses,
+    isLoading,
+    handleCreateExpense,
+    processPayment,
+    isProcessingPayment,
+    error: paymentMutation.error,
   };
 }

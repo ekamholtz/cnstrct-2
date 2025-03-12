@@ -1,11 +1,15 @@
 
-import axios from "axios";
+import axios, { AxiosResponse, AxiosRequestConfig } from "axios";
 import { supabase } from "@/integrations/supabase/client";
 import { getClientProjects, getClientInvoices } from "./mocks/clientApi";
 
-// Mock API handler
+// Define a strong return type for our mock API
+type MockApiResponse<T = any> = Promise<AxiosResponse<T>>;
+
+// Mock API handler with proper typing
 const mockApi = {
-  async get(url: string, config?: any) {
+  // Properly type the get method
+  async get<T = any>(url: string, config?: AxiosRequestConfig): MockApiResponse<T> {
     console.log(`Mock API GET request to ${url}`, config);
     
     // Handle client projects endpoint
@@ -15,14 +19,28 @@ const mockApi = {
       
       const projects = await getClientProjects();
       console.log("Returned projects:", projects);
-      return { data: projects };
+      // Return in the same format as axios would
+      return { 
+        data: projects, 
+        status: 200, 
+        statusText: 'OK',
+        headers: {},
+        config: config || {}
+      } as AxiosResponse<T>;
     }
     
     // Handle client invoices endpoint
     if (url === '/api/client/invoices' && config?.params?.projectIds) {
       const projectIds = config.params.projectIds.split(',');
       const invoices = await getClientInvoices(projectIds);
-      return { data: invoices };
+      // Return in the same format as axios would
+      return { 
+        data: invoices, 
+        status: 200, 
+        statusText: 'OK',
+        headers: {},
+        config: config || {}
+      } as AxiosResponse<T>;
     }
     
     // Default fallback to real axios for other endpoints
@@ -40,12 +58,16 @@ export function initMockApi() {
   
   // Create SQL function for client invoices if it doesn't exist
   const createClientInvoicesFunction = async () => {
-    const { error } = await supabase.rpc('create_get_client_invoices_function');
-    if (error && !error.message.includes('already exists')) {
-      console.error("Error creating get_client_invoices function:", error);
+    try {
+      const { error } = await supabase.rpc('create_get_client_invoices_function');
+      if (error && !error.message.includes('already exists')) {
+        console.error("Error creating get_client_invoices function:", error);
+      }
+    } catch (err) {
+      console.error("Error calling RPC function:", err);
     }
   };
   
   // Try to create the function
-  createClientInvoicesFunction().catch(console.error);
+  createClientInvoicesFunction();
 }
