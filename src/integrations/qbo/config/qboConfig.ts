@@ -1,4 +1,3 @@
-
 /**
  * Configuration for QuickBooks Online integration
  */
@@ -47,6 +46,10 @@ export class QBOConfig {
       ? "https://quickbooks.api.intuit.com/v3"
       : "https://sandbox-quickbooks.api.intuit.com/v3";
       
+    // Add user ID to localStorage before redirect
+    const userId = user.id;
+    localStorage.setItem('qbo_auth_user_id', userId);
+    
     console.log("QBO Config initialized with:", {
       environment: this.isProduction ? "Production" : "Sandbox",
       apiBaseUrl: this.apiBaseUrl,

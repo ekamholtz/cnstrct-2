@@ -8,22 +8,29 @@ export class ConnectionManager {
   /**
    * Get user's QBO connection
    */
-  async getUserConnection() {
+  async getUserConnection(userId?: string) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log("User not authenticated when getting QBO connection");
-        throw new Error("User not authenticated");
+      let finalUserId: string;
+      
+      if (userId) {
+        finalUserId = userId;
+      } else {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.log("User not authenticated when getting QBO connection");
+          throw new Error("User not authenticated");
+        }
+        finalUserId = user.id;
       }
       
       const { data: connection, error } = await supabase
         .from('qbo_connections')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', finalUserId)
         .single();
         
       if (error) {
-        console.log("No QBO connection found for user", user.id);
+        console.log("No QBO connection found for user", finalUserId);
         return null;
       }
       
