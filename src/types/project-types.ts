@@ -1,3 +1,6 @@
+
+export type MilestoneStatus = 'pending' | 'in_progress' | 'completed' | string;
+
 export interface Milestone {
   id: string;
   name: string;
@@ -9,8 +12,6 @@ export interface Milestone {
   created_at: string;
   updated_at: string;
 }
-
-export type MilestoneStatus = 'pending' | 'completed';
 
 export interface ClientProject {
   id: string;
@@ -24,6 +25,7 @@ export interface ClientProject {
   start_date?: string;
   end_date?: string;
   notes?: string;
+  description?: string;
   milestones: Milestone[];
   expenses?: any[];
   owner_user_id?: string;
@@ -32,7 +34,7 @@ export interface ClientProject {
   created_at?: string;
 }
 
-export type ProjectStatus = 'draft' | 'active' | 'completed' | 'cancelled';
+export type ProjectStatus = 'draft' | 'active' | 'completed' | 'cancelled' | string;
 
 // Simplified milestone type with required properties for display in lists
 export interface SimplifiedMilestone {
@@ -46,16 +48,16 @@ export interface SimplifiedMilestone {
 }
 
 // Add types for invoice status
-export type InvoiceStatus = 'pending_payment' | 'paid' | 'cancelled';
+export type InvoiceStatus = 'pending_payment' | 'paid' | 'cancelled' | string;
 
 // Add types for expense status
-export type ExpensePaymentStatus = 'due' | 'paid' | 'partially_paid';
+export type ExpensePaymentStatus = 'due' | 'paid' | 'partially_paid' | string;
 
 // Add types for user roles
-export type UserRole = 'homeowner' | 'contractor' | 'project_manager' | 'gc_admin' | 'platform_admin';
+export type UserRole = 'homeowner' | 'contractor' | 'project_manager' | 'gc_admin' | 'platform_admin' | 'employee' | 'client';
 
 // Add types for payment direction
-export type PaymentDirection = 'incoming' | 'outgoing';
+export type PaymentDirection = 'incoming' | 'outgoing' | string;
 
 // Add types for payment status
-export type PaymentProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+export type PaymentProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | string;

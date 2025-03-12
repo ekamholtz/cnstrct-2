@@ -1,4 +1,6 @@
+
 import * as z from "zod";
+import { UserRole } from "@/components/admin/users/types";
 
 export const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -20,4 +22,3 @@ export const registerSchema = z
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
-export type UserRole = 'client' | 'contractor' | 'employee' | 'homeowner' | 'gc_admin' | 'platform_admin';

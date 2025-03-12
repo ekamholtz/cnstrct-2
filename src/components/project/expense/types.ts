@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 import type { Payment as BasePayment } from "@/components/payments/types";
 
@@ -31,6 +32,10 @@ export const paymentDetailsSchema = z.object({
 export type ExpenseFormStage1Data = z.infer<typeof expenseFormStage1Schema>;
 export type PaymentDetailsData = z.infer<typeof paymentDetailsSchema>;
 
+// Expense types that can come from the database
+export type ExpenseTypeString = "labor" | "materials" | "subcontractor" | "other" | string;
+export type PaymentStatusString = "due" | "partially_paid" | "paid" | string;
+
 // More flexible Expense interface that handles potential database inconsistencies
 export interface Expense {
   id: string;
@@ -44,8 +49,8 @@ export interface Expense {
   amount: number;
   amount_due?: number;
   expense_date: string;
-  expense_type?: "labor" | "materials" | "subcontractor" | "other";
-  payment_status?: "due" | "partially_paid" | "paid";
+  expense_type?: ExpenseTypeString;
+  payment_status?: PaymentStatusString;
   expense_number?: string;
   notes?: string;
   created_at?: string;

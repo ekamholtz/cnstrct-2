@@ -49,9 +49,10 @@ export const useProfileCompletion = () => {
       }
 
       // If user is a homeowner, link or create client record
-      if (userRole === 'homeowner') {
+      if (userRole === 'homeowner' && user.email) {
         try {
-          await linkClientToUser(user.email!, user.id, form);
+          // Changed this to fix the order of parameters
+          await linkClientToUser(user.id, user.email);
         } catch (error) {
           console.error("Error in client linking:", error);
           toast({

@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserProfile } from "./useCurrentUserProfile";
 import { GCUserProfile } from "../types";
+import { UserRole } from "@/components/admin/users/types";
 
 export const useTeamManagement = () => {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -61,7 +63,7 @@ export const useTeamManagement = () => {
           email,
           name,
           phone,
-          role: 'gc_admin',
+          role: 'gc_admin' as UserRole,
           gc_account_id: currentUserProfile.gc_account_id,
           is_owner: false
         }

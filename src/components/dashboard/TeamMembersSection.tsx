@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InviteUserForm } from "@/components/gc-profile/InviteUserForm";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { mapUserRoleToUIRole, getTeamDisplayRole, isRoleAdmin } from "@/utils/role-utils";
+import { getTeamDisplayRole, isRoleAdmin } from "@/utils/role-utils";
 
 export function TeamMembersSection() {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -36,7 +36,7 @@ export function TeamMembersSection() {
       if (error) throw error;
       
       setGcAccountId(profile.gc_account_id);
-      setIsGCAdmin(profile.role === "gc_admin");
+      setIsGCAdmin(isRoleAdmin(profile.role));
       setIsPlatformAdmin(profile.role === "platform_admin");
       
       return { user, profile };
@@ -92,7 +92,7 @@ export function TeamMembersSection() {
       return member.role === "project_manager";
     }
     if (activeTab === "admins") {
-      return member.role === "gc_admin" || member.role === "platform_admin";
+      return isRoleAdmin(member.role);
     }
     return false;
   });

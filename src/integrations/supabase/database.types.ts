@@ -71,6 +71,8 @@ export interface Database {
           notes?: string
           created_at: string
           updated_at: string
+          gc_account_id?: string
+          user_id?: string
         }
         Insert: {
           id?: string
@@ -86,6 +88,8 @@ export interface Database {
           notes?: string
           created_at?: string
           updated_at?: string
+          gc_account_id?: string
+          user_id?: string
         }
         Update: {
           id?: string
@@ -101,77 +105,14 @@ export interface Database {
           notes?: string
           created_at?: string
           updated_at?: string
+          gc_account_id?: string
+          user_id?: string
         }
         Relationships: [
           {
             foreignKeyName: "expenses_project_id_fkey"
             columns: ["project_id"]
             referencedRelation: "projects"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      
-      homeowner_expenses: {
-        Row: {
-          id: string
-          project_id: string
-          homeowner_id: string
-          name: string
-          payee: string
-          amount: number
-          amount_due?: number
-          expense_date: string
-          expense_type: string
-          payment_status: string
-          expense_number?: string
-          notes?: string
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          project_id: string
-          homeowner_id: string
-          name: string
-          payee: string
-          amount: number
-          amount_due?: number
-          expense_date: string
-          expense_type: string
-          payment_status: string
-          expense_number?: string
-          notes?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          project_id?: string
-          homeowner_id?: string
-          name?: string
-          payee?: string
-          amount?: number
-          amount_due?: number
-          expense_date?: string
-          expense_type?: string
-          payment_status?: string
-          expense_number?: string
-          notes?: string
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "homeowner_expenses_project_id_fkey"
-            columns: ["project_id"]
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "homeowner_expenses_homeowner_id_fkey"
-            columns: ["homeowner_id"]
-            referencedRelation: "profiles"
             referencedColumns: ["id"]
           }
         ]
@@ -196,6 +137,7 @@ export interface Database {
           payment_date: string
           created_at: string
           updated_at: string
+          gc_account_id?: string
         }
         Insert: {
           id?: string
@@ -215,6 +157,7 @@ export interface Database {
           payment_date: string
           created_at?: string
           updated_at?: string
+          gc_account_id?: string
         }
         Update: {
           id?: string
@@ -234,6 +177,7 @@ export interface Database {
           payment_date?: string
           created_at?: string
           updated_at?: string
+          gc_account_id?: string
         }
         Relationships: [
           {
@@ -245,128 +189,37 @@ export interface Database {
         ]
       }
       
-      invoices: {
+      clients: {
         Row: {
           id: string
-          invoice_number: string
-          amount: number
-          status: string
-          project_id: string
-          milestone_id?: string
-          payment_method?: string
-          payment_date?: string
-          payment_reference?: string
-          payment_gateway?: string
-          simulation_data?: Json
+          gc_account_id?: string
+          name: string
+          email: string
+          phone?: string
+          address?: string
+          user_id?: string
           created_at: string
           updated_at: string
         }
         Insert: {
           id?: string
-          invoice_number: string
-          amount: number
-          status: string
-          project_id: string
-          milestone_id?: string
-          payment_method?: string
-          payment_date?: string
-          payment_reference?: string
-          payment_gateway?: string
-          simulation_data?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          invoice_number?: string
-          amount?: number
-          status?: string
-          project_id?: string
-          milestone_id?: string
-          payment_method?: string
-          payment_date?: string
-          payment_reference?: string
-          payment_gateway?: string
-          simulation_data?: Json
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "invoices_project_id_fkey"
-            columns: ["project_id"]
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "invoices_milestone_id_fkey"
-            columns: ["milestone_id"]
-            referencedRelation: "milestones"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      
-      admin_actions: {
-        Row: {
-          id: string
-          admin_id: string
-          entity_type: string
-          entity_id: string
-          action_type: string
-          details: Json
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          admin_id: string
-          entity_type: string
-          entity_id: string
-          action_type: string
-          details: Json
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          admin_id?: string
-          entity_type?: string
-          entity_id?: string
-          action_type?: string
-          details?: Json
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "admin_actions_admin_id_fkey"
-            columns: ["admin_id"]
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      
-      supported_payment_methods: {
-        Row: {
-          code: string
+          gc_account_id?: string
           name: string
-          description?: string
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          code: string
-          name: string
-          description?: string
-          is_active?: boolean
+          email: string
+          phone?: string
+          address?: string
+          user_id?: string
           created_at?: string
           updated_at?: string
         }
         Update: {
-          code?: string
+          id?: string
+          gc_account_id?: string
           name?: string
-          description?: string
-          is_active?: boolean
+          email?: string
+          phone?: string
+          address?: string
+          user_id?: string
           created_at?: string
           updated_at?: string
         }
@@ -378,8 +231,8 @@ export interface Database {
           id: string
           gc_account_id?: string
           full_name: string
-          email: string
-          role: "homeowner" | "contractor" | "project_manager"
+          email?: string
+          role: UserRole
           company_name?: string
           phone_number?: string
           address?: string
@@ -395,8 +248,8 @@ export interface Database {
           id: string
           gc_account_id?: string
           full_name: string
-          email: string
-          role: "homeowner" | "contractor" | "project_manager"
+          email?: string
+          role: UserRole
           company_name?: string
           phone_number?: string
           address?: string
@@ -413,7 +266,7 @@ export interface Database {
           gc_account_id?: string
           full_name?: string
           email?: string
-          role?: "homeowner" | "contractor" | "project_manager"
+          role?: UserRole
           company_name?: string
           phone_number?: string
           address?: string
@@ -556,47 +409,6 @@ export interface Database {
         ]
       }
       
-      clients: {
-        Row: {
-          id: string
-          gc_account_id: string
-          name: string
-          email: string | null
-          phone: string | null
-          address: string | null
-          created_at: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          id?: string
-          gc_account_id: string
-          name: string
-          email?: string | null
-          phone?: string | null
-          address?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Update: {
-          id?: string
-          gc_account_id?: string
-          name?: string
-          email?: string | null
-          phone?: string | null
-          address?: string | null
-          created_at?: string | null
-          updated_at?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clients_gc_account_id_fkey"
-            columns: ["gc_account_id"]
-            referencedRelation: "gc_accounts"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
-      
       gc_accounts: {
         Row: {
           company_name: string
@@ -629,7 +441,199 @@ export interface Database {
         ]
       }
       
-      // New QBO-related tables
+      homeowner_expenses: {
+        Row: {
+          id: string
+          project_id: string
+          homeowner_id: string
+          name: string
+          payee: string
+          amount: number
+          amount_due?: number
+          expense_date: string
+          expense_type: string
+          payment_status: string
+          expense_number?: string
+          notes?: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          homeowner_id: string
+          name: string
+          payee: string
+          amount: number
+          amount_due?: number
+          expense_date: string
+          expense_type: string
+          payment_status: string
+          expense_number?: string
+          notes?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          homeowner_id?: string
+          name?: string
+          payee?: string
+          amount?: number
+          amount_due?: number
+          expense_date?: string
+          expense_type?: string
+          payment_status?: string
+          expense_number?: string
+          notes?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homeowner_expenses_project_id_fkey"
+            columns: ["project_id"]
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "homeowner_expenses_homeowner_id_fkey"
+            columns: ["homeowner_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      
+      invoices: {
+        Row: {
+          id: string
+          invoice_number: string
+          amount: number
+          status: string
+          project_id: string
+          milestone_id?: string
+          payment_method?: string
+          payment_date?: string
+          payment_reference?: string
+          payment_gateway?: string
+          simulation_data?: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          invoice_number: string
+          amount: number
+          status: string
+          project_id: string
+          milestone_id?: string
+          payment_method?: string
+          payment_date?: string
+          payment_reference?: string
+          payment_gateway?: string
+          simulation_data?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          invoice_number?: string
+          amount?: number
+          status?: string
+          project_id?: string
+          milestone_id?: string
+          payment_method?: string
+          payment_date?: string
+          payment_reference?: string
+          payment_gateway?: string
+          simulation_data?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_milestone_id_fkey"
+            columns: ["milestone_id"]
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      
+      admin_actions: {
+        Row: {
+          id: string
+          admin_id: string
+          entity_type: string
+          entity_id: string
+          action_type: string
+          details: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          admin_id: string
+          entity_type: string
+          entity_id: string
+          action_type: string
+          details: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          admin_id?: string
+          entity_type?: string
+          entity_id?: string
+          action_type?: string
+          details?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_admin_id_fkey"
+            columns: ["admin_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      
+      supported_payment_methods: {
+        Row: {
+          code: string
+          name: string
+          description?: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          name: string
+          description?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          name?: string
+          description?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      
       qbo_connections: {
         Row: {
           id: string
@@ -772,17 +776,13 @@ export interface Database {
         ]
       }
     }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      [_ in never]: never
-    }
     Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
+      homeowner_expense_type: "materials" | "labor" | "subcontractor" | "other",
+      milestones_status: "pending" | "in_progress" | "completed",
+      invoice_status: "pending_payment" | "paid" | "cancelled",
+      UserRole: "client" | "contractor" | "employee" | "homeowner" | "gc_admin" | "platform_admin" | "project_manager"
     }
   }
 }
+
+export type UserRole = Database["public"]["Enums"]["UserRole"];

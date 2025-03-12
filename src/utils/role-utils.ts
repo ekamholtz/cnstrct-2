@@ -5,7 +5,7 @@ import { UserRole } from "@/components/admin/users/types";
  * Maps UserRole to UI role string for compatibility with components
  * that expect a more limited set of roles
  */
-export const mapUserRoleToUIRole = (role: UserRole | string | null | undefined): "homeowner" | "contractor" | "project_manager" | "gc_admin" | "platform_admin" | undefined => {
+export const mapUserRoleToUIRole = (role: UserRole | string | null | undefined): UserRole | undefined => {
   if (!role) return undefined;
   
   switch (role) {
@@ -59,14 +59,15 @@ export const getTeamDisplayRole = (role: UserRole | string): string => {
 /**
  * Check if a role string is one of the admin roles
  */
-export const isRoleAdmin = (role: string): boolean => {
+export const isRoleAdmin = (role: string | null | undefined): boolean => {
   return role === 'gc_admin' || role === 'platform_admin';
 };
 
 /**
  * Type guard to check if a string is a valid UserRole
  */
-export const isValidUserRole = (role: string): role is UserRole => {
+export const isValidUserRole = (role: string | null | undefined): role is UserRole => {
+  if (!role) return false;
   return ['homeowner', 'contractor', 'employee', 'client', 'gc_admin', 'platform_admin', 'project_manager'].includes(role);
 };
 
