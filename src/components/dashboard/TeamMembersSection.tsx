@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InviteUserForm } from "@/components/gc-profile/InviteUserForm";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { mapUserRoleToUIRole, getTeamDisplayRole } from "@/utils/role-utils";
+import { mapUserRoleToUIRole, getTeamDisplayRole, isRoleAdmin } from "@/utils/role-utils";
 
 export function TeamMembersSection() {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
@@ -86,10 +86,10 @@ export function TeamMembersSection() {
   // Filter team members based on the active tab
   const filteredTeamMembers = teamMembers.filter(member => {
     if (activeTab === "employees") {
-      return mapUserRoleToUIRole(member.role) === "contractor" || member.role === "employee";
+      return member.role === "contractor" || member.role === "employee";
     }
     if (activeTab === "project_managers") {
-      return mapUserRoleToUIRole(member.role) === "project_manager";
+      return member.role === "project_manager";
     }
     if (activeTab === "admins") {
       return member.role === "gc_admin" || member.role === "platform_admin";
@@ -258,7 +258,11 @@ export function TeamMembersSection() {
       {/* Invite User Dialog */}
       <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
-          <InviteUserForm onSuccess={handleInviteSuccess} />
+          <InviteUserForm 
+            onSubmit={handleInviteSuccess} 
+            onCancel={() => setIsInviteDialogOpen(false)} 
+            isLoading={false}
+          />
         </DialogContent>
       </Dialog>
     </Card>

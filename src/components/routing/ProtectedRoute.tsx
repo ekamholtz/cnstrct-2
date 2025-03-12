@@ -6,6 +6,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { MainNav } from "@/components/navigation/MainNav";
 import { useAuth } from "@/hooks/useAuth";
 import { Database } from "@/integrations/supabase/database.types";
+import { isRoleAdmin } from "@/utils/role-utils";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -121,7 +122,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // REMOVED THE HOMEOWNER INVOICE REDIRECTION: Allow homeowners to access invoice pages
   // This allows the homeowner to view their invoices
 
-  const Navigation = currentRole === 'admin' ? AdminNav : MainNav;
+  const Navigation = isRoleAdmin(currentRole) ? AdminNav : MainNav;
   
   return (
     <>

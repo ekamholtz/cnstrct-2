@@ -1,6 +1,8 @@
+
 import { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { isRoleAdmin } from "@/utils/role-utils";
 
 export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<any>(null);
@@ -26,7 +28,7 @@ export const AdminRoute = ({ children }: { children: React.ReactNode }) => {
             return;
           }
 
-          setIsAdmin(data?.role === 'platform_admin');
+          setIsAdmin(isRoleAdmin(data?.role));
         }
         setLoading(false);
       } catch (error) {
