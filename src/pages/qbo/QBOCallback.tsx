@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 export default function QBOCallback() {
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
+  const [errorDetails, setErrorDetails] = useState<string>("");
   const [companyName, setCompanyName] = useState<string>("");
   const navigate = useNavigate();
   const location = useLocation();
@@ -21,11 +22,15 @@ export default function QBOCallback() {
         const code = queryParams.get("code");
         const state = queryParams.get("state");
         const error = queryParams.get("error");
+        const errorDescription = queryParams.get("error_description");
         
         if (error) {
-          console.error("OAuth error:", error);
+          console.error("OAuth error:", error, errorDescription);
           setStatus("error");
           setErrorMessage(`Authorization error: ${error}`);
+          if (errorDescription) {
+            setErrorDetails(errorDescription);
+          }
           return;
         }
         
@@ -113,8 +118,11 @@ export default function QBOCallback() {
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Connection failed</AlertTitle>
-                <AlertDescription>
-                  {errorMessage || "Failed to connect to QuickBooks Online. Please try again."}
+                <AlertDescription className="space-y-2">
+                  <p>{errorMessage || "Failed to connect to QuickBooks Online. Please try again."}</p>
+                  {errorDetails && (
+                    <p className="text-sm font-mono bg-red-50 p-2 rounded">{errorDetails}</p>
+                  )}
                 </AlertDescription>
               </Alert>
             </div>

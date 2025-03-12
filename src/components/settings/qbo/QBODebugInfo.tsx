@@ -9,6 +9,21 @@ export function QBODebugInfo() {
   const hostname = window.location.hostname;
   const port = window.location.port;
   
+  // Helper function to create a URL with the same parameters as the auth URL
+  const testAuthUrl = (): string => {
+    const params = new URLSearchParams({
+      client_id: qboConfig.clientId,
+      response_type: 'code',
+      scope: qboConfig.scopes.join(' '), // Using space as it's automatically encoded to '+' in URL
+      redirect_uri: qboConfig.redirectUri,
+      state: 'test-state'
+    });
+    
+    return `${qboConfig.authEndpoint}?${params.toString()}`;
+  };
+  
+  const authUrl = testAuthUrl();
+  
   return (
     <Alert className="my-4 bg-blue-50 border-blue-200">
       <InfoIcon className="h-4 w-4 text-blue-600" />
@@ -21,6 +36,7 @@ export function QBODebugInfo() {
           <p><strong>Scopes:</strong> {qboConfig.scopes.join(', ')}</p>
           <p><strong>Auth Endpoint:</strong> {qboConfig.authEndpoint}</p>
           <p><strong>Environment:</strong> {qboConfig.isProduction ? 'Production' : 'Sandbox'}</p>
+          <p><strong>Full Auth URL:</strong> <span className="text-xs">{authUrl}</span></p>
         </div>
         <p className="mt-3 text-xs text-blue-600">
           <strong>Important:</strong> Make sure this exact Redirect URI is registered in your Intuit Developer Portal.
