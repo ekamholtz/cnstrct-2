@@ -74,7 +74,7 @@ export function useContractorProjects() {
         .from('projects')
         .select(`
           *,
-          clients!projects_client_id_fkey (
+          clients:client_id (
             id,
             name,
             email,
@@ -102,6 +102,7 @@ export function useContractorProjects() {
         if (profile && profile.gc_account_id) {
           // For GC admins, show all projects for their company
           query = query.eq('gc_account_id', profile.gc_account_id);
+          console.log('Filtering by gc_account_id:', profile.gc_account_id);
         }
       } else if (userRole === 'project_manager') {
         console.log('Applying PM filter');

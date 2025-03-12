@@ -1,13 +1,13 @@
 
 import React, { useState } from "react";
-import { ExpenseForm } from "./expense/ExpenseForm";
-import { ExpenseList } from "./expense/ExpenseList";
+import { ExpenseForm } from "@/components/project/expense/ExpenseForm";
+import { ExpenseList } from "@/components/project/expense/ExpenseList";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useExpenses } from "./expense/hooks/useExpenses";
+import { useExpenses } from "@/components/project/expense/hooks/useExpenses";
 import type { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/types";
 import type { Expense, DatabaseExpense } from "@/components/project/expense/types";
 import type { Payment } from "@/components/payments/types";

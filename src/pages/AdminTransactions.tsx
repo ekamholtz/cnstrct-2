@@ -20,12 +20,18 @@ const AdminTransactions = () => {
 
   // Type cast the data to match the expected interfaces
   const invoices = (rawInvoices || []).map(invoice => {
-    const milestone_name = invoice.milestones ? invoice.milestones.name : undefined;
-    const project_name = invoice.projects ? invoice.projects.name : undefined;
+    // Safely access nested properties
+    const milestone_name = invoice.milestones && typeof invoice.milestones === 'object' 
+      ? invoice.milestones.name 
+      : undefined;
+    
+    const project_name = invoice.projects && typeof invoice.projects === 'object' 
+      ? invoice.projects.name 
+      : undefined;
     
     return {
       id: invoice.id,
-      invoice_number: invoice.invoice_number,
+      invoice_number: invoice.invoice_number || '',
       amount: invoice.amount,
       status: invoice.status,
       created_at: invoice.created_at,
@@ -42,7 +48,10 @@ const AdminTransactions = () => {
   });
 
   const expenses = (rawExpenses || []).map(expense => {
-    const project_name = expense.projects ? expense.projects.name : 'Unknown';
+    // Safely access project name
+    const project_name = expense.projects && typeof expense.projects === 'object'
+      ? expense.projects.name 
+      : 'Unknown';
     
     return {
       id: expense.id,
