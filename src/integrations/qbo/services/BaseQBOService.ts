@@ -1,15 +1,19 @@
 
-import axios, { AxiosInstance } from "axios";
-import { QBOAuthService } from "../authService";
-import { supabase } from "@/integrations/supabase/client";
+import { AuthorizationService } from "./auth/AuthorizationService";
+import { APIClientFactory } from "./api/APIClientFactory";
+import { ConnectionManager } from "./connection/ConnectionManager";
 import { QBOConfig } from "../config/qboConfig";
 
 export class BaseQBOService {
-  protected authService: QBOAuthService;
+  protected authService: AuthorizationService;
+  protected apiClientFactory: APIClientFactory;
+  protected connectionManager: ConnectionManager;
   protected baseUrl: string;
   
   constructor() {
-    this.authService = new QBOAuthService();
+    this.authService = new AuthorizationService();
+    this.apiClientFactory = new APIClientFactory();
+    this.connectionManager = new ConnectionManager();
     
     // Get configuration
     const config = new QBOConfig();
@@ -21,52 +25,14 @@ export class BaseQBOService {
   /**
    * Get an authenticated API client for QBO
    */
-  async getClient(connectionId: string, companyId: string): Promise<AxiosInstance> {
-    try {
-      // Get a fresh token
-      const token = await this.authService.refreshToken(connectionId);
-      
-      // Create and return axios instance
-      return axios.create({
-        baseURL: `${this.baseUrl}/company/${companyId}`,
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
-    } catch (error) {
-      console.error("Error getting QBO client:", error);
-      throw new Error("Failed to create QBO client");
-    }
+  async getClient(connectionId: string, companyId: string) {
+    return this.apiClientFactory.createClient(connectionId, companyId);
   }
   
   /**
    * Get user's QBO connection
    */
   async getUserConnection() {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.log("User not authenticated when getting QBO connection");
-        throw new Error("User not authenticated");
-      }
-      
-      const { data: connection, error } = await supabase
-        .from('qbo_connections')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-        
-      if (error) {
-        console.log("No QBO connection found for user", user.id);
-        return null;
-      }
-      
-      return connection;
-    } catch (error) {
-      console.error("Error getting user QBO connection:", error);
-      return null;
-    }
+    return this.connectionManager.getUserConnection();
   }
 }
