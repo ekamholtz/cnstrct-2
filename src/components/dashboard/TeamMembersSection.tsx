@@ -9,6 +9,7 @@ import { CreateUserFormValues } from "@/components/gc-profile/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { UserRole } from "@/components/auth/authSchemas";
 
 export const TeamMembersSection = () => {
   const [isInviting, setIsInviting] = useState(false);
@@ -19,7 +20,10 @@ export const TeamMembersSection = () => {
     teamMembers,
     isLoadingTeam,
     refetch,
-    teamMembersError
+    teamMembersError,
+    gcAccountId,
+    isGCAdmin,
+    isPlatformAdmin
   } = useTeamMembers();
 
   const { createUser, isCreatingUser } = useCreateGCUser();
@@ -219,7 +223,10 @@ export const TeamMembersSection = () => {
           
           <TabsContent value="project-managers">
             <UserList 
-              users={displayProfiles.filter(user => user.role === 'project_manager')}
+              users={displayProfiles.filter(user => 
+                user.role === 'project_manager' || 
+                (typeof mapUserRoleToUIRole === 'function' && mapUserRoleToUIRole(user.role) === 'project_manager')
+              )}
               isLoading={isLoadingTeam && directDbProfiles.length === 0}
               canManageUsers={canManageUsers}
               onCreateUser={() => setIsInviting(true)}
@@ -229,7 +236,10 @@ export const TeamMembersSection = () => {
           
           <TabsContent value="contractors">
             <UserList 
-              users={displayProfiles.filter(user => user.role === 'contractor')}
+              users={displayProfiles.filter(user => 
+                user.role === 'contractor' || 
+                (typeof mapUserRoleToUIRole === 'function' && mapUserRoleToUIRole(user.role) === 'contractor')
+              )}
               isLoading={isLoadingTeam && directDbProfiles.length === 0}
               canManageUsers={canManageUsers}
               onCreateUser={() => setIsInviting(true)}

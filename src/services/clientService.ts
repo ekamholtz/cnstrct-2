@@ -30,12 +30,22 @@ export const createClient = async (clientData: {
   
   // No existing client found, create new one
   console.log('Creating new client with email:', normalizedEmail);
+  
+  // Get current user for possible association
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  // Structure data for insertion
+  const clientInsertData = {
+    name: clientData.name,
+    email: normalizedEmail,
+    address: clientData.address,
+    phone: clientData.phone_number, // Match the field name in the database
+    user_id: user?.id // Link to current user if available
+  };
+  
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .insert({
-      ...clientData,
-      email: normalizedEmail
-    })
+    .insert(clientInsertData)
     .select()
     .single();
 
@@ -49,12 +59,24 @@ export const createClient = async (clientData: {
 export const findClientByEmail = async (email: string) => {
   const normalizedEmail = email.toLowerCase().trim();
   
+  console.log('Searching for client with email:', normalizedEmail);
+  
   const { data, error } = await supabase
     .from('clients')
     .select('*')
     .ilike('email', normalizedEmail)
     .limit(1);
     
-  if (error) throw error;
+  if (error) {
+    console.error('Error finding client by email:', error);
+    throw error;
+  }
+  
+  if (data && data.length > 0) {
+    console.log('Found client:', data[0].id);
+  } else {
+    console.log('No client found with email:', normalizedEmail);
+  }
+  
   return data && data.length > 0 ? data[0] : null;
 };

@@ -1,19 +1,19 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
-import { GCUserProfile } from "@/components/gc-profile/types";
-import { UserRole } from "@/components/auth/authSchemas";
+import { UserRole } from "@/components/admin/users/types";
 
 // Define the UI role type that's expected by components
 export type UIRole = "contractor" | "homeowner" | "project_manager";
 
-// Define a team member with properly typed fields, including all fields that might be accessed
+// Define a team member with properly typed fields
 export interface TeamMember {
   id: string;
   gc_account_id?: string;
   full_name: string;
   email: string;
-  role: UIRole;
+  role: UIRole | UserRole;
   // Include additional fields that are accessed by components
   company_name?: string;
   phone_number?: string;
@@ -54,33 +54,29 @@ export function mapUserRoleToUIRole(userRole: UserRole | null | undefined): UIRo
  */
 export function useTeamMembers() {
   const { currentUserProfile, isLoading: isLoadingProfile } = useCurrentUserProfile();
+  const gcAccountId = currentUserProfile?.gc_account_id;
   
-  const { data, isLoading, refetch, error } = useQuery<TeamMember[]>({
-    queryKey: ["teamMembers", currentUserProfile?.gc_account_id],
+  // Determine admin status
+  const isGCAdmin = currentUserProfile?.role === 'gc_admin';
+  const isPlatformAdmin = currentUserProfile?.role === 'platform_admin';
+  
+  const { data, isLoading, refetch, error } = useQuery({
+    queryKey: ["teamMembers", gcAccountId],
     queryFn: async () => {
-      if (!currentUserProfile?.gc_account_id) {
+      if (!gcAccountId) {
         console.log("No gc_account_id found for current user");
         return [];
       }
       
       try {
-        // Using fetch API instead of supabase client for better type control
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?select=id,gc_account_id,full_name,email,role,company_name,phone_number,address,license_number,website,bio,has_completed_profile,account_status,created_at,updated_at&gc_account_id=eq.${currentUserProfile.gc_account_id}`,
-          {
-            headers: {
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY || '',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY || ''}`,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-        
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('id,gc_account_id,full_name,email,role,company_name,phone_number,address,license_number,website,bio,has_completed_profile,account_status,created_at,updated_at')
+          .eq('gc_account_id', gcAccountId);
+          
+        if (error) {
+          throw error;
         }
-        
-        const profiles = await response.json();
         
         if (!profiles || profiles.length === 0) {
           console.log("No team members found, using current user as fallback");
@@ -90,7 +86,7 @@ export function useTeamMembers() {
             gc_account_id: currentUserProfile.gc_account_id,
             full_name: currentUserProfile.full_name || 'Unknown',
             email: currentUserProfile.email || '',
-            role: mapUserRoleToUIRole(currentUserProfile.role),
+            role: mapUserRoleToUIRole(currentUserProfile.role as UserRole),
             company_name: currentUserProfile.company_name || '',
             phone_number: currentUserProfile.phone_number || '',
             address: currentUserProfile.address || '',
@@ -111,7 +107,7 @@ export function useTeamMembers() {
           full_name: profile.full_name || 'Unknown',
           email: profile.email || '',
           // Map the user role to a UI role
-          role: mapUserRoleToUIRole(profile.role as UserRole),
+          role: profile.role, // Keep the original role, let components map as needed
           company_name: profile.company_name || '',
           phone_number: profile.phone_number || '',
           address: profile.address || '',
@@ -133,7 +129,7 @@ export function useTeamMembers() {
             gc_account_id: currentUserProfile.gc_account_id,
             full_name: currentUserProfile.full_name || 'Unknown',
             email: currentUserProfile.email || '',
-            role: mapUserRoleToUIRole(currentUserProfile.role),
+            role: mapUserRoleToUIRole(currentUserProfile.role as UserRole),
             company_name: currentUserProfile.company_name || '',
             phone_number: currentUserProfile.phone_number || '',
             address: currentUserProfile.address || '',
@@ -150,7 +146,7 @@ export function useTeamMembers() {
         return [];
       }
     },
-    enabled: !!currentUserProfile?.gc_account_id,
+    enabled: !!gcAccountId,
   });
   
   // Create a type-safe return object
@@ -158,6 +154,9 @@ export function useTeamMembers() {
     teamMembers: data || [],
     isLoadingTeam: isLoading || isLoadingProfile,
     refetch,
-    teamMembersError: error
+    teamMembersError: error,
+    gcAccountId,
+    isGCAdmin,
+    isPlatformAdmin
   };
 }

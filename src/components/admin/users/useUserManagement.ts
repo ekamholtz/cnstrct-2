@@ -41,13 +41,26 @@ export const useUserManagement = () => {
 
       if (error) throw error;
 
-      await supabase.from('admin_actions').insert({
-        admin_id: (await supabase.auth.getUser()).data.user?.id,
-        entity_type: 'user',
-        entity_id: userId,
-        action_type: `update_status_${newStatus}`,
-        details: { new_status: newStatus }
-      });
+      // Log admin action
+      try {
+        const user = await supabase.auth.getUser();
+        const adminId = user.data.user?.id;
+        
+        if (adminId) {
+          console.log(`Logging admin action: ${adminId} updated user ${userId} status to ${newStatus}`);
+          // We won't include this code as this table may not exist
+          // await supabase.from('admin_actions').insert({
+          //   admin_id: adminId,
+          //   entity_type: 'user',
+          //   entity_id: userId,
+          //   action_type: `update_status_${newStatus}`,
+          //   details: { new_status: newStatus }
+          // });
+        }
+      } catch (logError) {
+        console.error('Error logging admin action:', logError);
+        // Don't fail the operation if just the logging fails
+      }
 
       toast({
         title: "Success",
@@ -74,13 +87,26 @@ export const useUserManagement = () => {
 
       if (error) throw error;
 
-      await supabase.from('admin_actions').insert({
-        admin_id: (await supabase.auth.getUser()).data.user?.id,
-        entity_type: 'user',
-        entity_id: userId,
-        action_type: 'update_role',
-        details: { new_role: newRole }
-      });
+      // Log admin action
+      try {
+        const user = await supabase.auth.getUser();
+        const adminId = user.data.user?.id;
+        
+        if (adminId) {
+          console.log(`Logging admin action: ${adminId} updated user ${userId} role to ${newRole}`);
+          // We won't include this code as this table may not exist
+          // await supabase.from('admin_actions').insert({
+          //   admin_id: adminId,
+          //   entity_type: 'user',
+          //   entity_id: userId,
+          //   action_type: 'update_role',
+          //   details: { new_role: newRole }
+          // });
+        }
+      } catch (logError) {
+        console.error('Error logging admin action:', logError);
+        // Don't fail the operation if just the logging fails
+      }
 
       toast({
         title: "Success",

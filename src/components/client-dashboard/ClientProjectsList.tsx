@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { linkClientToUser } from "@/utils/client-utils";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import axios from "axios";
 
 interface Project {
@@ -29,6 +30,7 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [client, setClient] = useState<Client | null>(null);
+  const [dataState, setDataState] = useState<'loading' | 'error' | 'empty' | 'success'>('loading');
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -36,39 +38,73 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setDataState('loading');
         
-        // Fetch projects using our mock API
-        const response = await axios.get('/api/client/projects');
-        const projectsData = response.data;
-        
-        console.log('Projects data from API:', projectsData);
-        
-        if (!projectsData || projectsData.length === 0) {
-          console.log('No projects found');
-          setProjects([]);
+        // Get current user first
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          console.error('No authenticated user found');
+          setDataState('error');
+          setError('No authenticated user found. Please sign in again.');
           setLoading(false);
           return;
         }
         
-        // Set the projects
-        setProjects(projectsData || []);
+        console.log('Current user:', user.email);
         
-        // Try to get client info
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: clientData } = await supabase
-            .from('clients')
-            .select('*')
-            .eq('user_id', user.id)
-            .single();
-            
+        // Try to find or create client record
+        try {
+          const clientData = await linkClientToUser(user.id, user.email || '');
           setClient(clientData);
+          console.log('Client data:', clientData);
+        } catch (clientError) {
+          console.error('Error linking client to user:', clientError);
+        }
+        
+        // Fetch projects using mocked API for now
+        try {
+          const response = await axios.get('/api/client/projects');
+          const projectsData = response.data;
+          
+          console.log('Projects data from API:', projectsData);
+          
+          if (!projectsData || projectsData.length === 0) {
+            console.log('No projects found');
+            setProjects([]);
+            setDataState('empty');
+            setLoading(false);
+            return;
+          }
+          
+          // Set the projects
+          setProjects(projectsData);
+          setDataState('success');
+        } catch (apiError) {
+          console.error('API error:', apiError);
+          
+          // Fallback to direct DB query in case API fails
+          if (client?.id) {
+            const { data: projectsData } = await supabase
+              .from('projects')
+              .select('*')
+              .eq('client_id', client.id);
+              
+            if (projectsData && projectsData.length > 0) {
+              setProjects(projectsData);
+              setDataState('success');
+            } else {
+              setDataState('empty');
+            }
+          } else {
+            setDataState('empty');
+          }
         }
         
         setLoading(false);
       } catch (err) {
         console.error('Error in ClientProjectsList:', err);
         setError(err instanceof Error ? err.message : String(err));
+        setDataState('error');
         setLoading(false);
         toast({
           title: "Error",
@@ -107,6 +143,8 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
   if (error) {
     return (
       <Alert variant="destructive" className="mb-8">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
         <AlertDescription>
           {error}
         </AlertDescription>
@@ -114,7 +152,7 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
     );
   }
 
-  if (projects.length === 0) {
+  if (dataState === 'empty') {
     return (
       <Card className="mb-8">
         <CardHeader>
@@ -122,15 +160,21 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4">You don't have any projects yet.</p>
-          {client && (
-            <Button onClick={() => navigate('/client-projects')}>
-              View All Projects
-            </Button>
-          )}
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>No Projects Found</AlertTitle>
+            <AlertDescription>
+              We couldn't find any projects associated with your account.
+              {client && <span> Your client ID is: {client.id}</span>}
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
     );
   }
+
+  // Filter projects if there's a limit
+  const displayProjects = limit ? projects.slice(0, limit) : projects;
 
   return (
     <Card className="mb-8">
@@ -139,7 +183,7 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {projects.map((project) => (
+          {displayProjects.map((project) => (
             <div 
               key={project.id}
               className="p-4 border rounded-lg hover:bg-muted transition-colors cursor-pointer"
@@ -158,7 +202,7 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
             </div>
           ))}
         </div>
-        {projects.length > 0 && client && (
+        {projects.length > 0 && (
           <div className="mt-4">
             <Button variant="outline" onClick={() => navigate('/client-projects')}>
               View All Projects
