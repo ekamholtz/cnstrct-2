@@ -1,7 +1,7 @@
 
 import React from "react";
-import { Alert, AlertCircle, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { CheckCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, CheckCircle } from "lucide-react";
 
 interface TestResult {
   success: boolean;

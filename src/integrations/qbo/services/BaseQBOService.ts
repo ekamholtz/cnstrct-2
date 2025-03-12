@@ -2,6 +2,7 @@
 import axios, { AxiosInstance } from "axios";
 import { QBOAuthService } from "../authService";
 import { supabase } from "@/integrations/supabase/client";
+import { QBOConfig } from "../config/qboConfig";
 
 export class BaseQBOService {
   protected authService: QBOAuthService;
@@ -10,14 +11,9 @@ export class BaseQBOService {
   constructor() {
     this.authService = new QBOAuthService();
     
-    // Determine environment
-    const isProduction = window.location.hostname !== 'localhost' && 
-                        !window.location.hostname.includes('127.0.0.1');
-    
-    // Use appropriate URL based on environment
-    this.baseUrl = isProduction
-      ? "https://quickbooks.api.intuit.com/v3"
-      : "https://sandbox-quickbooks.api.intuit.com/v3";
+    // Get configuration
+    const config = new QBOConfig();
+    this.baseUrl = config.apiBaseUrl;
       
     console.log("BaseQBOService initialized with baseUrl:", this.baseUrl);
   }
