@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import axios from "axios";
 
@@ -8,9 +9,16 @@ export class QBOAuthService {
   private scopes: string[];
   private authEndpoint: string;
   private tokenEndpoint: string;
+  private apiBaseUrl: string;
+  private isProduction: boolean;
   
   constructor() {
+    // Environment detection - could be moved to configuration
+    this.isProduction = window.location.hostname !== 'localhost' && 
+                         !window.location.hostname.includes('127.0.0.1');
+    
     // For production, these should be environment variables
+    // Currently using sandbox credentials (for development)
     this.clientId = "AB6pN0pnXfsBtCI1S03SYSdoRiSCVD2ZQDxDgR4yYvbDdEx4";
     this.clientSecret = "4zjveAX4tFhuxWx1sfgN3bE4zRVUquFun3YqVau";
     this.redirectUri = `${window.location.origin}/qbo/callback`;
@@ -18,8 +26,21 @@ export class QBOAuthService {
       'com.intuit.quickbooks.accounting',
       'com.intuit.quickbooks.payment',
     ];
+
+    // Use correct endpoints based on environment
     this.authEndpoint = 'https://appcenter.intuit.com/connect/oauth2';
     this.tokenEndpoint = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
+    
+    // API base URL - switch between sandbox and production
+    this.apiBaseUrl = this.isProduction 
+      ? "https://quickbooks.api.intuit.com/v3"
+      : "https://sandbox-quickbooks.api.intuit.com/v3";
+      
+    console.log("QBO Auth Service initialized with:", {
+      environment: this.isProduction ? "Production" : "Sandbox",
+      apiBaseUrl: this.apiBaseUrl,
+      redirectUri: this.redirectUri
+    });
   }
   
   /**
@@ -40,7 +61,9 @@ export class QBOAuthService {
       state: state
     });
     
-    return `${this.authEndpoint}?${params.toString()}`;
+    const authUrl = `${this.authEndpoint}?${params.toString()}`;
+    console.log("Generated QBO Auth URL:", authUrl);
+    return authUrl;
   }
   
   /**
@@ -55,10 +78,13 @@ export class QBOAuthService {
     // Validate state to prevent CSRF attacks
     const storedState = localStorage.getItem('qbo_auth_state');
     if (state !== storedState) {
+      console.error("State mismatch in QBO callback", { provided: state, stored: storedState });
       return { success: false, error: 'Invalid state parameter' };
     }
     
     try {
+      console.log("Exchanging authorization code for tokens...");
+      
       // Exchange authorization code for tokens
       const tokenResponse = await axios.post(
         this.tokenEndpoint,
@@ -75,9 +101,12 @@ export class QBOAuthService {
         }
       );
       
+      console.log("Token response received", { status: tokenResponse.status });
+      
       const { access_token, refresh_token, expires_in, x_refresh_token_expires_in, realmId } = tokenResponse.data;
       
       if (!access_token || !refresh_token || !realmId) {
+        console.error("Missing required token information", tokenResponse.data);
         return { success: false, error: 'Missing required token information' };
       }
       
@@ -86,10 +115,17 @@ export class QBOAuthService {
       
       // Store tokens in database
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("No authenticated user found when storing QBO tokens");
+        return { success: false, error: 'User authentication required' };
+      }
+      
+      console.log("Storing QBO connection for user:", user.id);
+      
       const { error } = await supabase
         .from('qbo_connections')
         .upsert({
-          user_id: user?.id,
+          user_id: user.id,
           company_id: realmId,
           company_name: companyInfo.companyName,
           access_token,
@@ -106,15 +142,24 @@ export class QBOAuthService {
       localStorage.removeItem('qbo_auth_state');
       localStorage.removeItem('qbo_auth_user_id');
       
+      console.log("QBO connection successfully established", { 
+        companyId: realmId,
+        companyName: companyInfo.companyName
+      });
+      
       return { 
         success: true, 
         companyId: realmId,
         companyName: companyInfo.companyName
       };
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error in QBO authorization:", error);
-      return { success: false, error: 'Authorization failed' };
+      const errorMessage = error.response?.data?.error_description || 
+                          error.response?.data?.error ||
+                          error.message ||
+                          'Authorization failed';
+      return { success: false, error: errorMessage };
     }
   }
   
@@ -122,47 +167,61 @@ export class QBOAuthService {
    * Get current user's QBO connection
    */
   async getConnection() {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from('qbo_connections')
-      .select('*')
-      .eq('user_id', user?.id)
-      .single();
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.log("No authenticated user found when getting QBO connection");
+        return null;
+      }
       
-    if (error || !data) {
+      const { data, error } = await supabase
+        .from('qbo_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+        
+      if (error) {
+        console.log("No QBO connection found for user:", user.id);
+        return null;
+      }
+      
+      return data;
+    } catch (err) {
+      console.error("Error getting QBO connection:", err);
       return null;
     }
-    
-    return data;
   }
   
   /**
    * Refresh the QBO access token
    */
   async refreshToken(connectionId: string): Promise<string> {
-    // Get the connection
-    const { data: connection, error: fetchError } = await supabase
-      .from('qbo_connections')
-      .select('*')
-      .eq('id', connectionId)
-      .single();
-      
-    if (fetchError || !connection) {
-      throw new Error('QBO connection not found');
-    }
-    
-    // Check if token is expired or about to expire (within 5 minutes)
-    const expiresAt = new Date(connection.expires_at).getTime();
-    const now = Date.now();
-    const fiveMinutesInMs = 5 * 60 * 1000;
-    
-    if (expiresAt - now > fiveMinutesInMs) {
-      // Token is still valid
-      return connection.access_token;
-    }
-    
-    // Refresh the token
     try {
+      // Get the connection
+      const { data: connection, error: fetchError } = await supabase
+        .from('qbo_connections')
+        .select('*')
+        .eq('id', connectionId)
+        .single();
+        
+      if (fetchError || !connection) {
+        console.error("QBO connection not found for ID:", connectionId);
+        throw new Error('QBO connection not found');
+      }
+      
+      // Check if token is expired or about to expire (within 5 minutes)
+      const expiresAt = new Date(connection.expires_at).getTime();
+      const now = Date.now();
+      const fiveMinutesInMs = 5 * 60 * 1000;
+      
+      if (expiresAt - now > fiveMinutesInMs) {
+        // Token is still valid
+        return connection.access_token;
+      }
+      
+      console.log("Refreshing QBO token for connection:", connectionId);
+      
+      // Refresh the token
       const tokenResponse = await axios.post(
         this.tokenEndpoint,
         new URLSearchParams({
@@ -195,6 +254,7 @@ export class QBOAuthService {
         throw new Error('Failed to update tokens');
       }
       
+      console.log("QBO token successfully refreshed");
       return access_token;
     } catch (error) {
       console.error("Error refreshing QBO token:", error);
@@ -210,15 +270,19 @@ export class QBOAuthService {
     [key: string]: any;
   }> {
     try {
-      const response = await axios.get(
-        `https://sandbox-quickbooks.api.intuit.com/v3/company/${realmId}/companyinfo/${realmId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-            'Accept': 'application/json'
-          }
+      console.log("Getting company info from QBO...");
+      
+      const url = `${this.apiBaseUrl}/company/${realmId}/companyinfo/${realmId}`;
+      console.log("Company info URL:", url);
+      
+      const response = await axios.get(url, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json'
         }
-      );
+      });
+      
+      console.log("Company info retrieved successfully");
       
       return {
         companyName: response.data.CompanyInfo.CompanyName,
@@ -245,16 +309,24 @@ export class QBOAuthService {
   async disconnect(): Promise<boolean> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.error("No authenticated user found when disconnecting QBO");
+        return false;
+      }
+      
+      console.log("Disconnecting QBO for user:", user.id);
+      
       const { error } = await supabase
         .from('qbo_connections')
         .delete()
-        .eq('user_id', user?.id);
+        .eq('user_id', user.id);
         
       if (error) {
         console.error("Error disconnecting from QBO:", error);
         return false;
       }
       
+      console.log("QBO successfully disconnected");
       return true;
     } catch (error) {
       console.error("Error disconnecting from QBO:", error);

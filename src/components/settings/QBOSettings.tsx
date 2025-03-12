@@ -1,20 +1,62 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, ExternalLink } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, CheckCircle, ExternalLink, RefreshCw } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatDistanceToNow } from "date-fns";
 
 export function QBOSettings() {
   const { connection, isLoading, error, connectToQBO, disconnectFromQBO } = useQBOConnection();
+  const [isTesting, setIsTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   
   const handleDisconnect = async () => {
     if (window.confirm("Are you sure you want to disconnect from QuickBooks Online? This will stop all syncing.")) {
       await disconnectFromQBO();
+      setTestResult(null);
     }
   };
+  
+  const testConnection = async () => {
+    setIsTesting(true);
+    setTestResult(null);
+    
+    try {
+      // Make a simple API call to test the connection
+      const response = await fetch("https://sandbox-quickbooks.api.intuit.com/v3/company", {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+        }
+      });
+      
+      if (response.ok) {
+        setTestResult({ 
+          success: true, 
+          message: "Connection to QuickBooks API is working properly." 
+        });
+      } else {
+        const errorText = await response.text();
+        setTestResult({ 
+          success: false, 
+          message: `Connection test failed: ${response.status} ${response.statusText}. ${errorText}` 
+        });
+      }
+    } catch (err) {
+      setTestResult({ 
+        success: false, 
+        message: `Connection test failed: ${err instanceof Error ? err.message : String(err)}` 
+      });
+    } finally {
+      setIsTesting(false);
+    }
+  };
+  
+  // Check if we're in development/sandbox mode
+  const isSandboxMode = window.location.hostname === 'localhost' || 
+                         window.location.hostname.includes('127.0.0.1');
   
   return (
     <Card className="w-full">
@@ -22,6 +64,11 @@ export function QBOSettings() {
         <CardTitle className="text-2xl font-bold">QuickBooks Online Integration</CardTitle>
         <CardDescription>
           Connect your QuickBooks Online account to sync financial data from CNSTRCT
+          {isSandboxMode && (
+            <span className="block mt-2 text-amber-500 font-medium">
+              Development Mode: Using QuickBooks Sandbox
+            </span>
+          )}
         </CardDescription>
       </CardHeader>
       
@@ -29,8 +76,26 @@ export function QBOSettings() {
         {error && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Connection Error</AlertTitle>
             <AlertDescription>
               {error.message || "An error occurred with your QuickBooks Online connection"}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {testResult && (
+          <Alert 
+            variant={testResult.success ? "default" : "destructive"} 
+            className={`mb-4 ${testResult.success ? "bg-green-50 border-green-200" : ""}`}
+          >
+            {testResult.success ? (
+              <CheckCircle className="h-4 w-4 text-green-600" />
+            ) : (
+              <AlertCircle className="h-4 w-4" />
+            )}
+            <AlertTitle>{testResult.success ? "Test Successful" : "Test Failed"}</AlertTitle>
+            <AlertDescription>
+              {testResult.message}
             </AlertDescription>
           </Alert>
         )}
@@ -52,6 +117,10 @@ export function QBOSettings() {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Company:</span>
                   <span className="font-medium">{connection.company_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Environment:</span>
+                  <span>{isSandboxMode ? "Sandbox (Test)" : "Production"}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Connected:</span>
@@ -86,6 +155,11 @@ export function QBOSettings() {
               <p className="text-amber-700 text-sm">
                 Connect your QuickBooks Online account to enable financial data sync from CNSTRCT to QBO.
               </p>
+              {isSandboxMode && (
+                <p className="text-amber-700 text-sm mt-2 font-medium">
+                  You are in development mode. A QuickBooks Sandbox account is required for testing.
+                </p>
+              )}
             </div>
             
             <div className="bg-blue-50 p-4 rounded-md border border-blue-100">
@@ -109,7 +183,23 @@ export function QBOSettings() {
         {!isLoading && (
           connection ? (
             <div className="space-x-2">
-              <Button variant="outline" size="sm" onClick={() => window.open("https://qbo.intuit.com", "_blank")}>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={testConnection}
+                disabled={isTesting}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isTesting ? 'animate-spin' : ''}`} />
+                {isTesting ? "Testing..." : "Test Connection"}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => window.open(isSandboxMode ? 
+                  "https://sandbox.qbo.intuit.com/app/homepage" : 
+                  "https://qbo.intuit.com", 
+                  "_blank")}
+              >
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Open QuickBooks
               </Button>
