@@ -1,5 +1,7 @@
 
 import { QBOAuthService } from "../../authService";
+import { QBOUtils } from "../../utils/qboUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Service for handling QBO authorization
