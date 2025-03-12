@@ -9,17 +9,11 @@ interface Client {
   id: string;
   name: string;
   email: string;
-  phone_number?: string;
+  phone?: string;
   address?: string;
   user_id?: string;
   created_at: string;
   updated_at: string;
-}
-
-// Type for Supabase response
-interface SupabaseResponse<T> {
-  data: T | null;
-  error: any;
 }
 
 /**
@@ -80,18 +74,16 @@ export const linkClientToUser = async (
       .eq('id', userId)
       .single();
     
-    // Create a new client record
+    // Create a new client record with proper field names matching the database
     const { data: newClient, error: createError } = await supabaseClient
       .from('clients')
-      .insert([
-        { 
-          email: normalizedEmail,
-          user_id: userId,
-          name: userProfile?.full_name || normalizedEmail.split('@')[0],
-          phone_number: userProfile?.phone_number,
-          address: userProfile?.address
-        }
-      ])
+      .insert([{ 
+        email: normalizedEmail,
+        user_id: userId,
+        name: userProfile?.full_name || normalizedEmail.split('@')[0],
+        phone: userProfile?.phone_number,
+        address: userProfile?.address
+      }])
       .select()
       .single();
       
@@ -116,7 +108,7 @@ export const linkClientToUser = async (
 export const linkClientToUserOld = async (
   userEmail: string, 
   userId: string,
-  form: UseFormReturn<ProfileCompletionFormValues>
+  form?: UseFormReturn<ProfileCompletionFormValues>
 ) => {
   // Call the new function with the parameters rearranged
   return linkClientToUser(userId, userEmail);

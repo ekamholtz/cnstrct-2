@@ -61,23 +61,45 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
           console.error('Error linking client to user:', clientError);
         }
         
-        // Fetch projects using our mock API
-        const response = await axios.get('/api/client/projects');
-        const projectsData = response.data;
-        
-        console.log('Projects data from API:', projectsData);
-        
-        if (!projectsData || projectsData.length === 0) {
-          console.log('No projects found');
-          setProjects([]);
-          setDataState('empty');
-          setLoading(false);
-          return;
+        // Fetch projects using mocked API for now
+        try {
+          const response = await axios.get('/api/client/projects');
+          const projectsData = response.data;
+          
+          console.log('Projects data from API:', projectsData);
+          
+          if (!projectsData || projectsData.length === 0) {
+            console.log('No projects found');
+            setProjects([]);
+            setDataState('empty');
+            setLoading(false);
+            return;
+          }
+          
+          // Set the projects
+          setProjects(projectsData);
+          setDataState('success');
+        } catch (apiError) {
+          console.error('API error:', apiError);
+          
+          // Fallback to direct DB query in case API fails
+          if (client?.id) {
+            const { data: projectsData } = await supabase
+              .from('projects')
+              .select('*')
+              .eq('client_id', client.id);
+              
+            if (projectsData && projectsData.length > 0) {
+              setProjects(projectsData);
+              setDataState('success');
+            } else {
+              setDataState('empty');
+            }
+          } else {
+            setDataState('empty');
+          }
         }
         
-        // Set the projects
-        setProjects(projectsData || []);
-        setDataState('success');
         setLoading(false);
       } catch (err) {
         console.error('Error in ClientProjectsList:', err);

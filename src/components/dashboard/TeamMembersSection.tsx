@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,11 +19,11 @@ export const TeamMembersSection = () => {
   const {
     teamMembers,
     isLoadingTeam,
-    refetchTeam,
+    refetch,
+    teamMembersError,
     gcAccountId,
     isGCAdmin,
-    isPlatformAdmin,
-    error: teamMembersError
+    isPlatformAdmin
   } = useTeamMembers();
 
   const { createUser, isCreatingUser } = useCreateGCUser(gcAccountId);
@@ -137,7 +138,7 @@ export const TeamMembersSection = () => {
       
       setIsInviting(false);
       // Use a timeout to allow for database update to complete
-      setTimeout(() => refetchTeam(), 1000);
+      setTimeout(() => refetch(), 1000);
     } catch (error) {
       console.error("Error inviting user:", error);
     }
@@ -214,7 +215,7 @@ export const TeamMembersSection = () => {
               isLoading={isLoadingTeam && directDbProfiles.length === 0}
               canManageUsers={canManageUsers}
               onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetchTeam()}
+              onRefresh={() => refetch()}
             /> 
           </TabsContent>
           
@@ -226,27 +227,33 @@ export const TeamMembersSection = () => {
               isLoading={isLoadingTeam && directDbProfiles.length === 0}
               canManageUsers={canManageUsers}
               onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetchTeam()}
+              onRefresh={() => refetch()}
             /> 
           </TabsContent>
           
           <TabsContent value="project-managers">
             <UserList 
-              users={displayProfiles.filter(user => user.role === 'project_manager')}
+              users={displayProfiles.filter(user => 
+                user.role === 'project_manager' || 
+                (typeof mapUserRoleToUIRole === 'function' && mapUserRoleToUIRole(user.role) === 'project_manager')
+              )}
               isLoading={isLoadingTeam && directDbProfiles.length === 0}
               canManageUsers={canManageUsers}
               onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetchTeam()}
+              onRefresh={() => refetch()}
             /> 
           </TabsContent>
           
           <TabsContent value="contractors">
             <UserList 
-              users={displayProfiles.filter(user => user.role === 'contractor')}
+              users={displayProfiles.filter(user => 
+                user.role === 'contractor' || 
+                (typeof mapUserRoleToUIRole === 'function' && mapUserRoleToUIRole(user.role) === 'contractor')
+              )}
               isLoading={isLoadingTeam && directDbProfiles.length === 0}
               canManageUsers={canManageUsers}
               onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetchTeam()}
+              onRefresh={() => refetch()}
             /> 
           </TabsContent>
         </Tabs>

@@ -30,12 +30,22 @@ export const createClient = async (clientData: {
   
   // No existing client found, create new one
   console.log('Creating new client with email:', normalizedEmail);
+  
+  // Get current user for possible association
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  // Structure data for insertion
+  const clientInsertData = {
+    name: clientData.name,
+    email: normalizedEmail,
+    address: clientData.address,
+    phone: clientData.phone_number, // Match the field name in the database
+    user_id: user?.id // Link to current user if available
+  };
+  
   const { data: client, error: clientError } = await supabase
     .from('clients')
-    .insert({
-      ...clientData,
-      email: normalizedEmail
-    })
+    .insert(clientInsertData)
     .select()
     .single();
 

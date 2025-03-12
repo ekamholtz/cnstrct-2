@@ -118,19 +118,40 @@ export const getClientInvoices = async (projectIds: string[] = []) => {
   try {
     console.log('Fetching invoices for projects:', projectIds);
     
-    // Use the get_client_invoices function we created
-    const { data: invoices, error } = await supabase.rpc(
-      'get_client_invoices',
+    // Get invoices using RPC function or direct query
+    const { data, error } = await supabase.rpc(
+      'get_client_invoices', 
       { project_ids: projectIds.join(',') }
     );
       
     if (error) {
       console.error('Error fetching client invoices:', error);
-      throw error;
+      
+      // Fallback to direct query if RPC fails
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('invoices')
+        .select(`
+          id, 
+          invoice_number,
+          amount,
+          status,
+          project_id,
+          milestone_id,
+          created_at,
+          updated_at
+        `)
+        .in('project_id', projectIds);
+        
+      if (fallbackError) {
+        console.error('Error with fallback invoice fetch:', fallbackError);
+        return [];
+      }
+      
+      return fallbackData || [];
     }
     
-    console.log('Fetched invoices:', invoices?.length || 0);
-    return invoices || [];
+    console.log('Fetched invoices:', data?.length || 0);
+    return data || [];
   } catch (error) {
     console.error('Error fetching client invoices:', error);
     return [];

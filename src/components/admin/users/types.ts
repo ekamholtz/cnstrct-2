@@ -1,4 +1,5 @@
-export type UserRole = 'client' | 'contractor' | 'employee' | 'homeowner' | 'gc_admin' | 'platform_admin';
+
+export type UserRole = 'client' | 'contractor' | 'employee' | 'homeowner' | 'gc_admin' | 'platform_admin' | 'project_manager';
 
 export type UserProfile = {
   id: string;
