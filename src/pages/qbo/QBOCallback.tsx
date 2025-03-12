@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { QBOAuthService } from "@/integrations/qbo/authService";
+import { AuthorizationService } from "@/integrations/qbo/services/auth/AuthorizationService";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,8 +36,13 @@ export default function QBOCallback() {
           return;
         }
         
-        const authService = new QBOAuthService();
-        const result = await authService.handleCallback(code, state);
+        // Get the stored user ID from localStorage (set during auth initiation)
+        const userId = localStorage.getItem('qbo_auth_user_id');
+        console.log("Retrieved user ID from localStorage:", userId);
+        
+        // Use the AuthorizationService for more flexible handling
+        const authService = new AuthorizationService();
+        const result = await authService.handleCallback(code, state, userId);
         
         if (!result.success) {
           console.error("Callback handling error:", result.error);
@@ -48,6 +54,9 @@ export default function QBOCallback() {
         // Successfully connected
         setStatus("success");
         setCompanyName(result.companyName || "your company");
+        
+        // Clear the stored user ID
+        localStorage.removeItem('qbo_auth_user_id');
       } catch (error) {
         console.error("Error in QBO callback:", error);
         setStatus("error");
