@@ -1,72 +1,100 @@
 
-import { useMutation } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useQBOConnection } from "./useQBOConnection";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/components/ui/use-toast";
 import { QBOService } from "@/integrations/qbo/qboService";
 
-export function useSyncInvoicePaymentToQBO() {
-  const { connection } = useQBOConnection();
-  const qboService = new QBOService(); // Create a service instance directly
+interface InvoicePaymentData {
+  id: string;
+  invoice_id: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  qbo_sync_status?: string;
+  qbo_entity_id?: string;
+}
+
+interface Invoice {
+  id: string;
+  qbo_entity_id?: string;
+}
+
+export const useSyncInvoicePaymentToQBO = () => {
+  const queryClient = useQueryClient();
   const { toast } = useToast();
+  const qboService = new QBOService();
   
   return useMutation({
     mutationFn: async ({ 
-      invoiceId, 
-      paymentAmount, 
-      paymentDate,
-      paymentMethod
+      payment, 
+      invoice 
     }: { 
-      invoiceId: string; 
-      paymentAmount: number; 
-      paymentDate: Date;
-      paymentMethod: string;
+      payment: InvoicePaymentData; 
+      invoice: Invoice 
     }) => {
-      if (!connection) {
-        throw new Error("QBO connection not available");
-      }
-      
       try {
-        // First, get the invoice details from our database
-        const { data: invoice, error: invoiceError } = await supabase
-          .from('invoices')
-          .select('*')
-          .eq('id', invoiceId)
-          .single();
+        // Check if payment has already been synced
+        if (payment.qbo_sync_status === 'synced' && payment.qbo_entity_id) {
+          toast({
+            title: "Already Synced",
+            description: "This payment has already been synced to QuickBooks Online.",
+            variant: "default"
+          });
+          return payment;
+        }
         
-        if (invoiceError) throw new Error(`Error fetching invoice: ${invoiceError.message}`);
-        if (!invoice) throw new Error("Invoice not found");
+        // Check if the invoice has been synced
+        if (!invoice.qbo_entity_id) {
+          throw new Error("Cannot sync payment: Invoice has not been synced to QuickBooks yet");
+        }
         
-        // Then get the QBO invoice ID for this invoice
-        const { data: qboMapping, error: mappingError } = await supabase
-          .from('qbo_mappings')
-          .select('qbo_id')
-          .eq('cnstrct_id', invoiceId)
-          .eq('type', 'invoice')
-          .single();
-          
-        if (mappingError) throw new Error(`Error fetching QBO mapping: ${mappingError.message}`);
-        if (!qboMapping) throw new Error("QBO invoice mapping not found");
-        
-        // Now sync the payment to QBO
-        // Use recordPayment instead of createPaymentReceipt
-        const qboPayment = await qboService.recordPayment({
-          invoiceId: qboMapping.qbo_id,
-          amount: paymentAmount,
-          date: paymentDate,
-          paymentMethod
+        // Record payment in QBO
+        const response = await qboService.recordPayment({
+          invoiceId: invoice.qbo_entity_id,
+          amount: payment.amount,
+          date: new Date(payment.payment_date),
+          paymentMethod: payment.payment_method,
         });
         
-        return qboPayment;
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        if (!response.success) {
+          throw new Error(response.error || "Failed to record payment in QuickBooks");
+        }
+        
+        const qboPaymentId = response.data.Id;
+        
+        // Store the reference in our database
+        await qboService.storeEntityReference('invoice_payment', payment.id, qboPaymentId);
+        
+        // Update local state
+        const updatedPayment = {
+          ...payment,
+          qbo_sync_status: 'synced',
+          qbo_entity_id: qboPaymentId
+        };
+        
         toast({
-          title: "QBO Payment Sync Failed",
-          description: errorMessage,
+          title: "Payment Synced",
+          description: "Successfully synced payment to QuickBooks Online.",
+          variant: "default"
+        });
+        
+        return updatedPayment;
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Error syncing payment to QBO:", errorMessage);
+        
+        toast({
+          title: "Sync Failed",
+          description: `Error syncing to QuickBooks: ${errorMessage}`,
           variant: "destructive"
         });
+        
         throw error;
       }
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['invoicePayments'] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
     }
   });
-}
+};

@@ -25,30 +25,48 @@ export function QBOSettings() {
     setTestResult(null);
     
     try {
-      // Make a simple API call to test the connection
-      const response = await fetch("https://sandbox-quickbooks.api.intuit.com/v3/company", {
-        method: "GET",
-        headers: {
-          "Accept": "application/json",
-        }
-      });
+      // Create a QBO service instance
+      const qboService = new QBOService();
       
-      if (response.ok) {
+      // Get connection details to form the correct API URL
+      const connectionDetails = await qboService.getUserConnection();
+      
+      if (!connectionDetails) {
+        throw new Error("No QuickBooks connection found");
+      }
+      
+      // Create an API client
+      const client = await qboService.getClient(connectionDetails.id, connectionDetails.company_id);
+      
+      // Make a simple API call to the company endpoint to verify the connection
+      const response = await client.get(`/company/${connectionDetails.company_id}/companyinfo/${connectionDetails.company_id}`);
+      
+      if (response.status === 200) {
         setTestResult({ 
           success: true, 
           message: "Connection to QuickBooks API is working properly." 
         });
       } else {
-        const errorText = await response.text();
         setTestResult({ 
           success: false, 
-          message: `Connection test failed: ${response.status} ${response.statusText}. ${errorText}` 
+          message: `Connection test failed: ${response.status} ${response.statusText}` 
         });
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error("QBO Connection test failed:", err);
+      
+      // Extract more detailed error information
+      const errorResponse = err.response?.data;
+      const errorMessage = errorResponse?.Fault?.Error?.[0]?.Message || 
+                         errorResponse?.message ||
+                         err.message ||
+                         'Unknown error occurred';
+                         
+      const detailedError = errorResponse?.Fault?.Error?.[0]?.Detail || '';
+      
       setTestResult({ 
         success: false, 
-        message: `Connection test failed: ${err instanceof Error ? err.message : String(err)}` 
+        message: `Connection test failed: ${errorMessage}${detailedError ? ` (${detailedError})` : ''}` 
       });
     } finally {
       setIsTesting(false);

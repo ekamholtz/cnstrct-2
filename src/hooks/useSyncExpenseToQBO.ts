@@ -1,83 +1,110 @@
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { QBOService } from "@/integrations/qbo/qboService";
-import { QBOMappingService } from "@/integrations/qbo/mapping";
-import { toast } from "sonner";
-import { makeMutationCompatible } from "@/utils/queryCompatibility";
+import { useToast } from "@/components/ui/use-toast";
 
-interface SyncExpenseParams {
-  expense: any;
-  glAccountId: string;
+interface ExpenseData {
+  id: string;
+  name: string;
+  expense_date: string;
+  amount: number;
+  expense_type: string;
+  vendor_name: string;
+  project_id: string;
+  notes?: string;
+  qbo_sync_status?: string;
+  qbo_entity_id?: string;
 }
 
-export function useSyncExpenseToQBO() {
+export const useSyncExpenseToQBO = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const qboService = new QBOService();
-  const mappingService = new QBOMappingService();
   
-  const mutation = useMutation({
-    mutationFn: async ({ expense, glAccountId }: SyncExpenseParams) => {
+  return useMutation({
+    mutationFn: async (expense: ExpenseData) => {
       try {
-        // Check if QBO connection exists
-        const connection = await qboService.getUserConnection();
-        if (!connection) {
-          throw new Error("No QBO connection found. Please connect in Settings.");
+        // Check if expense has already been synced
+        if (expense.qbo_sync_status === 'synced' && expense.qbo_entity_id) {
+          toast({
+            title: "Already Synced",
+            description: "This expense has already been synced to QuickBooks Online.",
+            variant: "default"
+          });
+          return expense;
         }
         
-        // Get the payee email - in a real implementation, we would have this data
-        // For now, we'll use a placeholder or fallback
-        const payeeEmail = expense.payee_email || `${expense.payee.toLowerCase().replace(/\s+/g, '.')}@example.com`;
+        // Step 1: Find or create vendor
+        const vendorId = await qboService.getVendorIdForExpense(expense.vendor_name);
         
-        // Step 1: Check if the expense is already synced
-        const existingRef = await qboService.getEntityReference(
-          expense.id,
-          'expense'
-        );
+        // Step 2: Get QBO entity reference for project
+        const projectQBOId = await qboService.getEntityReference('project', expense.project_id);
         
-        if (existingRef) {
-          toast.success("Expense is already synced with QuickBooks");
-          return existingRef.qbo_entity_id;
-        }
-        
-        // Step 2: Find or create the vendor in QBO
-        let vendor = await qboService.findCustomerByEmail(payeeEmail);
-        if (!vendor) {
-          // Create a simple vendor record based on what we know
-          const vendorData = {
-            DisplayName: expense.payee,
-            PrimaryEmailAddr: {
-              Address: payeeEmail
+        // Step 3: Create bill in QBO
+        const billData = {
+          VendorRef: {
+            value: vendorId
+          },
+          Line: [
+            {
+              DetailType: "AccountBasedExpenseLineDetail",
+              Amount: expense.amount,
+              Description: expense.name,
+              AccountBasedExpenseLineDetail: {
+                AccountRef: {
+                  // We would normally get this from expense.account_id, but for now use a default
+                  value: "63" // Example account ID - should be dynamic in production
+                },
+                ...(projectQBOId ? { 
+                  ProjectRef: { value: projectQBOId }
+                } : {})
+              }
             }
-          };
-          vendor = await qboService.createCustomer(vendorData);
+          ],
+          TxnDate: expense.expense_date
+        };
+        
+        const billResponse = await qboService.createBill(billData);
+        
+        if (!billResponse.success) {
+          throw new Error(billResponse.error || "Failed to create bill in QuickBooks");
         }
         
-        // Step 3: Create the bill in QBO
-        const billData = mappingService.mapExpenseToBill(
-          expense,
-          vendor.Id,
-          glAccountId
-        );
+        const billId = billResponse.data.Id;
         
-        const bill = await qboService.createBill(billData);
+        // Step 4: Store the reference in our database
+        await qboService.storeEntityReference('expense', expense.id, billId);
         
-        // Step 4: Store the reference to the QBO bill
-        await qboService.storeEntityReference(
-          expense.id,
-          'expense',
-          bill.Id,
-          'bill'
-        );
+        // Update local state
+        const updatedExpense = {
+          ...expense,
+          qbo_sync_status: 'synced',
+          qbo_entity_id: billId
+        };
         
-        toast.success("Expense successfully synced with QuickBooks");
-        return bill.Id;
+        toast({
+          title: "Expense Synced",
+          description: "Successfully synced expense to QuickBooks Online.",
+          variant: "default"
+        });
+        
+        return updatedExpense;
       } catch (error) {
-        console.error("Error syncing expense to QBO:", error);
-        toast.error("Failed to sync expense with QuickBooks");
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error("Error syncing expense to QBO:", errorMessage);
+        
+        toast({
+          title: "Sync Failed",
+          description: `Error syncing to QuickBooks: ${errorMessage}`,
+          variant: "destructive"
+        });
+        
         throw error;
       }
+    },
+    onSuccess: () => {
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['expenses'] });
     }
   });
-  
-  // Make the mutation compatible with both v3 and v4 of React Query
-  return makeMutationCompatible(mutation);
-}
+};

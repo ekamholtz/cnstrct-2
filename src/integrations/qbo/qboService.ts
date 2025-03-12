@@ -1,5 +1,7 @@
+
 import { BaseQBOService } from "./services/BaseQBOService";
 import { QBOMappingService } from "./mapping";
+import { supabase } from "@/integrations/supabase/client";
 
 export class QBOService extends BaseQBOService {
   private mappingService: QBOMappingService;

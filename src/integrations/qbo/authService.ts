@@ -20,6 +20,9 @@ export class QBOAuthService {
     // Updated sandbox credentials
     this.clientId = "AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j";
     this.clientSecret = "4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau";
+    
+    // Important: Make sure the redirect URI is exactly as registered in the Intuit Developer portal
+    // The URI must not have any query parameters or hash fragments
     this.redirectUri = `${window.location.origin}/qbo/callback`;
     this.scopes = [
       'com.intuit.quickbooks.accounting',
@@ -53,6 +56,7 @@ export class QBOAuthService {
     localStorage.setItem('qbo_auth_state', state);
     localStorage.setItem('qbo_auth_user_id', userId);
     
+    // Build the authorization URL with correct parameters
     const params = new URLSearchParams({
       client_id: this.clientId,
       response_type: 'code',
