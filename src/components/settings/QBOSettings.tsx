@@ -7,6 +7,7 @@ import { QBOConnectionActions } from "./qbo/QBOConnectionActions";
 import { QBOConnectionStatus } from "./qbo/QBOConnectionStatus";
 import { QBOSyncInformation } from "./qbo/QBOSyncInformation";
 import { QBONoConnectionInfo } from "./qbo/QBONoConnectionInfo";
+import { QBODebugInfo } from "./qbo/QBODebugInfo";
 
 export function QBOSettings() {
   const { connection, isLoading, error, connectToQBO, disconnectFromQBO } = useQBOConnection();
@@ -30,6 +31,7 @@ export function QBOSettings() {
       </CardHeader>
       
       <CardContent>
+        <QBODebugInfo />
         <QBOConnectionStatus error={error} />
         
         {isLoading ? (

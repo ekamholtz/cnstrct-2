@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -30,9 +31,17 @@ export class QBOConfig {
     this.clientId = "AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j";
     this.clientSecret = "4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau";
     
-    // Strip preview prefix from origin if present
-    const origin = window.location.origin.replace('preview--', '');
-    this.redirectUri = `${origin}/qbo/callback`;
+    // Use a hardcoded URL that exactly matches what's registered in the Intuit Developer Portal
+    if (hostname === 'cnstrct-2.lovable.app') {
+      this.redirectUri = "https://cnstrct-2.lovable.app/qbo/callback";
+    } else if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+      this.redirectUri = "https://localhost/qbo/callback";
+    } else {
+      // Fallback to the dynamically generated URI with preview prefix removed
+      const origin = window.location.origin.replace('preview--', '');
+      this.redirectUri = `${origin}/qbo/callback`;
+    }
+    
     this.scopes = [
       'com.intuit.quickbooks.accounting',
       'com.intuit.quickbooks.payment',
