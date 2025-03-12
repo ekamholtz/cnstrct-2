@@ -28,9 +28,11 @@ export class QBOConfig {
     this.clientId = "AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j";
     this.clientSecret = "4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau";
     
-    // Important: Using a clean domain format without port for QBO registration
-    const domain = this.isProduction ? window.location.origin : "https://localhost";
-    this.redirectUri = `${domain}/qbo/callback`;
+    // Use the exact redirect URI that matches what's registered in the Intuit developer portal
+    // For local development on port 8081, use the specific URI registered
+    this.redirectUri = this.isProduction
+      ? `${window.location.origin}/qbo/callback`
+      : "http://localhost:8081/qbo/callback";
     this.scopes = [
       'com.intuit.quickbooks.accounting',
       'com.intuit.quickbooks.payment',
