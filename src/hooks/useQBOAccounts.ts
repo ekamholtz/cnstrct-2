@@ -7,7 +7,7 @@ export function useQBOAccounts(accountType?: string) {
   const qboService = new QBOService();
   const mappingService = new QBOMappingService();
   
-  return useQuery({
+  const queryResult = useQuery({
     queryKey: ['qbo-accounts', accountType],
     queryFn: async () => {
       try {
@@ -21,4 +21,10 @@ export function useQBOAccounts(accountType?: string) {
     enabled: !!accountType,
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
+
+  // Add the accounts property to the query result for easier access
+  return {
+    ...queryResult,
+    accounts: queryResult.data || []
+  };
 }
