@@ -20,14 +20,15 @@ const AdminTransactions = () => {
 
   // Type cast the data to match the expected interfaces
   const invoices = (rawInvoices || []).map(invoice => {
-    // Safely access nested properties
-    const milestone_name = invoice.milestones && typeof invoice.milestones === 'object' 
-      ? invoice.milestones.name 
-      : undefined;
+    // Extract milestone name safely
+    const milestone_name = Array.isArray(invoice.milestones) 
+      ? invoice.milestones[0]?.name 
+      : invoice.milestones?.name;
     
-    const project_name = invoice.projects && typeof invoice.projects === 'object' 
-      ? invoice.projects.name 
-      : undefined;
+    // Extract project name safely
+    const project_name = Array.isArray(invoice.projects) 
+      ? invoice.projects[0]?.name 
+      : invoice.projects?.name;
     
     return {
       id: invoice.id,
@@ -54,10 +55,10 @@ const AdminTransactions = () => {
   });
 
   const expenses = (rawExpenses || []).map(expense => {
-    // Safely access project name
-    const project_name = expense.projects && typeof expense.projects === 'object'
-      ? expense.projects.name 
-      : 'Unknown';
+    // Extract project name safely
+    const project_name = Array.isArray(expense.projects) 
+      ? expense.projects[0]?.name 
+      : expense.projects?.name;
     
     return {
       id: expense.id,
@@ -67,11 +68,12 @@ const AdminTransactions = () => {
       expense_date: expense.expense_date,
       notes: expense.notes,
       project_id: expense.project_id,
-      project: { name: project_name },
+      project: { name: project_name || 'Unknown' },
       expense_type: expense.expense_type || "other",
       payment_status: expense.payment_status || "due",
       created_at: expense.expense_date, // Use expense_date as fallback
-      updated_at: expense.expense_date // Use expense_date as fallback
+      updated_at: expense.expense_date, // Use expense_date as fallback
+      amount_due: expense.amount_due || expense.amount // If amount_due is not available, use amount
     } as Expense;
   });
 
@@ -90,7 +92,7 @@ const AdminTransactions = () => {
           setStatusFilter={setStatusFilter}
           projectFilter={projectFilter}
           setProjectFilter={setProjectFilter}
-          projects={projects}
+          projects={projects || []}
         />
 
         <TransactionsTable

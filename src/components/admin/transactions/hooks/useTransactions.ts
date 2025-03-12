@@ -41,10 +41,15 @@ export function useTransactions(
           created_at,
           project_id,
           milestone_id,
-          milestones (
+          payment_method,
+          payment_date,
+          payment_reference,
+          payment_gateway,
+          simulation_data,
+          milestones:milestone_id (
             name
           ),
-          projects (
+          projects:project_id (
             name
           )
         `);
@@ -79,10 +84,13 @@ export function useTransactions(
           name,
           payee,
           amount,
+          amount_due,
           expense_date,
           notes,
+          expense_type,
+          payment_status,
           project_id,
-          projects (
+          projects:project_id (
             name
           )
         `);
