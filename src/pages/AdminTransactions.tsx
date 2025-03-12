@@ -4,7 +4,7 @@ import { AdminNav } from "@/components/admin/AdminNav";
 import { TransactionFilters, TransactionType, TransactionStatus } from "@/components/admin/transactions/TransactionFilters";
 import { TransactionsTable } from "@/components/admin/transactions/TransactionsTable";
 import { useTransactions } from "@/components/admin/transactions/hooks/useTransactions";
-import { Invoice } from "@/types/invoice-types";
+import { Invoice } from "@/components/project/invoice/types";
 import { Expense } from "@/components/project/expense/types";
 
 const AdminTransactions = () => {
@@ -43,7 +43,13 @@ const AdminTransactions = () => {
       client_id: "", // Default value for required field
       due_date: undefined, // Optional field
       description: undefined, // Optional field
-      notes: undefined // Optional field
+      notes: undefined, // Optional field
+      payment_method: invoice.payment_method,
+      payment_date: invoice.payment_date,
+      payment_reference: invoice.payment_reference,
+      payment_gateway: invoice.payment_gateway,
+      payment_method_type: invoice.payment_method as "cc" | "check" | "transfer" | "cash" | "simulated" | null,
+      simulation_data: invoice.simulation_data
     } as Invoice;
   });
 
@@ -62,8 +68,8 @@ const AdminTransactions = () => {
       notes: expense.notes,
       project_id: expense.project_id,
       project: { name: project_name },
-      expense_type: "other" as const, // Default to "other" if not specified
-      payment_status: "due" as const, // Default to "due" if not specified
+      expense_type: expense.expense_type || "other",
+      payment_status: expense.payment_status || "due",
       created_at: expense.expense_date, // Use expense_date as fallback
       updated_at: expense.expense_date // Use expense_date as fallback
     } as Expense;
