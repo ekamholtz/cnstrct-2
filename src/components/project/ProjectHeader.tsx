@@ -5,6 +5,8 @@ import { useState } from "react";
 import { EditProjectForm } from "./edit/EditProjectForm";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useTeamMembers, mapUserRoleToUIRole } from "@/hooks/useTeamMembers";
+import { UserRole } from "@/components/auth/authSchemas";
 
 interface ProjectHeaderProps {
   name: string;
@@ -61,8 +63,8 @@ export function ProjectHeader({ name, address, projectId }: ProjectHeaderProps) 
     refetch();
   };
 
-  const isAdmin = userRole === 'platform_admin';
-  const isGeneralContractor = userRole === 'gc_admin';
+  const isAdmin = (userRole as UserRole) === 'platform_admin';
+  const isGeneralContractor = (userRole as UserRole) === 'gc_admin';
 
   // Determine the back link based on user role
   const backLink = isAdmin ? '/admin/projects' : '/dashboard';

@@ -1,9 +1,10 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
+import { mapUserRoleToUIRole } from "@/hooks/useTeamMembers";
+import { UserRole } from "@/components/auth/authSchemas";
 
 export const useHomeownerProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -68,8 +69,11 @@ export const useHomeownerProfile = () => {
 
   // Only GC roles need to manage users and require a GC account ID
   // platform_admin users have universal access without needing a GC account ID
-  const isGCRole = profile && (profile.role === 'gc_admin' || profile.role === 'project_manager');
-  const isPlatformAdmin = profile && profile.role === 'platform_admin';
+  const uiRole = profile ? mapUserRoleToUIRole(profile.role as UserRole) : null;
+  const isGCRole = uiRole === "project_manager";
+  
+  // Check if user is platform admin (using type assertion to avoid type error)
+  const isPlatformAdmin = profile ? (profile.role as UserRole) === "platform_admin" : false;
   
   // GC roles need a GC account ID, platform_admin users don't
   const hasGcAccountId = isGCRole && profile?.gc_account_id;

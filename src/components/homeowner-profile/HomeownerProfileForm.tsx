@@ -1,4 +1,3 @@
-
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,8 @@ import { GCProfileFields } from "./components/GCProfileFields";
 import { ProfileDisplay } from "./components/ProfileDisplay";
 import { profileSchema, type ProfileFormValues, type Profile } from "./types";
 import { v4 as uuidv4 } from "uuid";
+import { mapUserRoleToUIRole } from "@/hooks/useTeamMembers";
+import { UserRole } from "@/components/auth/authSchemas";
 
 interface HomeownerProfileFormProps {
   profile: Profile;
@@ -53,11 +54,13 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      // Only GC roles (gc_admin or project_manager) need GC account IDs
-      const isGCRole = userRole === "gc_admin" || userRole === "project_manager";
+      // Check if user has admin role using mapUserRoleToUIRole
+      const uiRole = mapUserRoleToUIRole(userRole as UserRole);
+      const isGCRole = uiRole === "project_manager";
       const updatedData = { ...data };
 
       console.log("Form submission - User role:", userRole);
+      console.log("UI Role:", uiRole);
       console.log("Is GC Role:", isGCRole);
       console.log("Has company name:", !!data.company_name);
       console.log("Existing GC account ID:", profile.gc_account_id);
@@ -122,8 +125,8 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
     return <ProfileDisplay profile={profile} userRole={userRole} />;
   }
 
-  // Show GCProfileFields for GC roles only (not for platform_admin or homeowner)
-  const shouldShowGCFields = userRole === "gc_admin" || userRole === "project_manager";
+  // Show GCProfileFields for GC roles only
+  const shouldShowGCFields = mapUserRoleToUIRole(userRole as UserRole) === "project_manager";
 
   return (
     <Form {...form}>

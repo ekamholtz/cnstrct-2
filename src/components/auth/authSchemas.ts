@@ -1,4 +1,3 @@
-
 import * as z from "zod";
 
 export const loginSchema = z.object({
@@ -21,4 +20,4 @@ export const registerSchema = z
 
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
-export type UserRole = 'platform_admin' | 'gc_admin' | 'project_manager' | 'homeowner';
+export type UserRole = 'client' | 'contractor' | 'employee' | 'homeowner' | 'gc_admin' | 'platform_admin';

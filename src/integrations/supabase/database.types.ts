@@ -245,6 +245,134 @@ export interface Database {
         ]
       }
       
+      invoices: {
+        Row: {
+          id: string
+          invoice_number: string
+          amount: number
+          status: string
+          project_id: string
+          milestone_id?: string
+          payment_method?: string
+          payment_date?: string
+          payment_reference?: string
+          payment_gateway?: string
+          simulation_data?: Json
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          invoice_number: string
+          amount: number
+          status: string
+          project_id: string
+          milestone_id?: string
+          payment_method?: string
+          payment_date?: string
+          payment_reference?: string
+          payment_gateway?: string
+          simulation_data?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          invoice_number?: string
+          amount?: number
+          status?: string
+          project_id?: string
+          milestone_id?: string
+          payment_method?: string
+          payment_date?: string
+          payment_reference?: string
+          payment_gateway?: string
+          simulation_data?: Json
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_project_id_fkey"
+            columns: ["project_id"]
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_milestone_id_fkey"
+            columns: ["milestone_id"]
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      
+      admin_actions: {
+        Row: {
+          id: string
+          admin_id: string
+          entity_type: string
+          entity_id: string
+          action_type: string
+          details: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          admin_id: string
+          entity_type: string
+          entity_id: string
+          action_type: string
+          details: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          admin_id?: string
+          entity_type?: string
+          entity_id?: string
+          action_type?: string
+          details?: Json
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "admin_actions_admin_id_fkey"
+            columns: ["admin_id"]
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      
+      supported_payment_methods: {
+        Row: {
+          code: string
+          name: string
+          description?: string
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          name: string
+          description?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          name?: string
+          description?: string
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      
       profiles: {
         Row: {
           id: string

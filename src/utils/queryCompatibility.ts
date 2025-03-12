@@ -27,9 +27,18 @@ export type QueryResultCompat<TData = unknown, TError = unknown> =
 export function makeMutationCompatible<TData = unknown, TError = unknown, TVariables = unknown, TContext = unknown>(
   result: UseMutationResult<TData, TError, TVariables, TContext>
 ): MutationResultCompat<TData, TError, TVariables, TContext> {
+  // Type-safe property access
+  const isPending = 'isPending' in result ? (result as any).isPending : (result as any).isLoading;
+  const isLoading = 'isLoading' in result ? (result as any).isLoading : isPending;
+  
+  // Don't modify the status property if it's already set correctly
+  const currentStatus = result.status;
+  const status = isPending && currentStatus === 'idle' ? 'pending' : currentStatus;
+  
   return {
     ...result,
-    // In v4, isPending replaced isLoading
-    isLoading: result.isPending,
-  };
+    isPending,
+    isLoading,
+    status
+  } as MutationResultCompat<TData, TError, TVariables, TContext>;
 }

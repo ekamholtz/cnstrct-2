@@ -1,10 +1,11 @@
-
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { MilestoneCard } from './milestone/MilestoneCard';
 import { useMilestoneCompletion } from './milestone/hooks/useMilestoneCompletion';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/components/auth/authSchemas';
+import { mapUserRoleToUIRole } from '@/hooks/useTeamMembers';
 
 export interface MilestonesListProps {
   projectId: string;
@@ -43,7 +44,8 @@ export function MilestonesList({ projectId }: MilestonesListProps) {
     }
   });
 
-  const isGeneralContractor = userRole === 'gc_admin';
+  const isGeneralContractor = (userRole as UserRole) === 'gc_admin' || 
+                             (userRole as UserRole) === 'platform_admin';
 
   if (isLoading) {
     return <div>Loading milestones...</div>;

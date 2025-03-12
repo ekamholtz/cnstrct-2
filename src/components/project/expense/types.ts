@@ -38,6 +38,7 @@ export interface Expense {
   // contractor_id is being phased out in favor of gc_account_id
   contractor_id?: string;
   gc_account_id?: string;
+  client_id?: string;
   name: string;
   payee: string;
   amount: number;

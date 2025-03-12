@@ -2,7 +2,7 @@ import { DateRange } from "react-day-picker";
 
 export type PaymentDirection = 'incoming' | 'outgoing';
 export type PaymentMethodCode = 'cc' | 'check' | 'transfer' | 'cash';
-export type PaymentProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+export type PaymentProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'cancelled';
 
 export interface PaymentMethod {
   id: string;

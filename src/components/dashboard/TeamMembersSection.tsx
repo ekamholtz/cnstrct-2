@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UserList } from "@/components/gc-profile/UserList";
 import { InviteUserForm } from "@/components/gc-profile/InviteUserForm";
-import { useTeamMembers } from "@/hooks/useTeamMembers";
+import { useTeamMembers, mapUserRoleToUIRole } from "@/hooks/useTeamMembers";
 import { useCreateGCUser } from "@/components/gc-profile/hooks/useCreateGCUser";
 import { CreateUserFormValues } from "@/components/gc-profile/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -18,21 +18,15 @@ export const TeamMembersSection = () => {
   const {
     teamMembers,
     isLoadingTeam,
-    refetchTeam,
-    gcAccountId,
-    isGCAdmin,
-    isPlatformAdmin,
-    error: teamMembersError
+    refetch,
+    teamMembersError
   } = useTeamMembers();
 
-  const { createUser, isCreatingUser } = useCreateGCUser(gcAccountId);
+  const { createUser, isCreatingUser } = useCreateGCUser();
 
   console.log("TeamMembersSection rendered with:", { 
     teamMembers: teamMembers?.length,
     teamMembersData: teamMembers,
-    gcAccountId,
-    isGCAdmin,
-    isPlatformAdmin
   });
 
   // Add detailed debugging for each team member
@@ -44,7 +38,6 @@ export const TeamMembersSection = () => {
         name: member.full_name,
         email: member.email,
         role: member.role,
-        gc_account_id: member.gc_account_id
       });
     });
   } else {
@@ -54,10 +47,10 @@ export const TeamMembersSection = () => {
   // Direct database check
   useEffect(() => {
     const checkDatabaseDirectly = async () => {
-      if (!gcAccountId) return;
+      if (!teamMembers) return;
       
       try {
-        console.log("Directly checking database for team members with gc_account_id:", gcAccountId);
+        console.log("Directly checking database for team members");
         
         // Helper function to normalize UUIDs for comparison
         const normalizeUUID = (uuid: string | null | undefined): string => {
@@ -65,9 +58,6 @@ export const TeamMembersSection = () => {
           // Remove all non-alphanumeric characters and convert to lowercase
           return uuid.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
         };
-        
-        const normalizedGcAccountId = normalizeUUID(gcAccountId);
-        console.log("Normalized gc_account_id:", normalizedGcAccountId);
         
         // Get all profiles and filter manually with normalized UUIDs
         const { data: allProfiles, error: allError } = await supabase
@@ -82,7 +72,7 @@ export const TeamMembersSection = () => {
           // Manually filter profiles with matching gc_account_id using normalized comparison
           const matchingProfiles = allProfiles?.filter(p => {
             const normalizedProfileUUID = normalizeUUID(p.gc_account_id);
-            const isMatch = normalizedProfileUUID === normalizedGcAccountId;
+            const isMatch = normalizedProfileUUID === normalizeUUID(teamMembers[0].gc_account_id);
             
             if (isMatch) {
               console.log(`Found matching profile: ${p.full_name} (${p.id})`);
@@ -126,18 +116,15 @@ export const TeamMembersSection = () => {
     };
     
     checkDatabaseDirectly();
-  }, [gcAccountId]);
+  }, [teamMembers]);
 
   const handleInviteUser = async (formData: CreateUserFormValues) => {
     try {
-      await createUser({
-        ...formData,
-        gc_account_id: gcAccountId
-      });
+      await createUser(formData);
       
       setIsInviting(false);
       // Use a timeout to allow for database update to complete
-      setTimeout(() => refetchTeam(), 1000);
+      setTimeout(() => refetch(), 1000);
     } catch (error) {
       console.error("Error inviting user:", error);
     }
@@ -147,7 +134,9 @@ export const TeamMembersSection = () => {
   const displayProfiles = directDbProfiles.length > 0 ? directDbProfiles : teamMembers || [];
   
   // Check if the user has permission to manage users
-  const canManageUsers = isGCAdmin || isPlatformAdmin;
+  const canManageUsers = teamMembers && teamMembers.length > 0 && 
+    (teamMembers[0].role === 'project_manager' || 
+     mapUserRoleToUIRole(teamMembers[0].role as any) === 'project_manager');
 
   return (
     <div className="premium-card p-6">
@@ -172,8 +161,6 @@ export const TeamMembersSection = () => {
         <div className="mb-4 p-4 bg-gray-50 rounded-lg text-xs border border-gray-200">
           <h3 className="font-bold mb-2 text-gray-700">Debug Information</h3>
           <div className="space-y-2">
-            <p><strong>GC Account ID:</strong> {gcAccountId || 'None'}</p>
-            <p><strong>Normalized GC Account ID:</strong> {gcAccountId ? gcAccountId.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : 'None'}</p>
             <p><strong>Hook Team Members:</strong> {teamMembers?.length || 0}</p>
             <p><strong>Direct DB Team Members:</strong> {directDbProfiles?.length || 0}</p>
             <p><strong>Is Loading:</strong> {isLoadingTeam ? 'Yes' : 'No'}</p>
@@ -183,12 +170,12 @@ export const TeamMembersSection = () => {
         </div>
       )}
       
-      {!gcAccountId && (
+      {teamMembers && teamMembers.length === 0 && (
         <Alert variant="destructive" className="mb-4 bg-amber-50 border border-amber-200 text-amber-800">
           <AlertCircle className="h-4 w-4 text-amber-500" />
-          <AlertTitle className="text-amber-800 font-medium">Company Profile Required</AlertTitle>
+          <AlertTitle className="text-amber-800 font-medium">No Team Members Found</AlertTitle>
           <AlertDescription className="text-amber-700">
-            You need to complete your company profile before you can manage team members.
+            You don't have any team members yet.
           </AlertDescription>
         </Alert>
       )}
@@ -214,7 +201,7 @@ export const TeamMembersSection = () => {
               isLoading={isLoadingTeam && directDbProfiles.length === 0}
               canManageUsers={canManageUsers}
               onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetchTeam()}
+              onRefresh={() => refetch()}
             /> 
           </TabsContent>
           
@@ -226,7 +213,7 @@ export const TeamMembersSection = () => {
               isLoading={isLoadingTeam && directDbProfiles.length === 0}
               canManageUsers={canManageUsers}
               onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetchTeam()}
+              onRefresh={() => refetch()}
             /> 
           </TabsContent>
           
@@ -236,7 +223,7 @@ export const TeamMembersSection = () => {
               isLoading={isLoadingTeam && directDbProfiles.length === 0}
               canManageUsers={canManageUsers}
               onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetchTeam()}
+              onRefresh={() => refetch()}
             /> 
           </TabsContent>
           
@@ -246,7 +233,7 @@ export const TeamMembersSection = () => {
               isLoading={isLoadingTeam && directDbProfiles.length === 0}
               canManageUsers={canManageUsers}
               onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetchTeam()}
+              onRefresh={() => refetch()}
             /> 
           </TabsContent>
         </Tabs>
