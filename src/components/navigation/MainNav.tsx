@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -114,6 +113,7 @@ export function MainNav() {
     { label: "Expenses", path: "/expenses", icon: DollarSign },
     { label: "Payments", path: "/payments", icon: DollarSign },
     ...(showReporting ? [{ label: "Reports", path: "/reporting", icon: BarChart }] : []),
+    { label: "Settings", path: "/settings", icon: Settings },
   ];
 
   const isActive = (path: string) => {
@@ -193,10 +193,6 @@ export function MainNav() {
                   <User className="h-4 w-4 mr-2" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleNavigation('/settings')}>
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleNavigation('/help')}>
                   <HelpCircle className="h-4 w-4 mr-2" />
                   Help
@@ -249,13 +245,6 @@ export function MainNav() {
               >
                 <User className="h-4 w-4" />
                 <span>Profile</span>
-              </button>
-              <button
-                onClick={() => handleNavigation('/settings')}
-                className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:bg-cnstrct-navy/5 hover:text-cnstrct-navy"
-              >
-                <Settings className="h-4 w-4" />
-                <span>Settings</span>
               </button>
               <button
                 onClick={() => handleNavigation('/help')}

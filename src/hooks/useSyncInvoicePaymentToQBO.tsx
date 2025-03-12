@@ -1,66 +1,70 @@
 
 import { useMutation } from "@tanstack/react-query";
-import { QBOService } from "@/integrations/qbo/qboService";
-import { QBOMappingService } from "@/integrations/qbo/mapping";
-import { toast } from "sonner";
-import { makeMutationCompatible } from "@/utils/queryCompatibility";
-
-interface SyncInvoicePaymentParams {
-  invoiceId: string;
-  payment: any;
-  customerId: string;
-}
+import { supabase } from "@/integrations/supabase/client";
+import { useQBOConnection } from "./useQBOConnection";
+import { useToast } from "@/components/ui/use-toast";
 
 export function useSyncInvoicePaymentToQBO() {
-  const qboService = new QBOService();
-  const mappingService = new QBOMappingService();
+  const { connection, qboService } = useQBOConnection();
+  const { toast } = useToast();
   
-  const mutation = useMutation({
-    mutationFn: async ({ invoiceId, payment, customerId }: SyncInvoicePaymentParams) => {
+  return useMutation({
+    mutationFn: async ({ 
+      invoiceId, 
+      paymentAmount, 
+      paymentDate,
+      paymentMethod
+    }: { 
+      invoiceId: string; 
+      paymentAmount: number; 
+      paymentDate: Date;
+      paymentMethod: string;
+    }) => {
+      if (!connection || !qboService) {
+        throw new Error("QBO connection not available");
+      }
+      
       try {
-        // Check if QBO connection exists
-        const connection = await qboService.getUserConnection();
-        if (!connection) {
-          throw new Error("No QBO connection found. Please connect in Settings.");
-        }
+        // First, get the invoice details from our database
+        const { data: invoice, error: invoiceError } = await supabase
+          .from('invoices')
+          .select('*')
+          .eq('id', invoiceId)
+          .single();
         
-        // Step a: Check if the invoice exists in QBO
-        const invoiceRef = await qboService.getEntityReference(
-          invoiceId,
-          'invoice'
-        );
+        if (invoiceError) throw new Error(`Error fetching invoice: ${invoiceError.message}`);
+        if (!invoice) throw new Error("Invoice not found");
         
-        if (!invoiceRef) {
-          throw new Error("Invoice hasn't been synced to QuickBooks yet");
-        }
+        // Then get the QBO invoice ID for this invoice
+        const { data: qboMapping, error: mappingError } = await supabase
+          .from('qbo_mappings')
+          .select('qbo_id')
+          .eq('cnstrct_id', invoiceId)
+          .eq('type', 'invoice')
+          .single();
+          
+        if (mappingError) throw new Error(`Error fetching QBO mapping: ${mappingError.message}`);
+        if (!qboMapping) throw new Error("QBO invoice mapping not found");
         
-        // Step b: Create payment in QBO
-        const paymentData = mappingService.mapInvoicePaymentToPayment(
-          payment,
-          customerId, 
-          invoiceRef.qbo_entity_id
-        );
+        // Now sync the payment to QBO
+        // Note: Using qboService's createPaymentReceipt method instead of createPayment
+        const qboPayment = await qboService.createPaymentReceipt({
+          invoiceId: qboMapping.qbo_id,
+          amount: paymentAmount,
+          date: paymentDate,
+          paymentMethod
+        });
         
-        const qboPayment = await qboService.createPayment(paymentData);
-        
-        // Step c: Store the reference to the QBO payment
-        await qboService.storeEntityReference(
-          payment.id,
-          'payment',
-          qboPayment.Id,
-          'payment'
-        );
-        
-        toast.success("Payment successfully synced with QuickBooks");
-        return qboPayment.Id;
+        return qboPayment;
       } catch (error) {
-        console.error("Error syncing payment to QBO:", error);
-        toast.error("Failed to sync payment with QuickBooks");
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+        toast({
+          title: "QBO Payment Sync Failed",
+          description: errorMessage,
+          variant: "destructive"
+        });
         throw error;
       }
     }
   });
-  
-  // Make the mutation compatible with both v3 and v4 of React Query
-  return makeMutationCompatible(mutation);
 }
