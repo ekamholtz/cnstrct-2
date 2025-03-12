@@ -75,9 +75,23 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     }
   }, [user, authLoading]);
 
-  if (loading) {
-    console.log("Loading...");
-    return null;
+  // Add debug logging
+  useEffect(() => {
+    console.log("ProtectedRoute state:", {
+      user,
+      loading,
+      authLoading,
+      hasCompletedProfile,
+      userRole,
+      path: location.pathname
+    });
+  }, [user, loading, authLoading, hasCompletedProfile, userRole, location.pathname]);
+
+  if (authLoading || loading) {
+    console.log("Loading authentication and profile state...");
+    return <div className="w-full h-screen flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cnstrct-navy"></div>
+    </div>;
   }
 
   if (!user) {
@@ -118,9 +132,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     console.log("GC attempting to access client pages");
     return <Navigate to="/dashboard" replace />;
   }
-
-  // REMOVED THE HOMEOWNER INVOICE REDIRECTION: Allow homeowners to access invoice pages
-  // This allows the homeowner to view their invoices
 
   const Navigation = isRoleAdmin(currentRole) ? AdminNav : MainNav;
   

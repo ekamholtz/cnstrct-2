@@ -1,11 +1,41 @@
-import React from "react";
+
+import React, { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { QBOSettings } from "@/components/settings/QBOSettings";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Add debug logging
+  useEffect(() => {
+    console.log("Settings component - Auth state:", { user, loading });
+  }, [user, loading]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-10 px-4 flex items-center justify-center min-h-[60vh]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cnstrct-navy"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    // This shouldn't happen because of ProtectedRoute, but just in case
+    console.log("Settings - No user found, redirecting to auth");
+    toast({
+      title: "Authentication required",
+      description: "Please log in to access settings",
+      variant: "destructive"
+    });
+    navigate("/auth");
+    return null;
+  }
 
   return (
     <div className="container mx-auto py-10 px-4">
