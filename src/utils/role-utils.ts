@@ -5,7 +5,7 @@ import { UserRole } from "@/components/admin/users/types";
  * Maps UserRole to UI role string for compatibility with components
  * that expect a more limited set of roles
  */
-export const mapUserRoleToUIRole = (role: UserRole | string | null | undefined): "homeowner" | "contractor" | "project_manager" | undefined => {
+export const mapUserRoleToUIRole = (role: UserRole | string | null | undefined): "homeowner" | "contractor" | "project_manager" | "gc_admin" | "platform_admin" | undefined => {
   if (!role) return undefined;
   
   switch (role) {
@@ -18,9 +18,9 @@ export const mapUserRoleToUIRole = (role: UserRole | string | null | undefined):
     case 'project_manager':
       return 'project_manager';
     case 'gc_admin':
+      return 'gc_admin'; // Return actual role for admin roles
     case 'platform_admin':
-      // These roles need special handling in UI components
-      return 'contractor'; // Default mapping for admin roles in UI contexts
+      return 'platform_admin'; // Return actual role for admin roles
     default:
       return undefined;
   }
@@ -54,4 +54,26 @@ export const getTeamDisplayRole = (role: UserRole | string): string => {
     default:
       return role;
   }
+};
+
+/**
+ * Check if a role string is one of the admin roles
+ */
+export const isRoleAdmin = (role: string): boolean => {
+  return role === 'gc_admin' || role === 'platform_admin';
+};
+
+/**
+ * Type guard to check if a string is a valid UserRole
+ */
+export const isValidUserRole = (role: string): role is UserRole => {
+  return ['homeowner', 'contractor', 'employee', 'client', 'gc_admin', 'platform_admin', 'project_manager'].includes(role);
+};
+
+/**
+ * Safe conversion from any role string to UserRole with fallback
+ */
+export const toUserRole = (role: string | null | undefined, fallback: UserRole = 'contractor'): UserRole => {
+  if (!role) return fallback;
+  return isValidUserRole(role) ? role : fallback;
 };
