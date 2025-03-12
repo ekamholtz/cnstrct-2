@@ -22,7 +22,7 @@ export function useTransactions(
         throw error;
       }
       console.log('Projects fetched:', data);
-      return data;
+      return data || [];
     }
   });
 
@@ -67,7 +67,7 @@ export function useTransactions(
         throw error;
       }
       console.log('Invoices fetched:', data);
-      return data;
+      return data || [];
     },
     enabled: transactionType === 'all' || transactionType === 'invoice'
   });
@@ -105,7 +105,7 @@ export function useTransactions(
         throw error;
       }
       console.log('Expenses fetched:', data);
-      return data;
+      return data || [];
     },
     enabled: transactionType === 'all' || transactionType === 'expense'
   });

@@ -20,15 +20,21 @@ const AdminTransactions = () => {
 
   // Type cast the data to match the expected interfaces
   const invoices = (rawInvoices || []).map(invoice => {
-    // Extract milestone name safely
-    const milestone_name = Array.isArray(invoice.milestones) 
-      ? invoice.milestones[0]?.name 
-      : invoice.milestones?.name;
+    // Extract milestone name safely - handle potential null values
+    let milestone_name = null;
+    if (invoice.milestones) {
+      milestone_name = typeof invoice.milestones === 'object' && 'name' in invoice.milestones
+        ? invoice.milestones.name
+        : null;
+    }
     
-    // Extract project name safely
-    const project_name = Array.isArray(invoice.projects) 
-      ? invoice.projects[0]?.name 
-      : invoice.projects?.name;
+    // Extract project name safely - handle potential null values
+    let project_name = null;
+    if (invoice.projects) {
+      project_name = typeof invoice.projects === 'object' && 'name' in invoice.projects
+        ? invoice.projects.name
+        : null;
+    }
     
     return {
       id: invoice.id,
@@ -55,10 +61,13 @@ const AdminTransactions = () => {
   });
 
   const expenses = (rawExpenses || []).map(expense => {
-    // Extract project name safely
-    const project_name = Array.isArray(expense.projects) 
-      ? expense.projects[0]?.name 
-      : expense.projects?.name;
+    // Extract project name safely - handle potential null values
+    let project_name = 'Unknown';
+    if (expense.projects) {
+      project_name = typeof expense.projects === 'object' && 'name' in expense.projects
+        ? expense.projects.name
+        : 'Unknown';
+    }
     
     return {
       id: expense.id,
@@ -68,7 +77,7 @@ const AdminTransactions = () => {
       expense_date: expense.expense_date,
       notes: expense.notes,
       project_id: expense.project_id,
-      project: { name: project_name || 'Unknown' },
+      project: { name: project_name },
       expense_type: expense.expense_type || "other",
       payment_status: expense.payment_status || "due",
       created_at: expense.expense_date, // Use expense_date as fallback
