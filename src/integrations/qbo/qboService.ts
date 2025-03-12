@@ -1,3 +1,4 @@
+
 import axios, { AxiosInstance } from "axios";
 import { QBOAuthService } from "./authService";
 import { supabase } from "@/integrations/supabase/client";
@@ -164,6 +165,28 @@ export class QBOService {
   }
   
   /**
+   * Create a bill payment in QBO
+   */
+  async createBillPayment(billPaymentData: any): Promise<any> {
+    try {
+      const connection = await this.getUserConnection();
+      if (!connection) {
+        throw new Error("No QBO connection found");
+      }
+      
+      const client = await this.getClient(connection.id, connection.company_id);
+      
+      // Create the bill payment
+      const response = await client.post('/billpayment', billPaymentData);
+      
+      return response.data.BillPayment;
+    } catch (error) {
+      console.error("Error creating bill payment:", error);
+      throw error;
+    }
+  }
+  
+  /**
    * Create an invoice in QBO
    */
   async createInvoice(invoiceData: any): Promise<any> {
@@ -203,6 +226,84 @@ export class QBOService {
       return response.data.Payment;
     } catch (error) {
       console.error("Error recording payment:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get the vendor ID for an expense
+   */
+  async getVendorIdForExpense(expenseId: string): Promise<string> {
+    try {
+      // First, get the expense reference in QBO
+      const expenseRef = await this.getEntityReference(expenseId, 'expense');
+      if (!expenseRef) {
+        throw new Error("Expense not synced to QBO yet");
+      }
+      
+      // Then, get the bill from QBO to find the vendor ID
+      const connection = await this.getUserConnection();
+      if (!connection) {
+        throw new Error("No QBO connection found");
+      }
+      
+      const client = await this.getClient(connection.id, connection.company_id);
+      
+      // Query for the bill
+      const response = await client.get('/query', {
+        params: {
+          query: `SELECT * FROM Bill WHERE Id = '${expenseRef.qbo_entity_id}'`
+        }
+      });
+      
+      const bills = response.data.QueryResponse.Bill;
+      if (!bills || bills.length === 0) {
+        throw new Error("Bill not found in QBO");
+      }
+      
+      // Return the vendor ID
+      return bills[0].VendorRef.value;
+    } catch (error) {
+      console.error("Error getting vendor ID for expense:", error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Get the customer ID for an invoice
+   */
+  async getCustomerIdForInvoice(invoiceId: string): Promise<string> {
+    try {
+      // First, get the invoice reference in QBO
+      const invoiceRef = await this.getEntityReference(invoiceId, 'invoice');
+      if (!invoiceRef) {
+        throw new Error("Invoice not synced to QBO yet");
+      }
+      
+      // Then, get the invoice from QBO to find the customer ID
+      const connection = await this.getUserConnection();
+      if (!connection) {
+        throw new Error("No QBO connection found");
+      }
+      
+      const client = await this.getClient(connection.id, connection.company_id);
+      
+      // Query for the invoice
+      const response = await client.get('/query', {
+        params: {
+          query: `SELECT * FROM Invoice WHERE Id = '${invoiceRef.qbo_entity_id}'`
+        }
+      });
+      
+      const invoices = response.data.QueryResponse.Invoice;
+      if (!invoices || invoices.length === 0) {
+        throw new Error("Invoice not found in QBO");
+      }
+      
+      // Return the customer ID
+      return invoices[0].CustomerRef.value;
+    } catch (error) {
+      console.error("Error getting customer ID for invoice:", error);
       throw error;
     }
   }

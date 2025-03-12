@@ -1,3 +1,4 @@
+
 import type { Client } from "@/types/client-types";
 import type { ClientProject } from "@/types/project-types";
 import type { Expense, Payment } from "@/components/project/expense/types";
@@ -60,6 +61,24 @@ export interface QBOBill {
   PrivateNote?: string;
 }
 
+export interface QBOBillPayment {
+  VendorRef: {
+    value: string;
+  };
+  TotalAmt: number;
+  PayType?: string;
+  TxnDate: string;
+  DocNumber?: string;
+  PrivateNote?: string;
+  Line: Array<{
+    Amount: number;
+    LinkedTxn: Array<{
+      TxnId: string;
+      TxnType: string;
+    }>;
+  }>;
+}
+
 export interface QBOInvoice {
   CustomerRef: {
     value: string;
@@ -91,6 +110,7 @@ export interface QBOPayment {
   TxnDate: string;
   PaymentRefNum?: string;
   PrivateNote?: string;
+  PaymentType?: string;
   Line: Array<{
     Amount: number;
     LinkedTxn: Array<{
@@ -202,6 +222,52 @@ export class QBOMappingService {
   }
 
   /**
+   * Map a payment to a QBO bill payment
+   */
+  mapExpensePaymentToBillPayment(
+    payment: Payment, 
+    vendorId: string, 
+    billId: string
+  ): QBOBillPayment {
+    // Ensure amount is a number
+    const amount = typeof payment.amount === 'number' 
+      ? payment.amount 
+      : parseFloat(String(payment.amount));
+
+    // Format payment date as YYYY-MM-DD
+    const txnDate = payment.payment_date || new Date().toISOString().split('T')[0];
+
+    // Create the bill payment
+    const billPayment: QBOBillPayment = {
+      VendorRef: {
+        value: vendorId
+      },
+      TotalAmt: amount,
+      TxnDate: txnDate,
+      PayType: "Check", // Default to Check, can be customized
+      Line: [
+        {
+          Amount: amount,
+          LinkedTxn: [
+            {
+              TxnId: billId,
+              TxnType: "Bill"
+            }
+          ]
+        }
+      ],
+      PrivateNote: payment.notes || `Payment from CNSTRCT - ID: ${payment.id}`
+    };
+
+    // Add payment reference number if available
+    if (payment.payment_reference) {
+      billPayment.DocNumber = payment.payment_reference;
+    }
+
+    return billPayment;
+  }
+
+  /**
    * Map an invoice to a QBO invoice
    */
   mapInvoiceToInvoice(invoice: Invoice, customerQBOId: string, incomeAccountId: string): QBOInvoice {
@@ -250,7 +316,12 @@ export class QBOMappingService {
   /**
    * Map a payment to a QBO payment
    */
-  mapPaymentToPayment(payment: Payment, customerQBOId: string, invoiceQBOId: string): QBOPayment {
+  mapInvoicePaymentToPayment(
+    payment: any, 
+    customerQBOId: string, 
+    invoiceQBOId: string, 
+    paymentMethod?: string
+  ): QBOPayment {
     // Ensure amount is a number
     const amount = typeof payment.amount === 'number' 
       ? payment.amount 
@@ -258,6 +329,14 @@ export class QBOMappingService {
 
     // Format payment date as YYYY-MM-DD
     const txnDate = payment.payment_date || new Date().toISOString().split('T')[0];
+
+    // Map payment method to QBO payment type
+    const paymentTypeMap: Record<string, string> = {
+      cc: "CreditCard",
+      check: "Check",
+      transfer: "EFT",
+      cash: "Cash"
+    };
 
     // Create the payment
     const qboPayment: QBOPayment = {
@@ -283,6 +362,11 @@ export class QBOMappingService {
     // Add payment reference number if available
     if (payment.payment_reference) {
       qboPayment.PaymentRefNum = payment.payment_reference;
+    }
+
+    // Add payment type if available
+    if (paymentMethod && paymentTypeMap[paymentMethod]) {
+      qboPayment.PaymentType = paymentTypeMap[paymentMethod];
     }
 
     return qboPayment;

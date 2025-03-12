@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
 import { Button } from "@/components/ui/button";
@@ -71,8 +72,9 @@ export function QBOSettings() {
               <ul className="list-disc list-inside text-blue-700 text-sm mt-2 space-y-1">
                 <li>Clients are synced as Customers</li>
                 <li>Expenses are synced as Bills</li>
+                <li>Expense payments are synced as Bill Payments</li>
                 <li>Invoices are synced as Invoices</li>
-                <li>Payments are synced as Payments</li>
+                <li>Invoice payments are synced as Payments</li>
                 <li>Projects are tagged in QBO transactions</li>
               </ul>
             </div>
@@ -94,8 +96,9 @@ export function QBOSettings() {
               <ul className="list-disc list-inside text-blue-700 text-sm mt-2 space-y-1">
                 <li>Clients → Customers in QBO</li>
                 <li>Expenses → Bills in QBO</li>
+                <li>Expense Payments → Bill Payments in QBO</li>
                 <li>Invoices → Invoices in QBO</li>
-                <li>Payments → Payments in QBO</li>
+                <li>Invoice Payments → Payments in QBO</li>
               </ul>
             </div>
           </div>
