@@ -1,124 +1,86 @@
 
-import { useMutation } from "@tanstack/react-query";
+import { useState } from "react";
 import { QBOService } from "@/integrations/qbo/qboService";
-import { QBOMappingService } from "@/integrations/qbo/mappingService";
-import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { Json } from "@/integrations/supabase/database.types";
-
-interface SyncExpensePaymentToQBOParams {
-  expenseId: string;
-  paymentId: string;
-  paymentAmount: number;
-  paymentDate: string;
-  paymentReference?: string;
-  notes?: string;
-}
+import { QBOMappingService } from "@/integrations/qbo/mapping";
+import { toast } from "sonner";
 
 export function useSyncExpensePaymentToQBO() {
-  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const qboService = new QBOService();
   const mappingService = new QBOMappingService();
-  const { user } = useAuth();
   
-  return useMutation({
-    mutationFn: async ({ 
-      expenseId, 
-      paymentId,
-      paymentAmount, 
-      paymentDate,
-      paymentReference,
-      notes 
-    }: SyncExpensePaymentToQBOParams) => {
-      try {
-        // Get QBO connection
-        const connection = await qboService.getUserConnection();
-        if (!connection) {
-          throw new Error("No active QuickBooks Online connection found");
-        }
-        
-        // Check if the expense has been synced to QBO as a bill
-        const expenseRef = await qboService.getEntityReference(expenseId, 'expense');
-        if (!expenseRef) {
-          throw new Error("Cannot sync payment: The expense hasn't been synced to QuickBooks Online yet");
-        }
-        
-        // Create a QBO bill payment
-        const billPayment = {
-          VendorRef: {
-            value: await qboService.getVendorIdForExpense(expenseId)
-          },
-          TotalAmt: paymentAmount,
-          PayType: "Check", // Default payment type
-          TxnDate: paymentDate,
-          DocNumber: paymentReference,
-          PrivateNote: notes || `Payment from CNSTRCT - ID: ${paymentId}`,
-          Line: [
-            {
-              Amount: paymentAmount,
-              LinkedTxn: [
-                {
-                  TxnId: expenseRef.qbo_entity_id,
-                  TxnType: "Bill"
-                }
-              ]
-            }
-          ]
-        };
-        
-        // Create the bill payment in QBO
-        const createdPayment = await qboService.createBillPayment(billPayment);
-        
-        // Store the reference to the QBO entity
-        await qboService.storeEntityReference(
-          paymentId,
-          'payment',
-          createdPayment.Id,
-          'billpayment'
-        );
-        
-        // Log the sync
-        if (user) {
-          await supabase.from('qbo_sync_logs').insert({
-            user_id: user.id,
-            qbo_reference_id: (await qboService.getEntityReference(paymentId, 'payment'))?.id,
-            action: 'create',
-            status: 'success',
-            payload: billPayment as unknown as Json,
-            response: createdPayment as unknown as Json
-          });
-        }
-        
-        // Display success toast
-        toast({
-          title: "Payment Synced to QuickBooks",
-          description: "The payment has been successfully synced to your QuickBooks Online account.",
-          variant: "default"
-        });
-      } catch (error) {
-        console.error("Error syncing payment to QBO:", error);
-        
-        // Log the error
-        if (user && paymentId) {
-          await supabase.from('qbo_sync_logs').insert({
-            user_id: user.id,
-            action: 'create',
-            status: 'error',
-            error_message: error instanceof Error ? error.message : String(error),
-            payload: { payment_id: paymentId } as unknown as Json
-          });
-        }
-        
-        throw error;
+  const syncPaymentToQBO = async (
+    payment: any,
+    expenseId: string,
+    billId?: string
+  ) => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Check if QBO connection exists
+      const connection = await qboService.getUserConnection();
+      if (!connection) {
+        throw new Error("No QBO connection found. Please connect in Settings.");
       }
-    },
-    onError: (error) => {
-      toast({
-        title: "Sync Failed",
-        description: error.message || "Failed to sync payment to QuickBooks Online",
-        variant: "destructive"
-      });
+      
+      // Step 1: Check if the payment is already synced
+      const existingRef = await qboService.getEntityReference(
+        payment.id,
+        'expense_payment'
+      );
+      
+      if (existingRef) {
+        toast.success("Payment is already synced with QuickBooks");
+        setIsLoading(false);
+        return existingRef.qbo_entity_id;
+      }
+      
+      // Step 2: Get the bill ID if not provided
+      let qboBillId = billId;
+      if (!qboBillId) {
+        const expenseRef = await qboService.getEntityReference(
+          expenseId,
+          'expense'
+        );
+        if (!expenseRef) {
+          throw new Error("Expense not synced to QBO. Please sync the expense first.");
+        }
+        qboBillId = expenseRef.qbo_entity_id;
+      }
+      
+      // Step 3: Get the vendor ID for the bill
+      const vendorId = await qboService.getVendorIdForExpense(expenseId);
+      
+      // Step 4: Create the bill payment in QBO
+      const billPaymentData = mappingService.mapExpensePaymentToBillPayment(
+        payment,
+        vendorId,
+        qboBillId
+      );
+      
+      const billPayment = await qboService.createBillPayment(billPaymentData);
+      
+      // Step 5: Store the reference to the QBO bill payment
+      await qboService.storeEntityReference(
+        payment.id,
+        'expense_payment',
+        billPayment.Id,
+        'billpayment'
+      );
+      
+      toast.success("Payment successfully synced with QuickBooks");
+      return billPayment.Id;
+    } catch (error) {
+      console.error("Error syncing expense payment to QBO:", error);
+      setError(error instanceof Error ? error : new Error(String(error)));
+      toast.error("Failed to sync payment with QuickBooks");
+      return null;
+    } finally {
+      setIsLoading(false);
     }
-  });
+  };
+  
+  return { syncPaymentToQBO, isLoading, error };
 }
