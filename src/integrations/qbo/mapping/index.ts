@@ -28,14 +28,14 @@ export class QBOMappingService {
   public mapAccountsToSelectOptions: (accounts: any[]) => any[];
 
   constructor() {
-    // First initialize all the mappers
+    // Initialize all mappers first
     this.customerMapper = new CustomerMapper();
     this.projectMapper = new ProjectMapper();
     this.expenseMapper = new ExpenseMapper();
     this.invoiceMapper = new InvoiceMapper();
     this.accountMapper = new AccountMapper();
     
-    // Then bind all the methods after the mappers are created
+    // Then bind all methods
     this.mapClientToCustomer = this.customerMapper.mapClientToCustomer.bind(this.customerMapper);
     this.mapProjectToTagName = this.projectMapper.mapProjectToTagName.bind(this.projectMapper);
     this.mapExpenseToBill = this.expenseMapper.mapExpenseToBill.bind(this.expenseMapper);

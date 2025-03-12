@@ -3,10 +3,11 @@ import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
-import { mapping } from "@/integrations/qbo/mapping";
+import { QBOMappingService } from "@/integrations/qbo/mapping";
 
 export default function QBOTest() {
-  const { connection, connectToQBO, loading } = useQBOConnection();
+  const { connection, connectToQBO, isLoading } = useQBOConnection();
+  const mappingService = new QBOMappingService();
   
   useEffect(() => {
     console.log("QBO Connection status:", connection ? "Connected" : "Not connected");
@@ -29,9 +30,9 @@ export default function QBOTest() {
           {!connection && (
             <Button 
               onClick={connectToQBO} 
-              disabled={loading}
+              disabled={isLoading}
             >
-              {loading ? "Connecting..." : "Connect to QuickBooks"}
+              {isLoading ? "Connecting..." : "Connect to QuickBooks"}
             </Button>
           )}
         </CardContent>

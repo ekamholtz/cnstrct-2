@@ -3,9 +3,11 @@ import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useQBOConnection } from "./useQBOConnection";
 import { useToast } from "@/components/ui/use-toast";
+import { QBOService } from "@/integrations/qbo/qboService";
 
 export function useSyncInvoicePaymentToQBO() {
-  const { connection, qboService } = useQBOConnection();
+  const { connection } = useQBOConnection();
+  const qboService = new QBOService(); // Create a service instance directly
   const { toast } = useToast();
   
   return useMutation({
@@ -20,7 +22,7 @@ export function useSyncInvoicePaymentToQBO() {
       paymentDate: Date;
       paymentMethod: string;
     }) => {
-      if (!connection || !qboService) {
+      if (!connection) {
         throw new Error("QBO connection not available");
       }
       
@@ -47,8 +49,8 @@ export function useSyncInvoicePaymentToQBO() {
         if (!qboMapping) throw new Error("QBO invoice mapping not found");
         
         // Now sync the payment to QBO
-        // Note: Using qboService's createPaymentReceipt method instead of createPayment
-        const qboPayment = await qboService.createPaymentReceipt({
+        // Use recordPayment instead of createPaymentReceipt
+        const qboPayment = await qboService.recordPayment({
           invoiceId: qboMapping.qbo_id,
           amount: paymentAmount,
           date: paymentDate,
