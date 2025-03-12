@@ -21,7 +21,7 @@ const mockApi = {
       console.log("Returned projects:", projects);
       // Return in the same format as axios would
       return { 
-        data: projects, 
+        data: projects as T, 
         status: 200, 
         statusText: 'OK',
         headers: {},
@@ -35,7 +35,7 @@ const mockApi = {
       const invoices = await getClientInvoices(projectIds);
       // Return in the same format as axios would
       return { 
-        data: invoices, 
+        data: invoices as T, 
         status: 200, 
         statusText: 'OK',
         headers: {},
@@ -48,9 +48,8 @@ const mockApi = {
   }
 };
 
-// Override axios methods with our mock
-const originalGet = axios.get;
-axios.get = mockApi.get;
+// Use type assertions to fix the type incompatibility
+axios.get = mockApi.get as typeof axios.get;
 
 // Add a function to initialize the mock API
 export function initMockApi() {
