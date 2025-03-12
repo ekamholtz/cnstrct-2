@@ -74,12 +74,12 @@ export function useContractorProjects() {
         .from('projects')
         .select(`
           *,
-          clients:client_id (
+          clients!projects_client_id_fkey (
             id,
             name,
             email,
             address,
-            phone
+            phone_number
           ),
           milestones (
             id,

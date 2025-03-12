@@ -58,7 +58,6 @@ export function useTransactions(
             payment_date,
             payment_reference,
             payment_gateway,
-            payment_gateway,
             simulation_data,
             milestones:milestone_id (
               name
