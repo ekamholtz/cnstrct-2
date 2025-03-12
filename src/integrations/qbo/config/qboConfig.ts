@@ -21,16 +21,18 @@ export class QBOConfig {
   public isProduction: boolean;
   
   constructor() {
-    // Environment detection
-    this.isProduction = window.location.hostname !== 'localhost' && 
-                       !window.location.hostname.includes('127.0.0.1');
+    // Environment detection - ignore preview prefix
+    const hostname = window.location.hostname.replace('preview--', '');
+    this.isProduction = hostname !== 'localhost' && 
+                       !hostname.includes('127.0.0.1');
     
     // Updated sandbox credentials
     this.clientId = "AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j";
     this.clientSecret = "4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau";
     
-    // Always use the current origin for redirect URI
-    this.redirectUri = `${window.location.origin}/qbo/callback`;
+    // Strip preview prefix from origin if present
+    const origin = window.location.origin.replace('preview--', '');
+    this.redirectUri = `${origin}/qbo/callback`;
     this.scopes = [
       'com.intuit.quickbooks.accounting',
       'com.intuit.quickbooks.payment',
