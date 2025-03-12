@@ -1,14 +1,16 @@
 
 import React, { useState } from "react";
-import { ExpenseForm } from "./ExpenseForm";
-import { ExpenseList } from "./ExpenseList";
+import { ExpenseForm } from "./expense/ExpenseForm";
+import { ExpenseList } from "./expense/ExpenseList";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useExpenses } from "./hooks/useExpenses";
-import type { ExpenseFormStage1Data, PaymentDetailsData, Expense, DatabaseExpense } from "./expense/types";
+import { useExpenses } from "./expense/hooks/useExpenses";
+import type { ExpenseFormStage1Data, PaymentDetailsData } from "@/components/project/expense/hooks/types";
+import type { Expense, DatabaseExpense } from "@/components/project/expense/hooks/types";
+import type { Payment } from "@/components/payments/types";
 
 interface ProjectExpensesProps {
   projectId: string;
@@ -36,26 +38,23 @@ export function ProjectExpenses({ projectId, expenses = [] }: ProjectExpensesPro
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // Use the expenses hook
+  // Use our custom hook for expenses
   const { 
-    expenses: hookExpenses, 
-    isLoading,
-    createExpense,
-    processPayment
+    expenses: fetchedExpenses, 
+    isLoading, 
+    handleCreateExpense,
+    error: hookError 
   } = useExpenses(projectId);
   
-  // Ensure expenses is always a valid array - prefer passed expenses if available
+  // Ensure expenses is always a valid array
   const safeExpenses = React.useMemo(() => {
     try {
-      if (expenses.length > 0) {
-        return Array.isArray(expenses) ? expenses.filter(Boolean) : [];
-      }
-      return hookExpenses;
+      return Array.isArray(expenses) ? expenses.filter(Boolean) : [];
     } catch (e) {
       console.error("Error processing expenses array:", e);
       return [];
     }
-  }, [expenses, hookExpenses]);
+  }, [expenses]);
 
   // Reset error state
   const resetError = () => {
@@ -70,71 +69,37 @@ export function ProjectExpenses({ projectId, expenses = [] }: ProjectExpensesPro
     paymentDetails?: PaymentDetailsData
   ): Promise<void> => {
     try {
-      // Create the expense
-      const newExpense = await createExpense(data);
-      
-      // If payment details are provided and status is not 'due', create a payment
-      if (paymentDetails && status !== 'due' && newExpense.id) {
-        // Calculate payment amount
-        const expenseAmount = typeof newExpense.amount === 'number' 
-          ? newExpense.amount 
-          : parseFloat(String(newExpense.amount));
-        
-        const paymentAmount = typeof paymentDetails.amount === 'number' 
-          ? paymentDetails.amount 
-          : (paymentDetails.amount ? parseFloat(paymentDetails.amount) : expenseAmount);
-        
-        await processPayment({
-          expenseId: newExpense.id,
-          amount: expenseAmount,
-          paymentDetails: {
-            ...paymentDetails,
-            amount: paymentAmount
-          }
-        });
-      }
-      
-      toast({
-        title: "Success",
-        description: "Expense created successfully",
-      });
+      await handleCreateExpense(data, status, paymentDetails);
     } catch (error) {
-      console.error('Error creating expense:', error);
-      
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error 
-          ? `Failed to create expense: ${error.message}` 
-          : "Failed to create expense. Please try again.",
-      });
-      
+      console.error('Error submitting expense:', error);
       throw error;
     }
   };
 
   // Convert DatabaseExpense[] to Expense[] for the ExpenseList component
-  const expensesForList: Expense[] = safeExpenses.map(expense => ({
-    id: expense.id,
-    project_id: expense.project_id || projectId,
-    name: expense.name || '',
-    payee: expense.payee || '',
-    amount: typeof expense.amount === 'number' ? expense.amount : parseFloat(String(expense.amount)) || 0,
-    amount_due: expense.amount_due,
-    expense_date: expense.expense_date || '',
-    expense_type: expense.expense_type as "labor" | "materials" | "subcontractor" | "other" | undefined,
-    payment_status: expense.payment_status as "due" | "partially_paid" | "paid" | undefined,
-    expense_number: expense.expense_number,
-    notes: expense.notes,
-    created_at: expense.created_at,
-    updated_at: expense.updated_at,
-    payments: expense.payments,
-    project: expense.project
-  }));
+  const expensesForList: Expense[] = fetchedExpenses.length > 0 
+    ? fetchedExpenses 
+    : safeExpenses.map(expense => ({
+        id: expense.id,
+        project_id: expense.project_id || projectId,
+        name: expense.name || '',
+        payee: expense.payee || '',
+        amount: typeof expense.amount === 'number' ? expense.amount : parseFloat(String(expense.amount)) || 0,
+        amount_due: expense.amount_due,
+        expense_date: expense.expense_date || '',
+        expense_type: expense.expense_type as "labor" | "materials" | "subcontractor" | "other" | undefined,
+        payment_status: expense.payment_status as "due" | "partially_paid" | "paid" | undefined,
+        expense_number: expense.expense_number,
+        notes: expense.notes,
+        created_at: expense.created_at,
+        updated_at: expense.updated_at,
+        payments: expense.payments,
+        project: expense.project
+      }));
 
   return (
     <div className="space-y-6">
-      {error && <ErrorDisplay error={error} resetError={resetError} />}
+      {(error || hookError) && <ErrorDisplay error={error || hookError} resetError={resetError} />}
       
       <ExpenseForm 
         onSubmit={handleExpenseSubmit}

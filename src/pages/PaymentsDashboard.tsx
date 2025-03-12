@@ -1,4 +1,3 @@
-
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { PaymentsTable } from "@/components/payments/PaymentsTable";
 import { PaymentsFilter } from "@/components/payments/PaymentsFilter";
@@ -92,42 +91,59 @@ export default function PaymentsDashboard() {
   });
 
   // Transform raw payment data to match the Payment type
-  const payments: Payment[] = (rawPayments || []).map(payment => {
-    // Format the invoice and expense data to match required types
-    const formattedPayment: Payment = {
+  const mappedPayments = rawPayments.map(payment => {
+    // Handle invoice-related payments
+    let paymentInvoice = undefined;
+    if (payment.invoice && payment.invoice[0]) {
+      const invoice = payment.invoice[0];
+      let projectName = '';
+      if (invoice.project && invoice.project[0]) {
+        projectName = invoice.project[0].name || 'Unknown';
+      }
+      
+      paymentInvoice = {
+        invoice_number: invoice.invoice_number,
+        amount: invoice.amount,
+        project: { name: projectName }
+      };
+    }
+    
+    // Handle expense-related payments
+    let paymentExpense = undefined;
+    if (payment.expense && payment.expense[0]) {
+      const expense = payment.expense[0];
+      let projectName = '';
+      if (expense.project && expense.project[0]) {
+        projectName = expense.project[0].name || 'Unknown';
+      }
+      
+      paymentExpense = {
+        name: expense.name,
+        project: { name: projectName }
+      };
+    }
+    
+    // Transform to match the expected Payment type
+    return {
       id: payment.id,
-      direction: payment.direction as Payment['direction'],
-      amount: payment.amount,
-      payment_method_code: payment.payment_method_code as Payment['payment_method_code'],
-      status: payment.status as Payment['status'],
+      amount: typeof payment.amount === 'number' ? payment.amount : parseFloat(String(payment.amount)) || 0,
+      payment_date: payment.payment_date,
+      status: payment.status,
+      direction: payment.direction,
+      payment_method_code: payment.payment_method_code,
+      notes: payment.notes || '',
+      created_at: payment.created_at,
+      updated_at: payment.updated_at,
       invoice_id: payment.invoice_id,
       expense_id: payment.expense_id,
+      invoice: paymentInvoice,
+      expense: paymentExpense,
       payment_processor_id: payment.payment_processor_id,
       processor_transaction_id: payment.processor_transaction_id,
       processor_metadata: payment.processor_metadata,
-      simulation_mode: payment.simulation_mode,
       simulation_data: payment.simulation_data,
-      notes: payment.notes,
-      payment_date: payment.payment_date,
-      created_at: payment.created_at,
-      updated_at: payment.updated_at,
-      // Format invoice and expense to match required types
-      invoice: payment.invoice ? {
-        invoice_number: payment.invoice.invoice_number,
-        amount: payment.invoice.amount,
-        project: {
-          name: payment.invoice.project ? payment.invoice.project.name : 'Unknown Project'
-        }
-      } : undefined,
-      expense: payment.expense ? {
-        name: payment.expense.name,
-        project: {
-          name: payment.expense.project ? payment.expense.project.name : 'Unknown Project'
-        }
-      } : undefined
-    };
-    
-    return formattedPayment;
+      simulation_mode: payment.simulation_mode
+    } as Payment;
   });
 
   return (
@@ -163,7 +179,7 @@ export default function PaymentsDashboard() {
           variant="glass" 
           className="shadow-md border border-white/20 backdrop-blur-sm mt-6"
         >
-          <PaymentsTable payments={payments} isLoading={isLoading} />
+          <PaymentsTable payments={mappedPayments} isLoading={isLoading} />
         </Card>
       </div>
     </div>

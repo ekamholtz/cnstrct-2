@@ -74,7 +74,7 @@ export function useContractorProjects() {
         .from('projects')
         .select(`
           *,
-          clients (
+          clients!projects_client_id_fkey (
             id,
             name,
             email,
