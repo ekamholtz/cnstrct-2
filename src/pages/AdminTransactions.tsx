@@ -44,12 +44,12 @@ const AdminTransactions = () => {
       due_date: undefined, // Optional field
       description: undefined, // Optional field
       notes: undefined, // Optional field
-      payment_method: invoice.payment_method,
-      payment_date: invoice.payment_date,
-      payment_reference: invoice.payment_reference,
-      payment_gateway: invoice.payment_gateway,
-      payment_method_type: invoice.payment_method as "cc" | "check" | "transfer" | "cash" | "simulated" | null,
-      simulation_data: invoice.simulation_data
+      payment_method: invoice.payment_method || null,
+      payment_date: invoice.payment_date || null,
+      payment_reference: invoice.payment_reference || null,
+      payment_gateway: invoice.payment_gateway || null,
+      payment_method_type: (invoice.payment_method as "cc" | "check" | "transfer" | "cash" | "simulated" | null) || null,
+      simulation_data: invoice.simulation_data || null
     } as Invoice;
   });
 
