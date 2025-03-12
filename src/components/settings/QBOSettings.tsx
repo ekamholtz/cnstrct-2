@@ -4,9 +4,10 @@ import { useQBOConnection } from "@/hooks/useQBOConnection";
 import { QBOService } from "@/integrations/qbo/qboService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertCircle, CheckCircle, ExternalLink, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle, ExternalLink, RefreshCw, Info } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatDistanceToNow } from "date-fns";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function QBOSettings() {
   const { connection, isLoading, error, connectToQBO, disconnectFromQBO } = useQBOConnection();
@@ -175,9 +176,24 @@ export function QBOSettings() {
                 Connect your QuickBooks Online account to enable financial data sync from CNSTRCT to QBO.
               </p>
               {isSandboxMode && (
-                <p className="text-amber-700 text-sm mt-2 font-medium">
-                  You are in development mode. A QuickBooks Sandbox account is required for testing.
-                </p>
+                <div className="mt-3 space-y-2">
+                  <p className="text-amber-700 text-sm font-medium">
+                    You are in development mode. A QuickBooks Sandbox account is required for testing.
+                  </p>
+                  
+                  <Alert variant="warning" className="bg-amber-50 border-amber-200">
+                    <Info className="h-4 w-4 text-amber-800" />
+                    <AlertTitle className="text-amber-800 text-xs font-bold">QuickBooks Developer Setup</AlertTitle>
+                    <AlertDescription className="text-amber-700 text-xs">
+                      <p className="mb-1">When registering your app in the Intuit Developer Portal, use:</p>
+                      <ul className="list-disc list-inside text-amber-700 space-y-1 pl-2">
+                        <li><span className="font-semibold">Host domain:</span> localhost (without port)</li>
+                        <li><span className="font-semibold">Launch/Disconnect URLs:</span> https://localhost/settings (with https)</li>
+                        <li><span className="font-semibold">Callback URL:</span> https://localhost/qbo/callback (with https)</li>
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                </div>
               )}
             </div>
             
@@ -227,9 +243,22 @@ export function QBOSettings() {
               </Button>
             </div>
           ) : (
-            <Button onClick={connectToQBO}>
-              Connect to QuickBooks Online
-            </Button>
+            <div className="flex flex-col w-full items-end space-y-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={connectToQBO}>
+                      Connect to QuickBooks Online
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-xs">
+                      If you experience issues connecting, verify that your app is properly registered in the Intuit Developer Portal.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           )
         )}
       </CardFooter>
