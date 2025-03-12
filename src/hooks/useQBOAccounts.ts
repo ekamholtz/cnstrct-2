@@ -11,8 +11,11 @@ export function useQBOAccounts(accountType?: string) {
     queryKey: ['qbo-accounts', accountType],
     queryFn: async () => {
       try {
-        const accounts = await qboService.getAccounts(accountType);
-        return mappingService.mapAccountsToSelectOptions(accounts);
+        const response = await qboService.getAccounts(accountType || 'Expense');
+        if (!response.success) {
+          throw new Error(response.error);
+        }
+        return mappingService.mapAccountsToSelectOptions(response.data);
       } catch (error) {
         console.error("Error fetching QBO accounts:", error);
         throw error;

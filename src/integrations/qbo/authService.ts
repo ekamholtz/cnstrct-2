@@ -17,10 +17,9 @@ export class QBOAuthService {
     this.isProduction = window.location.hostname !== 'localhost' && 
                          !window.location.hostname.includes('127.0.0.1');
     
-    // For production, these should be environment variables
-    // Currently using sandbox credentials (for development)
-    this.clientId = "AB6pN0pnXfsBtCI1S03SYSdoRiSCVD2ZQDxDgR4yYvbDdEx4";
-    this.clientSecret = "4zjveAX4tFhuxWx1sfgN3bE4zRVUquFun3YqVau";
+    // Updated sandbox credentials
+    this.clientId = "AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j";
+    this.clientSecret = "4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau";
     this.redirectUri = `${window.location.origin}/qbo/callback`;
     this.scopes = [
       'com.intuit.quickbooks.accounting',
@@ -39,6 +38,7 @@ export class QBOAuthService {
     console.log("QBO Auth Service initialized with:", {
       environment: this.isProduction ? "Production" : "Sandbox",
       apiBaseUrl: this.apiBaseUrl,
+      clientId: this.clientId,
       redirectUri: this.redirectUri
     });
   }

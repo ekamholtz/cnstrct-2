@@ -1,6 +1,7 @@
 
 import React, { useState } from "react";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
+import { QBOService } from "@/integrations/qbo/qboService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertCircle, CheckCircle, ExternalLink, RefreshCw } from "lucide-react";

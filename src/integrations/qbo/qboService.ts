@@ -1,4 +1,3 @@
-
 import { BaseQBOService } from "./services/BaseQBOService";
 import { QBOMappingService } from "./mapping";
 
@@ -34,6 +33,141 @@ export class QBOService extends BaseQBOService {
       };
     } catch (error) {
       console.error("Error getting QBO accounts:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }
+
+  /**
+   * Get entity reference from database
+   */
+  async getEntityReference(entityType: string, localId: string) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      const { data, error } = await supabase
+        .from('qbo_entity_refs')
+        .select('qbo_id')
+        .eq('user_id', user.id)
+        .eq('entity_type', entityType)
+        .eq('local_id', localId)
+        .single();
+        
+      if (error) {
+        console.log("QBO entity reference not found", { entityType, localId });
+        return null;
+      }
+      
+      return data.qbo_id;
+    } catch (error) {
+      console.error("Error getting QBO entity reference:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Store entity reference mapping
+   */
+  async storeEntityReference(entityType: string, localId: string, qboId: string) {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      const { error } = await supabase
+        .from('qbo_entity_refs')
+        .upsert({
+          user_id: user.id,
+          entity_type: entityType,
+          local_id: localId,
+          qbo_id: qboId,
+          updated_at: new Date().toISOString()
+        });
+        
+      if (error) {
+        console.error("Error storing QBO entity reference:", error);
+        throw new Error("Failed to store QBO entity reference");
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Error storing QBO entity reference:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Find a vendor by name in QBO
+   */
+  async getVendorIdForExpense(vendorName: string) {
+    try {
+      const connection = await this.getUserConnection();
+      if (!connection) {
+        throw new Error("No QBO connection found");
+      }
+      
+      const client = await this.getClient(connection.id, connection.company_id);
+      
+      // Try to find the vendor by name
+      const response = await client.get('/query', {
+        params: {
+          query: `SELECT * FROM Vendor WHERE DisplayName = '${vendorName}'`
+        }
+      });
+      
+      const vendors = response.data.QueryResponse.Vendor || [];
+      
+      if (vendors.length > 0) {
+        return vendors[0].Id;
+      }
+      
+      // If vendor not found, create a new one
+      const vendorData = {
+        DisplayName: vendorName,
+        PrintOnCheckName: vendorName,
+        Active: true
+      };
+      
+      const createResponse = await client.post('/vendor', vendorData);
+      
+      return createResponse.data.Vendor.Id;
+    } catch (error) {
+      console.error("Error getting/creating vendor in QBO:", error);
+      throw new Error("Failed to get or create vendor in QuickBooks");
+    }
+  }
+
+  /**
+   * Find a customer by email
+   */
+  async findCustomerByEmail(email: string) {
+    try {
+      const connection = await this.getUserConnection();
+      if (!connection) {
+        throw new Error("No QBO connection found");
+      }
+      
+      const client = await this.getClient(connection.id, connection.company_id);
+      
+      // Try to find the customer by email
+      const response = await client.get('/query', {
+        params: {
+          query: `SELECT * FROM Customer WHERE PrimaryEmailAddr = '${email}'`
+        }
+      });
+      
+      return {
+        success: true,
+        data: response.data.QueryResponse.Customer?.[0] || null
+      };
+    } catch (error) {
+      console.error("Error finding QBO customer by email:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
