@@ -40,7 +40,8 @@ export const createClient = async (clientData: {
     email: normalizedEmail,
     address: clientData.address,
     phone: clientData.phone_number, // Match the field name in the database
-    user_id: user?.id // Link to current user if available
+    user_id: user?.id, // Link to current user if available
+    gc_account_id: null // Adding this to make TypeScript happy
   };
   
   const { data: client, error: clientError } = await supabase

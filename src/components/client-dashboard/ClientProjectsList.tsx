@@ -13,7 +13,7 @@ import axios from "axios";
 interface Project {
   id: string;
   name: string;
-  description: string;
+  description?: string;
   status: string;
   created_at: string;
 }
@@ -55,7 +55,7 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
         // Try to find or create client record
         try {
           const clientData = await linkClientToUser(user.id, user.email || '');
-          setClient(clientData);
+          setClient(clientData as Client);
           console.log('Client data:', clientData);
         } catch (clientError) {
           console.error('Error linking client to user:', clientError);
@@ -77,7 +77,14 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
           }
           
           // Set the projects
-          setProjects(projectsData);
+          const typedProjects = projectsData.map((project: any) => ({
+            id: project.id,
+            name: project.name,
+            description: project.description || '',
+            status: project.status,
+            created_at: project.created_at
+          }));
+          setProjects(typedProjects);
           setDataState('success');
         } catch (apiError) {
           console.error('API error:', apiError);
@@ -90,7 +97,14 @@ export function ClientProjectsList({ limit }: { limit?: number } = {}) {
               .eq('client_id', client.id);
               
             if (projectsData && projectsData.length > 0) {
-              setProjects(projectsData);
+              const typedProjects = projectsData.map(project => ({
+                id: project.id,
+                name: project.name,
+                description: project.description || '',
+                status: project.status,
+                created_at: project.created_at
+              }));
+              setProjects(typedProjects);
               setDataState('success');
             } else {
               setDataState('empty');

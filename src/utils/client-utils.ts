@@ -53,7 +53,8 @@ export const linkClientToUser = async (
         .from('clients')
         .update({ user_id: userId })
         .eq('id', existingClient.id)
-        .select().single();
+        .select()
+        .single();
         
       if (updateError) {
         console.error("Error updating client:", updateError);
@@ -74,16 +75,20 @@ export const linkClientToUser = async (
       .eq('id', userId)
       .single();
     
-    // Create a new client record with proper field names matching the database
+    // Create the insert data
+    const insertData = { 
+      email: normalizedEmail,
+      user_id: userId,
+      name: userProfile?.full_name || normalizedEmail.split('@')[0],
+      phone: userProfile?.phone_number,
+      address: userProfile?.address,
+      gc_account_id: null  // Adding this so TypeScript doesn't complain
+    };
+    
+    // Create a new client record
     const { data: newClient, error: createError } = await supabaseClient
       .from('clients')
-      .insert([{ 
-        email: normalizedEmail,
-        user_id: userId,
-        name: userProfile?.full_name || normalizedEmail.split('@')[0],
-        phone: userProfile?.phone_number,
-        address: userProfile?.address
-      }])
+      .insert([insertData])
       .select()
       .single();
       

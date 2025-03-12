@@ -79,7 +79,7 @@ export function useContractorProjects() {
             name,
             email,
             address,
-            phone_number
+            phone
           ),
           milestones (
             id,
@@ -122,19 +122,21 @@ export function useContractorProjects() {
         throw projectsError;
       }
 
-      console.log(`Projects found (${userRole}):`, projects?.length || 0);
-      return projects as Project[];
+      console.log(`Projects found (${userRole}):`, projects?.length || 0, projects);
+      return (projects || []) as Project[];
     },
     enabled: !!userRole, // Only run query when user role is available
     retry: 1, // Limit retries to avoid spamming if there's a persistent error
     meta: {
-      onError: (error: Error) => {
-        console.error('Query error:', error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "There was a problem loading your projects. Please refresh the page."
-        });
+      errorBehavior: {
+        onError: (error: Error) => {
+          console.error('Query error:', error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "There was a problem loading your projects. Please refresh the page."
+          });
+        }
       }
     }
   });

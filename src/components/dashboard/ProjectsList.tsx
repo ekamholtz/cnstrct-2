@@ -1,3 +1,4 @@
+
 import { Project } from "@/types/project";
 import { Link } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
@@ -7,7 +8,6 @@ import { calculateProjectCompletion } from "@/utils/project-calculations";
 import { ProjectCard } from "./ProjectCard";
 import { ChevronRight, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Database } from "@/types/supabase";
 
 interface ProjectsListProps {
   projects: Project[];
@@ -15,7 +15,7 @@ interface ProjectsListProps {
 }
 
 export function ProjectsList({ projects, loading }: ProjectsListProps) {
-  // Query to fetch milestones for all projects
+  // Query to fetch any additional milestone data if needed
   const { data: milestones } = useQuery({
     queryKey: ['all-projects-milestones', projects.map(p => p.id)],
     queryFn: async () => {
@@ -26,8 +26,7 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
 
       console.log("Fetching milestones for projects:", projects.map(p => p.id));
       
-      // Using type assertion to handle the table that's in the schema but not in the type
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('milestones')
         .select('*')
         .in('project_id', projects.map(p => p.id));
@@ -38,15 +37,15 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
       }
       
       console.log("Fetched milestones:", data);
-      return data;
+      return data as any[];
     },
     enabled: projects.length > 0,
   });
 
   const getProjectMilestones = (projectId: string) => {
     if (!milestones) return [];
-    // Add type safety by explicitly checking the project_id property
-    return milestones.filter((m: any) => m && typeof m === 'object' && m.project_id === projectId);
+    // Filter milestones for specific project
+    return milestones.filter(m => m && typeof m === 'object' && m.project_id === projectId);
   };
 
   if (loading) {

@@ -1,3 +1,4 @@
+
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { StatsOverview } from "@/components/dashboard/StatsOverview";
 import { ContractorFinancialSummary } from "@/components/dashboard/ContractorFinancialSummary";

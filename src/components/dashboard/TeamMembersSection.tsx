@@ -1,253 +1,266 @@
+
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserList } from "@/components/gc-profile/UserList";
-import { InviteUserForm } from "@/components/gc-profile/InviteUserForm";
-import { useTeamMembers, mapUserRoleToUIRole } from "@/hooks/useTeamMembers";
-import { useCreateGCUser } from "@/components/gc-profile/hooks/useCreateGCUser";
-import { CreateUserFormValues } from "@/components/gc-profile/types";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Users } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { UserRole } from "@/components/auth/authSchemas";
+import { UserPlus, Mail, Phone, Building, AlertCircle } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { InviteUserForm } from "@/components/gc-profile/InviteUserForm";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { mapUserRoleToUIRole, getTeamDisplayRole } from "@/utils/role-utils";
 
-export const TeamMembersSection = () => {
-  const [isInviting, setIsInviting] = useState(false);
-  const [directDbProfiles, setDirectDbProfiles] = useState<any[]>([]);
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
-  
-  const {
-    teamMembers,
-    isLoadingTeam,
-    refetch,
-    teamMembersError,
-    gcAccountId,
-    isGCAdmin,
-    isPlatformAdmin
-  } = useTeamMembers();
+export function TeamMembersSection() {
+  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("employees");
+  const [gcAccountId, setGcAccountId] = useState<string | null>(null);
+  const [isGCAdmin, setIsGCAdmin] = useState(false);
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState(false);
 
-  const { createUser, isCreatingUser } = useCreateGCUser();
+  // Query to get the current user's GC account ID
+  const { data: userData } = useQuery({
+    queryKey: ["current-user-for-team"],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
 
-  console.log("TeamMembersSection rendered with:", { 
-    teamMembers: teamMembers?.length,
-    teamMembersData: teamMembers,
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("role, gc_account_id")
+        .eq("id", user.id)
+        .single();
+
+      if (error) throw error;
+      
+      setGcAccountId(profile.gc_account_id);
+      setIsGCAdmin(profile.role === "gc_admin");
+      setIsPlatformAdmin(profile.role === "platform_admin");
+      
+      return { user, profile };
+    },
   });
 
-  // Add detailed debugging for each team member
-  if (teamMembers && teamMembers.length > 0) {
-    console.log("Team members details:");
-    teamMembers.forEach((member, index) => {
-      console.log(`Member ${index + 1}:`, {
-        id: member.id,
-        name: member.full_name,
-        email: member.email,
-        role: member.role,
-      });
-    });
-  } else {
-    console.log("No team members found in the array");
-  }
-  
-  // Direct database check
-  useEffect(() => {
-    const checkDatabaseDirectly = async () => {
-      if (!teamMembers) return;
-      
-      try {
-        console.log("Directly checking database for team members");
-        
-        // Helper function to normalize UUIDs for comparison
-        const normalizeUUID = (uuid: string | null | undefined): string => {
-          if (!uuid) return '';
-          // Remove all non-alphanumeric characters and convert to lowercase
-          return uuid.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-        };
-        
-        // Get all profiles and filter manually with normalized UUIDs
-        const { data: allProfiles, error: allError } = await supabase
-          .from('profiles')
-          .select('*');
-          
-        if (allError) {
-          console.error("Error fetching all profiles:", allError);
-        } else {
-          console.log(`Found ${allProfiles?.length || 0} total profiles in database`);
-          
-          // Manually filter profiles with matching gc_account_id using normalized comparison
-          const matchingProfiles = allProfiles?.filter(p => {
-            const normalizedProfileUUID = normalizeUUID(p.gc_account_id);
-            const isMatch = normalizedProfileUUID === normalizeUUID(teamMembers[0].gc_account_id);
-            
-            if (isMatch) {
-              console.log(`Found matching profile: ${p.full_name} (${p.id})`);
-              console.log(`  Original UUID: ${p.gc_account_id}`);
-              console.log(`  Normalized UUID: ${normalizedProfileUUID}`);
-            }
-            
-            return isMatch;
-          });
-          
-          console.log(`Manual filtering found ${matchingProfiles?.length || 0} matching profiles`);
-          
-          // Get emails for each profile - but without using admin API
-          const profilesWithEmails = (matchingProfiles || []).map(profile => {
-            // We can't get emails without admin access, so we'll use a placeholder
-            // In a real app, you might store the email in the profiles table or use a different approach
-            return { 
-              ...profile, 
-              email: `${profile.full_name?.toLowerCase().replace(/\s+/g, '.')}@example.com` // placeholder email based on name
-            };
-          });
-          
-          // Use this as our source of truth
-          setDirectDbProfiles(profilesWithEmails || []);
-          
-          if (profilesWithEmails && profilesWithEmails.length > 0) {
-            profilesWithEmails.forEach((profile, index) => {
-              console.log(`Direct DB Profile ${index + 1}:`, {
-                id: profile.id,
-                name: profile.full_name,
-                role: profile.role,
-                email: profile.email,
-                gc_account_id: profile.gc_account_id
-              });
-            });
-          }
-        }
-      } catch (err) {
-        console.error("Error in direct DB check:", err);
-      }
-    };
-    
-    checkDatabaseDirectly();
-  }, [teamMembers]);
+  // Query to get team members
+  const { data: teamMembers = [], isLoading: isLoadingTeam, error: teamMembersError, refetch } = useQuery({
+    queryKey: ["team-members", gcAccountId],
+    queryFn: async () => {
+      if (!gcAccountId) throw new Error("No GC account ID found");
 
-  const handleInviteUser = async (formData: CreateUserFormValues) => {
-    try {
-      await createUser(formData);
+      console.log("Fetching team members for GC account:", gcAccountId);
       
-      setIsInviting(false);
-      // Use a timeout to allow for database update to complete
-      setTimeout(() => refetch(), 1000);
-    } catch (error) {
-      console.error("Error inviting user:", error);
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("gc_account_id", gcAccountId);
+
+      if (error) throw error;
+      
+      console.log("Team members fetched:", data?.length || 0);
+      return data.map(profile => ({
+        id: profile.id,
+        gc_account_id: profile.gc_account_id,
+        full_name: profile.full_name,
+        email: profile.email,
+        role: profile.role,
+        company_name: profile.company_name,
+        phone_number: profile.phone_number,
+        address: profile.address,
+        license_number: profile.license_number,
+        website: profile.website,
+        bio: profile.bio,
+        has_completed_profile: profile.has_completed_profile,
+        account_status: profile.account_status,
+        created_at: profile.created_at,
+        updated_at: profile.updated_at
+      }));
+    },
+    enabled: !!gcAccountId,
+  });
+
+  // Check if user can manage team members
+  const canManageTeam = isGCAdmin || isPlatformAdmin;
+
+  // Filter team members based on the active tab
+  const filteredTeamMembers = teamMembers.filter(member => {
+    if (activeTab === "employees") {
+      return mapUserRoleToUIRole(member.role) === "contractor" || member.role === "employee";
     }
+    if (activeTab === "project_managers") {
+      return mapUserRoleToUIRole(member.role) === "project_manager";
+    }
+    if (activeTab === "admins") {
+      return member.role === "gc_admin" || member.role === "platform_admin";
+    }
+    return false;
+  });
+
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
   };
 
-  // Determine which profiles to display - use direct DB results if available
-  const displayProfiles = directDbProfiles.length > 0 ? directDbProfiles : teamMembers || [];
-  
-  // Check if the user has permission to manage users
-  const canManageUsers = teamMembers && teamMembers.length > 0 && 
-    (teamMembers[0].role === 'project_manager' || 
-     mapUserRoleToUIRole(teamMembers[0].role as any) === 'project_manager');
+  // Handle successful invitation
+  const handleInviteSuccess = () => {
+    setIsInviteDialogOpen(false);
+    refetch();
+  };
+
+  // Show a message if no GC account ID
+  if (!gcAccountId) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Team Members</CardTitle>
+          <CardDescription>Manage your company team members</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive" className="bg-amber-50 border border-amber-200 text-amber-800">
+            <AlertCircle className="h-4 w-4 text-amber-500" />
+            <AlertTitle className="text-amber-800 font-medium">Company Setup Needed</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              Please set up your company profile before adding team members.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show loading state
+  if (isLoadingTeam) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Team Members</CardTitle>
+          <CardDescription>Loading team members...</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center py-4">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cnstrct-navy"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show error state
+  if (teamMembersError) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Team Members</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Failed to load team members. Please try again.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="premium-card p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-cnstrct-navy flex items-center">
-          <span className="inline-block w-1 h-6 bg-cnstrct-orange mr-3 rounded-full"></span>
-          Team Members
-          <span className="ml-2 text-sm font-normal text-gray-500">({displayProfiles.length})</span>
-        </h2>
-        {process.env.NODE_ENV === 'development' && (
-          <button 
-            onClick={() => setShowDebugInfo(!showDebugInfo)}
-            className="text-xs text-gray-500 hover:text-gray-700 underline"
-          >
-            {showDebugInfo ? "Hide Debug Info" : "Show Debug Info"}
-          </button>
-        )}
-      </div>
-
-      {/* Debug information */}
-      {showDebugInfo && (
-        <div className="mb-4 p-4 bg-gray-50 rounded-lg text-xs border border-gray-200">
-          <h3 className="font-bold mb-2 text-gray-700">Debug Information</h3>
-          <div className="space-y-2">
-            <p><strong>Hook Team Members:</strong> {teamMembers?.length || 0}</p>
-            <p><strong>Direct DB Team Members:</strong> {directDbProfiles?.length || 0}</p>
-            <p><strong>Is Loading:</strong> {isLoadingTeam ? 'Yes' : 'No'}</p>
-            <p><strong>Error:</strong> {teamMembersError ? String(teamMembersError) : 'None'}</p>
-            <p><strong>Displaying:</strong> {directDbProfiles.length > 0 ? 'Direct DB Results' : 'Hook Results'}</p>
-          </div>
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Team Members</CardTitle>
+          <CardDescription>Manage your company's team members</CardDescription>
         </div>
-      )}
-      
-      {teamMembers && teamMembers.length === 0 && (
-        <Alert variant="destructive" className="mb-4 bg-amber-50 border border-amber-200 text-amber-800">
-          <AlertCircle className="h-4 w-4 text-amber-500" />
-          <AlertTitle className="text-amber-800 font-medium">No Team Members Found</AlertTitle>
-          <AlertDescription className="text-amber-700">
-            You don't have any team members yet.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {isInviting ? (
-        <InviteUserForm 
-          onSubmit={handleInviteUser}
-          onCancel={() => setIsInviting(false)}
-          isLoading={isCreatingUser}
-        /> 
-      ) : (
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="mb-4 bg-gray-100 p-1 rounded-lg">
-            <TabsTrigger value="all" className="data-[state=active]:bg-white data-[state=active]:text-cnstrct-navy">All</TabsTrigger>
-            <TabsTrigger value="admins" className="data-[state=active]:bg-white data-[state=active]:text-cnstrct-navy">Admins</TabsTrigger>
-            <TabsTrigger value="project-managers" className="data-[state=active]:bg-white data-[state=active]:text-cnstrct-navy">Project Managers</TabsTrigger>
-            <TabsTrigger value="contractors" className="data-[state=active]:bg-white data-[state=active]:text-cnstrct-navy">Contractors</TabsTrigger>
+        {canManageTeam && (
+          <Button 
+            variant="default" 
+            className="flex items-center gap-1"
+            onClick={() => setIsInviteDialogOpen(true)}
+          >
+            <UserPlus className="h-4 w-4 mr-1" />
+            Invite User
+          </Button>
+        )}
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="employees">Team Members</TabsTrigger>
+            <TabsTrigger value="project_managers">Project Managers</TabsTrigger>
+            <TabsTrigger value="admins">Administrators</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="all">
-            <UserList 
-              users={displayProfiles}
-              isLoading={isLoadingTeam && directDbProfiles.length === 0}
-              canManageUsers={canManageUsers}
-              onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetch()}
-            /> 
-          </TabsContent>
-          
-          <TabsContent value="admins">
-            <UserList 
-              users={displayProfiles.filter(user => 
-                user.role === 'gc_admin' || user.role === 'platform_admin'
-              )}
-              isLoading={isLoadingTeam && directDbProfiles.length === 0}
-              canManageUsers={canManageUsers}
-              onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetch()}
-            /> 
-          </TabsContent>
-          
-          <TabsContent value="project-managers">
-            <UserList 
-              users={displayProfiles.filter(user => 
-                user.role === 'project_manager' || 
-                (typeof mapUserRoleToUIRole === 'function' && mapUserRoleToUIRole(user.role) === 'project_manager')
-              )}
-              isLoading={isLoadingTeam && directDbProfiles.length === 0}
-              canManageUsers={canManageUsers}
-              onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetch()}
-            /> 
-          </TabsContent>
-          
-          <TabsContent value="contractors">
-            <UserList 
-              users={displayProfiles.filter(user => 
-                user.role === 'contractor' || 
-                (typeof mapUserRoleToUIRole === 'function' && mapUserRoleToUIRole(user.role) === 'contractor')
-              )}
-              isLoading={isLoadingTeam && directDbProfiles.length === 0}
-              canManageUsers={canManageUsers}
-              onCreateUser={() => setIsInviting(true)}
-              onRefresh={() => refetch()}
-            /> 
+          <TabsContent value={activeTab} className="pt-2">
+            {filteredTeamMembers.length === 0 ? (
+              <div className="text-center py-6 text-gray-500">
+                <p>No team members found in this category.</p>
+                {canManageTeam && (
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => setIsInviteDialogOpen(true)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Add Team Member
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredTeamMembers.map((member) => (
+                  <div key={member.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center mb-2 md:mb-0">
+                      <Avatar className="h-10 w-10 mr-4">
+                        <AvatarImage src={`https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(member.full_name || 'User')}`} />
+                        <AvatarFallback>{member.full_name?.charAt(0) || 'U'}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-medium">{member.full_name || 'Unnamed User'}</h3>
+                          <Badge variant="outline" className="ml-2">
+                            {getTeamDisplayRole(member.role)}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500 mt-1">
+                          {member.email && (
+                            <div className="flex items-center mr-4">
+                              <Mail className="h-3 w-3 mr-1" />
+                              <span>{member.email}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2 mt-2 md:mt-0">
+                      {member.phone_number && (
+                        <Badge variant="outline" className="flex items-center">
+                          <Phone className="h-3 w-3 mr-1" />
+                          {member.phone_number}
+                        </Badge>
+                      )}
+                      {member.company_name && (
+                        <Badge variant="outline" className="flex items-center">
+                          <Building className="h-3 w-3 mr-1" />
+                          {member.company_name}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </TabsContent>
         </Tabs>
-      )}
-    </div>
+      </CardContent>
+
+      {/* Invite User Dialog */}
+      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <InviteUserForm onSuccess={handleInviteSuccess} />
+        </DialogContent>
+      </Dialog>
+    </Card>
   );
-};
+}

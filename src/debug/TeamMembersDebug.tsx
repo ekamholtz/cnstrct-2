@@ -1,197 +1,126 @@
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
-import { useCurrentUserProfile } from '@/components/gc-profile/hooks/useCurrentUserProfile';
-import { useTeamMembers } from '@/hooks/useTeamMembers';
 
-/**
- * This component is for debugging the team members issue
- * It directly queries the database and compares with the useTeamMembers hook results
- */
-export const TeamMembersDebug = () => {
-  const [directDbProfiles, setDirectDbProfiles] = useState<any[]>([]);
-  const [connectionStatus, setConnectionStatus] = useState<'checking' | 'connected' | 'error'>('checking');
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  
-  const { currentUserProfile, isLoading: isLoadingProfile } = useCurrentUserProfile();
-  const { teamMembers, isLoadingTeam, error: teamMembersError } = useTeamMembers();
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 
-  // Check Supabase connection
-  useEffect(() => {
-    const checkConnection = async () => {
-      try {
-        const { data, error } = await supabase.from('profiles').select('count').limit(1);
-        
-        if (error) {
-          console.error("Debug component - Error connecting to Supabase:", error);
-          setConnectionStatus('error');
-          setConnectionError(error.message);
-          return;
-        }
-        
-        console.log("Debug component - Successfully connected to Supabase");
-        setConnectionStatus('connected');
-        
-        // Get current auth user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          setCurrentUser(user);
-          console.log("Debug component - Current auth user:", user);
-        } else {
-          console.log("Debug component - No authenticated user found");
-        }
-      } catch (e) {
-        console.error("Debug component - Exception when connecting to Supabase:", e);
-        setConnectionStatus('error');
-        setConnectionError(e instanceof Error ? e.message : String(e));
-      }
-    };
-    
-    checkConnection();
-  }, []);
+interface TeamMember {
+  id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  gc_account_id: string;
+}
 
-  // Direct database check for team members
-  useEffect(() => {
-    const checkTeamMembers = async () => {
-      if (!currentUserProfile?.gc_account_id) {
-        console.log("Debug component - No gc_account_id available for direct check");
-        return;
-      }
+export function TeamMembersDebug() {
+  const [gcAccountId, setGcAccountId] = useState<string | null>(null);
+
+  // Get current user's GC account ID
+  const { data: currentUserProfile } = useQuery({
+    queryKey: ['current-user-debug'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role, gc_account_id')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
       
-      try {
-        console.log("Debug component - Directly checking database for team members with gc_account_id:", currentUserProfile.gc_account_id);
-        const { data: profiles, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('gc_account_id', currentUserProfile.gc_account_id);
-          
-        if (error) {
-          console.error("Debug component - Direct DB check error:", error);
-          return;
-        }
-        
-        console.log(`Debug component - Direct DB check found ${profiles?.length || 0} team members`);
-        setDirectDbProfiles(profiles || []);
-        
-        if (profiles && profiles.length > 0) {
-          profiles.forEach((profile, index) => {
-            console.log(`Debug component - Direct DB Profile ${index + 1}:`, {
-              id: profile.id,
-              name: profile.full_name,
-              role: profile.role,
-              gc_account_id: profile.gc_account_id
-            });
-          });
-        }
-      } catch (err) {
-        console.error("Debug component - Error in direct DB check:", err);
-      }
-    };
-    
-    if (connectionStatus === 'connected') {
-      checkTeamMembers();
+      // Store the GC account ID for using in the team members query
+      setGcAccountId(data.gc_account_id);
+      
+      return data;
     }
-  }, [currentUserProfile?.gc_account_id, connectionStatus]);
+  });
+
+  // Fetch team members for the current GC account
+  const { data: teamData, isLoading: isLoadingTeam, isError: teamMembersError, refetch } = useQuery({
+    queryKey: ['team-members-debug', gcAccountId],
+    queryFn: async () => {
+      if (!gcAccountId) return { teamMembers: [], isGCAdmin: false, isPlatformAdmin: false };
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { teamMembers: [], isGCAdmin: false, isPlatformAdmin: false };
+
+      const { data: userProfile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      const { data: teamMembers, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, role, gc_account_id')
+        .eq('gc_account_id', gcAccountId);
+
+      if (error) throw error;
+
+      return {
+        teamMembers: teamMembers.map((member: any) => ({
+          id: member.id,
+          gc_account_id: member.gc_account_id,
+          full_name: member.full_name,
+          email: member.email,
+          role: member.role,
+          company_name: member.company_name,
+          phone_number: member.phone_number,
+          address: member.address,
+          license_number: member.license_number,
+          website: member.website,
+          bio: member.bio,
+          has_completed_profile: member.has_completed_profile,
+          account_status: member.account_status,
+          created_at: member.created_at,
+          updated_at: member.updated_at
+        })),
+        isGCAdmin: userProfile?.role === 'gc_admin',
+        isPlatformAdmin: userProfile?.role === 'platform_admin',
+        refetch
+      };
+    },
+    enabled: !!gcAccountId
+  });
 
   return (
-    <Card className="mt-8 border-red-300">
-      <CardHeader>
-        <CardTitle className="text-red-500">Team Members Debug</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="bg-gray-100 p-3 rounded-md">
-            <h3 className="font-bold mb-2">Connection Status</h3>
-            <p>Status: {connectionStatus === 'checking' ? 'Checking...' : 
-                      connectionStatus === 'connected' ? 'Connected ' : 'Error '}</p>
-            {connectionError && <p className="text-red-500">Error: {connectionError}</p>}
-          </div>
+    <div>
+      <h3 className="text-lg font-semibold mb-2">Team Members Debug Info</h3>
+      
+      {teamMembersError ? (
+        <div className="text-red-600 mb-2">Error loading team members</div>
+      ) : isLoadingTeam ? (
+        <div>Loading team members...</div>
+      ) : (
+        <div>
+          <p className="mb-2">Current GC Account ID: <span className="font-mono">{gcAccountId || 'None'}</span></p>
+          <p className="mb-2">Number of team members: {teamData?.teamMembers?.length || 0}</p>
           
-          <div className="bg-gray-100 p-3 rounded-md">
-            <h3 className="font-bold mb-2">Current Auth User</h3>
-            {currentUser ? (
-              <div>
-                <p>ID: {currentUser.id}</p>
-                <p>Email: {currentUser.email}</p>
-                <p>Created: {new Date(currentUser.created_at).toLocaleString()}</p>
-              </div>
-            ) : (
-              <p>No authenticated user found</p>
-            )}
-          </div>
-          
-          <div className="bg-gray-100 p-3 rounded-md">
-            <h3 className="font-bold mb-2">Current User Profile</h3>
-            {isLoadingProfile ? (
-              <p>Loading profile...</p>
-            ) : currentUserProfile ? (
-              <div>
-                <p>ID: {currentUserProfile.id}</p>
-                <p>Name: {currentUserProfile.full_name}</p>
-                <p>Role: {currentUserProfile.role}</p>
-                <p>GC Account ID: {currentUserProfile.gc_account_id || 'None'}</p>
-              </div>
-            ) : (
-              <p>No profile found</p>
-            )}
-          </div>
-          
-          <div className="bg-gray-100 p-3 rounded-md">
-            <h3 className="font-bold mb-2">Team Members from Hook</h3>
-            {teamMembersError && (
-              <p className="text-red-500 mb-2">Error: {teamMembersError instanceof Error ? teamMembersError.message : String(teamMembersError)}</p>
-            )}
-            {isLoadingTeam ? (
-              <p>Loading team members...</p>
-            ) : teamMembers && teamMembers.length > 0 ? (
-              <div>
-                <p className="mb-2">Found {teamMembers.length} team members:</p>
-                <ul className="list-disc pl-5">
-                  {teamMembers.map((member, index) => (
-                    <li key={index}>
-                      {member.full_name} ({member.email || 'No email'}) - {member.role}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p>No team members found from hook</p>
-            )}
-          </div>
-          
-          <div className="bg-gray-100 p-3 rounded-md">
-            <h3 className="font-bold mb-2">Team Members from Direct DB Query</h3>
-            {directDbProfiles.length > 0 ? (
-              <div>
-                <p className="mb-2">Found {directDbProfiles.length} team members:</p>
-                <ul className="list-disc pl-5">
-                  {directDbProfiles.map((profile, index) => (
-                    <li key={index}>
-                      {profile.full_name || 'No name'} - {profile.role} (ID: {profile.id})
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p>No team members found from direct query</p>
-            )}
-          </div>
-          
-          <div className="bg-gray-100 p-3 rounded-md">
-            <h3 className="font-bold mb-2">Comparison</h3>
-            <p>Team members from hook: {teamMembers?.length || 0}</p>
-            <p>Team members from direct DB: {directDbProfiles.length}</p>
-            {teamMembers && directDbProfiles.length > 0 && (
-              <p>
-                Match: {
-                  teamMembers.length === directDbProfiles.length ? ' Count matches' : ' Count mismatch'
-                }
-              </p>
-            )}
+          <div className="overflow-auto">
+            <table className="min-w-full text-xs border-collapse">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="border border-gray-300 px-2 py-1 text-left">ID</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left">Name</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left">Email</th>
+                  <th className="border border-gray-300 px-2 py-1 text-left">Role</th>
+                </tr>
+              </thead>
+              <tbody>
+                {teamData?.teamMembers?.map((member: TeamMember) => (
+                  <tr key={member.id} className="hover:bg-gray-50">
+                    <td className="border border-gray-300 px-2 py-1 font-mono">{member.id}</td>
+                    <td className="border border-gray-300 px-2 py-1">{member.full_name}</td>
+                    <td className="border border-gray-300 px-2 py-1">{member.email}</td>
+                    <td className="border border-gray-300 px-2 py-1">{member.role}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      )}
+    </div>
   );
-};
+}
