@@ -1,57 +1,110 @@
 
 import { BaseQBOService } from "./BaseQBOService";
 
-export class CustomerVendorService extends BaseQBOService {
+export class CustomerVendorService {
+  private baseService: BaseQBOService;
+  
+  constructor(baseService: BaseQBOService) {
+    this.baseService = baseService;
+  }
+
   /**
-   * Check if a customer exists in QBO by email
+   * Find a vendor by name in QBO
    */
-  async findCustomerByEmail(email: string): Promise<any | null> {
+  async getVendorIdForExpense(vendorName: string) {
     try {
-      const connection = await this.getUserConnection();
+      const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
       }
       
-      const client = await this.getClient(connection.id, connection.company_id);
+      const client = await this.baseService.getClient(connection.id, connection.company_id);
       
-      // Query for customer with matching email
+      // Try to find the vendor by name
+      const response = await client.get('/query', {
+        params: {
+          query: `SELECT * FROM Vendor WHERE DisplayName = '${vendorName}'`
+        }
+      });
+      
+      const vendors = response.data.QueryResponse.Vendor || [];
+      
+      if (vendors.length > 0) {
+        return vendors[0].Id;
+      }
+      
+      // If vendor not found, create a new one
+      const vendorData = {
+        DisplayName: vendorName,
+        PrintOnCheckName: vendorName,
+        Active: true
+      };
+      
+      const createResponse = await client.post('/vendor', vendorData);
+      
+      return createResponse.data.Vendor.Id;
+    } catch (error) {
+      console.error("Error getting/creating vendor in QBO:", error);
+      throw new Error("Failed to get or create vendor in QuickBooks");
+    }
+  }
+
+  /**
+   * Find a customer by email
+   */
+  async findCustomerByEmail(email: string) {
+    try {
+      const connection = await this.baseService.getUserConnection();
+      if (!connection) {
+        throw new Error("No QBO connection found");
+      }
+      
+      const client = await this.baseService.getClient(connection.id, connection.company_id);
+      
+      // Try to find the customer by email
       const response = await client.get('/query', {
         params: {
           query: `SELECT * FROM Customer WHERE PrimaryEmailAddr = '${email}'`
         }
       });
       
-      const customers = response.data.QueryResponse.Customer;
-      if (!customers || customers.length === 0) {
-        return null;
-      }
-      
-      return customers[0];
+      return {
+        success: true,
+        data: response.data.QueryResponse.Customer?.[0] || null
+      };
     } catch (error) {
-      console.error("Error finding customer by email:", error);
-      throw error;
+      console.error("Error finding QBO customer by email:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   }
-  
+
   /**
-   * Create a new customer in QBO
+   * Create a customer in QBO
    */
-  async createCustomer(customerData: any): Promise<any> {
+  async createCustomer(customerData: any) {
     try {
-      const connection = await this.getUserConnection();
+      const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
       }
       
-      const client = await this.getClient(connection.id, connection.company_id);
+      const client = await this.baseService.getClient(connection.id, connection.company_id);
       
-      // Create the customer
       const response = await client.post('/customer', customerData);
       
-      return response.data.Customer;
+      return {
+        success: true,
+        data: response.data.Customer
+      };
     } catch (error) {
-      console.error("Error creating customer:", error);
-      throw error;
+      console.error("Error creating QBO customer:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   }
 }

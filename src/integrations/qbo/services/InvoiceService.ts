@@ -1,87 +1,101 @@
 
 import { BaseQBOService } from "./BaseQBOService";
 
-export class InvoiceService extends BaseQBOService {
+export class InvoiceService {
+  private baseService: BaseQBOService;
+  
+  constructor(baseService: BaseQBOService) {
+    this.baseService = baseService;
+  }
+
   /**
    * Create an invoice in QBO
    */
-  async createInvoice(invoiceData: any): Promise<any> {
+  async createInvoice(invoiceData: any) {
     try {
-      const connection = await this.getUserConnection();
+      const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
       }
       
-      const client = await this.getClient(connection.id, connection.company_id);
+      const client = await this.baseService.getClient(connection.id, connection.company_id);
       
-      // Create the invoice
       const response = await client.post('/invoice', invoiceData);
       
-      return response.data.Invoice;
+      return {
+        success: true,
+        data: response.data.Invoice
+      };
     } catch (error) {
-      console.error("Error creating invoice:", error);
-      throw error;
+      console.error("Error creating QBO invoice:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   }
-  
+
   /**
-   * Record a payment in QBO
+   * Record a payment for an invoice in QBO
    */
-  async recordPayment(paymentData: any): Promise<any> {
+  async recordPayment({ invoiceId, amount, date, paymentMethod }: {
+    invoiceId: string;
+    amount: number;
+    date: Date;
+    paymentMethod: string;
+  }) {
     try {
-      const connection = await this.getUserConnection();
+      console.log("Recording payment in QBO:", { invoiceId, amount, date, paymentMethod });
+      
+      const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
       }
       
-      const client = await this.getClient(connection.id, connection.company_id);
+      const client = await this.baseService.getClient(connection.id, connection.company_id);
       
-      // Record the payment
+      // Format the date as YYYY-MM-DD
+      const formattedDate = date.toISOString().split('T')[0];
+      
+      // Create the payment data
+      const paymentData = {
+        TotalAmt: amount,
+        TxnDate: formattedDate,
+        PaymentMethodRef: {
+          value: paymentMethod || "1" // Default to cash if no method specified
+        },
+        Line: [
+          {
+            Amount: amount,
+            LinkedTxn: [
+              {
+                TxnId: invoiceId,
+                TxnType: "Invoice"
+              }
+            ]
+          }
+        ]
+      };
+      
+      console.log("Sending payment data to QBO:", paymentData);
+      
       const response = await client.post('/payment', paymentData);
       
-      return response.data.Payment;
-    } catch (error) {
-      console.error("Error recording payment:", error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Get the customer ID for an invoice
-   */
-  async getCustomerIdForInvoice(invoiceId: string, entityService: any): Promise<string> {
-    try {
-      // First, get the invoice reference in QBO
-      const invoiceRef = await entityService.getEntityReference(invoiceId, 'invoice');
-      if (!invoiceRef) {
-        throw new Error("Invoice not synced to QBO yet");
-      }
+      console.log("QBO payment created successfully:", response.data);
       
-      // Then, get the invoice from QBO to find the customer ID
-      const connection = await this.getUserConnection();
-      if (!connection) {
-        throw new Error("No QBO connection found");
-      }
-      
-      const client = await this.getClient(connection.id, connection.company_id);
-      
-      // Query for the invoice
-      const response = await client.get('/query', {
-        params: {
-          query: `SELECT * FROM Invoice WHERE Id = '${invoiceRef.qbo_entity_id}'`
-        }
-      });
-      
-      const invoices = response.data.QueryResponse.Invoice;
-      if (!invoices || invoices.length === 0) {
-        throw new Error("Invoice not found in QBO");
-      }
-      
-      // Return the customer ID
-      return invoices[0].CustomerRef.value;
-    } catch (error) {
-      console.error("Error getting customer ID for invoice:", error);
-      throw error;
+      return {
+        success: true,
+        data: response.data.Payment
+      };
+    } catch (error: any) {
+      console.error("Error recording QBO payment:", error);
+      const errorMessage = error.response?.data?.Fault?.Error?.[0]?.Message || 
+                          error.message || 
+                          'Unknown error';
+      return {
+        success: false,
+        error: errorMessage
+      };
     }
   }
 }

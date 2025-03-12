@@ -1,35 +1,41 @@
 
 import { BaseQBOService } from "./BaseQBOService";
 
-export class AccountService extends BaseQBOService {
+export class AccountService {
+  private baseService: BaseQBOService;
+  
+  constructor(baseService: BaseQBOService) {
+    this.baseService = baseService;
+  }
+
   /**
-   * Get GL accounts from QBO by account type
+   * Get all QBO accounts of a specific type
    */
-  async getAccounts(accountType?: string): Promise<any[]> {
+  async getAccounts(accountType: string) {
     try {
-      const connection = await this.getUserConnection();
+      const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
       }
       
-      const client = await this.getClient(connection.id, connection.company_id);
-      
-      // Query for accounts
-      let query = 'SELECT * FROM Account';
-      if (accountType) {
-        query += ` WHERE AccountType = '${accountType}'`;
-      }
-      query += ' ORDER BY Name';
+      const client = await this.baseService.getClient(connection.id, connection.company_id);
       
       const response = await client.get('/query', {
-        params: { query }
+        params: {
+          query: `SELECT * FROM Account WHERE AccountType = '${accountType}'`
+        }
       });
       
-      const accounts = response.data.QueryResponse.Account;
-      return accounts || [];
+      return {
+        success: true,
+        data: response.data.QueryResponse.Account || []
+      };
     } catch (error) {
-      console.error("Error getting accounts:", error);
-      return [];
+      console.error("Error getting QBO accounts:", error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
     }
   }
 }

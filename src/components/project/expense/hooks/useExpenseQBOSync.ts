@@ -17,10 +17,18 @@ export function useExpenseQBOSync() {
     }
     
     try {
-      // Create a properly typed Expense object for syncing
+      // Create a properly typed ExpenseData object for syncing
       await syncExpenseMutation.mutateAsync({ 
-        expense,
-        glAccountId 
+        id: expense.id,
+        name: expense.name,
+        expense_date: expense.expense_date,
+        amount: expense.amount,
+        expense_type: expense.expense_type,
+        vendor_name: expense.payee,
+        project_id: expense.project_id,
+        notes: expense.notes,
+        qbo_sync_status: expense.qbo_sync_status,
+        qbo_entity_id: expense.qbo_entity_id
       });
     } catch (qboError) {
       console.error("Error syncing to QBO:", qboError);
