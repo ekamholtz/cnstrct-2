@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -42,11 +41,14 @@ export class QBOConfig {
       this.redirectUri = `${origin}/qbo/callback`;
     }
     
-    // Fix: Properly formatted scopes for QBO API
-    // The QBO API expects scopes without the 'openid' prefix
+    // Fix: Update scopes to exact QBO format
     this.scopes = [
       'com.intuit.quickbooks.accounting',
-      'com.intuit.quickbooks.payment'
+      'com.intuit.quickbooks.payment',
+      'openid',
+      'profile',
+      'email',
+      'phone'
     ];
 
     // Use correct endpoints based on environment
