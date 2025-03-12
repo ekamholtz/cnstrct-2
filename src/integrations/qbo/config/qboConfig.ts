@@ -42,9 +42,11 @@ export class QBOConfig {
       this.redirectUri = `${origin}/qbo/callback`;
     }
     
+    // Fix: Properly formatted scopes for QBO API
+    // The QBO API expects scopes without the 'openid' prefix
     this.scopes = [
       'com.intuit.quickbooks.accounting',
-      'com.intuit.quickbooks.payment',
+      'com.intuit.quickbooks.payment'
     ];
 
     // Use correct endpoints based on environment
@@ -63,7 +65,8 @@ export class QBOConfig {
       environment: this.isProduction ? "Production" : "Sandbox",
       apiBaseUrl: this.apiBaseUrl,
       clientId: this.clientId,
-      redirectUri: this.redirectUri
+      redirectUri: this.redirectUri,
+      scopes: this.scopes
     });
   }
 

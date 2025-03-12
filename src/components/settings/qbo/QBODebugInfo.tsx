@@ -15,6 +15,9 @@ export function QBODebugInfo() {
         <p className="mt-1 text-sm font-mono break-all">
           <strong>Current Redirect URI:</strong> {qboConfig.redirectUri}
         </p>
+        <p className="mt-1 text-sm font-mono break-all">
+          <strong>Scopes:</strong> {qboConfig.scopes.join(', ')}
+        </p>
         <p className="mt-1 text-xs text-blue-600">
           Make sure this exact URL is registered in your Intuit Developer Portal.
         </p>
