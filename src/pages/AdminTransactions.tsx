@@ -18,6 +18,10 @@ const AdminTransactions = () => {
     projectFilter
   );
 
+  console.log('AdminTransactions - Projects data received:', projects);
+  console.log('AdminTransactions - Invoices data received:', rawInvoices);
+  console.log('AdminTransactions - Expenses data received:', rawExpenses);
+
   // Type cast the data to match the expected interfaces
   const invoices = (rawInvoices || []).map(invoice => {
     // Extract milestone name safely - handle potential null values
@@ -62,10 +66,10 @@ const AdminTransactions = () => {
 
   const expenses = (rawExpenses || []).map(expense => {
     // Extract project name safely - handle potential null values
-    let project_name = 'Unknown';
+    let project_name: string = 'Unknown';
     if (expense.projects) {
       project_name = typeof expense.projects === 'object' && 'name' in expense.projects
-        ? expense.projects.name
+        ? String(expense.projects.name)
         : 'Unknown';
     }
     
