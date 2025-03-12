@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -48,17 +49,26 @@ export class QBOConfig {
       ? "https://quickbooks.api.intuit.com/v3"
       : "https://sandbox-quickbooks.api.intuit.com/v3";
       
-    // Get current user ID to store before redirect
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      localStorage.setItem('qbo_auth_user_id', user.id);
-    }
+    // Store the current user ID before redirect - do this without await
+    this.storeCurrentUserId();
     
     console.log("QBO Config initialized with:", {
       environment: this.isProduction ? "Production" : "Sandbox",
       apiBaseUrl: this.apiBaseUrl,
       clientId: this.clientId,
       redirectUri: this.redirectUri
+    });
+  }
+
+  // Method to store the current user ID in localStorage
+  private storeCurrentUserId(): void {
+    // Get user from supabase without using await
+    supabase.auth.getUser().then(({ data }) => {
+      if (data && data.user) {
+        localStorage.setItem('qbo_auth_user_id', data.user.id);
+      }
+    }).catch(error => {
+      console.error("Error getting current user:", error);
     });
   }
 }

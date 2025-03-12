@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { QBOConfig } from "./config/qboConfig";
 import { QBOUtils } from "./utils/qboUtils";
@@ -104,6 +103,27 @@ export class QBOAuthService {
    */
   async getConnection() {
     return this.connectionService.getConnection();
+  }
+  
+  /**
+   * Exchange authorization code for tokens
+   */
+  async getTokens(code: string) {
+    return this.tokenManager.exchangeCodeForTokens(code);
+  }
+  
+  /**
+   * Get company info from QBO
+   */
+  async getCompanyInfo(accessToken: string, realmId: string) {
+    return this.companyService.getCompanyInfo(accessToken, realmId);
+  }
+  
+  /**
+   * Store connection in database
+   */
+  async storeConnection(userId: string, tokenData: any, companyInfo: any) {
+    return this.tokenManager.storeConnection(userId, tokenData, companyInfo);
   }
   
   /**
