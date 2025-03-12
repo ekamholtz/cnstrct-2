@@ -17,15 +17,25 @@ export class QBOMappingService {
   private expenseMapper: ExpenseMapper;
   private invoiceMapper: InvoiceMapper;
   private accountMapper: AccountMapper;
+  
+  // Method references
+  public mapClientToCustomer: (client: any) => any;
+  public mapProjectToTagName: (project: any) => string;
+  public mapExpenseToBill: (expense: any, payeeQBOId: string, glAccountId: string) => any;
+  public mapExpensePaymentToBillPayment: (payment: any, vendorId: string, billId: string) => any;
+  public mapInvoiceToInvoice: (invoice: any, customerQBOId: string) => any;
+  public mapInvoicePaymentToPayment: (payment: any, customerQBOId: string, invoiceQBOId: string) => any;
+  public mapAccountsToSelectOptions: (accounts: any[]) => any[];
 
   constructor() {
+    // First initialize all the mappers
     this.customerMapper = new CustomerMapper();
     this.projectMapper = new ProjectMapper();
     this.expenseMapper = new ExpenseMapper();
     this.invoiceMapper = new InvoiceMapper();
     this.accountMapper = new AccountMapper();
     
-    // Initialize method bindings after the mappers are created
+    // Then bind all the methods after the mappers are created
     this.mapClientToCustomer = this.customerMapper.mapClientToCustomer.bind(this.customerMapper);
     this.mapProjectToTagName = this.projectMapper.mapProjectToTagName.bind(this.projectMapper);
     this.mapExpenseToBill = this.expenseMapper.mapExpenseToBill.bind(this.expenseMapper);
@@ -34,13 +44,4 @@ export class QBOMappingService {
     this.mapInvoicePaymentToPayment = this.invoiceMapper.mapInvoicePaymentToPayment.bind(this.invoiceMapper);
     this.mapAccountsToSelectOptions = this.accountMapper.mapAccountsToSelectOptions.bind(this.accountMapper);
   }
-
-  // Method references with appropriate bindings
-  mapClientToCustomer: (client: any) => any;
-  mapProjectToTagName: (project: any) => string;
-  mapExpenseToBill: (expense: any, payeeQBOId: string, glAccountId: string) => any;
-  mapExpensePaymentToBillPayment: (payment: any, vendorId: string, billId: string) => any;
-  mapInvoiceToInvoice: (invoice: any, customerQBOId: string) => any;
-  mapInvoicePaymentToPayment: (payment: any, customerQBOId: string, invoiceQBOId: string) => any;
-  mapAccountsToSelectOptions: (accounts: any[]) => any[];
 }

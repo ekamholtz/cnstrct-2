@@ -1,22 +1,70 @@
 
-import React from 'react';
-import { QBOService } from '@/integrations/qbo/qboService';
-import { QBOMappingService } from '@/integrations/qbo/mapping';
+import { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useQBOConnection } from "@/hooks/useQBOConnection";
+import { QBOMappingService } from "@/integrations/qbo/mapping";
+import { QBOService } from "@/integrations/qbo/qboService";
 
 export default function QBOTest() {
-  const qboService = new QBOService();
+  const { connection, isConnecting } = useQBOConnection();
+  const [testResult, setTestResult] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const testQBOConnection = async () => {
+    setIsLoading(true);
+    try {
+      const qboService = new QBOService();
+      const mappingService = new QBOMappingService();
+      
+      const connectionInfo = await qboService.getUserConnection();
+      
+      if (!connectionInfo) {
+        setTestResult('No QBO connection found. Please connect your QuickBooks account in settings.');
+        return;
+      }
+      
+      // Test getting accounts
+      const accounts = await qboService.getAccounts();
+      
+      if (accounts && accounts.length > 0) {
+        // Test mapping service
+        const mappedAccounts = mappingService.mapAccountsToSelectOptions(accounts);
+        setTestResult(`Connection successful! Found ${mappedAccounts.length} accounts.`);
+      } else {
+        setTestResult('Connection successful, but no accounts found.');
+      }
+    } catch (error) {
+      console.error("QBO Test Error:", error);
+      setTestResult(`Error testing QBO connection: ${error instanceof Error ? error.message : "Unknown error"}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   return (
-    <div className="container mx-auto py-10">
-      <h1 className="text-2xl font-bold mb-6">QuickBooks Online Integration Test</h1>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">QuickBooks Online Connection Test</h1>
       
-      <div className="space-y-4">
-        <p>This page is for testing QBO integration functionality.</p>
-        <div className="p-4 border rounded-md bg-gray-50">
-          <h2 className="text-lg font-semibold mb-2">Integration Status</h2>
-          <p>Open the console to see test results.</p>
+      <Card className="p-4 mb-4">
+        <div className="mb-4">
+          <h2 className="text-xl font-semibold">Connection Status</h2>
+          <p>{connection ? "Connected to QuickBooks" : "Not connected to QuickBooks"}</p>
         </div>
-      </div>
+        
+        <Button 
+          onClick={testQBOConnection} 
+          disabled={isLoading || isConnecting || !connection}
+        >
+          {isLoading ? "Testing..." : "Test QBO Connection"}
+        </Button>
+        
+        {testResult && (
+          <div className="mt-4 p-3 bg-gray-100 rounded">
+            <pre className="whitespace-pre-wrap">{testResult}</pre>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
