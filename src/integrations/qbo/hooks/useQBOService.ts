@@ -45,14 +45,14 @@ export const useQBOService = () => {
   });
 };
 
-// Define the complete QBO service interface
-export interface QBOService {
+// Define the complete QBO service interface (moved outside to avoid name conflicts)
+export interface QBOServiceInterface {
   createVendor: (vendorData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
   createBill: (billData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
   createCustomer: (customerData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
   createInvoice: (invoiceData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
   recordPayment: (paymentData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
-  recordBillPayment: (paymentData: any) => Promise<{ success: boolean; data?: any; error?: string }>; // Add this missing method
+  recordBillPayment: (paymentData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
   getAccounts: (accountType?: string) => Promise<{ success: boolean; data?: any; error?: string }>;
   getVendorIdForExpense: (vendorName: string) => Promise<string>;
   getEntityReference: (entityType: string, entityId: string) => Promise<string | null>;
@@ -60,3 +60,6 @@ export interface QBOService {
   getCustomerIdForClient: (clientId: string) => Promise<string | null>;
   getUserConnection: () => Promise<any>;
 }
+
+// Re-export the QBO service interface as QBOService for compatibility
+export type QBOService = QBOServiceInterface;
