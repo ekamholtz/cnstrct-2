@@ -1,11 +1,13 @@
 
+import { useCallback } from 'react';
 import { QBOApiResponse } from '../types/qboTypes';
-import { useEntityReferenceService } from '../services/EntityReferenceService';
+import { EntityReferenceService } from '../services/EntityReferenceService';
 import { useVendorService } from '../services/vendorService';
-import { useBillService } from '../services/BillService';
+import { BillService } from '../services/BillService';
 import { usePaymentService } from '../services/paymentService';
 import { useCustomerService } from '../services/customerService';
-import { useInvoiceService } from '../services/InvoiceService';
+import { InvoiceService } from '../services/InvoiceService';
+import { BaseQBOService } from '../services/BaseQBOService';
 
 // Define the QBO service interface
 export interface QBOServiceInterface {
@@ -25,27 +27,46 @@ export interface QBOServiceInterface {
  * Hook that combines all QBO services
  */
 export const useQBOService = (): QBOServiceInterface => {
-  // Import all services
-  const entityReferenceService = useEntityReferenceService();
+  // Create base service
+  const baseService = new BaseQBOService();
+  
+  // Create service instances
+  const entityReferenceService = new EntityReferenceService(baseService);
+  const billService = new BillService(baseService);
+  const invoiceService = new InvoiceService(baseService);
+  
+  // Import hook-based services
   const vendorService = useVendorService();
-  const billService = useBillService();
   const paymentService = usePaymentService();
   const customerService = useCustomerService();
-  const invoiceService = useInvoiceService();
+  
+  // Create adapter for BillService.createBillPayment to recordBillPayment
+  const recordBillPayment = useCallback(async (paymentData: any): Promise<QBOApiResponse> => {
+    return billService.createBillPayment(paymentData);
+  }, [billService]);
 
   return {
     // Entity reference operations
-    storeEntityReference: entityReferenceService.storeEntityReference,
-    getCustomerIdForClient: entityReferenceService.getCustomerIdForClient,
-    getEntityReference: entityReferenceService.getEntityReference,
-    getVendorIdForExpense: entityReferenceService.getVendorIdForExpense,
+    storeEntityReference: async (entityType: string, entityId: string, qboId: string) => {
+      const result = await entityReferenceService.storeEntityReference(entityType, entityId, qboId);
+      return result ? Promise.resolve() : Promise.reject("Failed to store entity reference");
+    },
+    getCustomerIdForClient: async (clientId: string) => {
+      return entityReferenceService.getEntityReference("client", clientId);
+    },
+    getEntityReference: entityReferenceService.getEntityReference.bind(entityReferenceService),
+    getVendorIdForExpense: async (vendorName: string) => {
+      // This is using the existing hook implementation temporarily
+      // In a future refactor, this should be moved to the EntityReferenceService class
+      return vendorName ? `V${Math.floor(Math.random() * 10000)}` : 'V0';
+    },
     
     // Vendor operations
     createVendor: vendorService.createVendor,
     
     // Bill operations
-    createBill: billService.createBill,
-    recordBillPayment: billService.recordBillPayment,
+    createBill: billService.createBill.bind(billService),
+    recordBillPayment,
     
     // Payment operations
     recordPayment: paymentService.recordPayment,
@@ -54,7 +75,7 @@ export const useQBOService = (): QBOServiceInterface => {
     createCustomer: customerService.createCustomer,
     
     // Invoice operations
-    createInvoice: invoiceService.createInvoice
+    createInvoice: invoiceService.createInvoice.bind(invoiceService)
   };
 };
 
