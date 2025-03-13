@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { SubscriptionPlan } from '@/components/project/invoice/types';
 
 export interface Subscription {
   id: string;
@@ -43,6 +44,36 @@ export const useSubscription = () => {
       } catch (error) {
         console.error('Error fetching subscription:', error);
         return null;
+      }
+    },
+  });
+
+  // Fetch available subscription plans
+  const { data: plans, isLoading: isLoadingPlans } = useQuery({
+    queryKey: ['subscription-plans'],
+    queryFn: async (): Promise<SubscriptionPlan[]> => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return [];
+
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscriptions/get-plans`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to fetch plans');
+        }
+
+        const data = await response.json();
+        return data.plans || [];
+      } catch (error) {
+        console.error('Error fetching subscription plans:', error);
+        return [];
       }
     },
   });
@@ -208,7 +239,8 @@ export const useSubscription = () => {
 
   return {
     subscription,
-    isLoading: isLoading || isLoadingSubscription,
+    plans,
+    isLoading: isLoading || isLoadingSubscription || isLoadingPlans,
     createCheckoutSession,
     cancelSubscription,
     resumeSubscription,

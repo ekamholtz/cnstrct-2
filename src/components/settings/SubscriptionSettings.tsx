@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSubscription } from "@/hooks/useSubscription";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ export const SubscriptionSettings = () => {
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const { 
     subscription, 
+    plans,
     isLoading, 
     createCheckoutSession, 
     cancelSubscription, 
@@ -21,6 +22,13 @@ export const SubscriptionSettings = () => {
     createPortalSession
   } = useSubscription();
   const { toast } = useToast();
+
+  // When plans load, pre-select the first one if none is selected
+  useEffect(() => {
+    if (plans?.length && !selectedPlan) {
+      setSelectedPlan(plans[0].id);
+    }
+  }, [plans, selectedPlan]);
 
   const handleSubscribe = async () => {
     if (!selectedPlan) {
@@ -71,6 +79,25 @@ export const SubscriptionSettings = () => {
       <div className="flex items-center justify-center p-6">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  // Handle case where no plans are returned from Stripe
+  if (!plans || plans.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Subscription Plans</CardTitle>
+          <CardDescription>
+            No subscription plans available at this time.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Please contact support to set up subscription plans in your Stripe account.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -154,44 +181,38 @@ export const SubscriptionSettings = () => {
           </CardHeader>
           <CardContent className="space-y-6">
             <RadioGroup value={selectedPlan || ""} onValueChange={setSelectedPlan} className="space-y-4">
-              <div className="flex items-center space-x-2 border rounded-md p-4 hover:bg-muted/50 cursor-pointer">
-                <RadioGroupItem value="starter" id="starter" />
-                <div className="grid gap-1 flex-1">
-                  <Label htmlFor="starter" className="font-medium cursor-pointer">
-                    Starter - $49/month
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Perfect for small contractors and individual projects
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex items-center space-x-2 border rounded-md p-4 hover:bg-muted/50 cursor-pointer border-cnstrct-orange">
-                <RadioGroupItem value="professional" id="professional" />
-                <div className="grid gap-1 flex-1">
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="professional" className="font-medium cursor-pointer">
-                      Professional - $99/month
-                    </Label>
-                    <Badge className="bg-cnstrct-orange text-white">Most Popular</Badge>
+              {plans.map(plan => (
+                <div 
+                  key={plan.id}
+                  className={`flex items-center space-x-2 border rounded-md p-4 hover:bg-muted/50 cursor-pointer ${
+                    plan.popular ? 'border-cnstrct-orange' : ''
+                  }`}
+                >
+                  <RadioGroupItem value={plan.id} id={plan.id} />
+                  <div className="grid gap-1 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor={plan.id} className="font-medium cursor-pointer">
+                        {plan.name} - ${plan.price}/{plan.interval}
+                      </Label>
+                      {plan.popular && (
+                        <Badge className="bg-cnstrct-orange text-white">Most Popular</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {plan.description}
+                    </p>
+                    {plan.features && plan.features.length > 0 && (
+                      <ul className="mt-2 space-y-1">
+                        {plan.features.map((feature, idx) => (
+                          <li key={idx} className="text-xs text-muted-foreground flex items-start gap-1">
+                            <span className="text-green-500">✓</span> {feature}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    Ideal for growing construction businesses
-                  </p>
                 </div>
-              </div>
-              
-              <div className="flex items-center space-x-2 border rounded-md p-4 hover:bg-muted/50 cursor-pointer">
-                <RadioGroupItem value="enterprise" id="enterprise" />
-                <div className="grid gap-1 flex-1">
-                  <Label htmlFor="enterprise" className="font-medium cursor-pointer">
-                    Enterprise - $249/month
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    For large construction companies with complex needs
-                  </p>
-                </div>
-              </div>
+              ))}
             </RadioGroup>
             
             <Button 

@@ -8,15 +8,16 @@ import { useSubscription } from "@/hooks/useSubscription";
 export const Pricing = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { createCheckoutSession, isLoading } = useSubscription();
+  const { createCheckoutSession, isLoading, plans } = useSubscription();
 
-  const plans = [
+  // If no plans from Stripe, use default fallback plans
+  const fallbackPlans = [
     {
       id: "starter",
       name: "Starter",
       description: "Perfect for small contractors and individual projects",
-      price: "$49",
-      period: "per month",
+      price: 49,
+      interval: "month",
       features: [
         "Up to 5 active projects",
         "Basic invoicing",
@@ -32,8 +33,8 @@ export const Pricing = () => {
       id: "professional",
       name: "Professional",
       description: "Ideal for growing construction businesses",
-      price: "$99",
-      period: "per month",
+      price: 99,
+      interval: "month",
       features: [
         "Up to 20 active projects",
         "Advanced invoicing & payments",
@@ -51,8 +52,8 @@ export const Pricing = () => {
       id: "enterprise",
       name: "Enterprise",
       description: "For large construction companies with complex needs",
-      price: "$249",
-      period: "per month",
+      price: 249,
+      interval: "month",
       features: [
         "Unlimited projects",
         "Complete payment suite",
@@ -69,6 +70,13 @@ export const Pricing = () => {
       buttonVariant: "outline"
     }
   ];
+
+  // Use Stripe plans if available, otherwise use fallbacks
+  const displayPlans = plans && plans.length > 0 ? plans.map(plan => ({
+    ...plan,
+    buttonText: plan.id === "enterprise" ? "Contact Sales" : "Get Started",
+    buttonVariant: plan.popular ? "default" : "outline"
+  })) : fallbackPlans;
 
   const handlePlanSelect = async (planId: string, contactSales: boolean = false) => {
     if (contactSales) {
@@ -103,7 +111,7 @@ export const Pricing = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
-          {plans.map((plan) => (
+          {displayPlans.map((plan) => (
             <div 
               key={plan.id} 
               className={`relative rounded-2xl p-8 ${
@@ -127,10 +135,10 @@ export const Pricing = () => {
                 </p>
                 <div className="flex items-baseline">
                   <span className={`text-4xl font-bold ${plan.popular ? 'text-white' : 'text-cnstrct-navy'}`}>
-                    {plan.price}
+                    ${plan.price}
                   </span>
                   <span className={`ml-2 text-sm ${plan.popular ? 'text-white/80' : 'text-gray-500'}`}>
-                    {plan.period}
+                    /{plan.interval}
                   </span>
                 </div>
               </div>

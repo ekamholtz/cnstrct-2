@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.48.1";
 import Stripe from "https://esm.sh/stripe@14.7.0";
@@ -71,6 +70,9 @@ serve(async (req) => {
       case 'resume-subscription':
         return handleResumeSubscription(req);
       
+      case 'get-plans':
+        return handleGetPlans(req);
+      
       default:
         return new Response(
           JSON.stringify({ error: 'Route not found' }),
@@ -105,31 +107,31 @@ async function handleCreateCheckoutSession(req: Request, userId: string) {
     );
   }
 
-  // Define pricing based on the plan
-  let priceId;
-  switch (plan) {
-    case 'starter':
-      priceId = 'price_starter'; // Replace with actual Stripe price ID
-      break;
-    case 'professional':
-      priceId = 'price_professional'; // Replace with actual Stripe price ID
-      break;
-    case 'enterprise':
-      priceId = 'price_enterprise'; // Replace with actual Stripe price ID
-      break;
-    default:
+  // Find the price ID from Stripe
+  try {
+    const prices = await stripe.prices.list({
+      active: true,
+      expand: ['data.product'],
+    });
+    
+    // Find the price that matches the requested plan
+    const price = prices.data.find(price => {
+      const product = price.product as Stripe.Product;
+      return product.metadata.plan_id === plan;
+    });
+    
+    if (!price) {
       return new Response(
-        JSON.stringify({ error: 'Invalid plan selected' }),
+        JSON.stringify({ error: 'Plan not found' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
-  }
+    }
 
-  try {
     // Create a checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [{
-        price: priceId,
+        price: price.id,
         quantity: 1,
       }],
       mode: 'subscription',
@@ -359,6 +361,49 @@ async function handleResumeSubscription(req: Request) {
 
     return new Response(
       JSON.stringify({ success: true }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  } catch (error) {
+    console.error('Stripe error:', error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+}
+
+// New handler function to get plans from Stripe
+async function handleGetPlans(req: Request) {
+  try {
+    // Fetch prices with their products
+    const prices = await stripe.prices.list({
+      active: true,
+      expand: ['data.product'],
+    });
+    
+    // Format the plans for the frontend
+    const plans = prices.data
+      .filter(price => {
+        const product = price.product as Stripe.Product;
+        return product.active && product.metadata.plan_id;
+      })
+      .map(price => {
+        const product = price.product as Stripe.Product;
+        return {
+          id: product.metadata.plan_id,
+          name: product.name,
+          description: product.description || '',
+          price: price.unit_amount ? price.unit_amount / 100 : 0, // Convert from cents to dollars
+          currency: price.currency,
+          interval: price.recurring?.interval || 'month',
+          features: product.metadata.features ? JSON.parse(product.metadata.features) : [],
+          popular: product.metadata.popular === 'true',
+        };
+      })
+      .sort((a, b) => a.price - b.price); // Sort by price ascending
+    
+    return new Response(
+      JSON.stringify({ plans }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
