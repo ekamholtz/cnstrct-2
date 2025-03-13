@@ -1,11 +1,19 @@
-
 import { CustomerMapper } from "./CustomerMapper";
 import { ProjectMapper } from "./ProjectMapper";
 import { ExpenseMapper } from "./ExpenseMapper";
 import { InvoiceMapper } from "./InvoiceMapper";
 import { AccountMapper } from "./AccountMapper";
+import { CustomerVendorMapper } from "./CustomerVendorMapper";
+import { BillMapper } from "./BillMapper";
 
 export * from "./types";
+export * from "./CustomerMapper";
+export * from "./ProjectMapper";
+export * from "./ExpenseMapper";
+export * from "./InvoiceMapper";
+export * from "./AccountMapper";
+export * from "./CustomerVendorMapper";
+export * from "./BillMapper";
 
 /**
  * QBOMappingService combines all the individual mappers
@@ -17,9 +25,12 @@ export class QBOMappingService {
   private expenseMapper: ExpenseMapper;
   private invoiceMapper: InvoiceMapper;
   private accountMapper: AccountMapper;
+  private customerVendorMapper: CustomerVendorMapper;
+  private billMapper: BillMapper;
   
   // Method references
   public mapClientToCustomer: (client: any) => any;
+  public mapVendorToVendor: (vendor: any) => any;
   public mapProjectToTagName: (project: any) => string;
   public mapExpenseToBill: (expense: any, payeeQBOId: string, glAccountId: string) => any;
   public mapExpensePaymentToBillPayment: (payment: any, vendorId: string, billId: string) => any;
@@ -34,9 +45,12 @@ export class QBOMappingService {
     this.expenseMapper = new ExpenseMapper();
     this.invoiceMapper = new InvoiceMapper();
     this.accountMapper = new AccountMapper();
+    this.customerVendorMapper = new CustomerVendorMapper();
+    this.billMapper = new BillMapper();
     
     // Then bind all methods
-    this.mapClientToCustomer = this.customerMapper.mapClientToCustomer.bind(this.customerMapper);
+    this.mapClientToCustomer = this.customerVendorMapper.mapClientToCustomer.bind(this.customerVendorMapper);
+    this.mapVendorToVendor = this.customerVendorMapper.mapVendorToVendor.bind(this.customerVendorMapper);
     this.mapProjectToTagName = this.projectMapper.mapProjectToTagName.bind(this.projectMapper);
     this.mapExpenseToBill = this.expenseMapper.mapExpenseToBill.bind(this.expenseMapper);
     this.mapExpensePaymentToBillPayment = this.expenseMapper.mapExpensePaymentToBillPayment.bind(this.expenseMapper);

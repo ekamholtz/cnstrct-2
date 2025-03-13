@@ -1,4 +1,3 @@
-
 export interface Invoice {
   id: string;
   invoice_number: string;
@@ -21,6 +20,7 @@ export interface Invoice {
 export interface PaymentFormData {
   payment_method: "cc" | "check" | "transfer" | "cash";
   payment_date: Date;
+  payment_reference?: string;
 }
 
 export interface PaymentModalProps {

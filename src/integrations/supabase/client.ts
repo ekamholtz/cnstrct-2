@@ -13,6 +13,48 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false  // Set to false to prevent session loss during OAuth redirects
+    detectSessionInUrl: false,  // Set to false to prevent session loss during OAuth redirects
+    storageKey: 'supabase.auth.token',
+    storage: {
+      getItem: (key) => {
+        try {
+          const itemStr = localStorage.getItem(key);
+          if (!itemStr) return null;
+          return JSON.parse(itemStr);
+        } catch (error) {
+          console.error('Error retrieving auth session from storage:', error);
+          return null;
+        }
+      },
+      setItem: (key, value) => {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+          console.error('Error storing auth session:', error);
+        }
+      },
+      removeItem: (key) => {
+        try {
+          localStorage.removeItem(key);
+        } catch (error) {
+          console.error('Error removing auth session from storage:', error);
+        }
+      }
+    }
+  }
+});
+
+// Add listener for auth state changes
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log(`Supabase auth event: ${event}`);
+  
+  if (event === 'SIGNED_IN') {
+    console.log('User signed in successfully');
+  } else if (event === 'SIGNED_OUT') {
+    console.log('User signed out');
+  } else if (event === 'TOKEN_REFRESHED') {
+    console.log('Auth token refreshed successfully');
+  } else if (event === 'USER_UPDATED') {
+    console.log('User data updated');
   }
 });

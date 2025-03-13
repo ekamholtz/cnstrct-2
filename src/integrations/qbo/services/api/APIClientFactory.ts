@@ -1,7 +1,7 @@
-
 import axios, { AxiosInstance } from "axios";
 import { AuthorizationService } from "../auth/AuthorizationService";
 import { QBOConfig } from "../../config/qboConfig";
+import https from 'https';
 
 /**
  * Factory for creating authenticated QBO API clients
@@ -9,10 +9,13 @@ import { QBOConfig } from "../../config/qboConfig";
 export class APIClientFactory {
   private authService: AuthorizationService;
   private config: QBOConfig;
+  private proxyUrl: string;
   
   constructor() {
     this.authService = new AuthorizationService();
     this.config = new QBOConfig();
+    // Use local CORS proxy for development
+    this.proxyUrl = "http://localhost:3030/proxy";
   }
   
   /**
@@ -23,15 +26,62 @@ export class APIClientFactory {
       // Get a fresh token
       const token = await this.authService.refreshToken(connectionId);
       
-      // Create and return axios instance
-      return axios.create({
+      // Create a proxy-based client that routes all requests through the CORS proxy
+      const client = axios.create({
         baseURL: `${this.config.apiBaseUrl}/company/${companyId}`,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Accept': 'application/json',
           'Content-Type': 'application/json'
-        }
+        },
+        // Disable SSL verification for development
+        httpsAgent: new https.Agent({
+          rejectUnauthorized: false
+        })
       });
+      
+      // Override the request method to route through the proxy
+      const originalRequest = client.request;
+      client.request = async function(config) {
+        try {
+          // Extract the relative URL from the full URL
+          const baseUrlLength = `${this.defaults.baseURL}`.length;
+          const relativeUrl = config.url?.startsWith('/') 
+            ? config.url.substring(1) 
+            : config.url;
+          
+          // For GET requests with query parameters
+          if (config.method?.toLowerCase() === 'get' && config.params) {
+            // Use the company-info proxy endpoint for all GET requests
+            const proxyResponse = await axios.post(`${this.proxyUrl}/company-info`, {
+              accessToken: token,
+              realmId: companyId,
+              endpoint: relativeUrl,
+              params: config.params
+            });
+            return { data: proxyResponse.data, status: 200, statusText: 'OK', headers: {}, config };
+          }
+          
+          // For POST/PUT/DELETE requests
+          // Create a new proxy endpoint for data operations
+          const proxyResponse = await axios.post(`${this.proxyUrl}/data-operation`, {
+            accessToken: token,
+            realmId: companyId,
+            endpoint: relativeUrl,
+            method: config.method,
+            data: config.data
+          });
+          return { data: proxyResponse.data, status: 200, statusText: 'OK', headers: {}, config };
+        } catch (error) {
+          console.error("Error in proxy request:", error);
+          throw error;
+        }
+      }.bind({
+        defaults: client.defaults,
+        proxyUrl: this.proxyUrl
+      });
+      
+      return client;
     } catch (error) {
       console.error("Error creating QBO client:", error);
       throw new Error("Failed to create QBO client");

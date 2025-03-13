@@ -1,15 +1,16 @@
-
 import { Card } from "@/components/ui/card";
 import { format } from "date-fns";
 import { Payment } from "../types";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
+import { ReactNode } from "react";
 
 interface PaymentsSectionProps {
   payments: Payment[];
+  renderSyncButton?: (payment: Payment) => ReactNode;
 }
 
-export function PaymentsSection({ payments }: PaymentsSectionProps) {
+export function PaymentsSection({ payments, renderSyncButton }: PaymentsSectionProps) {
   if (payments.length === 0) {
     return (
       <Card className="p-6">
@@ -57,14 +58,16 @@ export function PaymentsSection({ payments }: PaymentsSectionProps) {
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Reference
               </th>
+              {renderSyncButton && (
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              )}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {payments.map((payment) => (
-              <tr 
-                key={payment.id}
-                className="hover:bg-gray-50 cursor-pointer transition-colors"
-              >
+              <tr key={payment.id}>
                 <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
                   <Link 
                     to={`/payments/${payment.id}`} 
@@ -113,6 +116,11 @@ export function PaymentsSection({ payments }: PaymentsSectionProps) {
                     {payment.simulation_mode && <span className="ml-2 text-blue-500">(Simulated)</span>}
                   </Link>
                 </td>
+                {renderSyncButton && (
+                  <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {renderSyncButton(payment)}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -35,6 +34,29 @@ export class QBOConnectionService {
   }
   
   /**
+   * Get QBO connection by ID
+   */
+  async getConnectionById(connectionId: string) {
+    try {
+      const { data, error } = await supabase
+        .from('qbo_connections')
+        .select('*')
+        .eq('id', connectionId)
+        .single();
+        
+      if (error) {
+        console.log(`No QBO connection found with ID: ${connectionId}`);
+        return null;
+      }
+      
+      return data;
+    } catch (err) {
+      console.error(`Error getting QBO connection with ID ${connectionId}:`, err);
+      return null;
+    }
+  }
+  
+  /**
    * Disconnect from QBO
    */
   async disconnect(): Promise<boolean> {
@@ -62,6 +84,44 @@ export class QBOConnectionService {
     } catch (error) {
       console.error("Error disconnecting from QBO:", error);
       return false;
+    }
+  }
+  
+  /**
+   * Update an existing QBO connection with new tokens
+   * @param connection The updated connection data
+   * @returns The updated connection
+   */
+  async updateConnection(connection: any) {
+    try {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("No authenticated user found");
+      }
+      
+      // Update the connection in the database
+      const { data, error } = await supabase
+        .from('qbo_connections')
+        .update({
+          access_token: connection.access_token,
+          refresh_token: connection.refresh_token,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', connection.id)
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) {
+        console.error("Error updating QBO connection:", error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("Error in updateConnection:", error);
+      throw error;
     }
   }
 }

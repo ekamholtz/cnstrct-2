@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Invoice, PaymentFormData } from "@/components/project/invoice/types";
 import { Milestone } from "@/types/project-types";
@@ -215,6 +214,7 @@ export const markInvoiceAsPaid = async (
       direction: 'incoming',
       payment_method_code: paymentData.payment_method,
       payment_date: paymentData.payment_date.toISOString(),
+      payment_reference: paymentData.payment_reference || null,
       status: 'completed'
     });
 
@@ -227,6 +227,7 @@ export const markInvoiceAsPaid = async (
       status: 'paid',
       payment_method: paymentData.payment_method,
       payment_date: paymentData.payment_date.toISOString(),
+      payment_reference: paymentData.payment_reference || null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', invoiceId)

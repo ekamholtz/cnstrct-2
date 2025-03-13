@@ -1,11 +1,14 @@
-
 import { BaseQBOService } from "./BaseQBOService";
+import axios from "axios";
 
 export class BillService {
   private baseService: BaseQBOService;
+  private proxyUrl: string;
   
   constructor(baseService: BaseQBOService) {
     this.baseService = baseService;
+    this.proxyUrl = "http://localhost:3030/proxy";
+    console.log("BillService initialized with proxy URL:", this.proxyUrl);
   }
 
   /**
@@ -13,14 +16,24 @@ export class BillService {
    */
   async createBill(billData: any) {
     try {
+      console.log("Creating bill in QBO using proxy...");
       const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
       }
       
-      const client = await this.baseService.getClient(connection.id, connection.company_id);
+      console.log("Using connection:", connection.id, "company:", connection.company_id);
       
-      const response = await client.post('/bill', billData);
+      // Use the proxy for the create operation
+      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+        accessToken: connection.access_token,
+        realmId: connection.company_id,
+        endpoint: "bill",
+        method: "post",
+        data: billData
+      });
+      
+      console.log("Bill created successfully:", response.data);
       
       return {
         success: true,
@@ -40,14 +53,22 @@ export class BillService {
    */
   async createBillPayment(billPaymentData: any) {
     try {
+      console.log("Creating bill payment in QBO using proxy...");
       const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
       }
       
-      const client = await this.baseService.getClient(connection.id, connection.company_id);
+      // Use the proxy for the create operation
+      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+        accessToken: connection.access_token,
+        realmId: connection.company_id,
+        endpoint: "billpayment",
+        method: "post",
+        data: billPaymentData
+      });
       
-      const response = await client.post('/billpayment', billPaymentData);
+      console.log("Bill payment created successfully:", response.data);
       
       return {
         success: true,

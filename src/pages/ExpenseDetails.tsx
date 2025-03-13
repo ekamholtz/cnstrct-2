@@ -1,4 +1,4 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -8,11 +8,22 @@ import { Expense, Payment } from "@/components/project/expense/types";
 import { ExpenseDetailsSection } from "@/components/project/expense/details/ExpenseDetailsSection";
 import { PaymentsSection } from "@/components/project/expense/details/PaymentsSection";
 import { ExpensePaymentActions } from "@/components/project/expense/details/ExpensePaymentActions";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ErrorBoundary from "@/components/common/ErrorBoundary";
+import { useSyncExpenseToQBO } from "@/hooks/useSyncExpenseToQBO";
+import { useSyncPaymentToQBO } from "@/hooks/useSyncPaymentToQBO";
+import { Badge } from "@/components/ui/badge";
+import { useUserRole } from "@/hooks/useUserRole";
 
 export default function ExpenseDetails() {
   const { expenseId } = useParams();
+  const { syncExpenseToQBO, isLoading: isSyncingExpense } = useSyncExpenseToQBO();
+  const { syncPaymentToQBO, isLoading: isSyncingPayment } = useSyncPaymentToQBO();
+  const [isExpenseSynced, setIsExpenseSynced] = useState(false);
+  const [syncedPaymentIds, setSyncedPaymentIds] = useState<string[]>([]);
+  const { isGC, isAdmin } = useUserRole();
+  const hasQBOAccess = isGC || isAdmin;
+  
   const { data: expense, isLoading, refetch } = useQuery({
     queryKey: ['expense', expenseId],
     queryFn: async () => {
@@ -100,6 +111,59 @@ export default function ExpenseDetails() {
     }
   }, [expenseId, refetch, isLoading]);
 
+  // Check if the expense is already synced to QBO
+  useEffect(() => {
+    if (expenseId) {
+      const checkSyncStatus = async () => {
+        // Check expense sync status
+        const { data: expenseRef } = await supabase
+          .from('qbo_references')
+          .select('qbo_id')
+          .eq('entity_type', 'expense')
+          .eq('entity_id', expenseId)
+          .maybeSingle();
+        
+        setIsExpenseSynced(!!expenseRef?.qbo_id);
+        
+        // Check payment sync status
+        if (expense?.payments?.length > 0) {
+          const paymentIds = expense.payments.map(p => p.id);
+          const { data: paymentRefs } = await supabase
+            .from('qbo_references')
+            .select('entity_id')
+            .eq('entity_type', 'expense_payment')
+            .in('entity_id', paymentIds);
+          
+          if (paymentRefs) {
+            setSyncedPaymentIds(paymentRefs.map(ref => ref.entity_id));
+          }
+        }
+      };
+      
+      checkSyncStatus();
+    }
+  }, [expenseId, expense]);
+
+  const handleSyncExpenseToQBO = async () => {
+    if (expenseId) {
+      const result = await syncExpenseToQBO(expenseId);
+      if (result) {
+        setIsExpenseSynced(true);
+        // Refresh to get updated data
+        refetch();
+      }
+    }
+  };
+
+  const handleSyncPaymentToQBO = async (paymentId: string) => {
+    const result = await syncPaymentToQBO(paymentId, 'expense_payment');
+    if (result) {
+      setSyncedPaymentIds(prev => [...prev, paymentId]);
+      // Refresh to get updated data
+      refetch();
+    }
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout>
@@ -144,18 +208,98 @@ export default function ExpenseDetails() {
   return (
     <DashboardLayout>
       <div className="space-y-8">
-        <div>
+        <div className="flex justify-between items-center">
           <Link to="/expenses">
             <Button variant="ghost" className="text-gray-600">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Expenses
             </Button>
           </Link>
+          
+          {hasQBOAccess && (
+            <div className="flex items-center gap-3">
+              {isExpenseSynced ? (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-3 py-1">
+                  Synced to QuickBooks
+                </Badge>
+              ) : null}
+              
+              <Button 
+                onClick={handleSyncExpenseToQBO} 
+                disabled={isSyncingExpense || isExpenseSynced}
+                variant={isExpenseSynced ? "outline" : "default"}
+                className={isExpenseSynced ? "border-blue-200 text-blue-700" : ""}
+              >
+                {isSyncingExpense ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Syncing...
+                  </>
+                ) : isExpenseSynced ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Re-sync to QuickBooks
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4" />
+                    Sync to QuickBooks
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">
           <ExpenseDetailsSection expense={safeExpense} />
-          <PaymentsSection payments={safeExpense.payments} />
+          
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+            <div className="p-6 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">Payments</h3>
+              {hasQBOAccess && safeExpense.payments.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500">
+                    {syncedPaymentIds.length}/{safeExpense.payments.length} synced
+                  </span>
+                </div>
+              )}
+            </div>
+            <PaymentsSection 
+              payments={safeExpense.payments} 
+              renderSyncButton={(payment) => {
+                if (!hasQBOAccess) return null;
+                const isPaymentSynced = syncedPaymentIds.includes(payment.id);
+                return (
+                  <Button
+                    size="sm"
+                    variant={isPaymentSynced ? "outline" : "secondary"}
+                    className="ml-2"
+                    disabled={isSyncingPayment || isPaymentSynced || !isExpenseSynced}
+                    onClick={() => handleSyncPaymentToQBO(payment.id)}
+                  >
+                    {isSyncingPayment ? (
+                      <>
+                        <RefreshCw className="mr-1 h-3 w-3 animate-spin" />
+                        Syncing...
+                      </>
+                    ) : isPaymentSynced ? (
+                      <>
+                        <RefreshCw className="mr-1 h-3 w-3" />
+                        Synced
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="mr-1 h-3 w-3" />
+                        Sync
+                      </>
+                    )}
+                  </Button>
+                );
+              }}
+            />
+          </div>
+          
           <div className="mt-6">
             <ErrorBoundary
               fallback={

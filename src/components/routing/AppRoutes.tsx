@@ -25,7 +25,7 @@ import PaymentDetails from "@/pages/PaymentDetails";
 import PaymentsDashboard from "@/pages/PaymentsDashboard";
 import Help from "@/pages/Help";
 import ReportingDashboard from "@/pages/ReportingDashboard";
-import QBOCallback from "@/pages/qbo/QBOCallback";
+import QBOCallback from "@/pages/qbo/QBOCallbackFinal";
 import Settings from "@/pages/Settings";
 
 export const AppRoutes = () => {

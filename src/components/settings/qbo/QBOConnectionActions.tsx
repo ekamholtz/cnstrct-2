@@ -1,8 +1,7 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, RefreshCw } from "lucide-react";
-import { QBOService } from "@/integrations/qbo/qboService";
+import { QBOProxyService } from "@/integrations/qbo/qboProxyService";
 import { useToast } from "@/components/ui/use-toast";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
@@ -40,23 +39,13 @@ export function QBOConnectionActions({
     setIsTesting(true);
     
     try {
-      // Create a QBO service instance
-      const qboService = new QBOService();
+      // Create a QBO proxy service instance
+      const qboProxyService = new QBOProxyService();
       
-      // Get connection details to form the correct API URL
-      const connectionDetails = await qboService.getUserConnection();
+      // Use our proxy-enabled test connection method
+      const result = await qboProxyService.testConnection();
       
-      if (!connectionDetails) {
-        throw new Error("No QuickBooks connection found");
-      }
-      
-      // Create an API client
-      const client = await qboService.getClient(connectionDetails.id, connectionDetails.company_id);
-      
-      // Make a simple API call to the company endpoint to verify the connection
-      const response = await client.get(`/company/${connectionDetails.company_id}/companyinfo/${connectionDetails.company_id}`);
-      
-      if (response.status === 200) {
+      if (result.success) {
         toast({ 
           title: "Connection Successful", 
           description: "Connection to QuickBooks API is working properly.",
@@ -65,7 +54,7 @@ export function QBOConnectionActions({
       } else {
         toast({ 
           title: "Connection Failed", 
-          description: `Connection test failed: ${response.status} ${response.statusText}`,
+          description: `Connection test failed: ${result.error?.message || 'Unknown error'}`,
           variant: "destructive"
         });
       }

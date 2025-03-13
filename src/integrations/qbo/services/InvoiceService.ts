@@ -1,11 +1,14 @@
-
 import { BaseQBOService } from "./BaseQBOService";
+import axios from "axios";
 
 export class InvoiceService {
   private baseService: BaseQBOService;
+  private proxyUrl: string;
   
   constructor(baseService: BaseQBOService) {
     this.baseService = baseService;
+    this.proxyUrl = "http://localhost:3030/proxy";
+    console.log("InvoiceService initialized with proxy URL:", this.proxyUrl);
   }
 
   /**
@@ -13,14 +16,24 @@ export class InvoiceService {
    */
   async createInvoice(invoiceData: any) {
     try {
+      console.log("Creating invoice in QBO using proxy...");
       const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
       }
       
-      const client = await this.baseService.getClient(connection.id, connection.company_id);
+      console.log("Using connection:", connection.id, "company:", connection.company_id);
       
-      const response = await client.post('/invoice', invoiceData);
+      // Use the proxy for the create operation
+      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+        accessToken: connection.access_token,
+        realmId: connection.company_id,
+        endpoint: "invoice",
+        method: "post",
+        data: invoiceData
+      });
+      
+      console.log("Invoice created successfully:", response.data);
       
       return {
         success: true,
@@ -38,38 +51,30 @@ export class InvoiceService {
   /**
    * Record a payment for an invoice in QBO
    */
-  async recordPayment({ invoiceId, amount, date, paymentMethod }: {
+  async recordPayment(paymentData: {
     invoiceId: string;
     amount: number;
     date: Date;
     paymentMethod: string;
   }) {
     try {
-      console.log("Recording payment in QBO:", { invoiceId, amount, date, paymentMethod });
-      
+      console.log("Recording payment in QBO using proxy...");
       const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
       }
       
-      const client = await this.baseService.getClient(connection.id, connection.company_id);
-      
-      // Format the date as YYYY-MM-DD
-      const formattedDate = date.toISOString().split('T')[0];
-      
-      // Create the payment data
-      const paymentData = {
-        TotalAmt: amount,
-        TxnDate: formattedDate,
-        PaymentMethodRef: {
-          value: paymentMethod || "1" // Default to cash if no method specified
-        },
+      // Format the payment data for QBO
+      const qboPaymentData = {
+        TotalAmt: paymentData.amount,
+        PayType: "Cash", // Default to cash payment
+        TxnDate: paymentData.date.toISOString().split('T')[0],
         Line: [
           {
-            Amount: amount,
+            Amount: paymentData.amount,
             LinkedTxn: [
               {
-                TxnId: invoiceId,
+                TxnId: paymentData.invoiceId,
                 TxnType: "Invoice"
               }
             ]
@@ -77,24 +82,26 @@ export class InvoiceService {
         ]
       };
       
-      console.log("Sending payment data to QBO:", paymentData);
+      // Use the proxy for the create operation
+      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+        accessToken: connection.access_token,
+        realmId: connection.company_id,
+        endpoint: "payment",
+        method: "post",
+        data: qboPaymentData
+      });
       
-      const response = await client.post('/payment', paymentData);
-      
-      console.log("QBO payment created successfully:", response.data);
+      console.log("Payment recorded successfully:", response.data);
       
       return {
         success: true,
         data: response.data.Payment
       };
-    } catch (error: any) {
-      console.error("Error recording QBO payment:", error);
-      const errorMessage = error.response?.data?.Fault?.Error?.[0]?.Message || 
-                          error.message || 
-                          'Unknown error';
+    } catch (error) {
+      console.error("Error recording payment in QBO:", error);
       return {
         success: false,
-        error: errorMessage
+        error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
   }

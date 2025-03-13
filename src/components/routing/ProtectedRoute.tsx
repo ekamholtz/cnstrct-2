@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,8 +46,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             .from("profiles")
             .insert({
               id: user.id,
-              full_name: user.user_metadata.full_name || '',
-              email: user.email || '',
+              full_name: user.user_metadata.full_name || user.email || 'New User',
               role: user.user_metadata.role || 'contractor',
               has_completed_profile: true
             });

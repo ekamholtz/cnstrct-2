@@ -1,11 +1,14 @@
-
 import { BaseQBOService } from "./BaseQBOService";
+import axios from "axios";
 
 export class AccountService {
   private baseService: BaseQBOService;
+  private proxyUrl: string;
   
   constructor(baseService: BaseQBOService) {
     this.baseService = baseService;
+    this.proxyUrl = "http://localhost:3030/proxy";
+    console.log("AccountService initialized with proxy URL:", this.proxyUrl);
   }
 
   /**
@@ -18,9 +21,13 @@ export class AccountService {
         throw new Error("No QBO connection found");
       }
       
-      const client = await this.baseService.getClient(connection.id, connection.company_id);
+      console.log("Getting accounts of type:", accountType);
       
-      const response = await client.get('/query', {
+      // Use the proxy for the query operation
+      const response = await axios.post(`${this.proxyUrl}/company-info`, {
+        accessToken: connection.access_token,
+        realmId: connection.company_id,
+        endpoint: "query",
         params: {
           query: `SELECT * FROM Account WHERE AccountType = '${accountType}'`
         }
@@ -28,7 +35,7 @@ export class AccountService {
       
       return {
         success: true,
-        data: response.data.QueryResponse.Account || []
+        data: response.data.QueryResponse?.Account || []
       };
     } catch (error) {
       console.error("Error getting QBO accounts:", error);

@@ -1,4 +1,3 @@
-
 import axios from "axios";
 import { supabase } from "@/integrations/supabase/client";
 import { QBOConfig } from "../config/qboConfig";
@@ -8,9 +7,12 @@ import { QBOConfig } from "../config/qboConfig";
  */
 export class QBOTokenManager {
   private config: QBOConfig;
+  private proxyUrl: string;
   
   constructor() {
     this.config = new QBOConfig();
+    // Use local CORS proxy for development
+    this.proxyUrl = "http://localhost:3030/proxy";
   }
   
   /**
@@ -23,26 +25,44 @@ export class QBOTokenManager {
     x_refresh_token_expires_in: number;
     realmId: string;
   }> {
-    console.log("Exchanging authorization code for tokens...");
+    console.log("Exchanging authorization code for tokens via CORS proxy...");
     
-    const tokenResponse = await axios.post(
-      this.config.tokenEndpoint,
-      new URLSearchParams({
-        grant_type: 'authorization_code',
-        code: code,
-        redirect_uri: this.config.redirectUri
-      }).toString(),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${btoa(`${this.config.clientId}:${this.config.clientSecret}`)}`
-        }
+    try {
+      // Use the local CORS proxy to avoid CORS issues
+      const proxyResponse = await axios.post(`${this.proxyUrl}/token`, {
+        code,
+        redirectUri: this.config.redirectUri,
+        clientId: this.config.clientId,
+        clientSecret: this.config.clientSecret
+      });
+      
+      console.log("Token exchange successful via CORS proxy");
+      
+      // Extract realmId from the URL query parameters (it's not in the token response)
+      const urlParams = new URLSearchParams(window.location.search);
+      const realmId = urlParams.get('realmId');
+      
+      if (!realmId) {
+        throw new Error("Missing realmId in callback URL");
       }
-    );
-    
-    console.log("Token response received", { status: tokenResponse.status });
-    
-    return tokenResponse.data;
+      
+      // Add realmId to the response
+      return {
+        ...proxyResponse.data,
+        realmId
+      };
+    } catch (error: any) {
+      console.error("CORS proxy token exchange failed:", error);
+      
+      // Provide detailed error information
+      if (error.response) {
+        console.error("Response error data:", error.response.data);
+        console.error("Response error status:", error.response.status);
+      }
+      
+      throw new Error("Failed to exchange authorization code for tokens: " + 
+                     (error.message || "Unknown error"));
+    }
   }
   
   /**
@@ -69,49 +89,52 @@ export class QBOTokenManager {
       
       if (expiresAt - now > fiveMinutesInMs) {
         // Token is still valid
+        console.log("QBO token still valid, not refreshing");
         return connection.access_token;
       }
       
       console.log("Refreshing QBO token for connection:", connectionId);
       
-      // Refresh the token
-      const tokenResponse = await axios.post(
-        this.config.tokenEndpoint,
-        new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: connection.refresh_token
-        }).toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${btoa(`${this.config.clientId}:${this.config.clientSecret}`)}`
-          }
-        }
-      );
-      
-      const { access_token, refresh_token, expires_in } = tokenResponse.data;
-      
-      // Update the tokens in the database
-      const { error } = await supabase
-        .from('qbo_connections')
-        .update({
-          access_token,
-          refresh_token,
-          expires_at: new Date(Date.now() + (expires_in * 1000)).toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', connectionId);
+      // Use the local CORS proxy to refresh the token
+      try {
+        const proxyResponse = await axios.post(`${this.proxyUrl}/refresh`, {
+          refreshToken: connection.refresh_token
+          // Don't send clientId and clientSecret - the proxy will use defaults
+        }, {
+          timeout: 15000 // Increase timeout to 15 seconds
+        });
         
-      if (error) {
-        console.error("Error updating QBO tokens:", error);
-        throw new Error('Failed to update tokens');
+        const { access_token, refresh_token, expires_in } = proxyResponse.data;
+        
+        // Update the tokens in the database
+        const { error } = await supabase
+          .from('qbo_connections')
+          .update({
+            access_token,
+            refresh_token,
+            expires_at: new Date(Date.now() + (expires_in * 1000)).toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', connectionId);
+          
+        if (error) {
+          console.error("Error updating QBO tokens:", error);
+          throw new Error('Failed to update tokens');
+        }
+        
+        console.log("QBO token successfully refreshed");
+        return access_token;
+      } catch (proxyError: any) {
+        console.error("Error from proxy server:", proxyError.message);
+        if (proxyError.response) {
+          console.error("Proxy server response:", proxyError.response.data);
+          console.error("Proxy server status:", proxyError.response.status);
+        }
+        throw new Error(`Proxy server error: ${proxyError.message}`);
       }
-      
-      console.log("QBO token successfully refreshed");
-      return access_token;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error refreshing QBO token:", error);
-      throw new Error('Failed to refresh token');
+      throw new Error(`Failed to refresh token: ${error.message}`);
     }
   }
   
@@ -131,7 +154,9 @@ export class QBOTokenManager {
         company_name: companyInfo.companyName,
         access_token,
         refresh_token,
-        expires_at: new Date(Date.now() + (expires_in * 1000)).toISOString()
+        expires_at: new Date(Date.now() + (expires_in * 1000)).toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       });
       
     if (error) {

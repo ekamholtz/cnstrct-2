@@ -7,4 +7,5 @@ export const paymentSchema = z.object({
   payment_date: z.date({
     required_error: "Please select a payment date",
   }),
+  payment_reference: z.string().optional(),
 });

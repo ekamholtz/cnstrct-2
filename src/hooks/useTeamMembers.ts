@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useCurrentUserProfile } from "@/components/gc-profile/hooks/useCurrentUserProfile";
@@ -12,9 +11,7 @@ export interface TeamMember {
   id: string;
   gc_account_id?: string;
   full_name: string;
-  email: string;
   role: UIRole | UserRole;
-  // Include additional fields that are accessed by components
   company_name?: string;
   phone_number?: string;
   address?: string;
@@ -71,7 +68,7 @@ export function useTeamMembers() {
       try {
         const { data: profiles, error } = await supabase
           .from('profiles')
-          .select('id,gc_account_id,full_name,email,role,company_name,phone_number,address,license_number,website,bio,has_completed_profile,account_status,created_at,updated_at')
+          .select('id,gc_account_id,full_name,role,company_name,phone_number,address,license_number,website,bio,has_completed_profile,account_status,created_at,updated_at')
           .eq('gc_account_id', gcAccountId);
           
         if (error) {
@@ -85,7 +82,6 @@ export function useTeamMembers() {
             id: currentUserProfile.id,
             gc_account_id: currentUserProfile.gc_account_id,
             full_name: currentUserProfile.full_name || 'Unknown',
-            email: currentUserProfile.email || '',
             role: mapUserRoleToUIRole(currentUserProfile.role as UserRole),
             company_name: currentUserProfile.company_name || '',
             phone_number: currentUserProfile.phone_number || '',
@@ -105,8 +101,6 @@ export function useTeamMembers() {
           id: profile.id,
           gc_account_id: profile.gc_account_id,
           full_name: profile.full_name || 'Unknown',
-          email: profile.email || '',
-          // Map the user role to a UI role
           role: profile.role, // Keep the original role, let components map as needed
           company_name: profile.company_name || '',
           phone_number: profile.phone_number || '',
@@ -128,7 +122,6 @@ export function useTeamMembers() {
             id: currentUserProfile.id,
             gc_account_id: currentUserProfile.gc_account_id,
             full_name: currentUserProfile.full_name || 'Unknown',
-            email: currentUserProfile.email || '',
             role: mapUserRoleToUIRole(currentUserProfile.role as UserRole),
             company_name: currentUserProfile.company_name || '',
             phone_number: currentUserProfile.phone_number || '',

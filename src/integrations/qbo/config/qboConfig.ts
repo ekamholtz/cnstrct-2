@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -35,16 +34,19 @@ export class QBOConfig {
     if (hostname === 'cnstrct-2.lovable.app') {
       this.redirectUri = "https://cnstrct-2.lovable.app/qbo/callback";
     } else if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
-      this.redirectUri = "https://localhost/qbo/callback";
+      // For local development, use the current port from window.location.port or default to 8082
+      const port = window.location.port || '8082';
+      this.redirectUri = `http://localhost:${port}/qbo/callback`;
     } else {
       // Fallback to the dynamically generated URI with preview prefix removed
       const origin = window.location.origin.replace('preview--', '');
       this.redirectUri = `${origin}/qbo/callback`;
     }
     
+    // Updated scopes to match QuickBooks Online OAuth 2.0 requirements
+    // Using only the required scopes for basic accounting access
     this.scopes = [
-      'com.intuit.quickbooks.accounting',
-      'com.intuit.quickbooks.payment',
+      'com.intuit.quickbooks.accounting'
     ];
 
     // Use correct endpoints based on environment
@@ -63,7 +65,8 @@ export class QBOConfig {
       environment: this.isProduction ? "Production" : "Sandbox",
       apiBaseUrl: this.apiBaseUrl,
       clientId: this.clientId,
-      redirectUri: this.redirectUri
+      redirectUri: this.redirectUri,
+      scopes: this.scopes.join(' ')
     });
   }
 
