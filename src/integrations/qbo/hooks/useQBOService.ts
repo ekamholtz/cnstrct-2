@@ -11,6 +11,8 @@ export interface QBOServiceInterface {
   getCustomerIdForClient: (clientId: string) => Promise<string | null>;
   getEntityReference: (entityType: string, entityId: string) => Promise<string | null>;
   getVendorIdForExpense: (vendorName: string) => Promise<string>;
+  createCustomer: (customerData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+  createInvoice: (invoiceData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
 }
 
 // Use QBOServiceInterface for the return type
@@ -230,6 +232,64 @@ export const useQBOService = (): QBOServiceInterface => {
     }
   }, []);
 
+  /**
+   * Create a customer in QBO
+   */
+  const createCustomer = useCallback(async (customerData: any) => {
+    try {
+      // For development/testing, simulate a successful response
+      console.log('Creating customer in QBO:', customerData);
+      
+      // In a real implementation, this would make an API call to QBO
+      // For now, we'll simulate a successful response
+      const mockResponse = {
+        Id: `C${Math.floor(Math.random() * 10000)}`,
+        DisplayName: customerData.DisplayName || customerData.FullyQualifiedName,
+        SyncToken: '0'
+      };
+      
+      return {
+        success: true,
+        data: mockResponse
+      };
+    } catch (error) {
+      console.error('Error creating customer in QBO:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }, []);
+
+  /**
+   * Create an invoice in QBO
+   */
+  const createInvoice = useCallback(async (invoiceData: any) => {
+    try {
+      // For development/testing, simulate a successful response
+      console.log('Creating invoice in QBO:', invoiceData);
+      
+      // In a real implementation, this would make an API call to QBO
+      // For now, we'll simulate a successful response
+      const mockResponse = {
+        Id: `I${Math.floor(Math.random() * 10000)}`,
+        DocNumber: invoiceData.DocNumber || `INV-${Math.floor(Math.random() * 10000)}`,
+        SyncToken: '0'
+      };
+      
+      return {
+        success: true,
+        data: mockResponse
+      };
+    } catch (error) {
+      console.error('Error creating invoice in QBO:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
+  }, []);
+
   return {
     createVendor,
     createBill,
@@ -238,7 +298,9 @@ export const useQBOService = (): QBOServiceInterface => {
     storeEntityReference,
     getCustomerIdForClient,
     getEntityReference,
-    getVendorIdForExpense
+    getVendorIdForExpense,
+    createCustomer,
+    createInvoice
   };
 };
 
