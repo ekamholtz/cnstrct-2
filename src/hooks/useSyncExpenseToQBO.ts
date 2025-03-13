@@ -94,14 +94,9 @@ export const useSyncExpenseToQBO = () => {
     }
   });
   
-  // Create a function to expose the mutation functionality in a cleaner way
-  const syncExpenseToQBO = async (expense: ExpenseData) => {
-    return await syncMutation.mutateAsync(expense);
-  };
-  
   return {
     ...syncMutation,
-    syncExpenseToQBO,
+    syncExpenseToQBO: syncMutation.mutateAsync,
     isLoading: syncMutation.isPending,
   };
 };

@@ -215,8 +215,7 @@ export const useSyncPaymentToQBO = () => {
       paymentData.VendorRef.value = vendorId;
       
       // Record bill payment in QBO
-      // Use recordPayment as a fallback if recordBillPayment is not available
-      const paymentResponse = await qboService.recordPayment(paymentData);
+      const paymentResponse = await qboService.recordBillPayment(paymentData);
       
       if (!paymentResponse.success) {
         throw new Error(paymentResponse.error || "Failed to record bill payment in QuickBooks");

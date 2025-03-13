@@ -20,7 +20,7 @@ export default function ExpenseDetails() {
   const { expenseId } = useParams<{ expenseId: string }>();
   const navigate = useNavigate();
   const [showPaymentForm, setShowPaymentForm] = useState(false);
-  const { syncExpenseToQBO, isLoading: isSyncing } = useSyncExpenseToQBO();
+  const syncExpenseMutation = useSyncExpenseToQBO();
 
   // Fetch expense details
   const { data: expense, isLoading, error } = useQuery({
@@ -49,7 +49,7 @@ export default function ExpenseDetails() {
     if (!expense) return;
     
     try {
-      await syncExpenseToQBO({
+      await syncExpenseMutation.syncExpenseToQBO({
         id: expense.id,
         name: expense.name,
         expense_date: expense.expense_date,
@@ -102,10 +102,10 @@ export default function ExpenseDetails() {
           
           <Button 
             onClick={handleSync} 
-            disabled={isSyncing || expense.qbo_sync_status === 'synced'}
+            disabled={syncExpenseMutation.isPending || expense.qbo_sync_status === 'synced'}
             className="flex items-center gap-2"
           >
-            {isSyncing ? (
+            {syncExpenseMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : expense.qbo_sync_status === 'synced' ? (
               <Check className="h-4 w-4" />
@@ -142,10 +142,14 @@ export default function ExpenseDetails() {
               <CardContent>
                 {showPaymentForm ? (
                   <PaymentDetailsForm 
-                    expenseId={expense.id} 
-                    onCancel={() => setShowPaymentForm(false)}
+                    amountDue={expense.amount}
                     expenseAmount={expense.amount}
-                    paidAmount={expense.payments?.reduce((sum, p) => sum + p.amount, 0) || 0}
+                    onSubmit={async (data) => {
+                      // Handle payment submission logic
+                      console.log("Payment submitted:", data);
+                      setShowPaymentForm(false);
+                    }}
+                    onCancel={() => setShowPaymentForm(false)}
                   />
                 ) : (
                   <>
@@ -170,7 +174,7 @@ export default function ExpenseDetails() {
                   syncStatus={expense.qbo_sync_status || 'not_synced'} 
                   entityId={expense.qbo_entity_id}
                   onSync={handleSync}
-                  isSyncing={isSyncing}
+                  isSyncing={syncExpenseMutation.isPending}
                 />
               </CardContent>
             </Card>
