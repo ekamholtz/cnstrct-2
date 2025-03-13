@@ -1,6 +1,6 @@
 
 // Supabase types
-import { Database } from '@/integrations/supabase/types';
+import { Database as GeneratedDatabase } from '@/integrations/supabase/types';
 
 export type Json =
   | string
@@ -9,6 +9,8 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[];
+
+export type Database = GeneratedDatabase;
 
 export type Tables<T extends keyof Database['public']['Tables']> = 
   Database['public']['Tables'][T]['Row'];

@@ -1,29 +1,28 @@
+
 import { UserRole } from "@/components/admin/users/types";
 
 export interface GCUserProfile {
   id: string;
+  gc_account_id?: string | null;
   full_name: string;
-  email?: string | null; // Make email optional and nullable to match actual data
-  phone_number: string;
+  email: string; // Make sure email is included in the interface
   role: UserRole;
-  gc_account_id: string;
-  company_name: string;
-  license_number: string;
-  address: string;
-  website: string;
-  bio: string;
+  company_name?: string | null;
+  phone_number?: string | null;
+  address?: string | null;
+  license_number?: string | null;
+  website?: string | null;
+  bio?: string | null;
   has_completed_profile: boolean;
   account_status: string;
   created_at: string;
   updated_at: string;
-  is_owner?: boolean;
+  is_owner?: boolean; // Optional property to indicate if the user is the owner
 }
 
-export interface CreateUserFormValues {
-  name: string;
+export interface CreateGCUserFormData {
+  full_name: string;
   email: string;
-  phone: string;
-  role: "gc_admin" | "project_manager";
-  gc_account_id?: string;
-  is_owner?: boolean;
+  role: UserRole;
+  send_invite?: boolean;
 }

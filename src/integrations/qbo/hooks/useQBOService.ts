@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react';
 import { QBOService } from '../qboServiceProxy'; // Import from proxy version explicitly
 
@@ -43,3 +44,18 @@ export const useQBOService = () => {
     }
   });
 };
+
+// Define the complete QBO service interface
+export interface QBOService {
+  createVendor: (vendorData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+  createBill: (billData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+  createCustomer: (customerData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+  createInvoice: (invoiceData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+  recordPayment: (paymentData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+  recordBillPayment: (paymentData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+  getAccounts: (accountType?: string) => Promise<{ success: boolean; data?: any; error?: string }>;
+  getVendorIdForExpense: (vendorName: string) => Promise<string>;
+  getEntityReference: (entityType: string, entityId: string) => Promise<string | null>;
+  storeEntityReference: (entityType: string, entityId: string, qboId: string) => Promise<void>;
+  getCustomerIdForClient: (clientId: string) => Promise<string | null>;
+}

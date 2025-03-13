@@ -1,27 +1,27 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+
 import axios from 'axios';
 
 /**
- * Server-side proxy for QuickBooks Online token exchange
- * This helps avoid CORS issues that might occur with client-side requests
+ * Handler for QuickBooks Online token exchange
+ * This avoids CORS issues that might occur with client-side requests
  */
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
+export async function handleTokenExchange(req: {
+  code: string;
+  redirectUri: string;
+  clientId: string;
+  clientSecret: string;
+}) {
   try {
-    const { code, redirectUri, clientId, clientSecret } = req.body;
+    const { code, redirectUri, clientId, clientSecret } = req;
 
     // Validate required parameters
     if (!code || !redirectUri || !clientId || !clientSecret) {
-      return res.status(400).json({ 
+      return { 
         error: 'Missing required parameters',
         missingParams: Object.entries({ code, redirectUri, clientId, clientSecret })
           .filter(([_, value]) => !value)
           .map(([key]) => key)
-      });
+      };
     }
 
     // Prepare the request to QuickBooks
@@ -49,23 +49,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     );
 
-    // Return the token response to the client
-    return res.status(200).json(tokenResponse.data);
+    // Return the token response
+    return tokenResponse.data;
   } catch (error: any) {
     console.error('Error in QBO token exchange:', error);
     
     // Provide detailed error information
     if (error.response) {
-      return res.status(error.response.status).json({
+      return {
         error: 'QuickBooks API error',
         details: error.response.data,
         status: error.response.status
-      });
+      };
     }
     
-    return res.status(500).json({
+    return {
       error: 'Internal server error',
       message: error.message
-    });
+    };
   }
 }
