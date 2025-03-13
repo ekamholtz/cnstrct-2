@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { QBOConfig } from "./config/qboConfig";
 import { QBOUtils } from "./utils/qboUtils";
@@ -28,10 +29,11 @@ export class QBOAuthService {
     QBOUtils.storeOAuthState(state, userId);
     
     // Build the authorization URL with correct parameters
+    // Important: Join scopes with '+' instead of space to match Intuit's requirements
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       response_type: 'code',
-      scope: this.config.scopes.join(' '),
+      scope: this.config.scopes.join(' '), // Using space as it's automatically encoded to '+' in URL
       redirect_uri: this.config.redirectUri,
       state: state
     });
