@@ -457,6 +457,7 @@ export type Database = {
           payment_date: string
           payment_method_code: string
           payment_processor_id: string | null
+          payment_reference: string | null
           processor_metadata: Json | null
           processor_transaction_id: string | null
           simulation_data: Json | null
@@ -476,6 +477,7 @@ export type Database = {
           payment_date: string
           payment_method_code: string
           payment_processor_id?: string | null
+          payment_reference?: string | null
           processor_metadata?: Json | null
           processor_transaction_id?: string | null
           simulation_data?: Json | null
@@ -495,6 +497,7 @@ export type Database = {
           payment_date?: string
           payment_method_code?: string
           payment_processor_id?: string | null
+          payment_reference?: string | null
           processor_metadata?: Json | null
           processor_transaction_id?: string | null
           simulation_data?: Json | null

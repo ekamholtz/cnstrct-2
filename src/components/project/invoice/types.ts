@@ -1,3 +1,4 @@
+
 export interface Invoice {
   id: string;
   invoice_number: string;
@@ -26,4 +27,20 @@ export interface PaymentFormData {
 export interface PaymentModalProps {
   invoice: Invoice;
   onSubmit: (data: PaymentFormData) => Promise<void>;
+}
+
+export interface Subscription {
+  id: string;
+  status: string;
+  current_period_end: number;
+  plan_name: string;
+  cancel_at_period_end: boolean;
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
 }
