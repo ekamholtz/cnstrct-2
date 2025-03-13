@@ -1,11 +1,11 @@
 
 import { QBOApiResponse } from '../types/qboTypes';
-import { useEntityReferenceService } from '../services/entityReferenceService';
+import { useEntityReferenceService } from '../services/EntityReferenceService';
 import { useVendorService } from '../services/vendorService';
-import { useBillService } from '../services/billService';
+import { useBillService } from '../services/BillService';
 import { usePaymentService } from '../services/paymentService';
 import { useCustomerService } from '../services/customerService';
-import { useInvoiceService } from '../services/invoiceService';
+import { useInvoiceService } from '../services/InvoiceService';
 
 // Define the QBO service interface
 export interface QBOServiceInterface {
