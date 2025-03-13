@@ -227,7 +227,7 @@ export const useSyncPaymentToQBO = () => {
     
     console.log('Mapped QBO bill payment data:', qboBillPaymentData);
     
-    // Create the bill payment in QBO
+    // Create the bill payment in QBO - using the recordBillPayment method
     const result = await qboService.recordBillPayment(qboBillPaymentData);
     
     if (!result.success) {

@@ -26,3 +26,12 @@ export interface CreateGCUserFormData {
   role: UserRole;
   send_invite?: boolean;
 }
+
+// Add the missing CreateUserFormValues interface
+export interface CreateUserFormValues {
+  name: string;
+  email: string;
+  phone: string;
+  role: UserRole;
+  gc_account_id?: string;
+}

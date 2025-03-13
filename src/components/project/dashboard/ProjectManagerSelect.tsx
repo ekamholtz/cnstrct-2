@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { UserRound, UserCog } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { makeMutationCompatible } from "@/utils/queryCompatibility";
+import { GCUserProfile } from "@/components/gc-profile/types";
 
 interface ProjectManagerSelectProps {
   project: ClientProject;
@@ -58,7 +60,7 @@ export function ProjectManagerSelect({ project, isGCAdmin }: ProjectManagerSelec
   const filteredTeamMembers = teamMembers?.filter(member => {
     if (!searchQuery) return true;
     return member.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-           member.email?.toLowerCase().includes(searchQuery.toLowerCase());
+           (member as GCUserProfile).email?.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   // Use isPending for loading state (compatible with both old and new React Query versions)
@@ -135,7 +137,7 @@ export function ProjectManagerSelect({ project, isGCAdmin }: ProjectManagerSelec
                             <div className="flex items-center justify-between">
                               <div>
                                 <div>{member.full_name}</div>
-                                <div className="text-xs text-gray-500">{member.email || ''}</div>
+                                <div className="text-xs text-gray-500">{(member as GCUserProfile).email || ''}</div>
                               </div>
                               {member.role === 'gc_admin' && (
                                 <Badge variant="outline" className="ml-2 text-xs">Admin</Badge>

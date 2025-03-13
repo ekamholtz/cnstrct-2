@@ -1,7 +1,9 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { QBOService } from "@/integrations/qbo/qboService";
+import { useQBOService } from "@/integrations/qbo/hooks/useQBOService";
 import { useToast } from "@/components/ui/use-toast";
+import { useQBOMapper } from "@/integrations/qbo/hooks/useQBOMapper";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ExpenseData {
   id: string;
@@ -19,9 +21,10 @@ interface ExpenseData {
 export const useSyncExpenseToQBO = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const qboService = new QBOService();
+  const qboService = useQBOService();
+  const mapper = useQBOMapper();
   
-  return useMutation({
+  const syncMutation = useMutation({
     mutationFn: async (expense: ExpenseData) => {
       try {
         // Check if expense has already been synced
@@ -41,28 +44,11 @@ export const useSyncExpenseToQBO = () => {
         const projectQBOId = await qboService.getEntityReference('project', expense.project_id);
         
         // Step 3: Create bill in QBO
-        const billData = {
-          VendorRef: {
-            value: vendorId
-          },
-          Line: [
-            {
-              DetailType: "AccountBasedExpenseLineDetail",
-              Amount: expense.amount,
-              Description: expense.name,
-              AccountBasedExpenseLineDetail: {
-                AccountRef: {
-                  // We would normally get this from expense.account_id, but for now use a default
-                  value: "63" // Example account ID - should be dynamic in production
-                },
-                ...(projectQBOId ? { 
-                  ProjectRef: { value: projectQBOId }
-                } : {})
-              }
-            }
-          ],
-          TxnDate: expense.expense_date
-        };
+        const billData = mapper.mapExpenseToBill(
+          expense,
+          vendorId,
+          "63" // Example account ID - should be dynamic in production
+        );
         
         const billResponse = await qboService.createBill(billData);
         
@@ -107,4 +93,15 @@ export const useSyncExpenseToQBO = () => {
       queryClient.invalidateQueries({ queryKey: ['expenses'] });
     }
   });
+  
+  // Create a function to expose the mutation functionality in a cleaner way
+  const syncExpenseToQBO = async (expense: ExpenseData) => {
+    return await syncMutation.mutateAsync(expense);
+  };
+  
+  return {
+    ...syncMutation,
+    syncExpenseToQBO,
+    isLoading: syncMutation.isPending,
+  };
 };

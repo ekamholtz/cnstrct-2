@@ -52,10 +52,11 @@ export interface QBOService {
   createCustomer: (customerData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
   createInvoice: (invoiceData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
   recordPayment: (paymentData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
-  recordBillPayment: (paymentData: any) => Promise<{ success: boolean; data?: any; error?: string }>;
+  recordBillPayment: (paymentData: any) => Promise<{ success: boolean; data?: any; error?: string }>; // Add this missing method
   getAccounts: (accountType?: string) => Promise<{ success: boolean; data?: any; error?: string }>;
   getVendorIdForExpense: (vendorName: string) => Promise<string>;
   getEntityReference: (entityType: string, entityId: string) => Promise<string | null>;
   storeEntityReference: (entityType: string, entityId: string, qboId: string) => Promise<void>;
   getCustomerIdForClient: (clientId: string) => Promise<string | null>;
+  getUserConnection: () => Promise<any>;
 }
