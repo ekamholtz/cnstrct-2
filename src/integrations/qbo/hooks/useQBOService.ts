@@ -1,12 +1,12 @@
 
 import { useCallback } from 'react';
 import { QBOApiResponse } from '../types/qboTypes';
-import { EntityReferenceService } from '../services/entityReferenceService';
+import { EntityReferenceService } from '../services/EntityReferenceService';
 import { useVendorService } from '../services/vendorService';
-import { BillService } from '../services/billService';
+import { BillService } from '../services/BillService';
 import { usePaymentService } from '../services/paymentService';
 import { useCustomerService } from '../services/customerService';
-import { InvoiceService } from '../services/invoiceService';
+import { InvoiceService } from '../services/InvoiceService';
 import { BaseQBOService } from '../services/BaseQBOService';
 
 // Define the QBO service interface
