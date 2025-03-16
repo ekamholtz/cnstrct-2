@@ -120,6 +120,25 @@ export const useProfileCompletion = () => {
                 end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days trial
               });
           }
+        } else {
+          // User is already part of a GC account - ensure they're using the company's subscription tier
+          // This will unify the subscription tier for all users in the same company
+          const { data: accountSubscription } = await supabase
+            .from('account_subscriptions')
+            .select('tier_id')
+            .eq('gc_account_id', profile.gc_account_id)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+          if (accountSubscription?.tier_id) {
+            // Update the user's profile to use the company's subscription tier
+            await supabase
+              .from('profiles')
+              .update({ subscription_tier_id: accountSubscription.tier_id })
+              .eq('id', user.id);
+          }
         }
       }
 

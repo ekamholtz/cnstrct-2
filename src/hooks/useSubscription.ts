@@ -136,29 +136,17 @@ export const useSubscription = () => {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;
         
-        // Get user's profile with subscription tier
+        // Get user's profile with subscription tier and gc_account_id
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('subscription_tier_id, gc_account_id')
+          .select('subscription_tier_id, gc_account_id, role')
           .eq('id', user.id)
           .single();
           
         if (profileError) throw profileError;
         
-        // First check if the user has a direct subscription tier
-        if (profile.subscription_tier_id) {
-          const { data: tier, error: tierError } = await supabase
-            .from('subscription_tiers')
-            .select('*')
-            .eq('id', profile.subscription_tier_id)
-            .single();
-            
-          if (tierError) throw tierError;
-          return tier;
-        }
-        
-        // If user has a GC account, check if there's an account subscription
-        if (profile.gc_account_id) {
+        // If user is part of a GC account, prioritize the account subscription
+        if (profile.gc_account_id && (profile.role === 'gc_admin' || profile.role === 'project_manager')) {
           const { data: accountSub, error: accountSubError } = await supabase
             .from('account_subscriptions')
             .select('tier_id')
@@ -168,23 +156,48 @@ export const useSubscription = () => {
             .limit(1)
             .single();
             
-          if (accountSubError) {
-            // No active subscription, return null
-            if (accountSubError.code === 'PGRST116') {
-              return null;
+          if (!accountSubError && accountSub) {
+            const { data: tier, error: tierError } = await supabase
+              .from('subscription_tiers')
+              .select('*')
+              .eq('id', accountSub.tier_id)
+              .single();
+              
+            if (!tierError && tier) {
+              // Get features for this tier
+              const { data: features } = await supabase
+                .from('tier_features')
+                .select('feature_key')
+                .eq('tier_id', tier.id);
+                
+              return { 
+                ...tier, 
+                features: features?.map(f => f.feature_key) || [] 
+              };
             }
-            throw accountSubError;
           }
-          
-          // Get the tier details
+        }
+        
+        // Fallback to direct profile tier if no account tier is found
+        if (profile.subscription_tier_id) {
           const { data: tier, error: tierError } = await supabase
             .from('subscription_tiers')
             .select('*')
-            .eq('id', accountSub.tier_id)
+            .eq('id', profile.subscription_tier_id)
             .single();
             
           if (tierError) throw tierError;
-          return tier;
+          
+          // Get features for this tier
+          const { data: features } = await supabase
+            .from('tier_features')
+            .select('feature_key')
+            .eq('tier_id', tier.id);
+            
+          return { 
+            ...tier, 
+            features: features?.map(f => f.feature_key) || [] 
+          };
         }
         
         return null;
@@ -407,8 +420,19 @@ export const useSubscription = () => {
             
           if (insertError) throw insertError;
         }
+        
+        // Update subscription tier for ALL users in this GC account
+        const { error: updateUsersError } = await supabase
+          .from('profiles')
+          .update({ 
+            subscription_tier_id: tierId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('gc_account_id', profile.gc_account_id);
+          
+        if (updateUsersError) throw updateUsersError;
       } else {
-        // Just update the user's profile directly
+        // Just update the user's profile directly if they're not a GC admin
         const { error: updateError } = await supabase
           .from('profiles')
           .update({ 

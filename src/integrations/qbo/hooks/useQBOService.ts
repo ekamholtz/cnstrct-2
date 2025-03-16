@@ -6,10 +6,10 @@ import { useNavigate } from "react-router-dom";
 // Import the services using the correct casing to match the actual file names
 import { BaseQBOService } from "../services/BaseQBOService";
 import { AccountService } from "../services/AccountService";
-import { entityReferenceService } from "../services/entityReferenceService"; 
-import { billService } from "../services/billService";
+import { EntityReferenceService } from "../services/EntityReferenceService"; 
+import { BillService } from "../services/BillService";
 import { CustomerVendorService } from "../services/CustomerVendorService";
-import { invoiceService } from "../services/invoiceService";
+import { InvoiceService } from "../services/InvoiceService";
 
 interface QBOAuthResponse {
   realmId: string | null;
@@ -24,6 +24,12 @@ export const useQBOService = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // Instantiate the service classes
+  const entityReferenceService = new EntityReferenceService();
+  const billService = new BillService();
+  const customerVendorService = new CustomerVendorService();
+  const invoiceService = new InvoiceService();
 
   useEffect(() => {
     // Load realmId from localStorage on component mount
@@ -132,5 +138,15 @@ export const useQBOService = () => {
     authUrl,
     connectQBO,
     disconnectQBO,
+    // Add QBO service methods
+    getEntityReference: entityReferenceService.getEntityReference.bind(entityReferenceService),
+    storeEntityReference: entityReferenceService.storeEntityReference.bind(entityReferenceService),
+    createBill: billService.createBill.bind(billService),
+    getVendorIdForExpense: customerVendorService.getVendorIdForExpense.bind(customerVendorService),
+    getCustomerIdForClient: customerVendorService.getCustomerIdForClient.bind(customerVendorService),
+    createCustomer: customerVendorService.createCustomer.bind(customerVendorService),
+    createInvoice: invoiceService.createInvoice.bind(invoiceService),
+    recordPayment: invoiceService.recordPayment.bind(invoiceService),
+    recordBillPayment: billService.recordBillPayment.bind(billService)
   };
 };
