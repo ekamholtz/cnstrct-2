@@ -3,10 +3,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
-// Import the services using the correct casing to match the actual file names
 import { BaseQBOService } from "../services/BaseQBOService";
 import { AccountService } from "../services/AccountService";
-// Fix the imports to use the hook functions from each service file
 import { useEntityReferenceService } from "../services/entityReferenceService"; 
 import { useBillService } from "../services/billService";
 import { CustomerVendorService } from "../services/CustomerVendorService";
@@ -26,17 +24,14 @@ export const useQBOService = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Create the base service first
   const baseService = new BaseQBOService();
   
-  // Create service instances using the hook functions
   const entityReferenceService = useEntityReferenceService();
   const billService = useBillService();
   const customerVendorService = new CustomerVendorService(baseService);
   const invoiceService = useInvoiceService();
 
   useEffect(() => {
-    // Load realmId from localStorage on component mount
     const storedRealmId = localStorage.getItem('qbo_realm_id');
     if (storedRealmId) {
       setRealmId(storedRealmId);
@@ -103,11 +98,9 @@ export const useQBOService = () => {
   const disconnectQBO = async () => {
     setIsLoading(true);
     try {
-      // Clear the realmId from localStorage
       localStorage.removeItem('qbo_realm_id');
       setRealmId(null);
 
-      // Optionally, call a Supabase function to revoke tokens if needed
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-disconnect`, {
         method: 'POST',
         headers: {
@@ -142,18 +135,15 @@ export const useQBOService = () => {
     authUrl,
     connectQBO,
     disconnectQBO,
-    // Add QBO service methods, making sure they exist on the respective services
     getEntityReference: entityReferenceService.getEntityReference,
     storeEntityReference: entityReferenceService.storeEntityReference,
     createBill: billService.createBill,
     getVendorIdForExpense: entityReferenceService.getVendorIdForExpense,
-    // Add the missing getCustomerIdForClient method
     getCustomerIdForClient: entityReferenceService.getCustomerIdForClient,
-    // Include other service methods
     findCustomerByEmail: customerVendorService.findCustomerByEmail.bind(customerVendorService),
     createCustomer: customerVendorService.createCustomer.bind(customerVendorService),
     createInvoice: invoiceService.createInvoice,
-    recordPayment: invoiceService.recordPayment || undefined,
-    recordBillPayment: billService.recordBillPayment || billService.createBillPayment
+    recordPayment: invoiceService.recordPayment,
+    recordBillPayment: billService.recordBillPayment
   };
 };

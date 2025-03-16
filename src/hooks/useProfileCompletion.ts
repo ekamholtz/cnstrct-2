@@ -76,7 +76,7 @@ export const useProfileCompletion = () => {
       }
 
       // If user is a gc_admin, check if they already have a GC account
-      // If not, create one and automatically assign them the basic subscription
+      // If not, create one and set up default subscription
       if (userRole === 'gc_admin') {
         const { data: profile } = await supabase
           .from('profiles')
@@ -109,7 +109,8 @@ export const useProfileCompletion = () => {
               .update({ gc_account_id: gcAccount.id })
               .eq('id', user.id);
               
-            // Create a subscription for this account
+            // We will rely on Stripe subscription for billing features
+            // Create a basic subscription record for tracking
             await supabase
               .from('account_subscriptions')
               .insert({
@@ -119,25 +120,6 @@ export const useProfileCompletion = () => {
                 start_date: new Date().toISOString(),
                 end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days trial
               });
-          }
-        } else {
-          // User is already part of a GC account - ensure they're using the company's subscription tier
-          // This will unify the subscription tier for all users in the same company
-          const { data: accountSubscription } = await supabase
-            .from('account_subscriptions')
-            .select('tier_id')
-            .eq('gc_account_id', profile.gc_account_id)
-            .eq('status', 'active')
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-            
-          if (accountSubscription?.tier_id) {
-            // Update the user's profile to use the company's subscription tier
-            await supabase
-              .from('profiles')
-              .update({ subscription_tier_id: accountSubscription.tier_id })
-              .eq('id', user.id);
           }
         }
       }
