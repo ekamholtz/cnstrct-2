@@ -31,6 +31,9 @@ export const useAuthForm = () => {
         console.error("Registration error:", error);
         throw error;
       }
+      
+      // Note: The profile is created by a database trigger in Supabase
+      // The subscription_tier_id will be set during profile completion
     },
     onSuccess: () => {
       setIsLoading(false);
@@ -73,10 +76,10 @@ export const useAuthForm = () => {
 
       console.log("Auth response:", authResponse);
 
-      // Query the profiles table to get the user's role
+      // Query the profiles table to get the user's role and subscription tier
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, subscription_tier_id, has_completed_profile')
         .eq('id', authResponse.user.id)
         .maybeSingle();
 
@@ -87,9 +90,11 @@ export const useAuthForm = () => {
 
       // If no profile is found, use the role from auth metadata or default to gc_admin
       const role = profileData?.role || authResponse.user.user_metadata?.role || 'gc_admin';
+      const hasCompletedProfile = profileData?.has_completed_profile || false;
       console.log("Determined role:", role);
+      console.log("Profile completion status:", hasCompletedProfile);
 
-      return { role };
+      return { role, hasCompletedProfile };
     },
     onSuccess: (data) => {
       setIsLoading(false);
@@ -99,7 +104,14 @@ export const useAuthForm = () => {
       });
 
       console.log("Navigating based on role:", data.role);
-      // Update navigation logic to handle gc_admin role correctly
+      
+      // First check if profile is completed
+      if (!data.hasCompletedProfile) {
+        navigate('/profile-completion');
+        return;
+      }
+      
+      // If profile is completed, route based on user role
       if (data.role === 'platform_admin') {
         navigate('/admin');
       } else if (data.role === 'homeowner') {

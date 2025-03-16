@@ -24,13 +24,26 @@ export const useProfileCompletion = () => {
 
       console.log("Starting profile completion for user:", user.email);
 
+      // Get the default tier ID for this user
+      const { data: defaultTier } = await supabase
+        .from('subscription_tiers')
+        .select('id')
+        .eq('name', 'Platform Basics')
+        .single();
+
+      if (!defaultTier) {
+        console.error("Default subscription tier not found");
+        throw new Error("Default subscription tier not found");
+      }
+
       // First update the profile
       const profileData = {
         full_name: formData.fullName,
         phone_number: formData.phoneNumber,
         address: formData.address,
         has_completed_profile: true,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        subscription_tier_id: defaultTier.id
       };
 
       const { error: profileError } = await supabase
@@ -59,6 +72,53 @@ export const useProfileCompletion = () => {
             title: "Warning",
             description: "Could not link client account. Please contact support.",
           });
+        }
+      }
+
+      // If user is a gc_admin, check if they already have a GC account
+      // If not, create one and automatically assign them the basic subscription
+      if (userRole === 'gc_admin') {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('gc_account_id')
+          .eq('id', user.id)
+          .single();
+          
+        // If they don't have a GC account yet, create one
+        if (!profile?.gc_account_id) {
+          console.log("Creating GC account for new GC admin");
+          const companyName = formData.companyName || `${formData.fullName}'s Company`;
+          
+          // Create the GC account
+          const { data: gcAccount, error: gcError } = await supabase
+            .from('gc_accounts')
+            .insert({
+              company_name: companyName,
+              owner_id: user.id
+            })
+            .select('id')
+            .single();
+            
+          if (gcError) {
+            console.error("Error creating GC account:", gcError);
+          } else if (gcAccount) {
+            // Link GC account to user's profile
+            await supabase
+              .from('profiles')
+              .update({ gc_account_id: gcAccount.id })
+              .eq('id', user.id);
+              
+            // Create a subscription for this account
+            await supabase
+              .from('account_subscriptions')
+              .insert({
+                gc_account_id: gcAccount.id,
+                tier_id: defaultTier.id,
+                status: 'active',
+                start_date: new Date().toISOString(),
+                end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days trial
+              });
+          }
         }
       }
 
