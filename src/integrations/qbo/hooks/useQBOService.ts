@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -7,11 +6,11 @@ import { useNavigate } from "react-router-dom";
 // Import the services using the correct casing to match the actual file names
 import { BaseQBOService } from "../services/BaseQBOService";
 import { AccountService } from "../services/AccountService";
-// Fix casing in import paths to match actual file names
-import { EntityReferenceService } from "../services/entityReferenceService"; 
-import { BillService } from "../services/billService";
+// Fix the imports to use the hook functions from each service file
+import { useEntityReferenceService } from "../services/entityReferenceService"; 
+import { useBillService } from "../services/billService";
 import { CustomerVendorService } from "../services/CustomerVendorService";
-import { InvoiceService } from "../services/invoiceService";
+import { useInvoiceService } from "../services/invoiceService";
 
 interface QBOAuthResponse {
   realmId: string | null;
@@ -30,11 +29,11 @@ export const useQBOService = () => {
   // Create the base service first
   const baseService = new BaseQBOService();
   
-  // Instantiate the service classes with the baseService parameter
-  const entityReferenceService = new EntityReferenceService(baseService);
-  const billService = new BillService(baseService);
+  // Create service instances using the hook functions
+  const entityReferenceService = useEntityReferenceService();
+  const billService = useBillService();
   const customerVendorService = new CustomerVendorService(baseService);
-  const invoiceService = new InvoiceService(baseService);
+  const invoiceService = useInvoiceService();
 
   useEffect(() => {
     // Load realmId from localStorage on component mount
@@ -144,17 +143,17 @@ export const useQBOService = () => {
     connectQBO,
     disconnectQBO,
     // Add QBO service methods, making sure they exist on the respective services
-    getEntityReference: entityReferenceService.getEntityReference.bind(entityReferenceService),
-    storeEntityReference: entityReferenceService.storeEntityReference.bind(entityReferenceService),
-    createBill: billService.createBill.bind(billService),
-    getVendorIdForExpense: customerVendorService.getVendorIdForExpense.bind(customerVendorService),
-    // Use the correct method name from CustomerVendorService
+    getEntityReference: entityReferenceService.getEntityReference,
+    storeEntityReference: entityReferenceService.storeEntityReference,
+    createBill: billService.createBill,
+    getVendorIdForExpense: entityReferenceService.getVendorIdForExpense,
+    // Add the missing getCustomerIdForClient method
+    getCustomerIdForClient: entityReferenceService.getCustomerIdForClient,
+    // Include other service methods
     findCustomerByEmail: customerVendorService.findCustomerByEmail.bind(customerVendorService),
     createCustomer: customerVendorService.createCustomer.bind(customerVendorService),
-    createInvoice: invoiceService.createInvoice.bind(invoiceService),
-    // Add the missing methods that match what's available in the services
-    recordPayment: invoiceService.recordPayment ? invoiceService.recordPayment.bind(invoiceService) : undefined,
-    // Use createBillPayment instead of recordBillPayment if that's what the BillService provides
-    recordBillPayment: billService.createBillPayment ? billService.createBillPayment.bind(billService) : undefined
+    createInvoice: invoiceService.createInvoice,
+    recordPayment: invoiceService.recordPayment || undefined,
+    recordBillPayment: billService.recordBillPayment || billService.createBillPayment
   };
 };
