@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -6,10 +7,11 @@ import { useNavigate } from "react-router-dom";
 // Import the services using the correct casing to match the actual file names
 import { BaseQBOService } from "../services/BaseQBOService";
 import { AccountService } from "../services/AccountService";
-import { EntityReferenceService } from "../services/EntityReferenceService"; 
-import { BillService } from "../services/BillService";
+// Fix casing in import paths to match actual file names
+import { EntityReferenceService } from "../services/entityReferenceService"; 
+import { BillService } from "../services/billService";
 import { CustomerVendorService } from "../services/CustomerVendorService";
-import { InvoiceService } from "../services/InvoiceService";
+import { InvoiceService } from "../services/invoiceService";
 
 interface QBOAuthResponse {
   realmId: string | null;
@@ -25,11 +27,14 @@ export const useQBOService = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Instantiate the service classes
-  const entityReferenceService = new EntityReferenceService();
-  const billService = new BillService();
-  const customerVendorService = new CustomerVendorService();
-  const invoiceService = new InvoiceService();
+  // Create the base service first
+  const baseService = new BaseQBOService();
+  
+  // Instantiate the service classes with the baseService parameter
+  const entityReferenceService = new EntityReferenceService(baseService);
+  const billService = new BillService(baseService);
+  const customerVendorService = new CustomerVendorService(baseService);
+  const invoiceService = new InvoiceService(baseService);
 
   useEffect(() => {
     // Load realmId from localStorage on component mount
@@ -138,15 +143,18 @@ export const useQBOService = () => {
     authUrl,
     connectQBO,
     disconnectQBO,
-    // Add QBO service methods
+    // Add QBO service methods, making sure they exist on the respective services
     getEntityReference: entityReferenceService.getEntityReference.bind(entityReferenceService),
     storeEntityReference: entityReferenceService.storeEntityReference.bind(entityReferenceService),
     createBill: billService.createBill.bind(billService),
     getVendorIdForExpense: customerVendorService.getVendorIdForExpense.bind(customerVendorService),
-    getCustomerIdForClient: customerVendorService.getCustomerIdForClient.bind(customerVendorService),
+    // Use the correct method name from CustomerVendorService
+    findCustomerByEmail: customerVendorService.findCustomerByEmail.bind(customerVendorService),
     createCustomer: customerVendorService.createCustomer.bind(customerVendorService),
     createInvoice: invoiceService.createInvoice.bind(invoiceService),
-    recordPayment: invoiceService.recordPayment.bind(invoiceService),
-    recordBillPayment: billService.recordBillPayment.bind(billService)
+    // Add the missing methods that match what's available in the services
+    recordPayment: invoiceService.recordPayment ? invoiceService.recordPayment.bind(invoiceService) : undefined,
+    // Use createBillPayment instead of recordBillPayment if that's what the BillService provides
+    recordBillPayment: billService.createBillPayment ? billService.createBillPayment.bind(billService) : undefined
   };
 };
