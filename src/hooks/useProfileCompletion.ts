@@ -51,7 +51,6 @@ export const useProfileCompletion = () => {
       // If user is a homeowner, link or create client record
       if (userRole === 'homeowner' && user.email) {
         try {
-          // Changed this to fix the order of parameters
           await linkClientToUser(user.id, user.email);
         } catch (error) {
           console.error("Error in client linking:", error);
@@ -68,14 +67,16 @@ export const useProfileCompletion = () => {
         description: "Profile updated successfully!",
       });
 
-      // Route based on user role
-      if (userRole === 'homeowner') {
-        navigate('/client-dashboard');
-      } else if (userRole === 'general_contractor' || userRole === 'gc_admin') {
-        navigate('/dashboard');
-      } else {
-        navigate('/client-dashboard');
-      }
+      // Route based on user role and ensure immediate navigation
+      setTimeout(() => {
+        if (userRole === 'homeowner') {
+          navigate('/client-dashboard', { replace: true });
+        } else if (userRole === 'general_contractor' || userRole === 'gc_admin') {
+          navigate('/dashboard', { replace: true });
+        } else {
+          navigate('/client-dashboard', { replace: true });
+        }
+      }, 300); // Small timeout to ensure toast is visible
 
     } catch (error) {
       console.error("Error during form submission:", error);
