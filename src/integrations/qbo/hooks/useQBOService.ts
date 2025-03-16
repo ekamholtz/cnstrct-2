@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -9,6 +10,7 @@ import { useEntityReferenceService } from "../services/entityReferenceService";
 import { useBillService } from "../services/billService";
 import { CustomerVendorService } from "../services/CustomerVendorService";
 import { useInvoiceService } from "../services/invoiceService";
+import { usePaymentService } from "../services/paymentService";
 
 interface QBOAuthResponse {
   realmId: string | null;
@@ -30,6 +32,7 @@ export const useQBOService = () => {
   const billService = useBillService();
   const customerVendorService = new CustomerVendorService(baseService);
   const invoiceService = useInvoiceService();
+  const paymentService = usePaymentService();
 
   useEffect(() => {
     const storedRealmId = localStorage.getItem('qbo_realm_id');
@@ -143,7 +146,7 @@ export const useQBOService = () => {
     findCustomerByEmail: customerVendorService.findCustomerByEmail.bind(customerVendorService),
     createCustomer: customerVendorService.createCustomer.bind(customerVendorService),
     createInvoice: invoiceService.createInvoice,
-    recordPayment: invoiceService.recordPayment,
+    recordPayment: paymentService.recordPayment,
     recordBillPayment: billService.recordBillPayment
   };
 };
