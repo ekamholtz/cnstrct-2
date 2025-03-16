@@ -87,7 +87,8 @@ export const useProfileCompletion = () => {
         // If they don't have a GC account yet, create one
         if (!profile?.gc_account_id) {
           console.log("Creating GC account for new GC admin");
-          const companyName = formData.companyName || `${formData.fullName}'s Company`;
+          // Use the company name if provided or create a default name
+          const companyName = user.user_metadata?.company_name || `${formData.fullName}'s Company`;
           
           // Create the GC account
           const { data: gcAccount, error: gcError } = await supabase
