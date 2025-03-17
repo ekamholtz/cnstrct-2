@@ -550,6 +550,7 @@ export type Database = {
           license_number: string | null
           phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
+          subscription_tier_id: string
           updated_at: string | null
           website: string | null
         }
@@ -566,6 +567,7 @@ export type Database = {
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          subscription_tier_id: string
           updated_at?: string | null
           website?: string | null
         }
@@ -582,10 +584,19 @@ export type Database = {
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          subscription_tier_id?: string
           updated_at?: string | null
           website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_subscription_tier_id_fkey"
+            columns: ["subscription_tier_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       projects: {
         Row: {
@@ -763,6 +774,7 @@ export type Database = {
         Row: {
           created_at: string | null
           description: string | null
+          fee_percentage: number | null
           id: string
           name: string
           price: number
@@ -771,6 +783,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           description?: string | null
+          fee_percentage?: number | null
           id?: string
           name: string
           price: number
@@ -779,6 +792,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           description?: string | null
+          fee_percentage?: number | null
           id?: string
           name?: string
           price?: number
@@ -822,19 +836,19 @@ export type Database = {
       tier_features: {
         Row: {
           created_at: string | null
-          permission_id: string
+          feature_key: string
           tier_id: string
           usage_limit: number | null
         }
         Insert: {
           created_at?: string | null
-          permission_id: string
+          feature_key: string
           tier_id: string
           usage_limit?: number | null
         }
         Update: {
           created_at?: string | null
-          permission_id?: string
+          feature_key?: string
           tier_id?: string
           usage_limit?: number | null
         }
@@ -949,6 +963,12 @@ export type Database = {
           user_id: string
         }
         Returns: string
+      }
+      has_feature_access: {
+        Args: {
+          feature_key: string
+        }
+        Returns: boolean
       }
       has_permission: {
         Args: {

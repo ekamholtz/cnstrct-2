@@ -1,12 +1,16 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { Building, House, ArrowRight } from "lucide-react";
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
+import { UserRole } from "@/components/admin/users/types";
+
+type AuthRole = "gc_admin" | "homeowner";
 
 const Auth = () => {
-  const [selectedRole, setSelectedRole] = useState<"gc_admin" | "homeowner" | null>(null);
+  const [selectedRole, setSelectedRole] = useState<AuthRole | null>(null);
   const [isLogin, setIsLogin] = useState(false);
   const navigate = useNavigate();
 

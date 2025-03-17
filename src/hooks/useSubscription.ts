@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,6 +10,15 @@ export interface Subscription {
   current_period_end: number;
   plan_name: string;
   cancel_at_period_end: boolean;
+}
+
+export interface SubscriptionTier {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  fee_percentage: number;
+  features?: string[];
 }
 
 export const useSubscription = () => {
@@ -48,7 +56,7 @@ export const useSubscription = () => {
     },
   });
 
-  // Fetch available subscription plans
+  // Fetch available subscription plans from Stripe
   const { data: plans, isLoading: isLoadingPlans } = useQuery({
     queryKey: ['subscription-plans'],
     queryFn: async (): Promise<SubscriptionPlan[]> => {
@@ -74,6 +82,128 @@ export const useSubscription = () => {
       } catch (error) {
         console.error('Error fetching subscription plans:', error);
         return [];
+      }
+    },
+  });
+
+  // Fetch available subscription tiers from Supabase
+  const { data: tiers, isLoading: isLoadingTiers } = useQuery({
+    queryKey: ['subscription-tiers'],
+    queryFn: async (): Promise<SubscriptionTier[]> => {
+      try {
+        // Fetch tiers
+        const { data: tiersData, error: tiersError } = await supabase
+          .from('subscription_tiers')
+          .select('*')
+          .order('price', { ascending: true });
+
+        if (tiersError) throw tiersError;
+        
+        // For each tier, fetch its features
+        const tiersWithFeatures = await Promise.all(
+          tiersData.map(async (tier) => {
+            const { data: features, error: featuresError } = await supabase
+              .from('tier_features')
+              .select('feature_key')
+              .eq('tier_id', tier.id);
+              
+            if (featuresError) {
+              console.error('Error fetching tier features:', featuresError);
+              return { ...tier, features: [] };
+            }
+            
+            return { 
+              ...tier, 
+              features: features.map(f => f.feature_key) 
+            };
+          })
+        );
+        
+        return tiersWithFeatures;
+      } catch (error) {
+        console.error('Error fetching subscription tiers:', error);
+        return [];
+      }
+    },
+  });
+
+  // Fetch user's current subscription tier
+  const { data: userTier, isLoading: isLoadingUserTier } = useQuery({
+    queryKey: ['user-subscription-tier'],
+    queryFn: async (): Promise<SubscriptionTier | null> => {
+      try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+        
+        // Get user's profile with subscription tier and gc_account_id
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('subscription_tier_id, gc_account_id, role')
+          .eq('id', user.id)
+          .single();
+          
+        if (profileError) throw profileError;
+        
+        // If user is part of a GC account, prioritize the account subscription
+        if (profile.gc_account_id && (profile.role === 'gc_admin' || profile.role === 'project_manager')) {
+          const { data: accountSub, error: accountSubError } = await supabase
+            .from('account_subscriptions')
+            .select('tier_id')
+            .eq('gc_account_id', profile.gc_account_id)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+          if (!accountSubError && accountSub) {
+            const { data: tier, error: tierError } = await supabase
+              .from('subscription_tiers')
+              .select('*')
+              .eq('id', accountSub.tier_id)
+              .single();
+              
+            if (!tierError && tier) {
+              // Get features for this tier
+              const { data: features } = await supabase
+                .from('tier_features')
+                .select('feature_key')
+                .eq('tier_id', tier.id);
+                
+              return { 
+                ...tier, 
+                features: features?.map(f => f.feature_key) || [] 
+              };
+            }
+          }
+        }
+        
+        // Fallback to direct profile tier if no account tier is found
+        if (profile.subscription_tier_id) {
+          const { data: tier, error: tierError } = await supabase
+            .from('subscription_tiers')
+            .select('*')
+            .eq('id', profile.subscription_tier_id)
+            .single();
+            
+          if (tierError) throw tierError;
+          
+          // Get features for this tier
+          const { data: features } = await supabase
+            .from('tier_features')
+            .select('feature_key')
+            .eq('tier_id', tier.id);
+            
+          return { 
+            ...tier, 
+            features: features?.map(f => f.feature_key) || [] 
+          };
+        }
+        
+        return null;
+      } catch (error) {
+        console.error('Error fetching user subscription tier:', error);
+        return null;
       }
     },
   });
@@ -237,13 +367,109 @@ export const useSubscription = () => {
     }
   };
 
+  // Change subscription tier (for local database tiers)
+  const changeTier = useMutation({
+    mutationFn: async (tierId: string) => {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('You must be logged in to change subscription tier');
+      
+      // Get user's profile
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('gc_account_id, role')
+        .eq('id', user.id)
+        .single();
+        
+      if (profileError) throw profileError;
+      
+      // If user is gc_admin and has gc_account_id, update account subscription
+      if (profile.role === 'gc_admin' && profile.gc_account_id) {
+        // Check if there's an existing subscription
+        const { data: existingSub, error: subError } = await supabase
+          .from('account_subscriptions')
+          .select('id')
+          .eq('gc_account_id', profile.gc_account_id)
+          .eq('status', 'active')
+          .maybeSingle();
+          
+        if (subError && subError.code !== 'PGRST116') throw subError;
+        
+        // If there's an existing subscription, update it
+        if (existingSub) {
+          const { error: updateError } = await supabase
+            .from('account_subscriptions')
+            .update({ 
+              tier_id: tierId,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', existingSub.id);
+            
+          if (updateError) throw updateError;
+        } else {
+          // Otherwise create a new subscription
+          const { error: insertError } = await supabase
+            .from('account_subscriptions')
+            .insert({
+              gc_account_id: profile.gc_account_id,
+              tier_id: tierId,
+              status: 'active',
+              start_date: new Date().toISOString(),
+              end_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString() // 1 year subscription
+            });
+            
+          if (insertError) throw insertError;
+        }
+        
+        // Update subscription tier for ALL users in this GC account
+        const { error: updateUsersError } = await supabase
+          .from('profiles')
+          .update({ 
+            subscription_tier_id: tierId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('gc_account_id', profile.gc_account_id);
+          
+        if (updateUsersError) throw updateUsersError;
+      } else {
+        // Just update the user's profile directly if they're not a GC admin
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ 
+            subscription_tier_id: tierId,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', user.id);
+          
+        if (updateError) throw updateError;
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Subscription Updated',
+        description: 'Your subscription tier has been changed successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['user-subscription-tier'] });
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: 'Subscription Error',
+        description: error.message || 'Failed to change subscription tier',
+      });
+    },
+  });
+
   return {
     subscription,
     plans,
-    isLoading: isLoading || isLoadingSubscription || isLoadingPlans,
+    tiers,
+    userTier,
+    isLoading: isLoading || isLoadingSubscription || isLoadingPlans || isLoadingTiers || isLoadingUserTier,
     createCheckoutSession,
     cancelSubscription,
     resumeSubscription,
     createPortalSession,
+    changeTier,
   };
 };

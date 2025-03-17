@@ -1,83 +1,152 @@
+import { useState, useEffect } from "react";
+import { useToast } from "@/components/ui/use-toast";
+import { useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
+import { BaseQBOService } from "../services/BaseQBOService";
+import { AccountService } from "../services/AccountService";
+import { EntityReferenceService } from "../services/EntityReferenceService"; 
+import { BillService } from "../services/BillService";
+import { CustomerVendorService } from "../services/CustomerVendorService";
+import { InvoiceService } from "../services/InvoiceService";
+import { usePaymentService } from "../services/paymentService";
 
-import { useCallback } from 'react';
-import { QBOApiResponse } from '../types/qboTypes';
-import { EntityReferenceService } from '../services/EntityReferenceService';
-import { useVendorService } from '../services/vendorService';
-import { BillService } from '../services/BillService';
-import { usePaymentService } from '../services/paymentService';
-import { useCustomerService } from '../services/customerService';
-import { InvoiceService } from '../services/InvoiceService';
-import { BaseQBOService } from '../services/BaseQBOService';
-
-// Define the QBO service interface
-export interface QBOServiceInterface {
-  createVendor: (vendorData: any) => Promise<QBOApiResponse>;
-  createBill: (billData: any) => Promise<QBOApiResponse>;
-  recordPayment: (paymentData: any) => Promise<QBOApiResponse>;
-  recordBillPayment: (paymentData: any) => Promise<QBOApiResponse>;
-  storeEntityReference: (entityType: string, entityId: string, qboId: string) => Promise<void>;
-  getCustomerIdForClient: (clientId: string) => Promise<string | null>;
-  getEntityReference: (entityType: string, entityId: string) => Promise<string | null>;
-  getVendorIdForExpense: (vendorName: string) => Promise<string>;
-  createCustomer: (customerData: any) => Promise<QBOApiResponse>;
-  createInvoice: (invoiceData: any) => Promise<QBOApiResponse>;
+interface QBOAuthResponse {
+  realmId: string | null;
+  error: string | null;
+  authUrl: string | null;
 }
 
-/**
- * Hook that combines all QBO services
- */
-export const useQBOService = (): QBOServiceInterface => {
-  // Create base service
+export const useQBOService = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [realmId, setRealmId] = useState<string | null>(null);
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   const baseService = new BaseQBOService();
   
-  // Create service instances
+  // Initialize services with class-based approach
   const entityReferenceService = new EntityReferenceService(baseService);
   const billService = new BillService(baseService);
+  const customerVendorService = new CustomerVendorService(baseService);
   const invoiceService = new InvoiceService(baseService);
-  
-  // Import hook-based services
-  const vendorService = useVendorService();
   const paymentService = usePaymentService();
-  const customerService = useCustomerService();
-  
-  // Create adapter for BillService.createBillPayment to recordBillPayment
-  const recordBillPayment = useCallback(async (paymentData: any): Promise<QBOApiResponse> => {
-    return billService.createBillPayment(paymentData);
-  }, [billService]);
+
+  useEffect(() => {
+    const storedRealmId = localStorage.getItem('qbo_realm_id');
+    if (storedRealmId) {
+      setRealmId(storedRealmId);
+    }
+  }, []);
+
+  const qboAuthMutation = useMutation<QBOAuthResponse, Error>({
+    mutationFn: async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-auth`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to initiate QBO authentication');
+        }
+
+        return await response.json();
+      } catch (error: any) {
+        console.error("QBO Auth Error:", error.message);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onSuccess: (data) => {
+      if (data.error) {
+        toast({
+          variant: "destructive",
+          title: "QBO Authentication Error",
+          description: data.error,
+        });
+      } else if (data.authUrl && data.realmId) {
+        setAuthUrl(data.authUrl);
+        setRealmId(data.realmId);
+        localStorage.setItem('qbo_realm_id', data.realmId);
+        window.location.href = data.authUrl;
+      } else {
+        toast({
+          variant: "destructive",
+          title: "QBO Authentication Issue",
+          description: "Could not retrieve authentication URL.",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "QBO Authentication Error",
+        description: error.message || "Failed to initiate QBO authentication.",
+      });
+    },
+  });
+
+  const connectQBO = async () => {
+    await qboAuthMutation.mutateAsync();
+  };
+
+  const disconnectQBO = async () => {
+    setIsLoading(true);
+    try {
+      localStorage.removeItem('qbo_realm_id');
+      setRealmId(null);
+
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qbo-disconnect`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to disconnect from QBO');
+      }
+
+      toast({
+        title: "QBO Disconnected",
+        description: "Successfully disconnected from QuickBooks Online.",
+      });
+    } catch (error: any) {
+      console.error("QBO Disconnect Error:", error.message);
+      toast({
+        variant: "destructive",
+        title: "QBO Disconnect Error",
+        description: error.message || "Failed to disconnect from QuickBooks Online.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return {
-    // Entity reference operations
-    storeEntityReference: async (entityType: string, entityId: string, qboId: string) => {
-      const result = await entityReferenceService.storeEntityReference(entityType, entityId, qboId);
-      return result ? Promise.resolve() : Promise.reject("Failed to store entity reference");
-    },
-    getCustomerIdForClient: async (clientId: string) => {
-      return entityReferenceService.getEntityReference("client", clientId);
-    },
+    isLoading,
+    realmId,
+    authUrl,
+    connectQBO,
+    disconnectQBO,
     getEntityReference: entityReferenceService.getEntityReference.bind(entityReferenceService),
-    getVendorIdForExpense: async (vendorName: string) => {
-      // This is using the existing hook implementation temporarily
-      // In a future refactor, this should be moved to the EntityReferenceService class
-      return vendorName ? `V${Math.floor(Math.random() * 10000)}` : 'V0';
-    },
-    
-    // Vendor operations
-    createVendor: vendorService.createVendor,
-    
-    // Bill operations
+    storeEntityReference: entityReferenceService.storeEntityReference.bind(entityReferenceService),
     createBill: billService.createBill.bind(billService),
-    recordBillPayment,
-    
-    // Payment operations
+    getVendorIdForExpense: entityReferenceService.getEntityReference.bind(entityReferenceService),
+    getCustomerIdForClient: entityReferenceService.getEntityReference.bind(entityReferenceService),
+    findCustomerByEmail: customerVendorService.findCustomerByEmail.bind(customerVendorService),
+    createCustomer: customerVendorService.createCustomer.bind(customerVendorService),
+    createInvoice: invoiceService.createInvoice.bind(invoiceService),
     recordPayment: paymentService.recordPayment,
-    
-    // Customer operations
-    createCustomer: customerService.createCustomer,
-    
-    // Invoice operations
-    createInvoice: invoiceService.createInvoice.bind(invoiceService)
+    recordBillPayment: billService.createBillPayment.bind(billService)
   };
 };
-
-// Type alias for backward compatibility
-export type QBOService = QBOServiceInterface;

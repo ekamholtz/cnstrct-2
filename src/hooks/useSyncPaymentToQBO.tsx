@@ -116,6 +116,7 @@ export const useSyncPaymentToQBO = () => {
       }
       
       // Get the QBO customer ID for this client
+      // Use the correct method name based on what's available in qboService
       const qboCustomerId = await qboService.getCustomerIdForClient(invoice.client_id);
       
       if (!qboCustomerId) {

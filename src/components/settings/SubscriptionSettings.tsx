@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
-import { useToast } from "@/components/ui/use-toast";
 
 export const SubscriptionSettings = () => {
   const { 
@@ -16,7 +15,6 @@ export const SubscriptionSettings = () => {
     resumeSubscription,
     createPortalSession
   } = useSubscription();
-  const { toast } = useToast();
 
   // Load the Stripe Pricing Table script
   useEffect(() => {
@@ -26,7 +24,9 @@ export const SubscriptionSettings = () => {
     document.body.appendChild(script);
     
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
 

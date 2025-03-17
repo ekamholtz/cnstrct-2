@@ -44,82 +44,82 @@ export default function Settings() {
       <div className="container mx-auto py-10 px-4">
         <h1 className="text-3xl font-bold mb-6">Settings</h1>
         
-        <Tabs defaultValue="subscription" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="subscription">Subscription</TabsTrigger>
-            <TabsTrigger value="integrations">Integrations</TabsTrigger>
-            <TabsTrigger value="profile">Profile</TabsTrigger>
-            <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          </TabsList>
+        <div className="space-y-8">
+          {/* Subscription Management Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Subscription Management</CardTitle>
+              <CardDescription>
+                Manage your subscription plan and billing details
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SubscriptionSettings />
+            </CardContent>
+          </Card>
           
-          <TabsContent value="subscription">
-            <Card>
-              <CardHeader>
-                <CardTitle>Subscription Management</CardTitle>
-                <CardDescription>
-                  Manage your subscription plan and billing details
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <SubscriptionSettings />
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="integrations">
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>QuickBooks Online</CardTitle>
-                <CardDescription>
-                  Connect your QuickBooks Online account to sync financial data
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <QBOSettings />
-              </CardContent>
-            </Card>
+          {/* Integrations Section */}
+          <Tabs defaultValue="qbo" className="w-full">
+            <TabsList className="mb-6">
+              <TabsTrigger value="qbo">QuickBooks Online</TabsTrigger>
+              <TabsTrigger value="other">Other Integrations</TabsTrigger>
+            </TabsList>
             
-            <Card>
-              <CardHeader>
-                <CardTitle>Other Integrations</CardTitle>
-                <CardDescription>
-                  Connect other services to enhance your CNSTRCT experience
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Additional integrations will be available soon.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+            <TabsContent value="qbo">
+              <Card>
+                <CardHeader>
+                  <CardTitle>QuickBooks Online</CardTitle>
+                  <CardDescription>
+                    Connect your QuickBooks Online account to sync financial data
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <QBOSettings />
+                </CardContent>
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="other">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Other Integrations</CardTitle>
+                  <CardDescription>
+                    Connect other services to enhance your CNSTRCT experience
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground">Additional integrations will be available soon.</p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
           
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Settings</CardTitle>
-                <CardDescription>
-                  Manage your personal information and preferences
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Profile settings will be available soon.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          {/* Profile Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Settings</CardTitle>
+              <CardDescription>
+                Manage your personal information and preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Profile settings will be available soon.</p>
+            </CardContent>
+          </Card>
           
-          <TabsContent value="notifications">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
-                  Manage how and when you receive notifications
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">Notification settings will be available soon.</p>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+          {/* Notifications Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Notification Preferences</CardTitle>
+              <CardDescription>
+                Manage how and when you receive notifications
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground">Notification settings will be available soon.</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </DashboardLayout>
   );

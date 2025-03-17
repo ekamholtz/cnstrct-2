@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -31,26 +32,26 @@ export class QBOConfig {
     this.clientSecret = "4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau";
     
     // Use a hardcoded URL that exactly matches what's registered in the Intuit Developer Portal
-    if (hostname === 'cnstrct-2.lovable.app') {
+    if (hostname === 'cnstrctnetwork.vercel.app') {
+      this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
+    } else if (hostname === 'cnstrct-2.lovable.app') {
       this.redirectUri = "https://cnstrct-2.lovable.app/qbo/callback";
     } else if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
-      // For local development, use the current port from window.location.port or default to 8082
-      const port = window.location.port || '8082';
-      this.redirectUri = `http://localhost:${port}/qbo/callback`;
+      // For local development, use the correct port (8081) and protocol (http)
+      this.redirectUri = "http://localhost:8081/qbo/callback";
     } else {
       // Fallback to the dynamically generated URI with preview prefix removed
       const origin = window.location.origin.replace('preview--', '');
       this.redirectUri = `${origin}/qbo/callback`;
     }
     
-    // Updated scopes to match QuickBooks Online OAuth 2.0 requirements
-    // Using only the required scopes for basic accounting access
-    this.scopes = [
-      'com.intuit.quickbooks.accounting'
-    ];
+    // Use the simplest scope format for QuickBooks API
+    this.scopes = ['com.intuit.quickbooks.accounting'];
 
     // Use correct endpoints based on environment
     this.authEndpoint = 'https://appcenter.intuit.com/connect/oauth2';
+    
+    // Use the v1 token endpoint which has better compatibility
     this.tokenEndpoint = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
     
     // API base URL - switch between sandbox and production
