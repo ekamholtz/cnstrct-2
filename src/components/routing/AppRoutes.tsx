@@ -27,6 +27,8 @@ import Help from "@/pages/Help";
 import ReportingDashboard from "@/pages/ReportingDashboard";
 import QBOCallback from "@/pages/qbo/QBOCallbackFinal";
 import Settings from "@/pages/Settings";
+import TermsOfService from "@/pages/TermsOfService";
+import PrivacyPolicy from "@/pages/PrivacyPolicy";
 
 export const AppRoutes = () => {
   return (
@@ -219,6 +221,8 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/landing" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
