@@ -278,26 +278,26 @@ app.post('/proxy/data-operation', async (req, res) => {
   }
 });
 
-// ===== STRIPE PROXY ENDPOINTS =====
+// ===== STRIPE PROXY ENDPOINT =====
 
-// Proxy endpoint for Stripe API operations
-app.post('/proxy/stripe', async (req, res) => {
-  console.log('Received Stripe API request');
-  
-  // Check if Stripe secret key is configured
-  if (!STRIPE_SECRET_KEY) {
-    return res.status(500).json({
-      error: 'Stripe secret key is not configured',
-      details: 'Please set the STRIPE_SECRET_KEY environment variable'
-    });
-  }
-  
+// Proxy endpoint for Stripe API
+app.post('/proxy/stripe', (req, res) => {
   // If no access token is provided, use the platform's secret key
   if (!req.body.accessToken) {
     req.body.accessToken = STRIPE_SECRET_KEY;
   }
   
-  return handleStripeRequest(req, res);
+  handleStripeRequest(req, res);
+});
+
+// ===== SUPABASE PROXY ENDPOINT =====
+
+// Import the Supabase proxy handler
+import handleSupabaseRequest from './supabase-proxy-handler.js';
+
+// Proxy endpoint for Supabase API
+app.post('/proxy/supabase', (req, res) => {
+  handleSupabaseRequest(req, res);
 });
 
 // Start the server
@@ -309,6 +309,7 @@ app.listen(PORT, () => {
   console.log(`- QBO Test Connection: http://localhost:${PORT}/proxy/test-connection`);
   console.log(`- QBO Data Operations: http://localhost:${PORT}/proxy/data-operation`);
   console.log(`- Stripe API Operations: http://localhost:${PORT}/proxy/stripe`);
+  console.log(`- Supabase API Operations: http://localhost:${PORT}/proxy/supabase`);
   
   if (!STRIPE_SECRET_KEY) {
     console.warn('WARNING: Stripe secret key is not configured. Stripe API operations will fail.');
