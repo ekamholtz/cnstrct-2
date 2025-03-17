@@ -1,58 +1,70 @@
 
-import { useState, useEffect } from 'react';
-import { useQBOConnection } from '@/hooks/useQBOConnection';
+import { useState, useCallback } from 'react';
+import { QBOConnection } from '../types/qboTypes';
+import { useQBOConnectionManager } from './useQBOConnectionManager';
+import { useQBOTokenManager } from './useQBOTokenManager';
 import { BaseQBOService } from '../services/BaseQBOService';
-import { AccountService } from '../services/AccountService';
-import { CustomerVendorService } from '../services/CustomerVendorService';
+import { useEntityReferenceService } from '../services/EntityReferenceService';
+import { useBillService } from '../services/BillService';
+import { useCustomerVendorService } from '../services/CustomerVendorService';
+import { useInvoiceService } from '../services/InvoiceService';
 
-export const useQBOService = <T>(serviceType: string) => {
-  const [service, setService] = useState<BaseQBOService | null>(null);
+/**
+ * Hook for using QBO services
+ */
+export const useQBOService = () => {
   const [error, setError] = useState<Error | null>(null);
-  const { connection } = useQBOConnection();
-
-  useEffect(() => {
-    if (!connection || !connection.company_id) {
-      setService(null);
-      return;
-    }
-
-    try {
-      // Create the appropriate service based on serviceType
-      let newService: BaseQBOService;
-
-      switch (serviceType) {
-        case 'account':
-          newService = new AccountService(connection.company_id);
-          break;
-        case 'entityReference':
-          // Import dynamically to avoid casing issues
-          const EntityReferenceService = require('../services/EntityReferenceService').EntityReferenceService;
-          newService = new EntityReferenceService(connection.company_id);
-          break;
-        case 'bill':
-          // Import dynamically to avoid casing issues
-          const BillService = require('../services/BillService').BillService;
-          newService = new BillService(connection.company_id);
-          break;
-        case 'customer':
-        case 'vendor':
-          newService = new CustomerVendorService(connection.company_id);
-          break;
-        case 'invoice':
-          // Import dynamically to avoid casing issues
-          const InvoiceService = require('../services/InvoiceService').InvoiceService;
-          newService = new InvoiceService(connection.company_id);
-          break;
-        default:
-          throw new Error(`Unknown QBO service type: ${serviceType}`);
+  const { getConnection } = useQBOConnectionManager();
+  const { getAccessToken, refreshAccessToken } = useQBOTokenManager();
+  
+  const createServiceInstance = useCallback(
+    async <T extends BaseQBOService>(
+      ServiceClass: new (connection: QBOConnection) => T
+    ): Promise<T | null> => {
+      try {
+        const connection = await getConnection();
+        if (!connection) {
+          throw new Error('QBO connection not found');
+        }
+        
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
+          throw new Error('QBO access token not found');
+        }
+        
+        return new ServiceClass(connection);
+      } catch (err: any) {
+        setError(err);
+        return null;
       }
-
-      setService(newService);
-    } catch (err) {
-      console.error('Error creating QBO service:', err);
-      setError(err instanceof Error ? err : new Error('Unknown error creating QBO service'));
-    }
-  }, [connection, serviceType]);
-
-  return { service, error };
+    },
+    [getConnection, getAccessToken]
+  );
+  
+  return {
+    createServiceInstance,
+    error,
+    refreshAccessToken
+  };
 };
+
+/**
+ * Hook for QBO entity reference services
+ */
+export const useQBOEntityReferenceService = () => {
+  const { createServiceInstance, error } = useQBOService();
+  const entityReferenceService = useEntityReferenceService();
+  
+  const getService = async () => {
+    try {
+      return await createServiceInstance(entityReferenceService);
+    } catch (err) {
+      console.error('Failed to get entity reference service', err);
+      return null;
+    }
+  };
+  
+  return { getService, error };
+};
+
+// Add the rest of the service hooks as needed

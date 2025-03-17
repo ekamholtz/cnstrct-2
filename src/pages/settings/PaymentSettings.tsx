@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -34,6 +33,7 @@ const PaymentSettings = () => {
   const [error, setError] = useState<string | null>(null);
   const [initialSetupDone, setInitialSetupDone] = useState(false);
   const [isMissingTables, setIsMissingTables] = useState(false);
+  const [missingApiKey, setMissingApiKey] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -52,6 +52,10 @@ const PaymentSettings = () => {
       
       if (stripeError.includes('table not found') || stripeError.includes('does not exist')) {
         setIsMissingTables(true);
+      }
+      
+      if (stripeError.includes('API key') || stripeError.includes('access token')) {
+        setMissingApiKey(true);
       }
     }
   }, [stripeError]);
@@ -82,6 +86,9 @@ const PaymentSettings = () => {
         if (err.message && (err.message.includes('table not found') || err.message.includes('does not exist'))) {
           setIsMissingTables(true);
           setError('The required database tables are missing. Please run the SQL migrations.');
+        } else if (err.message && (err.message.includes('API key') || err.message.includes('access token'))) {
+          setMissingApiKey(true);
+          setError('Stripe API key is missing. Please add STRIPE_SECRET_KEY to your .env file.');
         } else {
           setError('Failed to check account status. Please try again.');
         }
@@ -118,6 +125,10 @@ const PaymentSettings = () => {
       
       if (err.message && (err.message.includes('table not found') || err.message.includes('does not exist'))) {
         setIsMissingTables(true);
+      }
+      
+      if (err.message && (err.message.includes('API key') || err.message.includes('access token'))) {
+        setMissingApiKey(true);
       }
       
       toast({
@@ -208,6 +219,33 @@ const PaymentSettings = () => {
     );
   };
   
+  const renderApiKeyMissing = () => {
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Stripe API Key Missing</AlertTitle>
+        <AlertDescription>
+          <p className="mb-2">The Stripe secret key is missing from your environment configuration. To enable Stripe functionality, you need to:</p>
+          <ol className="list-decimal list-inside text-sm mb-4">
+            <li>Create a <code>.env</code> file at the root of your project if it doesn't exist</li>
+            <li>Add your Stripe secret key: <code>STRIPE_SECRET_KEY=sk_test_...</code></li>
+            <li>Restart your development server</li>
+          </ol>
+          <p className="text-sm mb-4">You can find your Stripe secret key in the Stripe dashboard under Developers &gt; API keys.</p>
+          <a 
+            href="https://dashboard.stripe.com/apikeys" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-sm text-blue-500 hover:text-blue-700 mb-2 inline-flex items-center"
+          >
+            <ExternalLink className="h-3 w-3 mr-1" />
+            Go to Stripe Dashboard
+          </a>
+        </AlertDescription>
+      </Alert>
+    );
+  };
+  
   const renderErrorState = () => {
     if (!error) return null;
     
@@ -242,6 +280,8 @@ const PaymentSettings = () => {
         />
         
         {isMissingTables && renderDatabaseSetupRequired()}
+        {missingApiKey && renderApiKeyMissing()}
+        {!isMissingTables && !missingApiKey && error && renderErrorState()}
         
         <Tabs defaultValue="stripe" className="w-full mt-8">
           <TabsList className="mb-4">
@@ -259,8 +299,6 @@ const PaymentSettings = () => {
               </CardHeader>
               
               <CardContent>
-                {!isMissingTables && renderErrorState()}
-                
                 {(loading || stripeLoading) && !initialSetupDone ? (
                   renderLoadingState()
                 ) : accountStatus.accountId ? (
@@ -303,7 +341,7 @@ const PaymentSettings = () => {
                         </p>
                         <Button 
                           onClick={handleConnectStripe} 
-                          disabled={loading || creatingAccount || isMissingTables}
+                          disabled={loading || creatingAccount || isMissingTables || missingApiKey}
                         >
                           {creatingAccount ? (
                             <>
@@ -380,7 +418,7 @@ const PaymentSettings = () => {
                 {!accountStatus.accountId && (
                   <Button 
                     onClick={handleConnectStripe} 
-                    disabled={loading || creatingAccount || isMissingTables}
+                    disabled={loading || creatingAccount || isMissingTables || missingApiKey}
                     className="w-full md:w-auto"
                   >
                     {creatingAccount ? (

@@ -13,6 +13,12 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 // Platform fee percentage from environment variable or default to 2.5%
 const PLATFORM_FEE_PERCENTAGE = parseFloat(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE) || 0.025;
 
+// Check if Stripe secret key is configured
+const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+if (!STRIPE_SECRET_KEY) {
+  console.warn('WARNING: STRIPE_SECRET_KEY is not set in .env file. Stripe operations will require client-provided tokens.');
+}
+
 /**
  * Handles Stripe API requests through the CORS proxy
  * @param {Object} req - The request object
@@ -22,8 +28,14 @@ const handleStripeRequest = async (req, res) => {
   try {
     const { accessToken, endpoint, method, data } = req.body;
 
-    if (!accessToken) {
-      return res.status(400).json({ error: 'Missing accessToken' });
+    // Use provided access token or fall back to the platform's secret key
+    const token = accessToken || STRIPE_SECRET_KEY;
+
+    if (!token) {
+      return res.status(400).json({ 
+        error: 'Missing Stripe API key', 
+        details: 'No access token provided and STRIPE_SECRET_KEY is not set in the environment. Please add STRIPE_SECRET_KEY to your .env file.' 
+      });
     }
 
     if (!endpoint) {
@@ -34,7 +46,7 @@ const handleStripeRequest = async (req, res) => {
 
     try {
       // Initialize Stripe with the provided access token
-      const stripeClient = new Stripe(accessToken, {
+      const stripeClient = new Stripe(token, {
         apiVersion: '2023-10-16', // Use a specific API version
         maxNetworkRetries: 2, // Automatically retry requests that fail due to network problems
         timeout: 30000 // 30 seconds
@@ -82,7 +94,8 @@ const handleStripeRequest = async (req, res) => {
           error: 'Invalid API key provided',
           type: stripeError.type,
           code: stripeError.code,
-          message: stripeError.message
+          message: stripeError.message,
+          configHelp: 'Please add your STRIPE_SECRET_KEY to the .env file at the root of your project.'
         });
       } else if (stripeError.type === 'StripeConnectionError') {
         return res.status(503).json({
