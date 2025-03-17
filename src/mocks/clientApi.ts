@@ -22,7 +22,7 @@ export const getClientProjects = async () => {
     // First find the client record associated with this user
     const { data: client, error: clientError } = await supabase
       .from('clients')
-      .select('id, email, name')
+      .select('id, email, name, user_id')
       .eq('user_id', user.id)
       .single();
       
@@ -31,10 +31,11 @@ export const getClientProjects = async () => {
       
       // If not found, try to find by email
       if (clientError.code === 'PGRST116') {
-        console.log('Trying to find client by email...');
+        console.log('Attempting to link client for email:', user.email, 'to user:', user.id);
+        console.log('Searching for client with email:', user.email);
         const { data: clientByEmail, error: emailError } = await supabase
           .from('clients')
-          .select('id, email, name')
+          .select('id, email, name, user_id')
           .eq('email', user.email)
           .single();
           
@@ -45,7 +46,7 @@ export const getClientProjects = async () => {
           console.log('Trying broader email search...');
           const { data: clients } = await supabase
             .from('clients')
-            .select('id, email, name')
+            .select('id, email, name, user_id')
             .ilike('email', `%${user.email}%`);
             
           if (clients && clients.length > 0) {
@@ -59,6 +60,8 @@ export const getClientProjects = async () => {
               
             if (updateError) {
               console.error('Error updating client with user_id:', updateError);
+            } else {
+              console.log('Successfully linked client', clients[0].id, 'to user', user.id);
             }
             
             // Use this client for fetching projects
@@ -69,16 +72,23 @@ export const getClientProjects = async () => {
         }
         
         if (clientByEmail) {
-          console.log('Found client by email:', clientByEmail.id);
+          console.log('Found existing client with this email:', clientByEmail.id);
           
-          // Update the client record to associate with this user
-          const { error: updateError } = await supabase
-            .from('clients')
-            .update({ user_id: user.id })
-            .eq('id', clientByEmail.id);
-            
-          if (updateError) {
-            console.error('Error updating client with user_id:', updateError);
+          // Check if client is already linked to this user
+          if (clientByEmail.user_id === user.id) {
+            console.log('Client is already linked to this user');
+          } else {
+            // Update the client record to associate with this user
+            const { error: updateError } = await supabase
+              .from('clients')
+              .update({ user_id: user.id })
+              .eq('id', clientByEmail.id);
+              
+            if (updateError) {
+              console.error('Error updating client with user_id:', updateError);
+            } else {
+              console.log('Successfully linked client', clientByEmail.id, 'to user', user.id);
+            }
           }
           
           // Use this client for fetching projects
@@ -95,6 +105,7 @@ export const getClientProjects = async () => {
     }
     
     console.log('Found client:', client.id);
+    console.log('Client data:', client);
     return getProjectsForClient(client.id);
   } catch (error) {
     console.error('Error fetching client projects:', error);
@@ -106,6 +117,20 @@ export const getClientProjects = async () => {
  * Helper function to get projects for a specific client ID
  */
 async function getProjectsForClient(clientId: string) {
+  console.log('Fetching projects for client ID:', clientId);
+  
+  // First try a direct query without any joins to confirm projects exist
+  const { data: simpleProjects, error: simpleError } = await supabase
+    .from('projects')
+    .select('*')
+    .eq('client_id', clientId);
+    
+  if (simpleError) {
+    console.error('Error in simple projects query:', simpleError);
+  } else {
+    console.log('Simple projects query found:', simpleProjects?.length || 0, 'projects');
+  }
+  
   // Get all projects for this client, including milestones
   const { data: projects, error: projectError } = await supabase
     .from('projects')
@@ -135,29 +160,27 @@ async function getProjectsForClient(clientId: string) {
     // Get client email
     const { data: client } = await supabase
       .from('clients')
-      .select('email')
+      .select('email, user_id')
       .eq('id', clientId)
       .single();
       
     if (client?.email) {
-      // Try to find projects with similar client info
-      const { data: allProjects } = await supabase
+      // Try to find projects with missing client_id
+      const { data: orphanedProjects } = await supabase
         .from('projects')
-        .select('*');
+        .select('*')
+        .is('client_id', null);
         
-      if (allProjects && allProjects.length > 0) {
-        console.log('Found', allProjects.length, 'total projects, checking for matches');
+      if (orphanedProjects && orphanedProjects.length > 0) {
+        console.log('Found', orphanedProjects.length, 'orphaned projects, linking them to client', clientId);
         
-        // Update client_id for any projects that should belong to this client
-        // This is a temporary fix to link orphaned projects
-        for (const project of allProjects) {
-          if (!project.client_id) {
-            console.log('Updating orphaned project:', project.id);
-            await supabase
-              .from('projects')
-              .update({ client_id: clientId })
-              .eq('id', project.id);
-          }
+        // Update client_id for orphaned projects
+        for (const project of orphanedProjects) {
+          console.log('Updating orphaned project:', project.id);
+          await supabase
+            .from('projects')
+            .update({ client_id: clientId })
+            .eq('id', project.id);
         }
         
         // Try fetching projects again
@@ -176,6 +199,48 @@ async function getProjectsForClient(clientId: string) {
           .order('created_at', { ascending: false });
           
         return updatedProjects || [];
+      }
+      
+      // As a last resort, check if there are any projects with status = 'active'
+      // that don't have a client_id assigned
+      const { data: activeProjects } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('status', 'active');
+        
+      if (activeProjects && activeProjects.length > 0) {
+        console.log('Found', activeProjects.length, 'active projects, checking for unassigned ones');
+        
+        const unassignedProjects = activeProjects.filter(p => !p.client_id);
+        if (unassignedProjects.length > 0) {
+          console.log('Found', unassignedProjects.length, 'unassigned active projects, linking them to client', clientId);
+          
+          // Update client_id for unassigned active projects
+          for (const project of unassignedProjects) {
+            console.log('Updating unassigned active project:', project.id);
+            await supabase
+              .from('projects')
+              .update({ client_id: clientId })
+              .eq('id', project.id);
+          }
+          
+          // Try fetching projects again
+          const { data: updatedProjects } = await supabase
+            .from('projects')
+            .select(`
+              *,
+              milestones (
+                id,
+                name,
+                amount,
+                status
+              )
+            `)
+            .eq('client_id', clientId)
+            .order('created_at', { ascending: false });
+            
+          return updatedProjects || [];
+        }
       }
     }
   }
@@ -202,43 +267,23 @@ export const getClientInvoices = async (projectIds: string[] = []) => {
       });
       
     if (error) {
-      console.error('Error fetching client invoices:', error);
+      console.error('Error calling get_client_invoices function:', error);
       
-      // Fallback direct query
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('milestones')
-        .select(`
-          id, 
-          name,
-          amount,
-          status,
-          project_id,
-          created_at,
-          updated_at
-        `)
-        .in('project_id', projectIds);
+      // Fallback to direct query if RPC fails
+      const { data: invoices, error: queryError } = await supabase
+        .from('invoices')
+        .select('*')
+        .in('project_id', projectIds)
+        .order('created_at', { ascending: false });
         
-      if (fallbackError) {
-        console.error('Error with fallback invoice fetch:', fallbackError);
+      if (queryError) {
+        console.error('Error fetching invoices directly:', queryError);
         return [];
       }
       
-      // Convert milestone data to invoice-like format
-      const mockInvoices = fallbackData?.map(milestone => ({
-        id: milestone.id,
-        invoice_number: `INV-${milestone.id.substring(0, 8)}`,
-        amount: milestone.amount,
-        status: milestone.status === 'completed' ? 'paid' : 'pending',
-        project_id: milestone.project_id,
-        milestone_id: milestone.id,
-        created_at: milestone.created_at,
-        updated_at: milestone.updated_at
-      })) || [];
-      
-      return mockInvoices;
+      return invoices || [];
     }
     
-    console.log('Fetched invoices:', data?.length || 0);
     return data || [];
   } catch (error) {
     console.error('Error fetching client invoices:', error);
