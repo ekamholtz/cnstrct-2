@@ -1,14 +1,19 @@
 // CORS Proxy for QuickBooks Online and Stripe API
 // This proxy helps bypass CORS restrictions during local development
 
-const express = require('express');
-const cors = require('cors');
-const axios = require('axios');
-const bodyParser = require('body-parser');
-const https = require('https');
-const { handleStripeRequest } = require('./stripe-proxy-handler');
-const dotenv = require('dotenv');
-const path = require('path');
+import express from 'express';
+import cors from 'cors';
+import axios from 'axios';
+import bodyParser from 'body-parser';
+import https from 'https';
+import { handleStripeRequest } from './stripe-proxy-handler.js';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get the directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../.env') });

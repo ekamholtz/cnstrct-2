@@ -5,10 +5,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { BaseQBOService } from "../services/BaseQBOService";
 import { AccountService } from "../services/AccountService";
-import { EntityReferenceService } from "../services/EntityReferenceService"; 
-import { BillService } from "../services/BillService";
+import { useEntityReferenceService } from "../services/entityReferenceService"; 
+import { useBillService } from "../services/billService";
 import { CustomerVendorService } from "../services/CustomerVendorService";
-import { InvoiceService } from "../services/InvoiceService";
+import { useInvoiceService } from "../services/invoiceService";
 import { usePaymentService } from "../services/paymentService";
 
 interface QBOAuthResponse {
@@ -27,11 +27,11 @@ export const useQBOService = () => {
 
   const baseService = new BaseQBOService();
   
-  // Initialize services with class-based approach
-  const entityReferenceService = new EntityReferenceService(baseService);
-  const billService = new BillService(baseService);
+  // Initialize services with hook-based approach
+  const entityReferenceService = useEntityReferenceService();
+  const billService = useBillService();
   const customerVendorService = new CustomerVendorService(baseService);
-  const invoiceService = new InvoiceService(baseService);
+  const invoiceService = useInvoiceService();
   const paymentService = usePaymentService();
 
   useEffect(() => {
@@ -138,15 +138,15 @@ export const useQBOService = () => {
     authUrl,
     connectQBO,
     disconnectQBO,
-    getEntityReference: entityReferenceService.getEntityReference.bind(entityReferenceService),
-    storeEntityReference: entityReferenceService.storeEntityReference.bind(entityReferenceService),
-    createBill: billService.createBill.bind(billService),
-    getVendorIdForExpense: entityReferenceService.getEntityReference.bind(entityReferenceService),
-    getCustomerIdForClient: entityReferenceService.getEntityReference.bind(entityReferenceService),
+    getEntityReference: entityReferenceService.getEntityReference,
+    storeEntityReference: entityReferenceService.storeEntityReference,
+    createBill: billService.createBill,
+    getVendorIdForExpense: entityReferenceService.getEntityReference,
+    getCustomerIdForClient: entityReferenceService.getEntityReference,
     findCustomerByEmail: customerVendorService.findCustomerByEmail.bind(customerVendorService),
     createCustomer: customerVendorService.createCustomer.bind(customerVendorService),
-    createInvoice: invoiceService.createInvoice.bind(invoiceService),
+    createInvoice: invoiceService.createInvoice,
     recordPayment: paymentService.recordPayment,
-    recordBillPayment: billService.createBillPayment.bind(billService)
+    recordBillPayment: billService.recordBillPayment
   };
 };

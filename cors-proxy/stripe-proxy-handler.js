@@ -1,6 +1,11 @@
-const stripe = require('stripe');
-const dotenv = require('dotenv');
-const path = require('path');
+import Stripe from 'stripe';
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get the directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Load environment variables from .env file
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
@@ -28,7 +33,7 @@ const handleStripeRequest = async (req, res) => {
     console.log(`Stripe API request: ${method.toUpperCase()} ${endpoint}`);
 
     // Initialize Stripe with the provided access token
-    const stripeClient = stripe(accessToken);
+    const stripeClient = new Stripe(accessToken);
 
     // Parse the endpoint to determine the Stripe API resource and action
     const endpointParts = endpoint.split('/');
@@ -197,6 +202,5 @@ const handleCheckoutRequest = async (stripeClient, endpointParts, method, data) 
   }
 };
 
-module.exports = {
-  handleStripeRequest
-};
+// Export the handler function
+export { handleStripeRequest };
