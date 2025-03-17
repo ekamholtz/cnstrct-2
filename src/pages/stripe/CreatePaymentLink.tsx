@@ -28,23 +28,19 @@ const CreatePaymentLink = () => {
   const { toast } = useToast();
   const supabase = useSupabaseClient();
   
-  // Platform fee percentage (e.g., 2.5%)
   const platformFeePercentage = 0.025;
   
   useEffect(() => {
-    // Check if the user has a connected Stripe account
     const checkConnectedAccount = async () => {
       try {
         setLoading(true);
         
-        // Get the current user
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           navigate('/login');
           return;
         }
         
-        // Check if the user has a connected account in the database
         const { data: accountData, error: accountError } = await supabase
           .from('stripe_connect_accounts')
           .select('*')
@@ -53,7 +49,6 @@ const CreatePaymentLink = () => {
         
         if (accountError) {
           if (accountError.code === 'PGRST116') {
-            // No account found
             toast({
               title: 'Stripe Account Required',
               description: 'You need to connect a Stripe account before creating payment links.',
@@ -104,7 +99,6 @@ const CreatePaymentLink = () => {
     setPaymentLink(null);
     
     try {
-      // Validate form data
       if (!formData.amount || isNaN(parseFloat(formData.amount)) || parseFloat(formData.amount) <= 0) {
         setError('Please enter a valid amount');
         return;
@@ -115,17 +109,12 @@ const CreatePaymentLink = () => {
         return;
       }
       
-      // Convert amount to cents
       const amountInCents = Math.round(parseFloat(formData.amount) * 100);
       
-      // Calculate platform fee
       const platformFeeAmount = Math.round(amountInCents * platformFeePercentage);
       
-      // Get the access token from secure storage
-      // This is a placeholder - you'll need to implement secure token storage
       const accessToken = 'YOUR_STRIPE_ACCESS_TOKEN';
       
-      // Create the payment link
       const paymentLinkData = await createPaymentLink(
         amountInCents,
         'usd',
@@ -140,7 +129,6 @@ const CreatePaymentLink = () => {
         }
       );
       
-      // Store the payment link in the database
       const { error: insertError } = await supabase
         .from('payment_links')
         .insert({
@@ -207,12 +195,10 @@ const CreatePaymentLink = () => {
     navigate(-1);
   };
   
-  // Calculate the estimated platform fee
   const estimatedFee = formData.amount 
     ? `$${(parseFloat(formData.amount) * platformFeePercentage).toFixed(2)}`
     : '$0.00';
   
-  // Calculate the estimated payout
   const estimatedPayout = formData.amount
     ? `$${(parseFloat(formData.amount) * (1 - platformFeePercentage)).toFixed(2)}`
     : '$0.00';

@@ -22,25 +22,21 @@ const StripeConnectOnboarding = () => {
   const { toast } = useToast();
   const supabase = useSupabaseClient();
   
-  // Parse query parameters
   const queryParams = new URLSearchParams(location.search);
   const success = queryParams.get('success') === 'true';
   const refresh = queryParams.get('refresh') === 'true';
 
   useEffect(() => {
-    // Check if the user already has a connected account
     const checkConnectedAccount = async () => {
       try {
         setLoading(true);
         
-        // Get the current user
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           navigate('/login');
           return;
         }
         
-        // Check if the user has a connected account in the database
         const { data: accountData, error: accountError } = await supabase
           .from('stripe_connect_accounts')
           .select('*')
@@ -54,11 +50,7 @@ const StripeConnectOnboarding = () => {
         }
         
         if (accountData) {
-          // Get the access token from secure storage
-          // This is a placeholder - you'll need to implement secure token storage
           const accessToken = 'YOUR_STRIPE_ACCESS_TOKEN';
-          
-          // Get the account details from Stripe
           const accountDetails = await getConnectedAccount(accountData.account_id, accessToken);
           
           setAccountStatus({
@@ -68,7 +60,6 @@ const StripeConnectOnboarding = () => {
             detailsSubmitted: accountDetails.details_submitted
           });
           
-          // If the user just completed onboarding successfully
           if (success && !refresh) {
             toast({
               title: 'Account Connected',
@@ -93,21 +84,16 @@ const StripeConnectOnboarding = () => {
     setError(null);
     
     try {
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         navigate('/login');
         return;
       }
       
-      // Get the access token from secure storage
-      // This is a placeholder - you'll need to implement secure token storage
       const accessToken = 'YOUR_STRIPE_ACCESS_TOKEN';
       
-      // Create a Stripe Connect account
       const account = await createConnectedAccount(user.id, accessToken);
       
-      // Store the account ID in the database
       const { error: insertError } = await supabase
         .from('stripe_connect_accounts')
         .insert({
@@ -124,13 +110,11 @@ const StripeConnectOnboarding = () => {
         return;
       }
       
-      // Create an account link for onboarding
       const refreshUrl = `${window.location.origin}/settings/payments?refresh=true`;
       const returnUrl = `${window.location.origin}/settings/payments?success=true`;
       
       const accountLink = await createAccountLink(account.id, accessToken, refreshUrl, returnUrl);
       
-      // Redirect to Stripe's hosted onboarding
       window.location.href = accountLink.url;
     } catch (err: any) {
       console.error('Error connecting Stripe account:', err);

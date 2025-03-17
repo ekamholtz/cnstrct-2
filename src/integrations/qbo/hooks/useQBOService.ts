@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from "@tanstack/react-query";
@@ -5,10 +6,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { BaseQBOService } from "../services/BaseQBOService";
 import { AccountService } from "../services/AccountService";
-import { EntityReferenceService } from "../services/EntityReferenceService"; 
-import { BillService } from "../services/BillService";
+// Import files with consistent casing
+import { EntityReferenceService } from "../services/entityReferenceService"; 
+import { BillService } from "../services/billService";
 import { CustomerVendorService } from "../services/CustomerVendorService";
-import { InvoiceService } from "../services/InvoiceService";
+import { InvoiceService } from "../services/invoiceService";
 import { usePaymentService } from "../services/paymentService";
 
 interface QBOAuthResponse {

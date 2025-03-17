@@ -1,6 +1,5 @@
 
 import { useState } from 'react';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useToast } from '@/components/ui/use-toast';
 import { 
   getStripeAccessToken,
@@ -11,6 +10,7 @@ import {
   saveConnectedAccount,
   createLoginLink
 } from '@/integrations/stripe/services/StripeConnectService';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
 
 export const useStripeConnect = () => {
   const [loading, setLoading] = useState(false);
