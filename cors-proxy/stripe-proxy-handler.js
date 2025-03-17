@@ -32,54 +32,77 @@ const handleStripeRequest = async (req, res) => {
 
     console.log(`Stripe API request: ${method.toUpperCase()} ${endpoint}`);
 
-    // Initialize Stripe with the provided access token
-    const stripeClient = new Stripe(accessToken, {
-      apiVersion: '2023-10-16', // Use a specific API version
-      maxNetworkRetries: 2, // Automatically retry requests that fail due to network problems
-      timeout: 30000 // 30 seconds
-    });
+    try {
+      // Initialize Stripe with the provided access token
+      const stripeClient = new Stripe(accessToken, {
+        apiVersion: '2023-10-16', // Use a specific API version
+        maxNetworkRetries: 2, // Automatically retry requests that fail due to network problems
+        timeout: 30000 // 30 seconds
+      });
 
-    // Parse the endpoint to determine the Stripe API resource and action
-    const endpointParts = endpoint.split('/');
-    const resource = endpointParts[0];
+      // Parse the endpoint to determine the Stripe API resource and action
+      const endpointParts = endpoint.split('/');
+      const resource = endpointParts[0];
 
-    let result;
+      let result;
 
-    // Handle different Stripe API resources
-    switch (resource) {
-      case 'accounts':
-        result = await handleAccountsRequest(stripeClient, endpointParts, method, data);
-        break;
+      // Handle different Stripe API resources
+      switch (resource) {
+        case 'accounts':
+          result = await handleAccountsRequest(stripeClient, endpointParts, method, data);
+          break;
+        
+        case 'account_links':
+          result = await handleAccountLinksRequest(stripeClient, endpointParts, method, data);
+          break;
+        
+        case 'payment_intents':
+          result = await handlePaymentIntentsRequest(stripeClient, endpointParts, method, data);
+          break;
+        
+        case 'payment_links':
+          result = await handlePaymentLinksRequest(stripeClient, endpointParts, method, data);
+          break;
+        
+        case 'checkout':
+          result = await handleCheckoutRequest(stripeClient, endpointParts, method, data);
+          break;
+        
+        default:
+          return res.status(400).json({ error: `Unsupported Stripe resource: ${resource}` });
+      }
+
+      return res.json(result);
+    } catch (stripeError) {
+      console.error('Stripe API error:', stripeError);
       
-      case 'account_links':
-        result = await handleAccountLinksRequest(stripeClient, endpointParts, method, data);
-        break;
-      
-      case 'payment_intents':
-        result = await handlePaymentIntentsRequest(stripeClient, endpointParts, method, data);
-        break;
-      
-      case 'payment_links':
-        result = await handlePaymentLinksRequest(stripeClient, endpointParts, method, data);
-        break;
-      
-      case 'checkout':
-        result = await handleCheckoutRequest(stripeClient, endpointParts, method, data);
-        break;
-      
-      default:
-        return res.status(400).json({ error: `Unsupported Stripe resource: ${resource}` });
+      // Return a more descriptive error response based on the error type
+      if (stripeError.type === 'StripeAuthenticationError') {
+        return res.status(401).json({
+          error: 'Invalid API key provided',
+          type: stripeError.type,
+          code: stripeError.code,
+          message: stripeError.message
+        });
+      } else if (stripeError.type === 'StripeConnectionError') {
+        return res.status(503).json({
+          error: 'Could not connect to Stripe API',
+          type: stripeError.type,
+          code: stripeError.code,
+          message: stripeError.message
+        });
+      } else {
+        return res.status(500).json({ 
+          error: stripeError.message,
+          type: stripeError.type,
+          code: stripeError.code,
+          param: stripeError.param
+        });
+      }
     }
-
-    return res.json(result);
   } catch (error) {
-    console.error('Stripe API error:', error);
-    return res.status(500).json({ 
-      error: error.message,
-      type: error.type,
-      code: error.code,
-      param: error.param
-    });
+    console.error('Stripe proxy handler error:', error);
+    return res.status(500).json({ error: error.message });
   }
 };
 

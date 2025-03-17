@@ -6,15 +6,32 @@ import { supabase } from '@/integrations/supabase/client';
 const proxyUrl = 'http://localhost:3030/proxy/stripe';
 
 /**
- * Retrieves the Stripe access token from Supabase
+ * Retrieves the Stripe access token from environment or falls back to default
  * @returns The Stripe access token
  */
 export const getStripeAccessToken = async (): Promise<string | null> => {
   try {
-    // In a production environment, we would store the access token in Supabase
-    // This is just for demonstration purposes and should be secured in a real app
-    // Normally this would be retrieved from server-side storage only
-    return process.env.STRIPE_SECRET_KEY || 'sk_test_your_test_key';
+    // Try to get the token from the environment
+    // In a real production app, you would store this securely, not in localStorage
+    const token = import.meta.env.VITE_STRIPE_SECRET_KEY || localStorage.getItem('STRIPE_SECRET_KEY');
+    
+    if (token) {
+      return token;
+    }
+    
+    // Try to make a request to the proxy to get the default server-side key
+    try {
+      const response = await axios.get('http://localhost:3030');
+      if (response.data && response.data.stripe_configured) {
+        // Server has a key configured, we can use the proxy without providing a key
+        return 'proxy_will_use_server_key';
+      }
+    } catch (err) {
+      console.error('Could not check proxy configuration:', err);
+    }
+    
+    console.warn('No Stripe secret key found. Please set VITE_STRIPE_SECRET_KEY in your environment.');
+    return null;
   } catch (error) {
     console.error('Error retrieving Stripe access token:', error);
     return null;
@@ -136,31 +153,56 @@ export const createLoginLink = async (accountId: string, accessToken: string) =>
 };
 
 /**
- * Check if the execute_sql function exists and create it if it doesn't
+ * Check if the stripe_connect_accounts table exists and create it if it doesn't
  */
-const ensureExecuteSqlFunction = async () => {
+const ensureTablesExist = async () => {
   try {
-    // First check if the function exists
-    const { data, error } = await supabase.rpc('execute_sql', { query: 'SELECT 1' });
-    
-    if (error && error.message.includes('function') && error.message.includes('does not exist')) {
-      console.log('execute_sql function does not exist, creating it...');
-      
-      // Create the function directly using SQL
-      const { error: createError } = await supabase.from('_sqlfunction_creation_dummy').select('*');
-      
-      if (createError && createError.message.includes('relation "_sqlfunction_creation_dummy" does not exist')) {
-        console.log('Using alternative approach to create function...');
-        // We'll have to request the user to create this function manually
-        console.error('Please create the execute_sql function manually in the Supabase SQL editor');
+    // Check if the table exists first
+    try {
+      const { data, error } = await supabase.from('stripe_connect_accounts').select('count(*)', { count: 'exact', head: true });
+      if (!error) {
+        // Table exists
+        return true;
       }
-      
-      return false;
+    } catch (error: any) {
+      // Table might not exist
+      if (error.message && error.message.includes('does not exist')) {
+        try {
+          // Try to execute execute_sql function
+          const { data: sqlData, error: sqlError } = await supabase.rpc('execute_sql', {
+            query: `
+              CREATE TABLE IF NOT EXISTS stripe_connect_accounts (
+                id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+                user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+                account_id TEXT NOT NULL UNIQUE,
+                charges_enabled BOOLEAN DEFAULT FALSE,
+                payouts_enabled BOOLEAN DEFAULT FALSE,
+                details_submitted BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+              );
+            `
+          });
+          
+          if (!sqlError) {
+            console.log('Successfully created stripe_connect_accounts table');
+            return true;
+          } else if (sqlError.message && sqlError.message.includes('function') && sqlError.message.includes('does not exist')) {
+            console.error('execute_sql function does not exist. Tables cannot be created automatically.');
+            return false;
+          } else {
+            throw sqlError;
+          }
+        } catch (rpcError: any) {
+          console.error('Error creating tables via RPC:', rpcError);
+          return false;
+        }
+      }
     }
     
     return true;
   } catch (error) {
-    console.error('Error checking execute_sql function:', error);
+    console.error('Error checking tables existence:', error);
     return false;
   }
 };
@@ -178,8 +220,12 @@ export const saveConnectedAccount = async (
   accountDetails: any
 ) => {
   try {
-    // First, ensure we have the execute_sql function
-    await ensureExecuteSqlFunction();
+    // First, ensure we have the tables
+    const tablesExist = await ensureTablesExist();
+    
+    if (!tablesExist) {
+      throw new Error('Database tables not found. Please run the SQL migrations.');
+    }
     
     // Try to save directly to the table
     try {
@@ -221,6 +267,13 @@ export const saveConnectedAccount = async (
  */
 export const getConnectedAccountFromDB = async (userId: string) => {
   try {
+    // First, ensure we have the tables
+    const tablesExist = await ensureTablesExist();
+    
+    if (!tablesExist) {
+      throw new Error('Database tables not found. Please run the SQL migrations.');
+    }
+    
     try {
       const { data, error } = await supabase
         .from('stripe_connect_accounts')

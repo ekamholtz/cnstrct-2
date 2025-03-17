@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,8 @@ import { useStripeConnect } from '@/hooks/useStripeConnect';
 import { ArrowRight, ExternalLink, CheckCircle, XCircle, Loader2, AlertTriangle, Database, HelpCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { MainNav } from '@/components/navigation/MainNav';
+import { PageHeader } from '@/components/shared/PageHeader';
 
 const PaymentSettings = () => {
   const [loading, setLoading] = useState(false);
@@ -228,194 +231,202 @@ const PaymentSettings = () => {
   };
   
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold mb-6">Payment Settings</h1>
-      
-      {isMissingTables && renderDatabaseSetupRequired()}
-      
-      <Tabs defaultValue="stripe" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="stripe">Stripe Connect</TabsTrigger>
-          <TabsTrigger value="settings">Payment Preferences</TabsTrigger>
-        </TabsList>
+    <>
+      <div className="bg-[#172b70] text-white">
+        <MainNav />
+      </div>
+      <div className="container mx-auto py-24 px-4"> {/* Increased top padding to avoid header overlap */}
+        <PageHeader 
+          title="Payment Settings" 
+          description="Manage your payment processing settings and Stripe Connect account"
+        />
         
-        <TabsContent value="stripe">
-          <Card>
-            <CardHeader>
-              <CardTitle>Stripe Connect</CardTitle>
-              <CardDescription>
-                Connect your Stripe account to receive payments from your customers
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              {!isMissingTables && renderErrorState()}
+        {isMissingTables && renderDatabaseSetupRequired()}
+        
+        <Tabs defaultValue="stripe" className="w-full mt-8">
+          <TabsList className="mb-4">
+            <TabsTrigger value="stripe">Stripe Connect</TabsTrigger>
+            <TabsTrigger value="settings">Payment Preferences</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="stripe">
+            <Card>
+              <CardHeader>
+                <CardTitle>Stripe Connect</CardTitle>
+                <CardDescription>
+                  Connect your Stripe account to receive payments from your customers
+                </CardDescription>
+              </CardHeader>
               
-              {(loading || stripeLoading) && !initialSetupDone ? (
-                renderLoadingState()
-              ) : accountStatus.accountId ? (
-                <div className="space-y-4">
-                  <h3 className="text-lg font-medium">Account Status</h3>
-                  
-                  <div className="grid grid-cols-1 gap-3">
-                    <div className="flex items-center">
-                      {accountStatus.detailsSubmitted ? (
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-red-500 mr-2" />
-                      )}
-                      <span>Account details submitted</span>
-                    </div>
+              <CardContent>
+                {!isMissingTables && renderErrorState()}
+                
+                {(loading || stripeLoading) && !initialSetupDone ? (
+                  renderLoadingState()
+                ) : accountStatus.accountId ? (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">Account Status</h3>
                     
-                    <div className="flex items-center">
-                      {accountStatus.chargesEnabled ? (
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-red-500 mr-2" />
-                      )}
-                      <span>Charges enabled</span>
-                    </div>
-                    
-                    <div className="flex items-center">
-                      {accountStatus.payoutsEnabled ? (
-                        <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
-                      ) : (
-                        <XCircle className="h-5 w-5 text-red-500 mr-2" />
-                      )}
-                      <span>Payouts enabled</span>
-                    </div>
-                  </div>
-                  
-                  {(!accountStatus.detailsSubmitted || !accountStatus.chargesEnabled || !accountStatus.payoutsEnabled) && (
-                    <div className="mt-4">
-                      <p className="text-amber-600 mb-2">
-                        Your account setup is incomplete. Please complete the onboarding process to start accepting payments.
-                      </p>
-                      <Button 
-                        onClick={handleConnectStripe} 
-                        disabled={loading || creatingAccount || isMissingTables}
-                      >
-                        {creatingAccount ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Completing Setup...
-                          </>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="flex items-center">
+                        {accountStatus.detailsSubmitted ? (
+                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
                         ) : (
-                          'Complete Account Setup'
+                          <XCircle className="h-5 w-5 text-red-500 mr-2" />
                         )}
-                      </Button>
-                    </div>
-                  )}
-                  
-                  {accountStatus.detailsSubmitted && accountStatus.chargesEnabled && accountStatus.payoutsEnabled && (
-                    <div className="mt-4 space-y-4">
-                      <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
-                        Your Stripe account is fully set up and ready to accept payments!
+                        <span>Account details submitted</span>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-lg">Create Payment Link</CardTitle>
-                            <CardDescription>
-                              Generate a payment link to send to your customers
-                            </CardDescription>
-                          </CardHeader>
-                          <CardFooter>
-                            <Button onClick={handleCreatePaymentLink} className="w-full">
-                              Create Payment Link
-                              <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                          </CardFooter>
-                        </Card>
-                        
-                        <Card>
-                          <CardHeader className="pb-2">
-                            <CardTitle className="text-lg">Payment History</CardTitle>
-                            <CardDescription>
-                              View your payment history and transaction details
-                            </CardDescription>
-                          </CardHeader>
-                          <CardFooter>
-                            <Button onClick={handleViewPaymentHistory} className="w-full">
-                              View History
-                              <ArrowRight className="ml-2 h-4 w-4" />
-                            </Button>
-                          </CardFooter>
-                        </Card>
+                      <div className="flex items-center">
+                        {accountStatus.chargesEnabled ? (
+                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-500 mr-2" />
+                        )}
+                        <span>Charges enabled</span>
+                      </div>
+                      
+                      <div className="flex items-center">
+                        {accountStatus.payoutsEnabled ? (
+                          <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                        ) : (
+                          <XCircle className="h-5 w-5 text-red-500 mr-2" />
+                        )}
+                        <span>Payouts enabled</span>
                       </div>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <p>
-                    To accept payments from your customers through CNSTRCT Network, you'll need to connect your Stripe account.
-                    This allows you to receive payments directly to your bank account.
-                  </p>
-                  
-                  <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
-                    <h4 className="font-medium">What you'll need:</h4>
-                    <ul className="list-disc list-inside mt-2">
-                      <li>Your business information</li>
-                      <li>Your bank account details</li>
-                      <li>A government-issued ID</li>
-                    </ul>
+                    
+                    {(!accountStatus.detailsSubmitted || !accountStatus.chargesEnabled || !accountStatus.payoutsEnabled) && (
+                      <div className="mt-4">
+                        <p className="text-amber-600 mb-2">
+                          Your account setup is incomplete. Please complete the onboarding process to start accepting payments.
+                        </p>
+                        <Button 
+                          onClick={handleConnectStripe} 
+                          disabled={loading || creatingAccount || isMissingTables}
+                        >
+                          {creatingAccount ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Completing Setup...
+                            </>
+                          ) : (
+                            'Complete Account Setup'
+                          )}
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {accountStatus.detailsSubmitted && accountStatus.chargesEnabled && accountStatus.payoutsEnabled && (
+                      <div className="mt-4 space-y-4">
+                        <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded">
+                          Your Stripe account is fully set up and ready to accept payments!
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Card>
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-lg">Create Payment Link</CardTitle>
+                              <CardDescription>
+                                Generate a payment link to send to your customers
+                              </CardDescription>
+                            </CardHeader>
+                            <CardFooter>
+                              <Button onClick={handleCreatePaymentLink} className="w-full">
+                                Create Payment Link
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                              </Button>
+                            </CardFooter>
+                          </Card>
+                          
+                          <Card>
+                            <CardHeader className="pb-2">
+                              <CardTitle className="text-lg">Payment History</CardTitle>
+                              <CardDescription>
+                                View your payment history and transaction details
+                              </CardDescription>
+                            </CardHeader>
+                            <CardFooter>
+                              <Button onClick={handleViewPaymentHistory} className="w-full">
+                                View History
+                                <ArrowRight className="ml-2 h-4 w-4" />
+                              </Button>
+                            </CardFooter>
+                          </Card>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
-            </CardContent>
-            
-            <CardFooter className="flex justify-between">
-              {!accountStatus.accountId && (
-                <Button 
-                  onClick={handleConnectStripe} 
-                  disabled={loading || creatingAccount || !user || isMissingTables}
-                  className="w-full md:w-auto"
-                >
-                  {creatingAccount ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    'Connect with Stripe'
-                  )}
-                </Button>
-              )}
+                ) : (
+                  <div className="space-y-4">
+                    <p>
+                      To accept payments from your customers through CNSTRCT Network, you'll need to connect your Stripe account.
+                      This allows you to receive payments directly to your bank account.
+                    </p>
+                    
+                    <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
+                      <h4 className="font-medium">What you'll need:</h4>
+                      <ul className="list-disc list-inside mt-2">
+                        <li>Your business information</li>
+                        <li>Your bank account details</li>
+                        <li>A government-issued ID</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
               
-              {accountStatus.accountId && (
-                <Button 
-                  variant="outline" 
-                  onClick={handleManageAccount}
-                  disabled={loading}
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" />
-                  Manage Stripe Account
-                </Button>
-              )}
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="settings">
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Preferences</CardTitle>
-              <CardDescription>
-                Configure your payment preferences and settings
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent>
-              <p className="text-gray-600">
-                Payment preferences will be available once you've connected your Stripe account.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
+              <CardFooter className="flex justify-between">
+                {!accountStatus.accountId && (
+                  <Button 
+                    onClick={handleConnectStripe} 
+                    disabled={loading || creatingAccount || isMissingTables}
+                    className="w-full md:w-auto"
+                  >
+                    {creatingAccount ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Connecting...
+                      </>
+                    ) : (
+                      'Connect with Stripe'
+                    )}
+                  </Button>
+                )}
+                
+                {accountStatus.accountId && (
+                  <Button 
+                    variant="outline" 
+                    onClick={handleManageAccount}
+                    disabled={loading}
+                  >
+                    <ExternalLink className="mr-2 h-4 w-4" />
+                    Manage Stripe Account
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <CardTitle>Payment Preferences</CardTitle>
+                <CardDescription>
+                  Configure your payment preferences and settings
+                </CardDescription>
+              </CardHeader>
+              
+              <CardContent>
+                <p className="text-gray-600">
+                  Payment preferences will be available once you've connected your Stripe account.
+                </p>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </>
   );
 };
 
