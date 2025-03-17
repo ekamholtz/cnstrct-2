@@ -29,6 +29,11 @@ import QBOCallback from "@/pages/qbo/QBOCallbackFinal";
 import Settings from "@/pages/Settings";
 import TermsOfService from "@/pages/TermsOfService";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
+// Import Stripe Connect components
+import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
+import CreatePaymentLink from "@/pages/stripe/CreatePaymentLink";
+import PaymentHistory from "@/pages/stripe/PaymentHistory";
+import PaymentSettings from "@/pages/settings/PaymentSettings";
 
 export const AppRoutes = () => {
   return (
@@ -218,6 +223,39 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <Settings />
+          </ProtectedRoute>
+        }
+      />
+      {/* Stripe Connect Routes */}
+      <Route
+        path="/settings/payments"
+        element={
+          <ProtectedRoute>
+            <PaymentSettings />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stripe/onboarding"
+        element={
+          <ProtectedRoute>
+            <StripeConnectOnboarding />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stripe/create-payment"
+        element={
+          <ProtectedRoute>
+            <CreatePaymentLink />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stripe/payment-history"
+        element={
+          <ProtectedRoute>
+            <PaymentHistory />
           </ProtectedRoute>
         }
       />

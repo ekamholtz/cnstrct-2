@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,8 +5,10 @@ import { QBOSettings } from "@/components/settings/QBOSettings";
 import { SubscriptionSettings } from "@/components/settings/SubscriptionSettings";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Button } from "@/components/ui/button";
+import { CreditCard, ArrowRight } from "lucide-react";
 
 export default function Settings() {
   const { user, loading } = useAuth();
@@ -49,15 +50,43 @@ export default function Settings() {
           <Card>
             <CardHeader>
               <CardTitle>Subscription Management</CardTitle>
-              <CardDescription>
-                Manage your subscription plan and billing details
-              </CardDescription>
+              <CardDescription>Manage your CNSTRCT subscription</CardDescription>
             </CardHeader>
             <CardContent>
               <SubscriptionSettings />
             </CardContent>
           </Card>
           
+          {/* Payment Processing Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Processing</CardTitle>
+              <CardDescription>Set up and manage Stripe Connect to receive payments from your customers</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p>
+                  Connect your Stripe account to receive payments directly from your customers through CNSTRCT.
+                </p>
+                <div className="flex items-center space-x-4">
+                  <CreditCard className="h-8 w-8 text-cnstrct-navy" />
+                  <div>
+                    <h3 className="text-lg font-medium">Stripe Connect</h3>
+                    <p className="text-sm text-gray-500">
+                      Accept payments, track transactions, and manage your payment settings
+                    </p>
+                  </div>
+                </div>
+                <Button asChild>
+                  <Link to="/settings/payments">
+                    Manage Payment Settings
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Integrations Section */}
           <Tabs defaultValue="qbo" className="w-full">
             <TabsList className="mb-6">
