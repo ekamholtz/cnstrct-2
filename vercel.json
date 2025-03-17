@@ -9,8 +9,8 @@
       "destination": "/api/proxy/stripe.js"
     },
     {
-      "source": "/(.*)",
-      "destination": "/"
+      "source": "/((?!api/).*)",
+      "destination": "/index.html"
     }
   ]
 }
