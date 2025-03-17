@@ -119,7 +119,7 @@ export const getClientProjects = async () => {
 async function getProjectsForClient(clientId: string) {
   console.log('Fetching projects for client ID:', clientId);
   
-  // First try a direct query without any joins to confirm projects exist
+  // DIRECT QUERY - First try a direct query without any joins to confirm projects exist
   const { data: simpleProjects, error: simpleError } = await supabase
     .from('projects')
     .select('*')
@@ -129,9 +129,38 @@ async function getProjectsForClient(clientId: string) {
     console.error('Error in simple projects query:', simpleError);
   } else {
     console.log('Simple projects query found:', simpleProjects?.length || 0, 'projects');
+    
+    // If we found projects with the simple query, return them immediately with milestones
+    if (simpleProjects && simpleProjects.length > 0) {
+      console.log('Found projects with simple query, fetching with milestones...');
+      
+      // Get all projects for this client, including milestones
+      const { data: projectsWithMilestones, error: milestonesError } = await supabase
+        .from('projects')
+        .select(`
+          *,
+          milestones (
+            id,
+            name,
+            amount,
+            status
+          )
+        `)
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+        
+      if (milestonesError) {
+        console.error('Error fetching projects with milestones:', milestonesError);
+        // Fall back to simple projects if milestone query fails
+        return simpleProjects;
+      }
+      
+      console.log('Successfully fetched', projectsWithMilestones?.length || 0, 'projects with milestones');
+      return projectsWithMilestones || simpleProjects;
+    }
   }
   
-  // Get all projects for this client, including milestones
+  // FALLBACK QUERY - Try the original query with milestones if simple query didn't work
   const { data: projects, error: projectError } = await supabase
     .from('projects')
     .select(`
@@ -147,7 +176,11 @@ async function getProjectsForClient(clientId: string) {
     .order('created_at', { ascending: false });
     
   if (projectError) {
-    console.error('Error fetching client projects:', projectError);
+    console.error('Error fetching client projects with milestones:', projectError);
+    // Return simple projects if we found any
+    if (simpleProjects && simpleProjects.length > 0) {
+      return simpleProjects;
+    }
     throw projectError;
   }
   
