@@ -3,7 +3,19 @@ import { useState } from "react";
 import { useSyncExpenseToQBO } from "@/hooks/useSyncExpenseToQBO";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
 import { useToast } from "@/components/ui/use-toast";
-import { Expense } from "../types";
+
+interface Expense {
+  id: string;
+  name: string;
+  expense_date: string;
+  amount: number;
+  expense_type: string;
+  payee: string;
+  project_id: string;
+  notes?: string;
+  qbo_sync_status?: string;
+  qbo_entity_id?: string;
+}
 
 export function useExpenseQBOSync() {
   const [glAccountId, setGlAccountId] = useState<string>("");
@@ -17,19 +29,8 @@ export function useExpenseQBOSync() {
     }
     
     try {
-      // Create a properly typed ExpenseData object for syncing
-      await syncExpenseMutation.mutateAsync({ 
-        id: expense.id,
-        name: expense.name,
-        expense_date: expense.expense_date,
-        amount: expense.amount,
-        expense_type: expense.expense_type,
-        vendor_name: expense.payee,
-        project_id: expense.project_id,
-        notes: expense.notes,
-        qbo_sync_status: expense.qbo_sync_status,
-        qbo_entity_id: expense.qbo_entity_id
-      });
+      // Call the syncExpenseToQBO method with the expense ID
+      await syncExpenseMutation.syncExpenseToQBO(expense.id);
     } catch (qboError) {
       console.error("Error syncing to QBO:", qboError);
       toast({
@@ -46,6 +47,6 @@ export function useExpenseQBOSync() {
     glAccountId,
     setGlAccountId,
     syncExpenseToQBO,
-    isSyncing: syncExpenseMutation.isPending,
+    isSyncing: syncExpenseMutation.isSyncing,
   };
 }

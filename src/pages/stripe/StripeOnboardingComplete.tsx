@@ -1,120 +1,83 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Loader2 } from 'lucide-react';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { useToast } from '@/components/ui/use-toast';
-import { getConnectedAccountFromDB, getConnectedAccount, getStripeAccessToken, saveConnectedAccount } from '@/integrations/stripe/services/StripeConnectService';
+import { CheckCircle, ArrowRight, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 const StripeOnboardingComplete = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const supabase = useSupabaseClient();
+  const { user } = useAuth();
   
   useEffect(() => {
-    const updateAccountStatus = async () => {
-      try {
-        setLoading(true);
-        
-        // Get the current user
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          navigate('/auth');
-          return;
-        }
-        
-        // Get the access token
-        const accessToken = await getStripeAccessToken();
-        if (!accessToken) {
-          setError('Could not retrieve Stripe access token');
-          return;
-        }
-        
-        // Get the connected account from the database
-        const accountData = await getConnectedAccountFromDB(user.id);
-        if (!accountData || !accountData.account_id) {
-          setError('No Stripe Connect account found');
-          return;
-        }
-        
-        // Get the latest account details from Stripe
-        const accountDetails = await getConnectedAccount(accountData.account_id, accessToken);
-        
-        // Update the account in the database
-        await saveConnectedAccount(user.id, accountData.account_id, accountDetails);
-        
-        setSuccess(true);
-        
-        toast({
-          title: 'Stripe Connect Account Updated',
-          description: 'Your Stripe Connect account information has been updated successfully.',
-          duration: 5000,
-        });
-      } catch (err: any) {
-        console.error('Error updating Stripe account status:', err);
-        setError(err.message || 'Failed to update Stripe account status');
-        
-        toast({
-          title: 'Error',
-          description: 'Failed to update Stripe account status. Please try again.',
-          variant: 'destructive',
-          duration: 5000,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+    // Simulate a loading delay for better UX
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1500);
     
-    updateAccountStatus();
-  }, [navigate, supabase, toast]);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  const handleGoToPaymentSettings = () => {
+    navigate('/settings/payments');
+  };
+  
+  const handleCreatePaymentLink = () => {
+    navigate('/stripe/create-payment');
+  };
+  
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-16 px-4 flex flex-col items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-12 w-12 text-primary animate-spin mb-4" />
+        <h2 className="text-2xl font-bold text-center mb-2">Finalizing Your Stripe Setup</h2>
+        <p className="text-gray-600 text-center max-w-md">
+          Just a moment while we complete the integration with your Stripe account...
+        </p>
+      </div>
+    );
+  }
   
   return (
-    <div className="container mx-auto py-16 px-4 max-w-md">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">Stripe Onboarding</CardTitle>
+    <div className="container mx-auto py-16 px-4">
+      <Card className="max-w-lg mx-auto">
+        <CardHeader className="text-center">
+          <div className="mx-auto bg-green-100 p-3 rounded-full w-16 h-16 flex items-center justify-center mb-4">
+            <CheckCircle className="h-8 w-8 text-green-600" />
+          </div>
+          <CardTitle className="text-2xl">Stripe Account Connected!</CardTitle>
           <CardDescription>
-            Processing your Stripe Connect account
+            Your Stripe account has been successfully connected to CNSTRCT Network
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="space-y-4">
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="h-12 w-12 animate-spin text-cnstrct-navy mb-4" />
-              <p className="text-lg text-center">
-                Updating your Stripe Connect account information...
-              </p>
+        <CardContent>
+          <div className="space-y-4">
+            <p>
+              You can now accept payments from your customers directly to your bank account. 
+              Your payment information is securely stored and managed by Stripe.
+            </p>
+            
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 p-4 rounded-md">
+              <h4 className="font-medium mb-2">What's Next?</h4>
+              <ul className="list-disc list-inside space-y-1">
+                <li>Create a payment link to share with your customers</li>
+                <li>Set up your payment preferences</li>
+                <li>Manage your Stripe account settings</li>
+              </ul>
             </div>
-          ) : error ? (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              <p className="font-semibold">Error</p>
-              <p>{error}</p>
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center py-8">
-              <CheckCircle className="h-16 w-16 text-green-500 mb-4" />
-              <h3 className="text-xl font-medium text-center mb-2">
-                Stripe Connect Account Updated
-              </h3>
-              <p className="text-center text-gray-600">
-                Your Stripe Connect account has been successfully updated. You can now start accepting payments from your customers.
-              </p>
-            </div>
-          )}
+          </div>
         </CardContent>
         
-        <CardFooter className="flex justify-center">
-          <Button asChild disabled={loading}>
-            <Link to="/settings/payments">
-              Return to Payment Settings
-            </Link>
+        <CardFooter className="flex flex-col sm:flex-row gap-3">
+          <Button onClick={handleGoToPaymentSettings} variant="outline" className="w-full sm:w-auto">
+            Payment Settings
+          </Button>
+          <Button onClick={handleCreatePaymentLink} className="w-full sm:w-auto">
+            Create Payment Link
+            <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </CardFooter>
       </Card>

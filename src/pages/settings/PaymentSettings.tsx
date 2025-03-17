@@ -14,12 +14,14 @@ import {
   createAccountLink,
   saveConnectedAccount
 } from '@/integrations/stripe/services/StripeConnectService';
-import { ArrowRight, ExternalLink, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { useStripeConnect } from '@/hooks/useStripeConnect';
+import { ArrowRight, ExternalLink, CheckCircle, XCircle, Loader2, AlertTriangle, Database, HelpCircle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const PaymentSettings = () => {
   const [loading, setLoading] = useState(false);
   const [creatingAccount, setCreatingAccount] = useState(false);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [accountStatus, setAccountStatus] = useState<{
     accountId?: string;
     chargesEnabled?: boolean;
@@ -27,120 +29,93 @@ const PaymentSettings = () => {
     detailsSubmitted?: boolean;
   }>({});
   const [error, setError] = useState<string | null>(null);
+  const [initialSetupDone, setInitialSetupDone] = useState(false);
+  const [isMissingTables, setIsMissingTables] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, loading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const { 
+    getAccountStatus, 
+    connectStripeAccount, 
+    getLoginLink, 
+    loading: stripeLoading,
+    error: stripeError
+  } = useStripeConnect();
   
-  // Fetch the Stripe access token on component mount
   useEffect(() => {
-    const fetchAccessToken = async () => {
-      try {
-        const token = await getStripeAccessToken();
-        setAccessToken(token);
-        if (!token) {
-          setError("Stripe access token not found. Please contact support.");
-        }
-      } catch (err) {
-        console.error('Error fetching Stripe access token:', err);
-        setError('Failed to get Stripe access token');
+    if (stripeError) {
+      setError(stripeError);
+      
+      if (stripeError.includes('table not found') || stripeError.includes('does not exist')) {
+        setIsMissingTables(true);
       }
-    };
-    
-    fetchAccessToken();
-  }, []);
+    }
+  }, [stripeError]);
   
   useEffect(() => {
-    // Check if the user already has a connected account
     const checkConnectedAccount = async () => {
       try {
-        if (authLoading) return; // Wait for auth to complete
+        if (user === null) return; // Wait for auth to complete
         
         setLoading(true);
         setError(null);
         
-        // Check if user is authenticated
-        if (!user) {
+        if (!user || !user.id) {
           navigate('/auth');
           return;
         }
         
-        // Check if the user has a connected account in the database
-        const accountData = await getConnectedAccountFromDB(user.id);
+        const status = await getAccountStatus(user.id);
         
-        if (accountData && accountData.account_id && accessToken) {
-          try {
-            // Get the account details from Stripe
-            const accountDetails = await getConnectedAccount(accountData.account_id, accessToken);
-            
-            setAccountStatus({
-              accountId: accountData.account_id,
-              chargesEnabled: accountDetails.charges_enabled,
-              payoutsEnabled: accountDetails.payouts_enabled,
-              detailsSubmitted: accountDetails.details_submitted
-            });
-            
-            // Update the database with the latest account status
-            await saveConnectedAccount(user.id, accountData.account_id, accountDetails);
-          } catch (stripeErr) {
-            console.error('Error fetching account from Stripe:', stripeErr);
-            // Still show the account we have in the database
-            setAccountStatus({
-              accountId: accountData.account_id,
-              chargesEnabled: accountData.charges_enabled,
-              payoutsEnabled: accountData.payouts_enabled,
-              detailsSubmitted: accountData.details_submitted
-            });
-          }
+        if (status) {
+          setAccountStatus(status);
         }
-      } catch (err) {
+        
+        setInitialSetupDone(true);
+      } catch (err: any) {
         console.error('Error checking connected account:', err);
-        setError('Failed to check account status');
+        
+        if (err.message && (err.message.includes('table not found') || err.message.includes('does not exist'))) {
+          setIsMissingTables(true);
+          setError('The required database tables are missing. Please run the SQL migrations.');
+        } else {
+          setError('Failed to check account status. Please try again.');
+        }
       } finally {
         setLoading(false);
       }
     };
     
-    if (accessToken) {
+    if (user) {
       checkConnectedAccount();
     }
-  }, [accessToken, user, authLoading, navigate]);
+  }, [navigate, user, getAccountStatus]);
   
   const handleConnectStripe = async () => {
     try {
       setCreatingAccount(true);
       setError(null);
       
-      // Check if user is authenticated
-      if (!user) {
+      if (!user || !user.id) {
         navigate('/auth');
         return;
       }
       
-      if (!accessToken) {
-        setError("Stripe access token not found. Please contact support.");
-        return;
+      const accountLink = await connectStripeAccount(user.id);
+      
+      if (accountLink) {
+        window.location.href = accountLink;
+      } else {
+        throw new Error('Failed to create account link');
       }
-      
-      // Create a new Stripe Connect account
-      const accountResponse = await createConnectedAccount(user.id, accessToken);
-      
-      // Save the account to the database
-      await saveConnectedAccount(user.id, accountResponse.id, accountResponse);
-      
-      // Create an account link for onboarding
-      const accountLink = await createAccountLink(
-        accountResponse.id,
-        accessToken,
-        `${window.location.origin}/settings/payments`, // Refresh URL
-        `${window.location.origin}/stripe/onboarding-complete` // Return URL
-      );
-      
-      // Redirect to the Stripe onboarding page
-      window.location.href = accountLink.url;
     } catch (err: any) {
       console.error('Error connecting to Stripe:', err);
       setError(err.message || 'Failed to connect to Stripe');
+      
+      if (err.message && (err.message.includes('table not found') || err.message.includes('does not exist'))) {
+        setIsMissingTables(true);
+      }
       
       toast({
         title: 'Error',
@@ -166,16 +141,18 @@ const PaymentSettings = () => {
       setLoading(true);
       setError(null);
       
-      if (!accountStatus.accountId || !accessToken) {
-        setError('No connected account found or missing access token');
+      if (!accountStatus.accountId) {
+        setError('No connected account found');
         return;
       }
       
-      // Create a login link for the connected account
-      const loginLink = await createLoginLink(accountStatus.accountId, accessToken);
+      const loginLink = await getLoginLink(accountStatus.accountId);
       
-      // Open the login link in a new tab
-      window.open(loginLink.url, '_blank');
+      if (loginLink) {
+        window.open(loginLink, '_blank');
+      } else {
+        throw new Error('Failed to create login link');
+      }
     } catch (err: any) {
       console.error('Error creating login link:', err);
       setError(err.message || 'Failed to create login link');
@@ -190,28 +167,71 @@ const PaymentSettings = () => {
       setLoading(false);
     }
   };
-
-  // Render loading state while authentication is in progress
-  if (authLoading) {
+  
+  const renderLoadingState = () => {
     return (
-      <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-lg">Loading payment settings...</p>
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 mx-auto mb-4"></div>
+        <p className="text-gray-600 mb-4">Setting up Stripe Connect...</p>
+        <Progress value={60} className="max-w-md mx-auto" />
+        <p className="mt-4 text-sm text-gray-500">This may take a moment while we prepare your payment integration</p>
+      </div>
+    );
+  };
+  
+  const renderDatabaseSetupRequired = () => {
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <Database className="h-4 w-4" />
+        <AlertTitle>Database Setup Required</AlertTitle>
+        <AlertDescription>
+          <p className="mb-2">The required database tables for Stripe Connect are missing. Please run the SQL migrations provided in the documentation.</p>
+          <p className="text-sm mb-2">The following tables need to be created:</p>
+          <ul className="list-disc list-inside text-sm mb-4">
+            <li>stripe_connect_accounts</li>
+            <li>payment_links</li>
+            <li>payment_records</li>
+          </ul>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mr-2"
+            onClick={() => window.location.reload()}
+          >
+            Refresh Page
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  };
+  
+  const renderErrorState = () => {
+    if (!error) return null;
+    
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-4 rounded mb-6 flex items-start">
+        <AlertTriangle className="h-5 w-5 mr-3 mt-0.5 flex-shrink-0" />
+        <div>
+          <h4 className="font-medium mb-1">Connection Error</h4>
+          <p className="text-sm">{error}</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.location.reload()} 
+            className="mt-2"
+          >
+            Refresh Page
+          </Button>
         </div>
       </div>
     );
-  }
-
-  // Redirect to auth if not logged in
-  if (!user) {
-    navigate('/auth');
-    return null;
-  }
-
+  };
+  
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Payment Settings</h1>
+      
+      {isMissingTables && renderDatabaseSetupRequired()}
       
       <Tabs defaultValue="stripe" className="w-full">
         <TabsList className="mb-4">
@@ -229,17 +249,10 @@ const PaymentSettings = () => {
             </CardHeader>
             
             <CardContent>
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                  {error}
-                </div>
-              )}
+              {!isMissingTables && renderErrorState()}
               
-              {loading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Loading account information...</p>
-                </div>
+              {(loading || stripeLoading) && !initialSetupDone ? (
+                renderLoadingState()
               ) : accountStatus.accountId ? (
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Account Status</h3>
@@ -280,9 +293,16 @@ const PaymentSettings = () => {
                       </p>
                       <Button 
                         onClick={handleConnectStripe} 
-                        disabled={loading || creatingAccount}
+                        disabled={loading || creatingAccount || isMissingTables}
                       >
-                        Complete Account Setup
+                        {creatingAccount ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Completing Setup...
+                          </>
+                        ) : (
+                          'Complete Account Setup'
+                        )}
                       </Button>
                     </div>
                   )}
@@ -350,7 +370,8 @@ const PaymentSettings = () => {
               {!accountStatus.accountId && (
                 <Button 
                   onClick={handleConnectStripe} 
-                  disabled={loading || creatingAccount || !accessToken}
+                  disabled={loading || creatingAccount || !user || isMissingTables}
+                  className="w-full md:w-auto"
                 >
                   {creatingAccount ? (
                     <>

@@ -31,7 +31,7 @@ import TermsOfService from "@/pages/TermsOfService";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 // Import Stripe Connect components
 import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
-import StripeOnboardingComplete from "@/pages/stripe/StripeOnboardingComplete";
+import StripeOnboardingComplete from "../../pages/stripe/StripeOnboardingComplete";
 import CreatePaymentLink from "@/pages/stripe/CreatePaymentLink";
 import PaymentHistory from "@/pages/stripe/PaymentHistory";
 import PaymentSettings from "@/pages/settings/PaymentSettings";

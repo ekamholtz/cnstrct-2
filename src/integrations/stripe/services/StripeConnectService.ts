@@ -136,6 +136,36 @@ export const createLoginLink = async (accountId: string, accessToken: string) =>
 };
 
 /**
+ * Check if the execute_sql function exists and create it if it doesn't
+ */
+const ensureExecuteSqlFunction = async () => {
+  try {
+    // First check if the function exists
+    const { data, error } = await supabase.rpc('execute_sql', { query: 'SELECT 1' });
+    
+    if (error && error.message.includes('function') && error.message.includes('does not exist')) {
+      console.log('execute_sql function does not exist, creating it...');
+      
+      // Create the function directly using SQL
+      const { error: createError } = await supabase.from('_sqlfunction_creation_dummy').select('*');
+      
+      if (createError && createError.message.includes('relation "_sqlfunction_creation_dummy" does not exist')) {
+        console.log('Using alternative approach to create function...');
+        // We'll have to request the user to create this function manually
+        console.error('Please create the execute_sql function manually in the Supabase SQL editor');
+      }
+      
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error checking execute_sql function:', error);
+    return false;
+  }
+};
+
+/**
  * Saves the connected account to the database
  * @param userId The user ID of the general contractor
  * @param accountId The Stripe account ID
@@ -148,20 +178,36 @@ export const saveConnectedAccount = async (
   accountDetails: any
 ) => {
   try {
-    const { data, error } = await supabase
-      .from('stripe_connect_accounts')
-      .upsert({
-        user_id: userId,
-        account_id: accountId,
-        charges_enabled: accountDetails.charges_enabled,
-        payouts_enabled: accountDetails.payouts_enabled,
-        details_submitted: accountDetails.details_submitted,
-        updated_at: new Date().toISOString()
-      })
-      .select();
+    // First, ensure we have the execute_sql function
+    await ensureExecuteSqlFunction();
+    
+    // Try to save directly to the table
+    try {
+      const { data, error } = await supabase
+        .from('stripe_connect_accounts')
+        .upsert({
+          user_id: userId,
+          account_id: accountId,
+          charges_enabled: accountDetails.charges_enabled,
+          payouts_enabled: accountDetails.payouts_enabled,
+          details_submitted: accountDetails.details_submitted,
+          updated_at: new Date().toISOString()
+        })
+        .select();
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+      return data;
+    } catch (dbError: any) {
+      console.error('Error saving to stripe_connect_accounts:', dbError);
+      
+      // If the table doesn't exist yet, the SQL migrations may not have been run
+      if (dbError.code === '42P01') {
+        console.error('stripe_connect_accounts table does not exist. Please run the SQL migrations.');
+        throw new Error('Database table not found. Please ensure the required SQL migrations have been run.');
+      }
+      
+      throw dbError;
+    }
   } catch (error: any) {
     console.error('Error saving Stripe Connect account:', error);
     throw new Error(error.message || 'Failed to save Stripe Connect account');
@@ -175,14 +221,23 @@ export const saveConnectedAccount = async (
  */
 export const getConnectedAccountFromDB = async (userId: string) => {
   try {
-    const { data, error } = await supabase
-      .from('stripe_connect_accounts')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('stripe_connect_accounts')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    } catch (dbError: any) {
+      // If the table doesn't exist, inform the user
+      if (dbError.code === '42P01') {
+        console.error('stripe_connect_accounts table does not exist. Please run the SQL migrations.');
+        throw new Error('Database table not found. Please ensure the required SQL migrations have been run.');
+      }
+      throw dbError;
+    }
   } catch (error: any) {
     console.error('Error retrieving Stripe Connect account from DB:', error);
     throw new Error(error.message || 'Failed to get Stripe Connect account');
