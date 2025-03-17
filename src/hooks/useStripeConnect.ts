@@ -10,7 +10,8 @@ import {
   saveConnectedAccount,
   createLoginLink
 } from '@/integrations/stripe/services/StripeConnectService';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 export const useStripeConnect = () => {
   const [loading, setLoading] = useState(false);
@@ -23,7 +24,7 @@ export const useStripeConnect = () => {
     detailsSubmitted?: boolean;
   }>({});
   
-  const supabase = useSupabaseClient();
+  const { user } = useAuth();
   const { toast } = useToast();
   
   const fetchAccessToken = async () => {
@@ -105,6 +106,11 @@ export const useStripeConnect = () => {
     try {
       setLoading(true);
       setError(null);
+      
+      if (!userId) {
+        setError('User ID is required to connect a Stripe account');
+        return null;
+      }
       
       // Ensure we have an access token
       const token = accessToken || await fetchAccessToken();

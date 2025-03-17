@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { createConnectedAccount, createAccountLink, getConnectedAccount } from '@/integrations/stripe/services/StripeConnectService';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useStripeConnect } from '@/hooks/useStripeConnect';
 import { ArrowLeft, CheckCircle, XCircle } from 'lucide-react';
 
 const StripeConnectOnboarding = () => {
-  const [loading, setLoading] = useState(false);
   const [accountStatus, setAccountStatus] = useState<{
     accountId?: string;
     chargesEnabled?: boolean;
@@ -20,7 +19,12 @@ const StripeConnectOnboarding = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const supabase = useSupabaseClient();
+  const { user } = useAuth();
+  const { 
+    loading, 
+    getAccountStatus, 
+    connectStripeAccount 
+  } = useStripeConnect();
   
   const queryParams = new URLSearchParams(location.search);
   const success = queryParams.get('success') === 'true';
@@ -29,36 +33,14 @@ const StripeConnectOnboarding = () => {
   useEffect(() => {
     const checkConnectedAccount = async () => {
       try {
-        setLoading(true);
-        
-        const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           navigate('/login');
           return;
         }
         
-        const { data: accountData, error: accountError } = await supabase
-          .from('stripe_connect_accounts')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (accountError && accountError.code !== 'PGRST116') {
-          console.error('Error fetching Stripe account:', accountError);
-          setError('Failed to fetch account information');
-          return;
-        }
-        
-        if (accountData) {
-          const accessToken = 'YOUR_STRIPE_ACCESS_TOKEN';
-          const accountDetails = await getConnectedAccount(accountData.account_id, accessToken);
-          
-          setAccountStatus({
-            accountId: accountData.account_id,
-            chargesEnabled: accountDetails.charges_enabled,
-            payoutsEnabled: accountDetails.payouts_enabled,
-            detailsSubmitted: accountDetails.details_submitted
-          });
+        const status = await getAccountStatus(user.id);
+        if (status) {
+          setAccountStatus(status);
           
           if (success && !refresh) {
             toast({
@@ -68,54 +50,31 @@ const StripeConnectOnboarding = () => {
             });
           }
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Error checking connected account:', err);
         setError('Failed to check account status');
-      } finally {
-        setLoading(false);
       }
     };
     
     checkConnectedAccount();
-  }, [navigate, supabase, success, refresh, toast]);
+  }, [navigate, user, success, refresh, toast, getAccountStatus]);
   
   const handleConnectStripe = async () => {
-    setLoading(true);
-    setError(null);
-    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      setError(null);
+      
       if (!user) {
         navigate('/login');
         return;
       }
       
-      const accessToken = 'YOUR_STRIPE_ACCESS_TOKEN';
+      const accountLinkUrl = await connectStripeAccount(user.id);
       
-      const account = await createConnectedAccount(user.id, accessToken);
-      
-      const { error: insertError } = await supabase
-        .from('stripe_connect_accounts')
-        .insert({
-          user_id: user.id,
-          account_id: account.id,
-          charges_enabled: account.charges_enabled,
-          payouts_enabled: account.payouts_enabled,
-          details_submitted: account.details_submitted
-        });
-      
-      if (insertError) {
-        console.error('Error storing Stripe account:', insertError);
-        setError('Failed to store account information');
-        return;
+      if (accountLinkUrl) {
+        window.location.href = accountLinkUrl;
+      } else {
+        throw new Error('Failed to create account link');
       }
-      
-      const refreshUrl = `${window.location.origin}/settings/payments?refresh=true`;
-      const returnUrl = `${window.location.origin}/settings/payments?success=true`;
-      
-      const accountLink = await createAccountLink(account.id, accessToken, refreshUrl, returnUrl);
-      
-      window.location.href = accountLink.url;
     } catch (err: any) {
       console.error('Error connecting Stripe account:', err);
       setError(err.message || 'Failed to connect with Stripe');
@@ -126,8 +85,6 @@ const StripeConnectOnboarding = () => {
         variant: 'destructive',
         duration: 5000,
       });
-    } finally {
-      setLoading(false);
     }
   };
   
