@@ -6,10 +6,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { BaseQBOService } from "../services/BaseQBOService";
 import { AccountService } from "../services/AccountService";
-import { useEntityReferenceService } from "../services/entityReferenceService"; 
-import { useBillService } from "../services/billService";
+// Fix casing in imports to match actual file names
+import { useEntityReferenceService } from "../services/EntityReferenceService"; 
+import { useBillService } from "../services/BillService";
 import { CustomerVendorService } from "../services/CustomerVendorService";
-import { useInvoiceService } from "../services/invoiceService";
+import { useInvoiceService } from "../services/InvoiceService";
 import { usePaymentService } from "../services/paymentService";
 
 interface QBOAuthResponse {
