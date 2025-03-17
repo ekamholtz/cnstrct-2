@@ -1,9 +1,10 @@
-
 import axios from 'axios';
 import { supabase } from '@/integrations/supabase/client';
 
-// CORS proxy URL
-const proxyUrl = 'http://localhost:3030/proxy/stripe';
+// CORS proxy URL - dynamically set based on environment
+const proxyUrl = import.meta.env.MODE === 'production' 
+  ? '/api/proxy/stripe'  // In production, use a relative path to the API route
+  : import.meta.env.VITE_STRIPE_PROXY_URL || 'http://localhost:3030/proxy/stripe'; // In development, use localhost or VITE_STRIPE_PROXY_URL
 
 /**
  * Retrieves the Stripe access token from Supabase
@@ -11,10 +12,9 @@ const proxyUrl = 'http://localhost:3030/proxy/stripe';
  */
 export const getStripeAccessToken = async (): Promise<string | null> => {
   try {
-    // In a production environment, we would store the access token in Supabase
-    // This is just for demonstration purposes and should be secured in a real app
-    // Normally this would be retrieved from server-side storage only
-    return process.env.STRIPE_SECRET_KEY || 'sk_test_your_test_key';
+    // We don't access the secret key directly from the client
+    // Instead, we'll rely on the server-side proxy to use the key
+    return null; // Return null to indicate the proxy should use the server-side key
   } catch (error) {
     console.error('Error retrieving Stripe access token:', error);
     return null;
