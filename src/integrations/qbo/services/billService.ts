@@ -1,71 +1,85 @@
+import { BaseQBOService } from "./BaseQBOService";
+import axios from "axios";
 
-import { useCallback } from 'react';
-import { QBOApiResponse, QBOBillData, QBOBillPaymentData } from '../types/qboTypes';
+export class BillService {
+  private baseService: BaseQBOService;
+  private proxyUrl: string;
+  
+  constructor(baseService: BaseQBOService) {
+    this.baseService = baseService;
+    this.proxyUrl = "http://localhost:3030/proxy";
+    console.log("BillService initialized with proxy URL:", this.proxyUrl);
+  }
 
-/**
- * Service for QBO bill operations
- */
-export const useBillService = () => {
   /**
    * Create a bill in QBO
    */
-  const createBill = useCallback(async (billData: QBOBillData): Promise<QBOApiResponse> => {
+  async createBill(billData: any) {
     try {
-      // For development/testing, simulate a successful response
-      console.log('Creating bill in QBO:', billData);
+      console.log("Creating bill in QBO using proxy...");
+      const connection = await this.baseService.getUserConnection();
+      if (!connection) {
+        throw new Error("No QBO connection found");
+      }
       
-      // In a real implementation, this would make an API call to QBO
-      // For now, we'll simulate a successful response
-      const mockResponse = {
-        Id: `B${Math.floor(Math.random() * 10000)}`,
-        DocNumber: billData.DocNumber || `BILL-${Math.floor(Math.random() * 10000)}`,
-        SyncToken: '0'
-      };
+      console.log("Using connection:", connection.id, "company:", connection.company_id);
+      
+      // Use the proxy for the create operation
+      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+        accessToken: connection.access_token,
+        realmId: connection.company_id,
+        endpoint: "bill",
+        method: "post",
+        data: billData
+      });
+      
+      console.log("Bill created successfully:", response.data);
       
       return {
         success: true,
-        data: mockResponse
+        data: response.data.Bill
       };
     } catch (error) {
-      console.error('Error creating bill in QBO:', error);
+      console.error("Error creating QBO bill:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
-  }, []);
+  }
 
   /**
-   * Record a bill payment in QBO
+   * Create a bill payment in QBO
    */
-  const recordBillPayment = useCallback(async (paymentData: QBOBillPaymentData): Promise<QBOApiResponse> => {
+  async createBillPayment(billPaymentData: any) {
     try {
-      // For development/testing, simulate a successful response
-      console.log('Recording bill payment in QBO:', paymentData);
+      console.log("Creating bill payment in QBO using proxy...");
+      const connection = await this.baseService.getUserConnection();
+      if (!connection) {
+        throw new Error("No QBO connection found");
+      }
       
-      // In a real implementation, this would make an API call to QBO
-      // For now, we'll simulate a successful response
-      const mockResponse = {
-        Id: `BP${Math.floor(Math.random() * 10000)}`,
-        TotalAmt: paymentData.TotalAmt || paymentData.amount,
-        SyncToken: '0'
-      };
+      // Use the proxy for the create operation
+      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+        accessToken: connection.access_token,
+        realmId: connection.company_id,
+        endpoint: "billpayment",
+        method: "post",
+        data: billPaymentData
+      });
+      
+      console.log("Bill payment created successfully:", response.data);
       
       return {
         success: true,
-        data: mockResponse
+        data: response.data.BillPayment
       };
     } catch (error) {
-      console.error('Error recording bill payment in QBO:', error);
+      console.error("Error creating QBO bill payment:", error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error'
       };
     }
-  }, []);
-
-  return {
-    createBill,
-    recordBillPayment
-  };
-};
+  }
+}

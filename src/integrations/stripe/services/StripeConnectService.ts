@@ -1,9 +1,10 @@
-
 import axios from 'axios';
 import { supabase } from '@/integrations/supabase/client';
 
-// CORS proxy URL
-const proxyUrl = 'http://localhost:3030/proxy/stripe';
+// CORS proxy URL - dynamically set based on environment
+const proxyUrl = import.meta.env.MODE === 'production' 
+  ? '/api/proxy/stripe'  // In production, use a relative path to the API route
+  : import.meta.env.VITE_STRIPE_PROXY_URL || 'http://localhost:3030/proxy/stripe'; // In development, use localhost or VITE_STRIPE_PROXY_URL
 
 /**
  * Retrieves the Stripe access token from environment or falls back to default
@@ -11,9 +12,15 @@ const proxyUrl = 'http://localhost:3030/proxy/stripe';
  */
 export const getStripeAccessToken = async (): Promise<string | null> => {
   try {
-    // Try to get the token from the environment
-    // In a real production app, you would store this securely, not in localStorage
-    const token = import.meta.env.VITE_STRIPE_SECRET_KEY || localStorage.getItem('STRIPE_SECRET_KEY');
+    // In production, we should never access the secret key directly from the client
+    if (import.meta.env.MODE === 'production') {
+      // Return null to indicate the server-side proxy should use its own key
+      return null;
+    }
+    
+    // In development, try to get the token from the environment
+    // We avoid using localStorage for sensitive keys as it's not secure
+    const token = import.meta.env.VITE_STRIPE_SECRET_KEY;
     
     if (token) {
       return token;

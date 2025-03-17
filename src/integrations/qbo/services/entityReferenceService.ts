@@ -1,114 +1,73 @@
 
-import { useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { BaseQBOService } from "./BaseQBOService";
+import { supabase } from "@/integrations/supabase/client";
 
-/**
- * Service for managing QBO entity references
- */
-export const useEntityReferenceService = () => {
-  /**
-   * Store a reference to a QBO entity
-   */
-  const storeEntityReference = useCallback(async (
-    entityType: string, 
-    entityId: string, 
-    qboId: string
-  ) => {
-    // Check if reference already exists
-    const { data: existingRef } = await supabase
-      .from('qbo_references')
-      .select('*')
-      .eq('entity_type', entityType)
-      .eq('entity_id', entityId)
-      .maybeSingle();
-    
-    if (existingRef) {
-      // Update existing reference
-      await supabase
-        .from('qbo_references')
-        .update({ qbo_id: qboId, updated_at: new Date().toISOString() })
-        .eq('id', existingRef.id);
-    } else {
-      // Create new reference
-      await supabase
-        .from('qbo_references')
-        .insert({
-          entity_type: entityType,
-          entity_id: entityId,
-          qbo_id: qboId
-        });
-    }
-    
-    // Log the sync
-    await supabase
-      .from('qbo_sync_logs')
-      .insert({
-        entity_type: entityType,
-        entity_id: entityId,
-        qbo_id: qboId,
-        sync_type: 'create',
-        sync_status: 'success'
-      });
-  }, []);
+export class EntityReferenceService {
+  private baseService: BaseQBOService;
+  
+  constructor(baseService: BaseQBOService) {
+    this.baseService = baseService;
+  }
 
   /**
-   * Get customer ID for a client
+   * Get entity reference from database
    */
-  const getCustomerIdForClient = useCallback(async (clientId: string): Promise<string | null> => {
+  async getEntityReference(entityType: string, localId: string) {
     try {
-      // Check if we have a reference to this client in QBO
-      const { data } = await supabase
-        .from('qbo_references')
-        .select('qbo_id')
-        .eq('entity_type', 'client')
-        .eq('entity_id', clientId)
-        .maybeSingle();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
       
-      return data?.qbo_id || null;
-    } catch (error) {
-      console.error('Error getting customer ID for client:', error);
-      return null;
-    }
-  }, []);
-
-  /**
-   * Get entity reference from QBO
-   */
-  const getEntityReference = useCallback(async (entityType: string, entityId: string): Promise<string | null> => {
-    try {
-      // Check if we have a reference to this entity in QBO
-      const { data } = await supabase
-        .from('qbo_references')
+      const { data, error } = await supabase
+        .from('qbo_entity_refs')
         .select('qbo_id')
+        .eq('user_id', user.id)
         .eq('entity_type', entityType)
-        .eq('entity_id', entityId)
-        .maybeSingle();
+        .eq('local_id', localId)
+        .single();
+        
+      if (error) {
+        console.log("QBO entity reference not found", { entityType, localId });
+        return null;
+      }
       
-      return data?.qbo_id || null;
+      return data.qbo_id;
     } catch (error) {
-      console.error(`Error getting ${entityType} reference:`, error);
+      console.error("Error getting QBO entity reference:", error);
       return null;
     }
-  }, []);
+  }
 
   /**
-   * Get vendor ID for an expense
+   * Store entity reference mapping
    */
-  const getVendorIdForExpense = useCallback(async (vendorName: string): Promise<string> => {
+  async storeEntityReference(entityType: string, localId: string, qboId: string) {
     try {
-      // In a real implementation, we would check if the vendor exists in QBO
-      // For this mock implementation, we'll just return a mocked ID
-      return `V${Math.floor(Math.random() * 10000)}`;
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      const { error } = await supabase
+        .from('qbo_entity_refs')
+        .upsert({
+          user_id: user.id,
+          entity_type: entityType,
+          local_id: localId,
+          qbo_id: qboId,
+          updated_at: new Date().toISOString()
+        });
+        
+      if (error) {
+        console.error("Error storing QBO entity reference:", error);
+        throw new Error("Failed to store QBO entity reference");
+      }
+      
+      return true;
     } catch (error) {
-      console.error('Error getting vendor ID for expense:', error);
-      return 'V0'; // Default fallback
+      console.error("Error storing QBO entity reference:", error);
+      return false;
     }
-  }, []);
-
-  return {
-    storeEntityReference,
-    getCustomerIdForClient,
-    getEntityReference,
-    getVendorIdForExpense
-  };
-};
+  }
+}

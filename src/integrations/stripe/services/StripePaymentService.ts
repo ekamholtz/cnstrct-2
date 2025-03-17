@@ -1,9 +1,10 @@
-
 import axios from 'axios';
 import { supabase } from '@/integrations/supabase/client';
 
-// CORS proxy URL (same as used in StripeConnectService)
-const proxyUrl = 'http://localhost:3030/proxy/stripe';
+// CORS proxy URL - dynamically set based on environment
+const proxyUrl = import.meta.env.MODE === 'production' 
+  ? '/api/proxy/stripe'  // In production, use a relative path to the API route
+  : import.meta.env.VITE_STRIPE_PROXY_URL || 'http://localhost:3030/proxy/stripe'; // In development, use localhost or VITE_STRIPE_PROXY_URL
 
 /**
  * Creates a payment link for a customer
