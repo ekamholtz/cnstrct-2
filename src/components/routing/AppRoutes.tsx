@@ -236,14 +236,6 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/stripe/onboarding"
-        element={
-          <ProtectedRoute>
-            <StripeConnectOnboarding />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/stripe/create-payment"
         element={
           <ProtectedRoute>
@@ -256,6 +248,22 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <PaymentHistory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stripe/onboarding"
+        element={
+          <ProtectedRoute>
+            <StripeConnectOnboarding />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stripe/onboarding-complete"
+        element={
+          <ProtectedRoute>
+            <StripeOnboardingComplete />
           </ProtectedRoute>
         }
       />
