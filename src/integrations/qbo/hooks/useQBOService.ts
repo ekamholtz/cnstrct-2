@@ -3,10 +3,7 @@ import { useState, useEffect } from 'react';
 import { useQBOConnection } from '@/hooks/useQBOConnection';
 import { BaseQBOService } from '../services/BaseQBOService';
 import { AccountService } from '../services/AccountService';
-import { EntityReferenceService } from '../services/entityReferenceService';
-import { BillService } from '../services/billService';
 import { CustomerVendorService } from '../services/CustomerVendorService';
-import { InvoiceService } from '../services/invoiceService';
 
 export const useQBOService = <T>(serviceType: string) => {
   const [service, setService] = useState<BaseQBOService | null>(null);
@@ -25,20 +22,26 @@ export const useQBOService = <T>(serviceType: string) => {
 
       switch (serviceType) {
         case 'account':
-          newService = new AccountService(connection.company_id) as unknown as BaseQBOService;
+          newService = new AccountService(connection.company_id);
           break;
         case 'entityReference':
-          newService = new EntityReferenceService(connection.company_id) as unknown as BaseQBOService;
+          // Import dynamically to avoid casing issues
+          const EntityReferenceService = require('../services/EntityReferenceService').EntityReferenceService;
+          newService = new EntityReferenceService(connection.company_id);
           break;
         case 'bill':
-          newService = new BillService(connection.company_id) as unknown as BaseQBOService;
+          // Import dynamically to avoid casing issues
+          const BillService = require('../services/BillService').BillService;
+          newService = new BillService(connection.company_id);
           break;
         case 'customer':
         case 'vendor':
-          newService = new CustomerVendorService(connection.company_id) as unknown as BaseQBOService;
+          newService = new CustomerVendorService(connection.company_id);
           break;
         case 'invoice':
-          newService = new InvoiceService(connection.company_id) as unknown as BaseQBOService;
+          // Import dynamically to avoid casing issues
+          const InvoiceService = require('../services/InvoiceService').InvoiceService;
+          newService = new InvoiceService(connection.company_id);
           break;
         default:
           throw new Error(`Unknown QBO service type: ${serviceType}`);

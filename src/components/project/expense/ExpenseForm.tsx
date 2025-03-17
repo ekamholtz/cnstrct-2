@@ -9,7 +9,7 @@ import { PaymentSimulationForm } from "./form/PaymentSimulationForm";
 import { ExpenseFormContent } from "./components/ExpenseFormContent";
 import { useExpenseForm } from "./hooks/useExpenseForm";
 import { useState, useCallback } from "react";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { QBOIntegrationSection } from "./components/QBOIntegrationSection";
 import { ExpenseFormErrorDialog } from "./components/ExpenseFormErrorDialog";
 import { useExpenseQBOSync } from "./hooks/useExpenseQBOSync";
@@ -56,7 +56,7 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
         
         // Then if we have a QBO connection and a GL account selected, sync to QBO
         if (connection && glAccountId && stage1Data) {
-          // Create a properly typed Expense object
+          // Create a properly typed Expense object 
           const expense: Expense = {
             id: crypto.randomUUID(), // This would be the actual ID returned from your API
             project_id: stage1Data.project_id,
@@ -64,7 +64,7 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
             amount: parseFloat(stage1Data.amount),
             payee: stage1Data.payee,
             expense_date: stage1Data.expense_date,
-            expense_type: stage1Data.expense_type,
+            expense_type: stage1Data.expense_type || 'other', // Ensure expense_type is not undefined
             notes: stage1Data.notes || undefined,
             payment_status: status,
             created_at: new Date().toISOString(),

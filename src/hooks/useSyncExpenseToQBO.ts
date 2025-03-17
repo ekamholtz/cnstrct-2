@@ -5,7 +5,7 @@ import { useQBOService } from '@/integrations/qbo/hooks/useQBOService';
 import { useAuth } from '@/hooks/useAuth';
 
 export const useSyncExpenseToQBO = () => {
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { service: qboExpenseService } = useQBOService('bill');
@@ -13,7 +13,7 @@ export const useSyncExpenseToQBO = () => {
 
   const syncExpenseToQBO = async (expenseId: string) => {
     try {
-      setIsSyncing(true);
+      setIsLoading(true);
       setError(null);
 
       if (!qboExpenseService) {
@@ -45,13 +45,14 @@ export const useSyncExpenseToQBO = () => {
         variant: 'destructive',
       });
     } finally {
-      setIsSyncing(false);
+      setIsLoading(false);
     }
   };
 
   return {
-    isSyncing,
+    isSyncing: isLoading,
     error,
     syncExpenseToQBO,
+    isLoading // Adding this for compatibility with libraries expecting this property
   };
 };

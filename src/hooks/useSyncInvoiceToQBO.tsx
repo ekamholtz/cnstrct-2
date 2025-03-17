@@ -1,6 +1,5 @@
 
-import { useState } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useQBOService } from '@/integrations/qbo/hooks/useQBOService';
 import { supabase } from '@/integrations/supabase/client';
 import { useQBOMapper } from '@/integrations/qbo/hooks/useQBOMapper';
@@ -10,9 +9,8 @@ import { useMutation } from '@tanstack/react-query';
  * Hook for syncing invoices to QuickBooks Online
  */
 export const useSyncInvoiceToQBO = () => {
-  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  const qboService = useQBOService();
+  const { service: qboService } = useQBOService('invoice');
   const mapper = useQBOMapper();
 
   /**
@@ -20,164 +18,160 @@ export const useSyncInvoiceToQBO = () => {
    */
   const syncInvoiceMutation = useMutation({
     mutationFn: async (invoiceId: string) => {
-      setIsLoading(true);
+      console.log('Syncing invoice to QBO:', invoiceId);
       
-      try {
-        console.log('Syncing invoice to QBO:', invoiceId);
-        
-        // First, fetch the invoice with the project and client details
-        // Simplified query to avoid nested join issues
-        const { data: invoice, error: invoiceError } = await supabase
-          .from('invoices')
-          .select('*, project_id')
-          .eq('id', invoiceId)
-          .single();
-        
-        if (invoiceError || !invoice) {
-          throw new Error(`Failed to fetch invoice: ${invoiceError?.message || 'Not found'}`);
-        }
-        
-        console.log('Invoice data fetched successfully:', invoice);
-        
-        // Now fetch the project separately
-        const { data: project, error: projectError } = await supabase
-          .from('projects')
-          .select('*, client_id')
-          .eq('id', invoice.project_id)
-          .single();
-          
-        if (projectError || !project) {
-          throw new Error(`Failed to fetch project: ${projectError?.message || 'Not found'}`);
-        }
-        
-        console.log('Project data fetched successfully:', project);
-        
-        // Now fetch the client separately
-        const { data: client, error: clientError } = await supabase
-          .from('clients')
-          .select('*')
-          .eq('id', project.client_id)
-          .single();
-          
-        if (clientError || !client) {
-          throw new Error(`Failed to fetch client: ${clientError?.message || 'Not found'}`);
-        }
-        
-        console.log('Client data fetched successfully:', client);
-        
-        // Combine the data for the mapper
-        const invoiceData = {
-          ...invoice,
-          projects: {
-            ...project,
-            clients: client
-          }
+      // Fetch the invoice with project and vendor details
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .select(`
+          *,
+          projects:project_id (
+            *,
+            clients:client_id (*)
+          )
+        `)
+        .eq('id', invoiceId)
+        .single();
+      
+      if (invoiceError || !invoice) {
+        throw new Error(`Failed to fetch invoice: ${invoiceError?.message || 'Invoice not found'}`);
+      }
+      
+      // Check if the invoice has already been synced
+      const { data: existingRef } = await supabase
+        .from('qbo_references')
+        .select('qbo_id')
+        .eq('entity_type', 'invoice')
+        .eq('entity_id', invoiceId)
+        .single();
+      
+      if (existingRef?.qbo_id) {
+        console.log('Invoice already synced to QBO with ID:', existingRef.qbo_id);
+        toast({
+          title: 'Invoice Already Synced',
+          description: `This invoice has already been synced to QuickBooks with ID: ${existingRef.qbo_id}`,
+        });
+        return {
+          success: true,
+          data: { id: existingRef.qbo_id }
         };
-        
-        // Check if this invoice is already synced to QBO
-        const { data: invoiceRef } = await supabase
-          .from('qbo_references')
-          .select('qbo_id')
-          .eq('entity_type', 'invoice')
-          .eq('entity_id', invoiceId)
-          .single();
-        
-        if (invoiceRef?.qbo_id) {
-          console.log('Invoice already synced to QBO with ID:', invoiceRef.qbo_id);
-          toast({
-            title: "Already Synced",
-            description: `Invoice is already synced to QuickBooks with ID: ${invoiceRef.qbo_id}`,
-          });
-          return { success: true, data: { id: invoiceRef.qbo_id } };
-        }
-        
-        // Check if client is already in QBO
+      }
+      
+      // Get the QBO client ID for the client
+      let clientQBOId;
+      
+      if (invoice.projects?.clients?.id) {
         const { data: clientRef } = await supabase
           .from('qbo_references')
           .select('qbo_id')
           .eq('entity_type', 'client')
-          .eq('entity_id', client.id)
+          .eq('entity_id', invoice.projects.clients.id)
           .single();
         
-        let qboCustomerId = clientRef?.qbo_id;
-        
-        // If client is not in QBO, create them
-        if (!qboCustomerId) {
-          console.log('Client not synced to QBO yet, creating...');
-          
-          // Map client data to QBO customer format
-          const customerData = mapper.mapClientToCustomer(client);
-          console.log('Mapped customer data:', customerData);
-          
-          // Create customer in QBO using the proxy service
-          const customerResult = await qboService.createCustomer(customerData);
-          
-          if (!customerResult.success || !customerResult.data) {
-            throw new Error(`Failed to create customer in QBO: ${customerResult.error || 'Unknown error'}`);
+        if (!clientRef?.qbo_id) {
+          // If the client isn't synced yet, we need to sync them first
+          // Use direct method call instead of qboService.createCustomer
+          if (!qboService) {
+            throw new Error('QBO invoice service not available');
           }
           
-          qboCustomerId = customerResult.data.Id;
-          console.log('Customer created in QBO with ID:', qboCustomerId);
+          const clientData = mapper.mapClientToCustomer(invoice.projects.clients);
           
-          // Store the reference
+          // Use a safe property access method
+          const createCustomer = (qboService as any).createCustomer;
+          if (typeof createCustomer !== 'function') {
+            throw new Error('QBO service does not have createCustomer method');
+          }
+          
+          const clientResult = await createCustomer(clientData);
+          
+          if (!clientResult.success) {
+            throw new Error(`Failed to create client in QBO: ${clientResult.error}`);
+          }
+          
+          // Store the reference to the newly created client
           await supabase.from('qbo_references').insert({
             entity_type: 'client',
-            entity_id: client.id,
-            qbo_id: qboCustomerId
+            entity_id: invoice.projects.clients.id,
+            qbo_id: clientResult.data.Id
           });
+          
+          clientQBOId = clientResult.data.Id;
         } else {
-          console.log('Client already exists in QBO with ID:', qboCustomerId);
+          clientQBOId = clientRef.qbo_id;
         }
-        
-        // Map invoice data to QBO invoice format - using the correct mapper method
-        const qboInvoiceData = mapper.mapInvoiceToInvoice(invoiceData, qboCustomerId, '1'); // Using '1' as default income account ID
-        console.log('Mapped invoice data:', qboInvoiceData);
-        
-        // Create invoice in QBO
-        const invoiceResult = await qboService.createInvoice(qboInvoiceData);
-        
-        if (!invoiceResult.success || !invoiceResult.data) {
-          throw new Error(`Failed to create invoice in QBO: ${invoiceResult.error || 'Unknown error'}`);
-        }
-        
-        const qboInvoiceId = invoiceResult.data.Id;
-        console.log('Invoice created in QBO with ID:', qboInvoiceId);
-        
-        // Store the reference
-        await supabase.from('qbo_references').insert({
-          entity_type: 'invoice',
-          entity_id: invoiceId,
-          qbo_id: qboInvoiceId
-        });
-        
-        toast({
-          title: "Success",
-          description: `Invoice synced to QuickBooks with ID: ${qboInvoiceId}`,
-        });
-        
-        return { success: true, data: { id: qboInvoiceId } };
-      } catch (error) {
-        console.error('Error syncing invoice to QBO:', error);
-        
-        toast({
-          title: "Error syncing invoice to QBO",
-          description: error instanceof Error ? error.message : 'Unknown error',
-          variant: "destructive",
-        });
-        
-        return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-      } finally {
-        setIsLoading(false);
+      } else {
+        // If no client is specified, use a default client or account
+        clientQBOId = '1'; // This should be configured or fetched from settings
       }
+      
+      // Map the invoice to QBO invoice format
+      const qboInvoiceData = mapper.mapInvoiceToInvoice(
+        invoice,
+        clientQBOId,
+        '1' // This should be configured or fetched from settings
+      );
+      
+      // Use a safe property access method for createInvoice
+      if (!qboService) {
+        throw new Error('QBO invoice service not available');
+      }
+      
+      const createInvoice = (qboService as any).createInvoice;
+      if (typeof createInvoice !== 'function') {
+        throw new Error('QBO service does not have createInvoice method');
+      }
+      
+      // Create the invoice in QBO
+      const result = await createInvoice(qboInvoiceData);
+      
+      if (!result.success) {
+        throw new Error(`Failed to create invoice in QBO: ${result.error}`);
+      }
+      
+      const qboInvoiceId = result.data.Id;
+      
+      // Store the reference to the newly created invoice
+      await supabase.from('qbo_references').insert({
+        entity_type: 'invoice',
+        entity_id: invoiceId,
+        qbo_id: qboInvoiceId
+      });
+      
+      console.log('Successfully synced invoice to QBO with ID:', qboInvoiceId);
+      
+      toast({
+        title: 'Invoice Synced',
+        description: 'The invoice has been successfully synced to QuickBooks',
+      });
+      
+      return {
+        success: true,
+        data: { id: qboInvoiceId }
+      };
+    },
+    onError: (error) => {
+      console.error('Error syncing invoice to QBO:', error);
+      
+      toast({
+        title: 'Sync Failed',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
+        variant: 'destructive',
+      });
     }
   });
   
   const syncInvoiceToQBO = async (invoiceId: string) => {
-    return await syncInvoiceMutation.mutateAsync(invoiceId);
+    try {
+      const result = await syncInvoiceMutation.mutateAsync(invoiceId);
+      return result;
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
   };
   
-  return { 
-    syncInvoiceToQBO, 
-    isLoading: syncInvoiceMutation.isPending || isLoading 
+  return {
+    syncInvoiceToQBO,
+    isLoading: syncInvoiceMutation.isPending
   };
 };
