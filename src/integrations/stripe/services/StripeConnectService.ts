@@ -19,6 +19,7 @@ export const getStripeAccessToken = async (): Promise<string | null> => {
     }
     
     // In development, try to get the token from the environment
+    // We avoid using localStorage for sensitive keys as it's not secure
     const token = import.meta.env.VITE_STRIPE_SECRET_KEY;
     
     if (token) {
