@@ -1,7 +1,13 @@
 
 import { useState, useCallback } from 'react';
-import { QBOConnection, QBOServiceConfig } from '../types/qboTypes';
+import { QBOServiceConfig } from '../types/qboTypes';
 import { BaseQBOService } from '../services/BaseQBOService';
+
+// Define a QBO connection type since it's missing in qboTypes
+interface QBOConnection {
+  id: string;
+  realmId: string;
+}
 
 // Mock token manager and connection manager until they're properly implemented
 const useQBOTokenManager = () => {
