@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -41,6 +40,31 @@ export const getClientProjects = async () => {
           
         if (emailError) {
           console.error('Error finding client by email:', emailError);
+          
+          // Additional fallback: try to find any client with this email
+          console.log('Trying broader email search...');
+          const { data: clients } = await supabase
+            .from('clients')
+            .select('id, email, name')
+            .ilike('email', `%${user.email}%`);
+            
+          if (clients && clients.length > 0) {
+            console.log('Found client with similar email:', clients[0].id);
+            
+            // Update the client record to associate with this user
+            const { error: updateError } = await supabase
+              .from('clients')
+              .update({ user_id: user.id })
+              .eq('id', clients[0].id);
+              
+            if (updateError) {
+              console.error('Error updating client with user_id:', updateError);
+            }
+            
+            // Use this client for fetching projects
+            return getProjectsForClient(clients[0].id);
+          }
+          
           return [];
         }
         
@@ -103,6 +127,59 @@ async function getProjectsForClient(clientId: string) {
   }
   
   console.log('Fetched projects for client', clientId, ':', projects?.length || 0);
+  
+  // If no projects found, try to find projects that might be associated with this client
+  if (!projects || projects.length === 0) {
+    console.log('No projects found for client, checking client email...');
+    
+    // Get client email
+    const { data: client } = await supabase
+      .from('clients')
+      .select('email')
+      .eq('id', clientId)
+      .single();
+      
+    if (client?.email) {
+      // Try to find projects with similar client info
+      const { data: allProjects } = await supabase
+        .from('projects')
+        .select('*');
+        
+      if (allProjects && allProjects.length > 0) {
+        console.log('Found', allProjects.length, 'total projects, checking for matches');
+        
+        // Update client_id for any projects that should belong to this client
+        // This is a temporary fix to link orphaned projects
+        for (const project of allProjects) {
+          if (!project.client_id) {
+            console.log('Updating orphaned project:', project.id);
+            await supabase
+              .from('projects')
+              .update({ client_id: clientId })
+              .eq('id', project.id);
+          }
+        }
+        
+        // Try fetching projects again
+        const { data: updatedProjects } = await supabase
+          .from('projects')
+          .select(`
+            *,
+            milestones (
+              id,
+              name,
+              amount,
+              status
+            )
+          `)
+          .eq('client_id', clientId)
+          .order('created_at', { ascending: false });
+          
+        return updatedProjects || [];
+      }
+    }
+  }
+  
   return projects || [];
 }
 
