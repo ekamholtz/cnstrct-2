@@ -10,6 +10,19 @@ export interface QBOApiResponse<T = any> {
   error?: string;
 }
 
+// QBO Connection type
+export interface QBOConnection {
+  id: string;
+  realmId: string;
+  companyName?: string;
+  qboCompanyId?: string;
+  accessToken?: string;
+  refreshToken?: string;
+  tokenExpiresAt?: Date | string;
+  createdAt?: Date | string;
+  updatedAt?: Date | string;
+}
+
 // Vendor data structure
 export interface QBOVendorData {
   DisplayName: string;
@@ -80,4 +93,9 @@ export interface QBOInvoiceData {
   Line: any[];
   DocNumber?: string;
   TxnDate?: string;
+}
+
+// Service types
+export interface QBOServiceConfig {
+  type: 'invoice' | 'bill' | 'payment' | 'customer' | 'vendor' | 'account';
 }

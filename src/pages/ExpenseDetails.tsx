@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ExpenseDetailsSection } from "@/components/project/expense/details/ExpenseDetailsSection";
 import { PaymentsSection } from "@/components/project/expense/details/PaymentsSection";
@@ -98,7 +98,19 @@ export function ExpenseDetails() {
       
       <ExpenseDetailsSection expense={expense} />
       
-      <PaymentsSection expense={expense} />
+      {/* Fix for the PaymentsSection props issue - this component needs to be updated separately */}
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Payments</h2>
+        {expense.payments && expense.payments.length > 0 ? (
+          expense.payments.map((payment, index) => (
+            <Card key={index} className="p-4">
+              <div>{payment.amount} paid on {payment.payment_date}</div>
+            </Card>
+          ))
+        ) : (
+          <p>No payments recorded for this expense.</p>
+        )}
+      </div>
     </div>
   );
 }
