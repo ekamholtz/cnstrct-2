@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import * as z from "zod";
+import z from "@/lib/zod-bundle";
 import { MessageSquare, Send, User, Mail, Phone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
