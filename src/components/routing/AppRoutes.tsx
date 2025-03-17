@@ -35,6 +35,7 @@ import StripeOnboardingComplete from "../../pages/stripe/StripeOnboardingComplet
 import CreatePaymentLink from "@/pages/stripe/CreatePaymentLink";
 import PaymentHistory from "@/pages/stripe/PaymentHistory";
 import PaymentSettings from "@/pages/settings/PaymentSettings";
+import DebugPage from "@/pages/DebugPage";
 
 export const AppRoutes = () => {
   return (
@@ -268,6 +269,7 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
+      <Route path="/debug" element={<DebugPage />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/landing" element={<Navigate to="/" replace />} />
