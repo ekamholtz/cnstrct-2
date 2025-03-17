@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -7,8 +6,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useStripeConnect } from '@/hooks/useStripeConnect';
-import { ArrowRight, ExternalLink, CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowRight, ExternalLink, CheckCircle, XCircle, Loader2, AlertTriangle, Database, HelpCircle } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const PaymentSettings = () => {
   const [loading, setLoading] = useState(false);
@@ -21,6 +21,7 @@ const PaymentSettings = () => {
   }>({});
   const [error, setError] = useState<string | null>(null);
   const [initialSetupDone, setInitialSetupDone] = useState(false);
+  const [isMissingTables, setIsMissingTables] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -36,11 +37,14 @@ const PaymentSettings = () => {
   useEffect(() => {
     if (stripeError) {
       setError(stripeError);
+      
+      if (stripeError.includes('table not found') || stripeError.includes('does not exist')) {
+        setIsMissingTables(true);
+      }
     }
   }, [stripeError]);
   
   useEffect(() => {
-    // Check if the user already has a connected account
     const checkConnectedAccount = async () => {
       try {
         setLoading(true);
@@ -60,7 +64,13 @@ const PaymentSettings = () => {
         setInitialSetupDone(true);
       } catch (err: any) {
         console.error('Error checking connected account:', err);
-        setError('Failed to check account status. Please try again.');
+        
+        if (err.message && (err.message.includes('table not found') || err.message.includes('does not exist'))) {
+          setIsMissingTables(true);
+          setError('The required database tables are missing. Please run the SQL migrations.');
+        } else {
+          setError('Failed to check account status. Please try again.');
+        }
       } finally {
         setLoading(false);
       }
@@ -84,7 +94,6 @@ const PaymentSettings = () => {
       const accountLink = await connectStripeAccount(user.id);
       
       if (accountLink) {
-        // Redirect to the Stripe onboarding page
         window.location.href = accountLink;
       } else {
         throw new Error('Failed to create account link');
@@ -92,6 +101,10 @@ const PaymentSettings = () => {
     } catch (err: any) {
       console.error('Error connecting to Stripe:', err);
       setError(err.message || 'Failed to connect to Stripe');
+      
+      if (err.message && (err.message.includes('table not found') || err.message.includes('does not exist'))) {
+        setIsMissingTables(true);
+      }
       
       toast({
         title: 'Error',
@@ -122,11 +135,9 @@ const PaymentSettings = () => {
         return;
       }
       
-      // Create a login link for the connected account
       const loginLink = await getLoginLink(accountStatus.accountId);
       
       if (loginLink) {
-        // Open the login link in a new tab
         window.open(loginLink, '_blank');
       } else {
         throw new Error('Failed to create login link');
@@ -146,7 +157,6 @@ const PaymentSettings = () => {
     }
   };
   
-  // Render appropriate loading state
   const renderLoadingState = () => {
     return (
       <div className="text-center py-8">
@@ -158,7 +168,32 @@ const PaymentSettings = () => {
     );
   };
   
-  // Render error state
+  const renderDatabaseSetupRequired = () => {
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <Database className="h-4 w-4" />
+        <AlertTitle>Database Setup Required</AlertTitle>
+        <AlertDescription>
+          <p className="mb-2">The required database tables for Stripe Connect are missing. Please run the SQL migrations provided in the documentation.</p>
+          <p className="text-sm mb-2">The following tables need to be created:</p>
+          <ul className="list-disc list-inside text-sm mb-4">
+            <li>stripe_connect_accounts</li>
+            <li>payment_links</li>
+            <li>payment_records</li>
+          </ul>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mr-2"
+            onClick={() => window.location.reload()}
+          >
+            Refresh Page
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+  };
+  
   const renderErrorState = () => {
     if (!error) return null;
     
@@ -185,6 +220,8 @@ const PaymentSettings = () => {
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Payment Settings</h1>
       
+      {isMissingTables && renderDatabaseSetupRequired()}
+      
       <Tabs defaultValue="stripe" className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="stripe">Stripe Connect</TabsTrigger>
@@ -201,7 +238,7 @@ const PaymentSettings = () => {
             </CardHeader>
             
             <CardContent>
-              {renderErrorState()}
+              {!isMissingTables && renderErrorState()}
               
               {(loading || stripeLoading) && !initialSetupDone ? (
                 renderLoadingState()
@@ -245,7 +282,7 @@ const PaymentSettings = () => {
                       </p>
                       <Button 
                         onClick={handleConnectStripe} 
-                        disabled={loading || creatingAccount}
+                        disabled={loading || creatingAccount || isMissingTables}
                       >
                         {creatingAccount ? (
                           <>
@@ -322,7 +359,7 @@ const PaymentSettings = () => {
               {!accountStatus.accountId && (
                 <Button 
                   onClick={handleConnectStripe} 
-                  disabled={loading || creatingAccount || !user}
+                  disabled={loading || creatingAccount || !user || isMissingTables}
                   className="w-full md:w-auto"
                 >
                   {creatingAccount ? (

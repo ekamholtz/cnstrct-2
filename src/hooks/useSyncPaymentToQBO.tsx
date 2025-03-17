@@ -1,8 +1,21 @@
+
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useQBOService } from '@/integrations/qbo/hooks/useQBOService';
-import { Payment } from '@/types';
 import { useAuth } from './useAuth';
+
+// Define the Payment type
+interface Payment {
+  id: string;
+  amount: number;
+  payment_date?: string;
+  payment_method?: string;
+  reference_number?: string;
+  notes?: string;
+  invoice_id?: string;
+  project_id?: string;
+  status?: string;
+}
 
 export const useSyncPaymentToQBO = () => {
   const [isSyncing, setIsSyncing] = useState(false);
@@ -17,7 +30,12 @@ export const useSyncPaymentToQBO = () => {
       setIsSyncing(true);
       setError(null);
 
-      const result = await qboPaymentService.syncPaymentToQBO(paymentId, user?.id || '');
+      if (!qboPaymentService) {
+        throw new Error('QBO payment service not available');
+      }
+
+      // Use type assertion to call the method
+      const result = await (qboPaymentService as any).syncPaymentToQBO(paymentId, user?.id || '');
 
       if (result && result.success) {
         setSuccess(true);
@@ -57,7 +75,7 @@ export const useSyncPaymentToQBO = () => {
       }
 
       // Create the payment in QBO
-      const createResult = await qboPaymentService.createQBOInvoicePayment(payment);
+      const createResult = await (qboPaymentService as any).createQBOInvoicePayment(payment);
 
       if (createResult && createResult.success) {
         setSuccess(true);

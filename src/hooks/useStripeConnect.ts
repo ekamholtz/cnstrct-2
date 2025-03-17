@@ -27,52 +27,6 @@ export const useStripeConnect = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  // Check if the database table exists or create it
-  useEffect(() => {
-    const checkAndCreateTable = async () => {
-      try {
-        // Try to query the table to see if it exists
-        const { error } = await supabase
-          .from('stripe_connect_accounts')
-          .select('count', { count: 'exact', head: true })
-          .limit(1);
-          
-        // If we get a specific error about the relation not existing, create the table
-        if (error && error.code === '42P01') {
-          console.log('Stripe connect accounts table does not exist, creating it...');
-          // Create the table
-          const createTableQuery = `
-            CREATE TABLE IF NOT EXISTS stripe_connect_accounts (
-              id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-              user_id UUID NOT NULL,
-              account_id TEXT NOT NULL,
-              charges_enabled BOOLEAN DEFAULT FALSE,
-              payouts_enabled BOOLEAN DEFAULT FALSE,
-              details_submitted BOOLEAN DEFAULT FALSE,
-              created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-              updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-              UNIQUE(user_id, account_id)
-            );
-          `;
-          
-          // Execute table creation
-          const { error: createError } = await supabase.rpc('execute_sql', { query: createTableQuery });
-          
-          if (createError) {
-            console.error('Error creating Stripe connect accounts table:', createError);
-            // Just log the error but don't block the user experience
-          } else {
-            console.log('Successfully created stripe_connect_accounts table');
-          }
-        }
-      } catch (err) {
-        console.error('Error checking/creating table:', err);
-      }
-    };
-    
-    checkAndCreateTable();
-  }, []);
-  
   const fetchAccessToken = async () => {
     try {
       setLoading(true);
@@ -139,16 +93,20 @@ export const useStripeConnect = () => {
           }
         }
       } catch (dbErr: any) {
-        // If the table doesn't exist or other DB error, handle it gracefully
         console.error('Database error when getting account status:', dbErr);
         
-        if (dbErr?.code === '42P01') {
-          // Table doesn't exist error, just return null without setting an error
-          // This is handled by the table creation logic in useEffect
-          return null;
+        // Check if the error is related to missing tables
+        if (dbErr.message && dbErr.message.includes('table not found')) {
+          setError('The required database tables are missing. Please run the SQL migrations first.');
+          toast({
+            title: 'Database Setup Required',
+            description: 'The Stripe Connect database tables need to be created. Please run the SQL migrations provided.',
+            variant: 'destructive',
+            duration: 10000
+          });
+        } else {
+          setError(dbErr.message || 'Failed to get account from database');
         }
-        
-        setError(dbErr.message || 'Failed to get account from database');
       }
       
       return null;
@@ -178,21 +136,37 @@ export const useStripeConnect = () => {
         return null;
       }
       
-      // Create a new Stripe Connect account
-      const accountResponse = await createConnectedAccount(userId, token);
-      
-      // Save the account to the database
-      await saveConnectedAccount(userId, accountResponse.id, accountResponse);
-      
-      // Create an account link for onboarding
-      const accountLink = await createAccountLink(
-        accountResponse.id,
-        token,
-        `${window.location.origin}/settings/payments`, // Refresh URL
-        `${window.location.origin}/stripe/onboarding-complete` // Return URL
-      );
-      
-      return accountLink.url;
+      try {
+        // Create a new Stripe Connect account
+        const accountResponse = await createConnectedAccount(userId, token);
+        
+        // Save the account to the database
+        await saveConnectedAccount(userId, accountResponse.id, accountResponse);
+        
+        // Create an account link for onboarding
+        const accountLink = await createAccountLink(
+          accountResponse.id,
+          token,
+          `${window.location.origin}/settings/payments`, // Refresh URL
+          `${window.location.origin}/stripe/onboarding-complete` // Return URL
+        );
+        
+        return accountLink.url;
+      } catch (stripeErr: any) {
+        // Check if the error is related to missing tables
+        if (stripeErr.message && stripeErr.message.includes('table not found')) {
+          setError('The required database tables are missing. Please run the SQL migrations first.');
+          toast({
+            title: 'Database Setup Required',
+            description: 'The Stripe Connect database tables need to be created. Please run the SQL migrations provided.',
+            variant: 'destructive',
+            duration: 10000
+          });
+          return null;
+        }
+        
+        throw stripeErr;
+      }
     } catch (err: any) {
       console.error('Error connecting Stripe account:', err);
       setError(err.message || 'Failed to connect Stripe account');

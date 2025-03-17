@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { useQBOService } from '@/integrations/qbo/hooks/useQBOService';
@@ -15,7 +16,12 @@ export const useSyncExpenseToQBO = () => {
       setIsSyncing(true);
       setError(null);
 
-      const result = await qboExpenseService.syncExpenseToQBO(expenseId, user?.id || '');
+      if (!qboExpenseService) {
+        throw new Error('QBO expense service not available');
+      }
+
+      // Use type assertion to allow calling the method
+      const result = await (qboExpenseService as any).syncExpenseToQBO(expenseId, user?.id || '');
 
       if (result?.success) {
         toast({
