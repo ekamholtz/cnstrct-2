@@ -31,6 +31,7 @@ import TermsOfService from "@/pages/TermsOfService";
 import PrivacyPolicy from "@/pages/PrivacyPolicy";
 // Import Stripe Connect components
 import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
+import StripeOnboardingComplete from "@/pages/stripe/StripeOnboardingComplete";
 import CreatePaymentLink from "@/pages/stripe/CreatePaymentLink";
 import PaymentHistory from "@/pages/stripe/PaymentHistory";
 import PaymentSettings from "@/pages/settings/PaymentSettings";
@@ -236,14 +237,6 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/stripe/onboarding"
-        element={
-          <ProtectedRoute>
-            <StripeConnectOnboarding />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/stripe/create-payment"
         element={
           <ProtectedRoute>
@@ -256,6 +249,22 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <PaymentHistory />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stripe/onboarding"
+        element={
+          <ProtectedRoute>
+            <StripeConnectOnboarding />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stripe/onboarding-complete"
+        element={
+          <ProtectedRoute>
+            <StripeOnboardingComplete />
           </ProtectedRoute>
         }
       />

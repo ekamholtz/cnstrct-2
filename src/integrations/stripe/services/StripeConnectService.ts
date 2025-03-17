@@ -1,7 +1,25 @@
+
 import axios from 'axios';
+import { supabase } from '@/integrations/supabase/client';
 
 // CORS proxy URL
 const proxyUrl = 'http://localhost:3030/proxy/stripe';
+
+/**
+ * Retrieves the Stripe access token from Supabase
+ * @returns The Stripe access token
+ */
+export const getStripeAccessToken = async (): Promise<string | null> => {
+  try {
+    // In a production environment, we would store the access token in Supabase
+    // This is just for demonstration purposes and should be secured in a real app
+    // Normally this would be retrieved from server-side storage only
+    return process.env.STRIPE_SECRET_KEY || 'sk_test_your_test_key';
+  } catch (error) {
+    console.error('Error retrieving Stripe access token:', error);
+    return null;
+  }
+};
 
 /**
  * Creates a Stripe Connect account for a general contractor
@@ -114,5 +132,59 @@ export const createLoginLink = async (accountId: string, accessToken: string) =>
   } catch (error: any) {
     console.error('Error creating login link:', error.response?.data || error.message);
     throw new Error(error.response?.data?.error || 'Failed to create login link');
+  }
+};
+
+/**
+ * Saves the connected account to the database
+ * @param userId The user ID of the general contractor
+ * @param accountId The Stripe account ID
+ * @param accountDetails The account details
+ * @returns The result of the operation
+ */
+export const saveConnectedAccount = async (
+  userId: string,
+  accountId: string,
+  accountDetails: any
+) => {
+  try {
+    const { data, error } = await supabase
+      .from('stripe_connect_accounts')
+      .upsert({
+        user_id: userId,
+        account_id: accountId,
+        charges_enabled: accountDetails.charges_enabled,
+        payouts_enabled: accountDetails.payouts_enabled,
+        details_submitted: accountDetails.details_submitted,
+        updated_at: new Date().toISOString()
+      })
+      .select();
+
+    if (error) throw error;
+    return data;
+  } catch (error: any) {
+    console.error('Error saving Stripe Connect account:', error);
+    throw new Error(error.message || 'Failed to save Stripe Connect account');
+  }
+};
+
+/**
+ * Retrieves the connected account from the database
+ * @param userId The user ID of the general contractor
+ * @returns The connected account data
+ */
+export const getConnectedAccountFromDB = async (userId: string) => {
+  try {
+    const { data, error } = await supabase
+      .from('stripe_connect_accounts')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  } catch (error: any) {
+    console.error('Error retrieving Stripe Connect account from DB:', error);
+    throw new Error(error.message || 'Failed to get Stripe Connect account');
   }
 };

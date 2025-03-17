@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -5,11 +6,21 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { getConnectedAccount, createLoginLink } from '@/integrations/stripe/services/StripeConnectService';
-import { ArrowRight, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
+import { 
+  getConnectedAccount, 
+  createLoginLink, 
+  getConnectedAccountFromDB, 
+  getStripeAccessToken,
+  createConnectedAccount,
+  createAccountLink,
+  saveConnectedAccount
+} from '@/integrations/stripe/services/StripeConnectService';
+import { ArrowRight, ExternalLink, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 
 const PaymentSettings = () => {
   const [loading, setLoading] = useState(false);
+  const [creatingAccount, setCreatingAccount] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [accountStatus, setAccountStatus] = useState<{
     accountId?: string;
     chargesEnabled?: boolean;
@@ -22,46 +33,65 @@ const PaymentSettings = () => {
   const { toast } = useToast();
   const supabase = useSupabaseClient();
   
+  // Fetch the Stripe access token on component mount
+  useEffect(() => {
+    const fetchAccessToken = async () => {
+      try {
+        const token = await getStripeAccessToken();
+        setAccessToken(token);
+        if (!token) {
+          setError("Stripe access token not found. Please contact support.");
+        }
+      } catch (err) {
+        console.error('Error fetching Stripe access token:', err);
+        setError('Failed to get Stripe access token');
+      }
+    };
+    
+    fetchAccessToken();
+  }, []);
+  
   useEffect(() => {
     // Check if the user already has a connected account
     const checkConnectedAccount = async () => {
       try {
         setLoading(true);
+        setError(null);
         
         // Get the current user
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-          navigate('/login');
+          navigate('/auth');
           return;
         }
         
         // Check if the user has a connected account in the database
-        const { data: accountData, error: accountError } = await supabase
-          .from('stripe_connect_accounts')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+        const accountData = await getConnectedAccountFromDB(user.id);
         
-        if (accountError && accountError.code !== 'PGRST116') {
-          console.error('Error fetching Stripe account:', accountError);
-          setError('Failed to fetch account information');
-          return;
-        }
-        
-        if (accountData) {
-          // Get the access token from secure storage
-          // This is a placeholder - you'll need to implement secure token storage
-          const accessToken = 'YOUR_STRIPE_ACCESS_TOKEN';
-          
-          // Get the account details from Stripe
-          const accountDetails = await getConnectedAccount(accountData.account_id, accessToken);
-          
-          setAccountStatus({
-            accountId: accountData.account_id,
-            chargesEnabled: accountDetails.charges_enabled,
-            payoutsEnabled: accountDetails.payouts_enabled,
-            detailsSubmitted: accountDetails.details_submitted
-          });
+        if (accountData && accountData.account_id && accessToken) {
+          try {
+            // Get the account details from Stripe
+            const accountDetails = await getConnectedAccount(accountData.account_id, accessToken);
+            
+            setAccountStatus({
+              accountId: accountData.account_id,
+              chargesEnabled: accountDetails.charges_enabled,
+              payoutsEnabled: accountDetails.payouts_enabled,
+              detailsSubmitted: accountDetails.details_submitted
+            });
+            
+            // Update the database with the latest account status
+            await saveConnectedAccount(user.id, accountData.account_id, accountDetails);
+          } catch (stripeErr) {
+            console.error('Error fetching account from Stripe:', stripeErr);
+            // Still show the account we have in the database
+            setAccountStatus({
+              accountId: accountData.account_id,
+              chargesEnabled: accountData.charges_enabled,
+              payoutsEnabled: accountData.payouts_enabled,
+              detailsSubmitted: accountData.details_submitted
+            });
+          }
         }
       } catch (err) {
         console.error('Error checking connected account:', err);
@@ -71,11 +101,57 @@ const PaymentSettings = () => {
       }
     };
     
-    checkConnectedAccount();
-  }, [navigate, supabase]);
+    if (accessToken) {
+      checkConnectedAccount();
+    }
+  }, [navigate, supabase, accessToken]);
   
-  const handleConnectStripe = () => {
-    navigate('/stripe/onboarding');
+  const handleConnectStripe = async () => {
+    try {
+      setCreatingAccount(true);
+      setError(null);
+      
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        navigate('/auth');
+        return;
+      }
+      
+      if (!accessToken) {
+        setError("Stripe access token not found. Please contact support.");
+        return;
+      }
+      
+      // Create a new Stripe Connect account
+      const accountResponse = await createConnectedAccount(user.id, accessToken);
+      
+      // Save the account to the database
+      await saveConnectedAccount(user.id, accountResponse.id, accountResponse);
+      
+      // Create an account link for onboarding
+      const accountLink = await createAccountLink(
+        accountResponse.id,
+        accessToken,
+        `${window.location.origin}/settings/payments`, // Refresh URL
+        `${window.location.origin}/stripe/onboarding-complete` // Return URL
+      );
+      
+      // Redirect to the Stripe onboarding page
+      window.location.href = accountLink.url;
+    } catch (err: any) {
+      console.error('Error connecting to Stripe:', err);
+      setError(err.message || 'Failed to connect to Stripe');
+      
+      toast({
+        title: 'Error',
+        description: err.message || 'Failed to connect to Stripe. Please try again.',
+        variant: 'destructive',
+        duration: 5000,
+      });
+    } finally {
+      setCreatingAccount(false);
+    }
   };
   
   const handleCreatePaymentLink = () => {
@@ -89,28 +165,25 @@ const PaymentSettings = () => {
   const handleManageAccount = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      if (!accountStatus.accountId) {
-        setError('No connected account found');
+      if (!accountStatus.accountId || !accessToken) {
+        setError('No connected account found or missing access token');
         return;
       }
-      
-      // Get the access token from secure storage
-      // This is a placeholder - you'll need to implement secure token storage
-      const accessToken = 'YOUR_STRIPE_ACCESS_TOKEN';
       
       // Create a login link for the connected account
       const loginLink = await createLoginLink(accountStatus.accountId, accessToken);
       
       // Open the login link in a new tab
       window.open(loginLink.url, '_blank');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error creating login link:', err);
-      setError('Failed to create login link');
+      setError(err.message || 'Failed to create login link');
       
       toast({
         title: 'Error',
-        description: 'Failed to create login link. Please try again.',
+        description: err.message || 'Failed to create login link. Please try again.',
         variant: 'destructive',
         duration: 5000,
       });
@@ -190,7 +263,7 @@ const PaymentSettings = () => {
                       </p>
                       <Button 
                         onClick={handleConnectStripe} 
-                        disabled={loading}
+                        disabled={loading || creatingAccount}
                       >
                         Complete Account Setup
                       </Button>
@@ -260,9 +333,16 @@ const PaymentSettings = () => {
               {!accountStatus.accountId && (
                 <Button 
                   onClick={handleConnectStripe} 
-                  disabled={loading}
+                  disabled={loading || creatingAccount || !accessToken}
                 >
-                  Connect with Stripe
+                  {creatingAccount ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Connecting...
+                    </>
+                  ) : (
+                    'Connect with Stripe'
+                  )}
                 </Button>
               )}
               
