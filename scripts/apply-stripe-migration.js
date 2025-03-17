@@ -1,80 +1,86 @@
-// Script to apply Stripe migrations to Supabase
 import fs from 'fs';
 import path from 'path';
 import axios from 'axios';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
-// Load environment variables
-dotenv.config();
+// Get the directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// CORS proxy URL - using the same proxy approach as QBO integration
-const proxyUrl = 'http://localhost:3030/proxy/supabase';
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
-// Supabase credentials from client.ts
-const SUPABASE_URL = "https://wkspjzbybjhvscqdmpwi.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indrc3BqemJ5YmpodnNjcWRtcHdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg2MTcwODYsImV4cCI6MjA1NDE5MzA4Nn0.q4hsuWLxoB81E7UzgFiCMesq4aPhIFTYWZMJMjjDmU0";
+// Path to the migration SQL file
+const MIGRATION_FILE_PATH = path.resolve(__dirname, '../supabase/migrations/20240101000000_create_stripe_tables.sql');
 
-// Read the migration SQL file
-const migrationPath = path.join(process.cwd(), 'supabase', 'migrations', '20240101000000_create_stripe_tables.sql');
-const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+// Supabase API URL and key from environment variables
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY;
 
-async function applyMigration() {
+// CORS proxy URL
+const CORS_PROXY_URL = 'http://localhost:3030/proxy/supabase';
+
+/**
+ * Executes a SQL statement against the Supabase database
+ * @param {string} sql - The SQL statement to execute
+ * @returns {Object} The response from the Supabase API
+ */
+async function executeSql(sql) {
   try {
-    console.log('Applying Stripe tables migration to Supabase...');
-    
-    // Split the SQL into individual statements
-    const sqlStatements = migrationSQL
-      .split(';')
-      .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0);
-    
-    console.log(`Found ${sqlStatements.length} SQL statements to execute`);
-    
-    // Execute each SQL statement separately
-    for (let i = 0; i < sqlStatements.length; i++) {
-      const sql = sqlStatements[i] + ';';
-      console.log(`Executing statement ${i + 1}/${sqlStatements.length}...`);
-      
-      try {
-        // Execute the SQL query using the REST API through the CORS proxy
-        await axios.post(proxyUrl, {
-          url: `${SUPABASE_URL}/rest/v1/rpc/execute_sql`,
-          method: 'post',
-          headers: {
-            'apikey': SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          data: {
-            query: sql
-          }
-        });
-        
-        console.log(`Statement ${i + 1} executed successfully`);
-      } catch (stmtError) {
-        console.error(`Error executing statement ${i + 1}:`, stmtError.response?.data || stmtError.message);
-        console.log('Continuing with next statement...');
+    const response = await axios.post(CORS_PROXY_URL, {
+      url: `${SUPABASE_URL}/rest/v1/rpc/execute_sql`,
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      data: {
+        query: sql
       }
-    }
-    
-    console.log('Migration completed!');
-    console.log('Created tables:');
-    console.log('- stripe_connect_accounts');
-    console.log('- payment_links');
-    console.log('- payment_records');
+    });
+
+    return response.data;
   } catch (error) {
-    console.error('Error applying migration:', error.response?.data || error.message);
+    console.error('Error executing SQL:', error.response?.data || error.message);
     throw error;
   }
 }
 
-// Run the migration
-applyMigration()
-  .then(() => {
-    console.log('Migration process completed');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('Migration process failed:', error);
+/**
+ * Applies the Stripe migration to the Supabase database
+ */
+async function applyMigration() {
+  try {
+    console.log('Reading migration SQL file...');
+    const migrationSQL = fs.readFileSync(MIGRATION_FILE_PATH, 'utf8');
+
+    // Split the SQL file into individual statements
+    const sqlStatements = migrationSQL.split(';').map(stmt => stmt.trim()).filter(stmt => stmt.length > 0);
+
+    console.log(`Found ${sqlStatements.length} SQL statements to execute`);
+
+    // Execute each SQL statement
+    for (let i = 0; i < sqlStatements.length; i++) {
+      const statement = sqlStatements[i];
+      console.log(`Executing statement ${i + 1}/${sqlStatements.length}...`);
+      
+      try {
+        await executeSql(statement);
+        console.log(`Statement ${i + 1} executed successfully`);
+      } catch (error) {
+        console.error(`Error executing statement ${i + 1}:`, error.message);
+        // Continue with the next statement
+      }
+    }
+
+    console.log('Migration completed successfully!');
+  } catch (error) {
+    console.error('Error applying migration:', error.message);
     process.exit(1);
-  });
+  }
+}
+
+// Run the migration
+applyMigration();

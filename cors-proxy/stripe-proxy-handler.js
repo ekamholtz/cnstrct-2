@@ -2,8 +2,6 @@ import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import http from 'http';
-import https from 'https';
 
 // Get the directory name
 const __filename = fileURLToPath(import.meta.url);
@@ -148,10 +146,19 @@ const handlePaymentIntentsRequest = async (stripeClient, endpointParts, method, 
 
   if (paymentIntentId && subResource === 'capture' && method === 'post') {
     // Capture a payment intent
-    return await stripeClient.paymentIntents.capture(paymentIntentId);
+    return await stripeClient.paymentIntents.capture(paymentIntentId, data);
+  } else if (paymentIntentId && subResource === 'cancel' && method === 'post') {
+    // Cancel a payment intent
+    return await stripeClient.paymentIntents.cancel(paymentIntentId, data);
+  } else if (paymentIntentId && subResource === 'confirm' && method === 'post') {
+    // Confirm a payment intent
+    return await stripeClient.paymentIntents.confirm(paymentIntentId, data);
   } else if (paymentIntentId && method === 'get') {
     // Retrieve a payment intent
     return await stripeClient.paymentIntents.retrieve(paymentIntentId);
+  } else if (!paymentIntentId && method === 'get') {
+    // List payment intents
+    return await stripeClient.paymentIntents.list(data);
   } else if (method === 'post') {
     // Create a payment intent
     return await stripeClient.paymentIntents.create(data);
@@ -177,6 +184,9 @@ const handlePaymentLinksRequest = async (stripeClient, endpointParts, method, da
   if (paymentLinkId && method === 'get') {
     // Retrieve a payment link
     return await stripeClient.paymentLinks.retrieve(paymentLinkId);
+  } else if (!paymentLinkId && method === 'get') {
+    // List payment links
+    return await stripeClient.paymentLinks.list(data);
   } else if (method === 'post') {
     // Create a payment link
     return await stripeClient.paymentLinks.create(data);
@@ -200,12 +210,15 @@ const handleCheckoutRequest = async (stripeClient, endpointParts, method, data) 
   const subResource = endpointParts.length > 1 ? endpointParts[1] : null;
   const sessionId = endpointParts.length > 2 ? endpointParts[2] : null;
 
-  if (subResource === 'sessions' && method === 'post') {
-    // Create a checkout session
-    return await stripeClient.checkout.sessions.create(data);
-  } else if (subResource === 'sessions' && sessionId && method === 'get') {
+  if (subResource === 'sessions' && sessionId && method === 'get') {
     // Retrieve a checkout session
     return await stripeClient.checkout.sessions.retrieve(sessionId);
+  } else if (subResource === 'sessions' && !sessionId && method === 'get') {
+    // List checkout sessions
+    return await stripeClient.checkout.sessions.list(data);
+  } else if (subResource === 'sessions' && method === 'post') {
+    // Create a checkout session
+    return await stripeClient.checkout.sessions.create(data);
   } else {
     throw new Error(`Unsupported Checkout API request: ${method} ${endpointParts.join('/')}`);
   }

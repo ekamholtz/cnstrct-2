@@ -20,33 +20,41 @@ const handleSupabaseRequest = async (req, res) => {
     const { url, method, headers, data } = req.body;
 
     if (!url) {
-      return res.status(400).json({ error: 'Missing Supabase URL' });
+      return res.status(400).json({ error: 'Missing url' });
     }
 
-    console.log(`Supabase API request: ${method?.toUpperCase() || 'POST'} ${url}`);
+    if (!method) {
+      return res.status(400).json({ error: 'Missing method' });
+    }
+
+    console.log(`Supabase API request: ${method.toUpperCase()} ${url}`);
 
     // Make the request to Supabase
-    const response = await axios({
-      url,
-      method: method || 'post',
-      headers: headers || {},
-      data: data || {},
-      validateStatus: () => true // Don't throw on error status codes
-    });
+    try {
+      const response = await axios({
+        url,
+        method,
+        headers,
+        data,
+        // Disable SSL verification for local development
+        httpsAgent: new (await import('https')).Agent({
+          rejectUnauthorized: false
+        })
+      });
 
-    // Return the response from Supabase
-    return res.status(response.status).json(response.data);
+      return res.json(response.data);
+    } catch (error) {
+      console.error('Supabase API error:', error);
+      return res.status(500).json({
+        error: 'Supabase proxy error',
+        message: error.message,
+        details: error.response?.data || {}
+      });
+    }
   } catch (error) {
-    console.error('Error in Supabase proxy:', error.message);
-    
-    // Return error details
-    return res.status(500).json({
-      error: 'Supabase proxy error',
-      message: error.message,
-      details: error.response?.data || {}
-    });
+    console.error('Supabase proxy handler error:', error);
+    return res.status(500).json({ error: error.message });
   }
 };
 
-// Export the handler function
-export { handleSupabaseRequest };
+export default handleSupabaseRequest;
