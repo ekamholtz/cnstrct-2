@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { 
@@ -23,6 +22,7 @@ export const useStripeConnect = () => {
     payoutsEnabled?: boolean;
     detailsSubmitted?: boolean;
   }>({});
+  const [skipConnectionCheck, setSkipConnectionCheck] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -33,13 +33,8 @@ export const useStripeConnect = () => {
       const token = await getStripeAccessToken();
       
       if (!token) {
-        setError('Could not retrieve Stripe access token. Please check your environment variables.');
-        toast({
-          title: 'Configuration Error',
-          description: 'Stripe API key is missing. Please ensure your .env file contains the STRIPE_SECRET_KEY.',
-          variant: 'destructive',
-          duration: 8000
-        });
+        console.warn('Stripe access token not found. Some features may be limited.');
+        setSkipConnectionCheck(true);
         return null;
       }
       
@@ -47,7 +42,7 @@ export const useStripeConnect = () => {
       return token;
     } catch (err: any) {
       console.error('Error fetching Stripe access token:', err);
-      setError('Failed to get Stripe access token');
+      setSkipConnectionCheck(true);
       return null;
     } finally {
       setLoading(false);
@@ -58,6 +53,17 @@ export const useStripeConnect = () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // If we're skipping connection checks, return a placeholder status
+      if (skipConnectionCheck) {
+        console.log('Skipping Stripe connection check due to missing API key');
+        return {
+          accountId: undefined,
+          chargesEnabled: false,
+          payoutsEnabled: false,
+          detailsSubmitted: false
+        };
+      }
       
       // Ensure we have an access token
       const token = accessToken || await fetchAccessToken();
@@ -169,6 +175,17 @@ export const useStripeConnect = () => {
         return null;
       }
       
+      // If we're skipping connection checks, show an API key missing message
+      if (skipConnectionCheck) {
+        toast({
+          title: 'Stripe API Key Required',
+          description: 'Please add your Stripe secret key to the environment variables to enable Stripe Connect.',
+          variant: 'destructive',
+          duration: 8000
+        });
+        return null;
+      }
+      
       // Ensure we have an access token
       const token = accessToken || await fetchAccessToken();
       if (!token) {
@@ -256,6 +273,17 @@ export const useStripeConnect = () => {
       setLoading(true);
       setError(null);
       
+      // If we're skipping connection checks, return null
+      if (skipConnectionCheck) {
+        toast({
+          title: 'Stripe API Key Required',
+          description: 'Please add your Stripe secret key to the environment variables to enable Stripe account management.',
+          variant: 'destructive',
+          duration: 8000
+        });
+        return null;
+      }
+      
       // Ensure we have an access token
       const token = accessToken || await fetchAccessToken();
       if (!token) {
@@ -287,6 +315,7 @@ export const useStripeConnect = () => {
     loading,
     error,
     accountStatus,
+    skipConnectionCheck,
     fetchAccessToken,
     getAccountStatus,
     connectStripeAccount,

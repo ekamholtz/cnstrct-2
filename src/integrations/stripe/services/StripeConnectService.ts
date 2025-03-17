@@ -27,10 +27,10 @@ export const getStripeAccessToken = async (): Promise<string | null> => {
         return 'proxy_will_use_server_key';
       }
     } catch (err) {
-      console.error('Could not check proxy configuration:', err);
+      console.warn('Could not check proxy configuration:', err);
     }
     
-    console.warn('No Stripe secret key found. Please set VITE_STRIPE_SECRET_KEY in your environment.');
+    console.warn('No Stripe secret key found. Running in limited functionality mode.');
     return null;
   } catch (error) {
     console.error('Error retrieving Stripe access token:', error);

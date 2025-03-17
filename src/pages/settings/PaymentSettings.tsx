@@ -43,7 +43,8 @@ const PaymentSettings = () => {
     connectStripeAccount, 
     getLoginLink, 
     loading: stripeLoading,
-    error: stripeError
+    error: stripeError,
+    skipConnectionCheck
   } = useStripeConnect();
   
   useEffect(() => {
@@ -83,10 +84,10 @@ const PaymentSettings = () => {
       } catch (err: any) {
         console.error('Error checking connected account:', err);
         
-        if (err.message && (err.message.includes('table not found') || err.message.includes('does not exist'))) {
+        if (err?.message && (err.message.includes('table not found') || err.message.includes('does not exist'))) {
           setIsMissingTables(true);
           setError('The required database tables are missing. Please run the SQL migrations.');
-        } else if (err.message && (err.message.includes('API key') || err.message.includes('access token'))) {
+        } else if (err?.message && (err.message.includes('API key') || err.message.includes('access token'))) {
           setMissingApiKey(true);
           setError('Stripe API key is missing. Please add STRIPE_SECRET_KEY to your .env file.');
         } else {
@@ -182,6 +183,21 @@ const PaymentSettings = () => {
     }
   };
   
+  const checkForApiKey = () => {
+    getStripeAccessToken().then(token => {
+      if (token) {
+        setMissingApiKey(false);
+        window.location.reload();
+      } else {
+        toast({
+          title: "API Key Still Missing",
+          description: "The Stripe API key is still not detected. Please make sure you've added it to your .env file and restarted your server.",
+          variant: "destructive"
+        });
+      }
+    });
+  };
+  
   const renderLoadingState = () => {
     return (
       <div className="text-center py-8">
@@ -232,15 +248,29 @@ const PaymentSettings = () => {
             <li>Restart your development server</li>
           </ol>
           <p className="text-sm mb-4">You can find your Stripe secret key in the Stripe dashboard under Developers &gt; API keys.</p>
-          <a 
-            href="https://dashboard.stripe.com/apikeys" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-sm text-blue-500 hover:text-blue-700 mb-2 inline-flex items-center"
-          >
-            <ExternalLink className="h-3 w-3 mr-1" />
-            Go to Stripe Dashboard
-          </a>
+          <div className="flex gap-2">
+            <a 
+              href="https://dashboard.stripe.com/apikeys" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-sm text-blue-500 hover:text-blue-700 mb-2 inline-flex items-center"
+            >
+              <ExternalLink className="h-3 w-3 mr-1" />
+              Go to Stripe Dashboard
+            </a>
+            <Button size="sm" variant="outline" onClick={checkForApiKey}>
+              I've Added The API Key
+            </Button>
+          </div>
+          <div className="mt-4 text-sm border border-amber-200 bg-amber-50 p-3 rounded">
+            <p className="flex items-center text-amber-800">
+              <AlertTriangle className="h-3 w-3 mr-2" />
+              <strong>Development Mode:</strong> You're seeing this message because you're running in development mode without a Stripe API key.
+            </p>
+            <p className="mt-1 text-amber-700">
+              To proceed without setting up Stripe, you can continue using the application with limited functionality.
+            </p>
+          </div>
         </AlertDescription>
       </Alert>
     );
@@ -301,6 +331,23 @@ const PaymentSettings = () => {
               <CardContent>
                 {(loading || stripeLoading) && !initialSetupDone ? (
                   renderLoadingState()
+                ) : (skipConnectionCheck || missingApiKey) ? (
+                  <div className="space-y-4">
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded">
+                      <h3 className="font-medium flex items-center">
+                        <AlertTriangle className="h-4 w-4 mr-2" />
+                        Limited Functionality Mode
+                      </h3>
+                      <p className="mt-1 text-sm">
+                        You're currently running with limited functionality because the Stripe API key is missing.
+                        Add your Stripe API key to the .env file to enable full payment functionality.
+                      </p>
+                    </div>
+                    <p>
+                      To accept payments from your customers through the platform, you'll need to connect your Stripe account.
+                      This requires setting up the Stripe API key first.
+                    </p>
+                  </div>
                 ) : accountStatus.accountId ? (
                   <div className="space-y-4">
                     <h3 className="text-lg font-medium">Account Status</h3>
@@ -415,7 +462,7 @@ const PaymentSettings = () => {
               </CardContent>
               
               <CardFooter className="flex justify-between">
-                {!accountStatus.accountId && (
+                {!accountStatus.accountId && !skipConnectionCheck && !missingApiKey && (
                   <Button 
                     onClick={handleConnectStripe} 
                     disabled={loading || creatingAccount || isMissingTables || missingApiKey}
@@ -440,6 +487,17 @@ const PaymentSettings = () => {
                   >
                     <ExternalLink className="mr-2 h-4 w-4" />
                     Manage Stripe Account
+                  </Button>
+                )}
+                
+                {(skipConnectionCheck || missingApiKey) && (
+                  <Button 
+                    variant="outline" 
+                    onClick={checkForApiKey}
+                    className="w-full md:w-auto"
+                  >
+                    <HelpCircle className="mr-2 h-4 w-4" />
+                    Check Stripe API Key
                   </Button>
                 )}
               </CardFooter>
