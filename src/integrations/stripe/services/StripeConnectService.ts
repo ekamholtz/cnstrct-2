@@ -136,6 +136,58 @@ export const createLoginLink = async (accountId: string, accessToken: string) =>
 };
 
 /**
+ * Creates the stripe_connect_accounts table if it doesn't exist
+ */
+export const createStripeConnectAccountsTable = async () => {
+  try {
+    // Create a stored procedure to execute arbitrary SQL
+    // This is needed as supabase.rpc('execute_sql') requires a pre-defined function
+    const createFunction = `
+      CREATE OR REPLACE FUNCTION execute_sql(query text)
+      RETURNS void AS $$
+      BEGIN
+        EXECUTE query;
+      END;
+      $$ LANGUAGE plpgsql SECURITY DEFINER;
+    `;
+    
+    // Execute the function creation
+    await supabase.rpc('execute_sql', { query: createFunction }).catch(err => {
+      // Function might already exist, ignore this error
+      console.log('Function creation error (may already exist):', err);
+    });
+    
+    // Now create the table
+    const createTableSQL = `
+      CREATE TABLE IF NOT EXISTS stripe_connect_accounts (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        user_id UUID NOT NULL,
+        account_id TEXT NOT NULL,
+        charges_enabled BOOLEAN DEFAULT FALSE,
+        payouts_enabled BOOLEAN DEFAULT FALSE,
+        details_submitted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        UNIQUE(user_id, account_id)
+      );
+    `;
+    
+    // Try to create the table
+    const { error } = await supabase.rpc('execute_sql', { query: createTableSQL });
+    
+    if (error) {
+      console.error('Error creating table:', error);
+      throw error;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Failed to create stripe_connect_accounts table:', error);
+    return false;
+  }
+};
+
+/**
  * Saves the connected account to the database
  * @param userId The user ID of the general contractor
  * @param accountId The Stripe account ID
@@ -148,20 +200,50 @@ export const saveConnectedAccount = async (
   accountDetails: any
 ) => {
   try {
-    const { data, error } = await supabase
-      .from('stripe_connect_accounts')
-      .upsert({
-        user_id: userId,
-        account_id: accountId,
-        charges_enabled: accountDetails.charges_enabled,
-        payouts_enabled: accountDetails.payouts_enabled,
-        details_submitted: accountDetails.details_submitted,
-        updated_at: new Date().toISOString()
-      })
-      .select();
+    // Try to create the table if it doesn't exist
+    await createStripeConnectAccountsTable();
+    
+    // Now try to save the account
+    try {
+      const { data, error } = await supabase
+        .from('stripe_connect_accounts')
+        .upsert({
+          user_id: userId,
+          account_id: accountId,
+          charges_enabled: accountDetails.charges_enabled,
+          payouts_enabled: accountDetails.payouts_enabled,
+          details_submitted: accountDetails.details_submitted,
+          updated_at: new Date().toISOString()
+        })
+        .select();
 
-    if (error) throw error;
-    return data;
+      if (error) throw error;
+      return data;
+    } catch (dbError: any) {
+      // If the error is that the table doesn't exist, create it and try again
+      if (dbError.code === '42P01') {
+        // Table doesn't exist, create it
+        await createStripeConnectAccountsTable();
+        
+        // Try the upsert again
+        const { data, error } = await supabase
+          .from('stripe_connect_accounts')
+          .upsert({
+            user_id: userId,
+            account_id: accountId,
+            charges_enabled: accountDetails.charges_enabled,
+            payouts_enabled: accountDetails.payouts_enabled,
+            details_submitted: accountDetails.details_submitted,
+            updated_at: new Date().toISOString()
+          })
+          .select();
+
+        if (error) throw error;
+        return data;
+      } else {
+        throw dbError;
+      }
+    }
   } catch (error: any) {
     console.error('Error saving Stripe Connect account:', error);
     throw new Error(error.message || 'Failed to save Stripe Connect account');
@@ -175,14 +257,24 @@ export const saveConnectedAccount = async (
  */
 export const getConnectedAccountFromDB = async (userId: string) => {
   try {
-    const { data, error } = await supabase
-      .from('stripe_connect_accounts')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    try {
+      const { data, error } = await supabase
+        .from('stripe_connect_accounts')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    } catch (dbError: any) {
+      // If the table doesn't exist, handle that case
+      if (dbError.code === '42P01') {
+        // Table doesn't exist, create it first
+        await createStripeConnectAccountsTable();
+        return null; // No data yet
+      }
+      throw dbError;
+    }
   } catch (error: any) {
     console.error('Error retrieving Stripe Connect account from DB:', error);
     throw new Error(error.message || 'Failed to get Stripe Connect account');

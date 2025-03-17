@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -6,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useStripeConnect } from '@/hooks/useStripeConnect';
-import { ArrowRight, ExternalLink, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { ArrowRight, ExternalLink, CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
 
 const PaymentSettings = () => {
   const [loading, setLoading] = useState(false);
@@ -18,6 +20,7 @@ const PaymentSettings = () => {
     detailsSubmitted?: boolean;
   }>({});
   const [error, setError] = useState<string | null>(null);
+  const [initialSetupDone, setInitialSetupDone] = useState(false);
   
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -26,8 +29,15 @@ const PaymentSettings = () => {
     getAccountStatus, 
     connectStripeAccount, 
     getLoginLink, 
-    loading: stripeLoading 
+    loading: stripeLoading,
+    error: stripeError
   } = useStripeConnect();
+  
+  useEffect(() => {
+    if (stripeError) {
+      setError(stripeError);
+    }
+  }, [stripeError]);
   
   useEffect(() => {
     // Check if the user already has a connected account
@@ -42,12 +52,15 @@ const PaymentSettings = () => {
         }
         
         const status = await getAccountStatus(user.id);
+        
         if (status) {
           setAccountStatus(status);
         }
+        
+        setInitialSetupDone(true);
       } catch (err: any) {
         console.error('Error checking connected account:', err);
-        setError('Failed to check account status');
+        setError('Failed to check account status. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -133,6 +146,41 @@ const PaymentSettings = () => {
     }
   };
   
+  // Render appropriate loading state
+  const renderLoadingState = () => {
+    return (
+      <div className="text-center py-8">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800 mx-auto mb-4"></div>
+        <p className="text-gray-600 mb-4">Setting up Stripe Connect...</p>
+        <Progress value={60} className="max-w-md mx-auto" />
+        <p className="mt-4 text-sm text-gray-500">This may take a moment while we prepare your payment integration</p>
+      </div>
+    );
+  };
+  
+  // Render error state
+  const renderErrorState = () => {
+    if (!error) return null;
+    
+    return (
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-4 rounded mb-6 flex items-start">
+        <AlertTriangle className="h-5 w-5 mr-3 mt-0.5 flex-shrink-0" />
+        <div>
+          <h4 className="font-medium mb-1">Connection Error</h4>
+          <p className="text-sm">{error}</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.location.reload()} 
+            className="mt-2"
+          >
+            Refresh Page
+          </Button>
+        </div>
+      </div>
+    );
+  };
+  
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Payment Settings</h1>
@@ -153,17 +201,10 @@ const PaymentSettings = () => {
             </CardHeader>
             
             <CardContent>
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-                  {error}
-                </div>
-              )}
+              {renderErrorState()}
               
-              {loading || stripeLoading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-800 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Loading account information...</p>
-                </div>
+              {(loading || stripeLoading) && !initialSetupDone ? (
+                renderLoadingState()
               ) : accountStatus.accountId ? (
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Account Status</h3>
@@ -206,7 +247,14 @@ const PaymentSettings = () => {
                         onClick={handleConnectStripe} 
                         disabled={loading || creatingAccount}
                       >
-                        Complete Account Setup
+                        {creatingAccount ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Completing Setup...
+                          </>
+                        ) : (
+                          'Complete Account Setup'
+                        )}
                       </Button>
                     </div>
                   )}
@@ -275,6 +323,7 @@ const PaymentSettings = () => {
                 <Button 
                   onClick={handleConnectStripe} 
                   disabled={loading || creatingAccount || !user}
+                  className="w-full md:w-auto"
                 >
                   {creatingAccount ? (
                     <>
