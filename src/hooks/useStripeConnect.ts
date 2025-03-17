@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { 
@@ -23,6 +22,7 @@ export const useStripeConnect = () => {
     payoutsEnabled?: boolean;
     detailsSubmitted?: boolean;
   }>({});
+  const [skipConnectionCheck, setSkipConnectionCheck] = useState(false);
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -31,11 +31,18 @@ export const useStripeConnect = () => {
     try {
       setLoading(true);
       const token = await getStripeAccessToken();
+      
+      if (!token) {
+        console.warn('Stripe access token not found. Some features may be limited.');
+        setSkipConnectionCheck(true);
+        return null;
+      }
+      
       setAccessToken(token);
       return token;
     } catch (err: any) {
       console.error('Error fetching Stripe access token:', err);
-      setError('Failed to get Stripe access token');
+      setSkipConnectionCheck(true);
       return null;
     } finally {
       setLoading(false);
@@ -47,6 +54,17 @@ export const useStripeConnect = () => {
       setLoading(true);
       setError(null);
       
+      // If we're skipping connection checks, return a placeholder status
+      if (skipConnectionCheck) {
+        console.log('Skipping Stripe connection check due to missing API key');
+        return {
+          accountId: undefined,
+          chargesEnabled: false,
+          payoutsEnabled: false,
+          detailsSubmitted: false
+        };
+      }
+      
       // Ensure we have an access token
       const token = accessToken || await fetchAccessToken();
       if (!token) {
@@ -55,6 +73,21 @@ export const useStripeConnect = () => {
       }
       
       try {
+        // First check if the table exists
+        try {
+          const { count, error } = await supabase
+            .from('stripe_connect_accounts')
+            .select('*', { count: 'exact', head: true });
+          
+          // If we get here, the table exists
+        } catch (tableErr: any) {
+          if (tableErr.message && tableErr.message.includes('does not exist')) {
+            setError('The stripe_connect_accounts table does not exist. Please run the SQL migrations first.');
+            setLoading(false);
+            return null;
+          }
+        }
+        
         // Get the connected account from the database
         const accountData = await getConnectedAccountFromDB(userId);
         
@@ -78,7 +111,20 @@ export const useStripeConnect = () => {
             return status;
           } catch (stripeErr: any) {
             console.error('Error fetching account from Stripe:', stripeErr);
-            setError(stripeErr.message || 'Failed to fetch account from Stripe');
+            
+            // If the error is related to the Stripe API key being invalid
+            if (stripeErr.message && (stripeErr.message.includes('Invalid API Key') || stripeErr.message.includes('No API key provided'))) {
+              setError('Invalid Stripe API key. Please check your environment configuration.');
+              
+              toast({
+                title: 'API Key Error',
+                description: 'The Stripe API key appears to be invalid. Please check your environment configuration.',
+                variant: 'destructive',
+                duration: 8000
+              });
+            } else {
+              setError(stripeErr.message || 'Failed to fetch account from Stripe');
+            }
             
             // Still return what we have in the database
             const status = {
@@ -96,7 +142,7 @@ export const useStripeConnect = () => {
         console.error('Database error when getting account status:', dbErr);
         
         // Check if the error is related to missing tables
-        if (dbErr.message && dbErr.message.includes('table not found')) {
+        if (dbErr.message && (dbErr.message.includes('table not found') || dbErr.message.includes('does not exist'))) {
           setError('The required database tables are missing. Please run the SQL migrations first.');
           toast({
             title: 'Database Setup Required',
@@ -129,6 +175,17 @@ export const useStripeConnect = () => {
         return null;
       }
       
+      // If we're skipping connection checks, show an API key missing message
+      if (skipConnectionCheck) {
+        toast({
+          title: 'Stripe API Key Required',
+          description: 'Please add your Stripe secret key to the environment variables to enable Stripe Connect.',
+          variant: 'destructive',
+          duration: 8000
+        });
+        return null;
+      }
+      
       // Ensure we have an access token
       const token = accessToken || await fetchAccessToken();
       if (!token) {
@@ -137,6 +194,21 @@ export const useStripeConnect = () => {
       }
       
       try {
+        // First check if the table exists
+        try {
+          const { count, error } = await supabase
+            .from('stripe_connect_accounts')
+            .select('*', { count: 'exact', head: true });
+          
+          // If we get here, the table exists
+        } catch (tableErr: any) {
+          if (tableErr.message && tableErr.message.includes('does not exist')) {
+            setError('The stripe_connect_accounts table does not exist. Please run the SQL migrations first.');
+            setLoading(false);
+            return null;
+          }
+        }
+        
         // Create a new Stripe Connect account
         const accountResponse = await createConnectedAccount(userId, token);
         
@@ -148,19 +220,31 @@ export const useStripeConnect = () => {
           accountResponse.id,
           token,
           `${window.location.origin}/settings/payments`, // Refresh URL
-          `${window.location.origin}/stripe/onboarding-complete` // Return URL
+          `${window.location.origin}/settings/payments` // Return URL (changed to redirect back to payment settings)
         );
         
         return accountLink.url;
       } catch (stripeErr: any) {
         // Check if the error is related to missing tables
-        if (stripeErr.message && stripeErr.message.includes('table not found')) {
+        if (stripeErr.message && (stripeErr.message.includes('table not found') || stripeErr.message.includes('does not exist'))) {
           setError('The required database tables are missing. Please run the SQL migrations first.');
           toast({
             title: 'Database Setup Required',
             description: 'The Stripe Connect database tables need to be created. Please run the SQL migrations provided.',
             variant: 'destructive',
             duration: 10000
+          });
+          return null;
+        }
+        
+        // If the error is related to the Stripe API key
+        if (stripeErr.message && (stripeErr.message.includes('Invalid API Key') || stripeErr.message.includes('No API key provided'))) {
+          setError('Invalid Stripe API key. Please check your environment configuration.');
+          toast({
+            title: 'API Key Error',
+            description: 'The Stripe API key appears to be invalid. Please check your environment configuration.',
+            variant: 'destructive',
+            duration: 8000
           });
           return null;
         }
@@ -188,6 +272,17 @@ export const useStripeConnect = () => {
     try {
       setLoading(true);
       setError(null);
+      
+      // If we're skipping connection checks, return null
+      if (skipConnectionCheck) {
+        toast({
+          title: 'Stripe API Key Required',
+          description: 'Please add your Stripe secret key to the environment variables to enable Stripe account management.',
+          variant: 'destructive',
+          duration: 8000
+        });
+        return null;
+      }
       
       // Ensure we have an access token
       const token = accessToken || await fetchAccessToken();
@@ -220,6 +315,7 @@ export const useStripeConnect = () => {
     loading,
     error,
     accountStatus,
+    skipConnectionCheck,
     fetchAccessToken,
     getAccountStatus,
     connectStripeAccount,

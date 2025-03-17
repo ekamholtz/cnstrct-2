@@ -1,3 +1,4 @@
+
 -- Create table for Stripe Connect accounts
 CREATE TABLE IF NOT EXISTS stripe_connect_accounts (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -101,3 +102,14 @@ CREATE POLICY insert_own_payment_records ON payment_records
 -- Create policy to allow users to update only their own payment records
 CREATE POLICY update_own_payment_records ON payment_records
   FOR UPDATE USING (auth.uid() = user_id);
+
+-- Create the execute_sql function for migrations
+CREATE OR REPLACE FUNCTION execute_sql(query text)
+RETURNS void AS $$
+BEGIN
+  EXECUTE query;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Allow authenticated users to use the execute_sql function
+GRANT EXECUTE ON FUNCTION execute_sql TO authenticated;

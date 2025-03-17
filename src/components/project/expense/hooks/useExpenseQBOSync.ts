@@ -3,19 +3,7 @@ import { useState } from "react";
 import { useSyncExpenseToQBO } from "@/hooks/useSyncExpenseToQBO";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
 import { useToast } from "@/components/ui/use-toast";
-
-interface Expense {
-  id: string;
-  name: string;
-  expense_date: string;
-  amount: number;
-  expense_type: string;
-  payee: string;
-  project_id: string;
-  notes?: string;
-  qbo_sync_status?: string;
-  qbo_entity_id?: string;
-}
+import { Expense } from "@/components/project/expense/types";
 
 export function useExpenseQBOSync() {
   const [glAccountId, setGlAccountId] = useState<string>("");
@@ -29,7 +17,13 @@ export function useExpenseQBOSync() {
     }
     
     try {
-      // Call the syncExpenseToQBO method with the expense ID
+      // Ensure expense has the required fields
+      if (!expense.id || !expense.expense_type) {
+        console.error("Cannot sync expense: missing required fields", expense);
+        return;
+      }
+      
+      // Call the syncExpenseToQBO method with the expense ID directly
       await syncExpenseMutation.syncExpenseToQBO(expense.id);
     } catch (qboError) {
       console.error("Error syncing to QBO:", qboError);
@@ -47,6 +41,6 @@ export function useExpenseQBOSync() {
     glAccountId,
     setGlAccountId,
     syncExpenseToQBO,
-    isSyncing: syncExpenseMutation.isSyncing,
+    isSyncing: syncExpenseMutation.isLoading || false,
   };
 }

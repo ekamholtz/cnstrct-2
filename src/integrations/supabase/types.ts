@@ -444,6 +444,114 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_links: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          customer_email: string | null
+          customer_name: string | null
+          description: string | null
+          id: string
+          payment_link_id: string
+          platform_fee: number
+          project_id: string | null
+          status: string
+          stripe_account_id: string
+          updated_at: string | null
+          url: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency: string
+          customer_email?: string | null
+          customer_name?: string | null
+          description?: string | null
+          id?: string
+          payment_link_id: string
+          platform_fee: number
+          project_id?: string | null
+          status: string
+          stripe_account_id: string
+          updated_at?: string | null
+          url: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          description?: string | null
+          id?: string
+          payment_link_id?: string
+          platform_fee?: number
+          project_id?: string | null
+          status?: string
+          stripe_account_id?: string
+          updated_at?: string | null
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      payment_records: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          customer_email: string | null
+          customer_name: string | null
+          description: string | null
+          error_message: string | null
+          id: string
+          payment_intent_id: string
+          platform_fee: number | null
+          project_id: string | null
+          status: string
+          stripe_account_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency: string
+          customer_email?: string | null
+          customer_name?: string | null
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          payment_intent_id: string
+          platform_fee?: number | null
+          project_id?: string | null
+          status: string
+          stripe_account_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          description?: string | null
+          error_message?: string | null
+          id?: string
+          payment_intent_id?: string
+          platform_fee?: number | null
+          project_id?: string | null
+          status?: string
+          stripe_account_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -769,6 +877,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      stripe_connect_accounts: {
+        Row: {
+          account_id: string
+          charges_enabled: boolean | null
+          created_at: string | null
+          details_submitted: boolean | null
+          id: string
+          payouts_enabled: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          charges_enabled?: boolean | null
+          created_at?: string | null
+          details_submitted?: boolean | null
+          id?: string
+          payouts_enabled?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          charges_enabled?: boolean | null
+          created_at?: string | null
+          details_submitted?: boolean | null
+          id?: string
+          payouts_enabled?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       subscription_tiers: {
         Row: {

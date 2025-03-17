@@ -64,7 +64,7 @@ export function ExpenseForm({ onSubmit, defaultProjectId }: ExpenseFormProps) {
             amount: parseFloat(stage1Data.amount),
             payee: stage1Data.payee,
             expense_date: stage1Data.expense_date,
-            expense_type: stage1Data.expense_type || 'other', // Ensure expense_type is not undefined
+            expense_type: stage1Data.expense_type, // This is required by the useExpenseQBOSync hook
             notes: stage1Data.notes || undefined,
             payment_status: status,
             created_at: new Date().toISOString(),
