@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import { useAuth } from '@/hooks/useAuth';
 import { 
   getConnectedAccount, 
   createLoginLink, 
@@ -31,7 +30,7 @@ const PaymentSettings = () => {
   
   const navigate = useNavigate();
   const { toast } = useToast();
-  const supabase = useSupabaseClient();
+  const { user, loading: authLoading } = useAuth();
   
   // Fetch the Stripe access token on component mount
   useEffect(() => {
@@ -55,11 +54,12 @@ const PaymentSettings = () => {
     // Check if the user already has a connected account
     const checkConnectedAccount = async () => {
       try {
+        if (authLoading) return; // Wait for auth to complete
+        
         setLoading(true);
         setError(null);
         
-        // Get the current user
-        const { data: { user } } = await supabase.auth.getUser();
+        // Check if user is authenticated
         if (!user) {
           navigate('/auth');
           return;
@@ -104,15 +104,14 @@ const PaymentSettings = () => {
     if (accessToken) {
       checkConnectedAccount();
     }
-  }, [navigate, supabase, accessToken]);
+  }, [accessToken, user, authLoading, navigate]);
   
   const handleConnectStripe = async () => {
     try {
       setCreatingAccount(true);
       setError(null);
       
-      // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
+      // Check if user is authenticated
       if (!user) {
         navigate('/auth');
         return;
@@ -191,7 +190,25 @@ const PaymentSettings = () => {
       setLoading(false);
     }
   };
-  
+
+  // Render loading state while authentication is in progress
+  if (authLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4 flex justify-center items-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-lg">Loading payment settings...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to auth if not logged in
+  if (!user) {
+    navigate('/auth');
+    return null;
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <h1 className="text-3xl font-bold mb-6">Payment Settings</h1>

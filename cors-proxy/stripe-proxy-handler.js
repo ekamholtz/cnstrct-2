@@ -2,6 +2,8 @@ import Stripe from 'stripe';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import http from 'http';
+import https from 'https';
 
 // Get the directory name
 const __filename = fileURLToPath(import.meta.url);
@@ -33,7 +35,11 @@ const handleStripeRequest = async (req, res) => {
     console.log(`Stripe API request: ${method.toUpperCase()} ${endpoint}`);
 
     // Initialize Stripe with the provided access token
-    const stripeClient = new Stripe(accessToken);
+    const stripeClient = new Stripe(accessToken, {
+      apiVersion: '2023-10-16', // Use a specific API version
+      maxNetworkRetries: 2, // Automatically retry requests that fail due to network problems
+      timeout: 30000 // 30 seconds
+    });
 
     // Parse the endpoint to determine the Stripe API resource and action
     const endpointParts = endpoint.split('/');
@@ -97,6 +103,9 @@ const handleAccountsRequest = async (stripeClient, endpointParts, method, data) 
   } else if (accountId && method === 'get') {
     // Retrieve a connected account
     return await stripeClient.accounts.retrieve(accountId);
+  } else if (!accountId && method === 'get') {
+    // List all connected accounts
+    return await stripeClient.accounts.list(data);
   } else if (method === 'post') {
     // Create a connected account
     return await stripeClient.accounts.create(data);
