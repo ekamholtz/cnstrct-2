@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Page</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    pre {
+      background: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-top: 0;
+      color: #333;
+    }
+    button {
+      background: #0070f3;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #0051a8;
+    }
+  </style>
+</head>
+<body>
+  <h1>CNSTRCT Debug Page</h1>
+  
+  <div class="card">
+    <h2>Environment Variables</h2>
+    <div id="env-vars"></div>
+    <button onclick="checkEnvVars()">Check Environment Variables</button>
+  </div>
+  
+  <div class="card">
+    <h2>Module Loading Test</h2>
+    <div id="module-test"></div>
+    <button onclick="testModules()">Test Module Loading</button>
+  </div>
+  
+  <div class="card">
+    <h2>API Connectivity</h2>
+    <div id="api-test"></div>
+    <button onclick="testApi()">Test API Connectivity</button>
+  </div>
+
+  <script>
+    // Check environment variables
+    function checkEnvVars() {
+      const envDiv = document.getElementById('env-vars');
+      envDiv.innerHTML = '<pre>Checking environment variables...</pre>';
+      
+      try {
+        // List of expected environment variables
+        const envVars = [
+          'MODE',
+          'BASE_URL',
+          'PROD',
+          'DEV',
+          'VITE_SUPABASE_URL',
+          'VITE_SUPABASE_ANON_KEY',
+          'VITE_STRIPE_SECRET_KEY',
+          'VITE_STRIPE_PROXY_URL'
+        ];
+        
+        const results = {};
+        
+        // Check if each environment variable exists
+        envVars.forEach(varName => {
+          try {
+            const value = window.import?.meta?.env?.[varName];
+            results[varName] = value !== undefined ? 
+              (typeof value === 'string' && value.length > 10 ? 
+                value.substring(0, 5) + '...' : 
+                String(value)) : 
+              'undefined';
+          } catch (err) {
+            results[varName] = `Error: ${err.message}`;
+          }
+        });
+        
+        envDiv.innerHTML = `<pre>${JSON.stringify(results, null, 2)}</pre>`;
+      } catch (error) {
+        envDiv.innerHTML = `<pre>Error checking environment variables: ${error.message}</pre>`;
+      }
+    }
+    
+    // Test module loading
+    async function testModules() {
+      const moduleDiv = document.getElementById('module-test');
+      moduleDiv.innerHTML = '<pre>Testing module loading...</pre>';
+      
+      try {
+        // Try to dynamically import zod
+        moduleDiv.innerHTML += '<pre>Attempting to import zod...</pre>';
+        
+        try {
+          const zodModule = await import('zod');
+          moduleDiv.innerHTML = `<pre>Successfully imported zod: ${typeof zodModule === 'object' ? 'Module object received' : 'Failed'}</pre>`;
+        } catch (zodError) {
+          moduleDiv.innerHTML = `<pre>Error importing zod: ${zodError.message}</pre>`;
+        }
+      } catch (error) {
+        moduleDiv.innerHTML += `<pre>General error: ${error.message}</pre>`;
+      }
+    }
+    
+    // Test API connectivity
+    async function testApi() {
+      const apiDiv = document.getElementById('api-test');
+      apiDiv.innerHTML = '<pre>Testing API connectivity...</pre>';
+      
+      try {
+        // Test Supabase connection
+        const supabaseUrl = window.import?.meta?.env?.VITE_SUPABASE_URL || '';
+        if (supabaseUrl) {
+          try {
+            const response = await fetch(`${supabaseUrl}/rest/v1/`);
+            apiDiv.innerHTML = `<pre>Supabase API response: ${response.status} ${response.statusText}</pre>`;
+          } catch (apiError) {
+            apiDiv.innerHTML = `<pre>Supabase API error: ${apiError.message}</pre>`;
+          }
+        } else {
+          apiDiv.innerHTML = '<pre>Supabase URL not found in environment variables</pre>';
+        }
+      } catch (error) {
+        apiDiv.innerHTML += `<pre>General error: ${error.message}</pre>`;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Explicitly alias zod to its entry point
+      "zod": path.resolve(__dirname, "./node_modules/zod/lib/index.js"),
     },
   },
   build: {
@@ -33,10 +35,19 @@ export default defineConfig(({ mode }) => ({
           return;
         }
         warn(warning);
-      }
+      },
+      // Ensure these modules are properly bundled and not treated as external
+      external: []
     }
   },
   optimizeDeps: {
-    include: ['zod']
+    include: ['zod', '@hookform/resolvers/zod']
+  },
+  // Add a define section to ensure environment variables are properly replaced
+  define: {
+    // Replace process.env for libraries that might use it
+    'process.env': {},
+    // Ensure import.meta.env is properly handled
+    __APP_ENV__: JSON.stringify(process.env.NODE_ENV),
   }
 }));
