@@ -1,6 +1,6 @@
 import { AuthorizationService } from "./auth/AuthorizationService";
 import { APIClientFactory } from "./api/APIClientFactory";
-import { QBOConfig } from "../config/qboConfigFixed";
+import { QBOConfig } from "../config/qboConfig";
 import { QBOConnectionService } from "../connection/qboConnectionService";
 import axios from "axios";
 import { supabase } from "../../../integrations/supabase/client";
@@ -10,6 +10,7 @@ export class BaseQBOServiceProxy {
   protected apiClientFactory: APIClientFactory;
   protected connectionService: QBOConnectionService;
   protected connectionManager: QBOConnectionService;
+  protected config: QBOConfig;
   protected baseUrl: string;
   protected proxyUrl: string;
   
@@ -19,9 +20,9 @@ export class BaseQBOServiceProxy {
     this.connectionService = new QBOConnectionService();
     this.connectionManager = this.connectionService;
     
-    // Get configuration
-    const config = new QBOConfig();
-    this.baseUrl = config.apiBaseUrl;
+    // Use the singleton instance to ensure consistent configuration
+    this.config = QBOConfig.getInstance();
+    this.baseUrl = this.config.apiBaseUrl;
     this.proxyUrl = "http://localhost:3030/proxy";
       
     console.log("BaseQBOServiceProxy initialized with baseUrl:", this.baseUrl);

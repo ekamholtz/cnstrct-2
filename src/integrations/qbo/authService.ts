@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { QBOConfig } from "./config/qboConfig";
 import { QBOUtils } from "./utils/qboUtils";
@@ -13,7 +12,7 @@ export class QBOAuthService {
   private connectionService: QBOConnectionService;
   
   constructor() {
-    this.config = new QBOConfig();
+    this.config = QBOConfig.getInstance();
     this.tokenManager = new QBOTokenManager();
     this.companyService = new QBOCompanyService();
     this.connectionService = new QBOConnectionService();

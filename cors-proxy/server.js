@@ -78,6 +78,9 @@ app.post('/proxy/token', async (req, res) => {
     const finalClientId = clientId || DEFAULT_CLIENT_ID;
     const finalClientSecret = clientSecret || DEFAULT_CLIENT_SECRET;
     
+    console.log('Using client ID:', finalClientId);
+    console.log('Environment:', isProduction ? 'Production' : 'Sandbox');
+    
     // Prepare the request to QuickBooks
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
@@ -93,28 +96,37 @@ app.post('/proxy/token', async (req, res) => {
     console.log('Redirect URI:', redirectUri);
     
     // Make the token request to QuickBooks
-    const response = await axios.post(
-      'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer',
-      params.toString(),
-      {
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `Basic ${base64Auth}`
-        },
-        httpsAgent
-      }
-    );
-    
-    console.log('Received response from QuickBooks API');
-    
-    // Return the token response to the client
-    return res.json(response.data);
+    try {
+      const response = await axios.post(
+        'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer',
+        params.toString(),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${base64Auth}`
+          },
+          httpsAgent
+        }
+      );
+      
+      console.log('Received response from QuickBooks API');
+      
+      // Return the token response to the client
+      return res.json(response.data);
+    } catch (apiError) {
+      console.error('Error from QuickBooks API:', apiError.response?.data || apiError.message);
+      
+      return res.status(apiError.response?.status || 500).json({
+        error: 'Failed to exchange token',
+        details: apiError.response?.data || apiError.message
+      });
+    }
   } catch (error) {
-    console.error('Error exchanging token:', error.response?.data || error.message);
+    console.error('Error in token exchange:', error.message);
     
-    return res.status(error.response?.status || 500).json({
-      error: 'Failed to exchange token',
-      details: error.response?.data || error.message
+    return res.status(500).json({
+      error: 'Internal server error during token exchange',
+      details: error.message
     });
   }
 });

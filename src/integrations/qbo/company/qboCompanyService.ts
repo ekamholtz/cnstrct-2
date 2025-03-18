@@ -1,5 +1,5 @@
-import axios from "axios";
 import { QBOConfig } from "../config/qboConfig";
+import axios from "axios";
 
 /**
  * Service for QBO company-related operations
@@ -10,8 +10,10 @@ export class QBOCompanyService {
   private proxyUrl: string;
   
   constructor() {
-    this.config = new QBOConfig();
+    // Use the singleton instance to ensure consistent configuration
+    this.config = QBOConfig.getInstance();
     this.proxyUrl = "http://localhost:3030/proxy";
+    console.log("QBOCompanyService initialized with client ID:", this.config.clientId);
     console.warn("WARNING: Using deprecated QBOCompanyService. Please use QBOCompanyServiceProxy instead.");
   }
   

@@ -1,4 +1,3 @@
-
 import { AuthorizationService } from "./auth/AuthorizationService";
 import { APIClientFactory } from "./api/APIClientFactory";
 import { ConnectionManager } from "./connection/ConnectionManager";
@@ -8,18 +7,17 @@ export class BaseQBOService {
   protected authService: AuthorizationService;
   protected apiClientFactory: APIClientFactory;
   protected connectionManager: ConnectionManager;
-  protected baseUrl: string;
+  protected config: QBOConfig;
   
   constructor() {
     this.authService = new AuthorizationService();
     this.apiClientFactory = new APIClientFactory();
     this.connectionManager = new ConnectionManager();
     
-    // Get configuration
-    const config = new QBOConfig();
-    this.baseUrl = config.apiBaseUrl;
+    // Use the singleton instance to ensure consistent configuration
+    this.config = QBOConfig.getInstance();
       
-    console.log("BaseQBOService initialized with baseUrl:", this.baseUrl);
+    console.log("BaseQBOService initialized with client ID:", this.config.clientId);
   }
   
   /**

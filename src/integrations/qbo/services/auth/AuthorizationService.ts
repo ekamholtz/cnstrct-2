@@ -1,88 +1,86 @@
-
-import { QBOAuthService } from "../../authService";
-import { QBOUtils } from "../../utils/qboUtils";
-import { supabase } from "@/integrations/supabase/client";
+import { QBOConfig } from "../../config/qboConfig";
+import { QBOTokenManager } from "../../auth/qboTokenManager";
+import { QBOCompanyServiceProxy } from "../../company/qboCompanyServiceProxy";
 
 /**
  * Service for handling QBO authorization
  */
 export class AuthorizationService {
-  private authService: QBOAuthService;
+  private config: QBOConfig;
+  private tokenManager: QBOTokenManager;
+  private companyService: QBOCompanyServiceProxy;
   
   constructor() {
-    this.authService = new QBOAuthService();
+    // Use the singleton instance to ensure consistent configuration
+    this.config = QBOConfig.getInstance();
+    this.tokenManager = new QBOTokenManager();
+    this.companyService = new QBOCompanyServiceProxy();
+    
+    console.log("AuthorizationService initialized with client ID:", this.config.clientId);
+    console.log("AuthorizationService environment:", this.config.isProduction ? "Production" : "Sandbox");
   }
   
   /**
-   * Get an authorization token
+   * Handle the OAuth callback
    */
-  async refreshToken(connectionId: string): Promise<string> {
-    return this.authService.refreshToken(connectionId);
-  }
-
-  /**
-   * Handle OAuth callback with user ID persistence
-   */
-  async handleCallback(code: string, state: string, userId?: string): Promise<{
+  async handleCallback(code: string, state: string, userId: string | null): Promise<{
     success: boolean;
-    companyId?: string;
-    companyName?: string;
     error?: string;
+    companyName?: string;
   }> {
-    // Validate state to prevent CSRF attacks
-    if (!QBOUtils.validateState(state)) {
-      console.error("State mismatch in QBO callback", { provided: state, stored: localStorage.getItem('qbo_auth_state') });
-      return { success: false, error: 'Invalid state parameter' };
-    }
-
     try {
-      console.log("Exchanging authorization code for tokens...");
+      console.log("Handling QBO callback for user:", userId);
       
-      let user;
-      if (userId) {
-        // Use the provided userId instead of relying on the current session
-        user = { id: userId };
-      } else {
-        // Fallback to checking the current session
-        const { data } = await supabase.auth.getUser();
-        user = data.user;
+      // Verify the state parameter to prevent CSRF attacks
+      const storedState = localStorage.getItem('qbo_auth_state');
+      if (!storedState || storedState !== state) {
+        console.error("State mismatch - possible CSRF attack");
+        return {
+          success: false,
+          error: "Invalid state parameter - security validation failed"
+        };
+      }
+      
+      // Clear the state from localStorage
+      localStorage.removeItem('qbo_auth_state');
+      
+      if (!userId) {
+        console.error("Missing user ID for QBO callback");
+        return {
+          success: false,
+          error: "Missing user ID - unable to complete connection"
+        };
+      }
+      
+      console.log("Exchanging code for tokens...");
+      
+      // Exchange the authorization code for tokens
+      try {
+        const tokenData = await this.tokenManager.exchangeCodeForTokens(code);
         
-        if (!user) {
-          console.error("No authenticated user found when storing QBO tokens");
-          return { success: false, error: 'User authentication required' };
-        }
+        // Get the company information
+        const companyInfo = await this.companyService.getCompanyInfo(tokenData.access_token, tokenData.realmId);
+        
+        // Store the connection information
+        await this.tokenManager.storeConnection(userId, tokenData, companyInfo);
+        
+        return {
+          success: true,
+          companyName: companyInfo.CompanyName
+        };
+      } catch (error: any) {
+        console.error("Error exchanging code for tokens:", error);
+        return {
+          success: false,
+          error: `Failed to exchange authorization code for tokens: ${error.message}`
+        };
       }
-
-      // Exchange authorization code for tokens
-      const tokenData = await this.authService.getTokens(code);
-      
-      if (!tokenData.access_token || !tokenData.refresh_token || !tokenData.realmId) {
-        console.error("Missing required token information", tokenData);
-        return { success: false, error: 'Missing required token information' };
-      }
-      
-      // Get company info using the new access token
-      const companyInfo = await this.authService.getCompanyInfo(tokenData.access_token, tokenData.realmId);
-      
-      // Store connection with the persisted user ID
-      await this.authService.storeConnection(user.id, tokenData, companyInfo);
-      
-      // Clear OAuth state from localStorage
-      QBOUtils.clearOAuthState();
-      
-      return { 
-        success: true, 
-        companyId: tokenData.realmId,
-        companyName: companyInfo.companyName
-      };
-      
     } catch (error: any) {
-      console.error("Error in QBO authorization:", error);
-      const errorMessage = error.response?.data?.error_description || 
-                          error.response?.data?.error ||
-                          error.message ||
-                          'Authorization failed';
-      return { success: false, error: errorMessage };
+      console.error("Error handling QBO callback:", error);
+      return {
+        success: false,
+        error: `Error handling QBO callback: ${error.message}`
+      };
     }
   }
 }

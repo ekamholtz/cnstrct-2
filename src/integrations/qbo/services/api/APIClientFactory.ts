@@ -1,19 +1,20 @@
 import axios, { AxiosInstance } from "axios";
-import { AuthorizationService } from "../auth/AuthorizationService";
 import { QBOConfig } from "../../config/qboConfig";
+import { QBOTokenManager } from "../../auth/qboTokenManager";
 import https from 'https';
 
 /**
  * Factory for creating authenticated QBO API clients
  */
 export class APIClientFactory {
-  private authService: AuthorizationService;
   private config: QBOConfig;
+  private tokenManager: QBOTokenManager;
   private proxyUrl: string;
   
   constructor() {
-    this.authService = new AuthorizationService();
-    this.config = new QBOConfig();
+    // Use the singleton instance to ensure consistent configuration
+    this.config = QBOConfig.getInstance();
+    this.tokenManager = new QBOTokenManager();
     // Use local CORS proxy for development
     this.proxyUrl = "http://localhost:3030/proxy";
   }
@@ -23,8 +24,8 @@ export class APIClientFactory {
    */
   async createClient(connectionId: string, companyId: string): Promise<AxiosInstance> {
     try {
-      // Get a fresh token
-      const token = await this.authService.refreshToken(connectionId);
+      // Use the token manager to refresh the token
+      const token = await this.tokenManager.refreshToken(connectionId);
       
       // Create a proxy-based client that routes all requests through the CORS proxy
       const client = axios.create({

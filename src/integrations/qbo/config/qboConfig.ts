@@ -21,11 +21,27 @@ export class QBOConfig {
   // Environment detection
   public isProduction: boolean;
   
-  constructor() {
+  // Singleton instance
+  private static instance: QBOConfig;
+  
+  /**
+   * Get singleton instance to prevent multiple configurations with different values
+   */
+  public static getInstance(): QBOConfig {
+    if (!QBOConfig.instance) {
+      QBOConfig.instance = new QBOConfig();
+    }
+    return QBOConfig.instance;
+  }
+  
+  private constructor() {
     // Environment detection - ignore preview prefix
     const hostname = window.location.hostname.replace('preview--', '');
     this.isProduction = hostname !== 'localhost' && 
                        !hostname.includes('127.0.0.1');
+    
+    console.log("QBOConfig constructor - hostname:", hostname);
+    console.log("QBOConfig constructor - isProduction:", this.isProduction);
     
     // For client-side, we only need the client ID, not the secret
     // The client ID is safe to expose in the client-side code

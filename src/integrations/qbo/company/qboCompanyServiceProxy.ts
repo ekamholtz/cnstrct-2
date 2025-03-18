@@ -1,69 +1,77 @@
+import { supabase } from "@/integrations/supabase/client";
+import { QBOConfig } from "../config/qboConfig";
 import axios from "axios";
-import { QBOConfig } from "../config/qboConfigFixed";
 
 /**
- * Service for QBO company-related operations using CORS proxy
+ * Service for QBO company operations with proxy support
  */
-export class QBOCompanyService {
+export class QBOCompanyServiceProxy {
   private config: QBOConfig;
   private proxyUrl: string;
   
   constructor() {
-    this.config = new QBOConfig();
-    // Use local CORS proxy for development
-    this.proxyUrl = "http://localhost:3030/proxy";
+    // Use the singleton instance to ensure consistent configuration
+    this.config = QBOConfig.getInstance();
+    
+    // Determine proxy URL based on environment
+    const hostname = window.location.hostname.replace('preview--', '');
+    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+      // Local development
+      this.proxyUrl = "http://localhost:3030/proxy";
+    } else {
+      // Production environment - use relative URL to avoid CORS issues
+      this.proxyUrl = "/api/proxy";
+    }
+    
+    console.log("QBOCompanyServiceProxy initialized with client ID:", this.config.clientId);
+    console.log("QBOCompanyServiceProxy using proxy URL:", this.proxyUrl);
   }
   
   /**
-   * Get company information from QBO via CORS proxy
+   * Get company information from QBO
    */
-  async getCompanyInfo(accessToken: string, realmId: string): Promise<{
-    companyName: string;
-    [key: string]: any;
-  }> {
+  async getCompanyInfo(accessToken: string, realmId: string): Promise<any> {
     try {
-      console.log("Getting company info from QBO via CORS proxy...");
+      // Force the correct proxy URL based on the environment
+      const hostname = window.location.hostname.replace('preview--', '');
+      const finalProxyUrl = (hostname === 'localhost' || hostname.includes('127.0.0.1'))
+        ? "http://localhost:3030/proxy"
+        : "/api/proxy";
+        
+      console.log("Using proxy URL for company info:", finalProxyUrl);
       
-      // Instead of direct API call, use the proxy
-      const proxyResponse = await axios.post(`${this.proxyUrl}/company-info`, {
-        accessToken,
-        realmId
+      const response = await axios.get(`${this.config.apiBaseUrl}/company/${realmId}/companyinfo/${realmId}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/json'
+        }
       });
       
-      console.log("Company info retrieved successfully via proxy");
-      
-      // If we got a successful response from the proxy
-      if (proxyResponse.data && proxyResponse.data.CompanyInfo) {
-        return {
-          companyName: proxyResponse.data.CompanyInfo.CompanyName || 'Unknown Company',
-          ...proxyResponse.data.CompanyInfo
-        };
-      }
-      
-      return { companyName: 'Unknown Company' };
-    } catch (error) {
-      console.error("Error getting company info via proxy:", error);
-      return { companyName: 'Unknown Company' };
+      return response.data.CompanyInfo;
+    } catch (error: any) {
+      console.error("Error getting company info:", error.response?.data || error.message);
+      throw new Error("Failed to get company information");
     }
   }
   
   /**
-   * Test connection to QBO via CORS proxy
+   * Get user's QBO connection
    */
-  async testConnection(accessToken: string, realmId: string): Promise<boolean> {
-    try {
-      console.log("Testing QBO connection via CORS proxy...");
-      
-      // Use the proxy for the test connection
-      const response = await axios.post(`${this.proxyUrl}/test-connection`, {
-        accessToken,
-        realmId
-      });
-      
-      return response.status === 200;
-    } catch (error) {
-      console.error("QBO connection test failed:", error);
-      return false;
-    }
+  async getUserConnection(userId: string) {
+    return await supabase
+      .from('qbo_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .single();
+  }
+  
+  /**
+   * Delete user's QBO connection
+   */
+  async deleteUserConnection(userId: string) {
+    return await supabase
+      .from('qbo_connections')
+      .delete()
+      .eq('user_id', userId);
   }
 }

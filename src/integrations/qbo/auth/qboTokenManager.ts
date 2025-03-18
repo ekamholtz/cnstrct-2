@@ -10,7 +10,8 @@ export class QBOTokenManager {
   private proxyUrl: string;
   
   constructor() {
-    this.config = new QBOConfig();
+    // Use the singleton instance to ensure consistent configuration
+    this.config = QBOConfig.getInstance();
     
     // Determine proxy URL based on environment
     const hostname = window.location.hostname.replace('preview--', '');
@@ -23,6 +24,8 @@ export class QBOTokenManager {
     }
     
     console.log("QBOTokenManager initialized with proxy URL:", this.proxyUrl);
+    console.log("Current hostname:", hostname);
+    console.log("Is production environment:", this.config.isProduction);
   }
   
   /**
@@ -37,16 +40,25 @@ export class QBOTokenManager {
   }> {
     console.log("Exchanging authorization code for tokens via proxy...");
     console.log("Using redirect URI:", this.config.redirectUri);
+    console.log("Using client ID:", this.config.clientId);
+    console.log("Using proxy URL:", this.proxyUrl);
     
     try {
+      // Force the correct proxy URL based on the environment
+      const hostname = window.location.hostname.replace('preview--', '');
+      const finalProxyUrl = (hostname === 'localhost' || hostname.includes('127.0.0.1'))
+        ? "http://localhost:3030/proxy"
+        : "/api/proxy";
+        
+      console.log("Final proxy URL for token exchange:", finalProxyUrl);
+      
       // Use the CORS proxy to avoid CORS issues
-      const proxyResponse = await axios.post(`${this.proxyUrl}/token`, {
+      const proxyResponse = await axios.post(`${finalProxyUrl}/token`, {
         code,
         redirectUri: this.config.redirectUri,
         // In production, we don't send the client secret from the client
         // The server will use the environment variables
-        clientId: this.config.clientId,
-        clientSecret: this.config.isProduction ? undefined : this.config.clientSecret
+        clientId: this.config.clientId
       });
       
       console.log("Token exchange successful via proxy");
@@ -65,7 +77,7 @@ export class QBOTokenManager {
         realmId
       };
     } catch (error: any) {
-      console.error("Proxy token exchange failed:", error);
+      console.error("CORS proxy token exchange failed:", error);
       
       // Provide detailed error information
       if (error.response) {
@@ -112,9 +124,17 @@ export class QBOTokenManager {
       
       console.log("Refreshing QBO token for connection:", connectionId);
       
+      // Force the correct proxy URL based on the environment
+      const hostname = window.location.hostname.replace('preview--', '');
+      const finalProxyUrl = (hostname === 'localhost' || hostname.includes('127.0.0.1'))
+        ? "http://localhost:3030/proxy"
+        : "/api/proxy";
+        
+      console.log("Final proxy URL for token refresh:", finalProxyUrl);
+      
       // Use the CORS proxy to refresh the token
       try {
-        const proxyResponse = await axios.post(`${this.proxyUrl}/refresh`, {
+        const proxyResponse = await axios.post(`${finalProxyUrl}/refresh`, {
           refreshToken: connection.refresh_token
           // Don't send clientId and clientSecret - the proxy will use defaults
         }, {

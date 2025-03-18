@@ -1,7 +1,7 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthorizationService } from "@/integrations/qbo/services/auth/AuthorizationService";
+import { QBOConfig } from "@/integrations/qbo/config/qboConfig";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,11 +18,20 @@ export default function QBOCallback() {
   useEffect(() => {
     async function handleCallback() {
       try {
+        // Use the singleton instance to ensure consistent configuration
+        const qboConfig = QBOConfig.getInstance();
+        console.log("QBO Config in callback:", {
+          clientId: qboConfig.clientId,
+          redirectUri: qboConfig.redirectUri,
+          environment: qboConfig.isProduction ? "Production" : "Sandbox"
+        });
+        
         const queryParams = new URLSearchParams(location.search);
         const code = queryParams.get("code");
         const state = queryParams.get("state");
         const error = queryParams.get("error");
         const errorDescription = queryParams.get("error_description");
+        const realmId = queryParams.get("realmId");
         
         if (error) {
           console.error("OAuth error:", error, errorDescription);
@@ -100,37 +109,26 @@ export default function QBOCallback() {
             <div className="space-y-4">
               <div className="flex items-center space-x-2 text-green-600">
                 <CheckCircle className="h-6 w-6" />
-                <span className="font-medium">Successfully connected to QuickBooks Online</span>
+                <p className="font-medium">Successfully connected to {companyName}</p>
               </div>
-              
-              <Alert className="bg-green-50 border-green-200">
-                <AlertTitle className="text-green-800">Connection established</AlertTitle>
-                <AlertDescription className="text-green-700">
-                  Your CNSTRCT account is now connected to {companyName} in QuickBooks Online. 
-                  You can now sync financial data between the two platforms.
-                </AlertDescription>
-              </Alert>
+              <p>You can now use QuickBooks Online features in your account.</p>
             </div>
           )}
           
           {status === "error" && (
-            <div className="space-y-4">
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Connection failed</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <p>{errorMessage || "Failed to connect to QuickBooks Online. Please try again."}</p>
-                  {errorDetails && (
-                    <p className="text-sm font-mono bg-red-50 p-2 rounded">{errorDetails}</p>
-                  )}
-                </AlertDescription>
-              </Alert>
-            </div>
+            <Alert variant="destructive" className="mb-4">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Connection Failed</AlertTitle>
+              <AlertDescription>
+                <p>{errorMessage}</p>
+                {errorDetails && <p className="mt-2 text-sm">{errorDetails}</p>}
+              </AlertDescription>
+            </Alert>
           )}
         </CardContent>
         
-        <CardFooter className="flex justify-end">
-          <Button onClick={handleNavigate}>
+        <CardFooter>
+          <Button onClick={handleNavigate} className="w-full">
             {status === "success" ? "Go to Dashboard" : "Back to Dashboard"}
           </Button>
         </CardFooter>
