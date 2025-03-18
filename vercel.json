@@ -17,6 +17,10 @@
       "destination": "/api/proxy/refresh.js"
     },
     {
+      "source": "/api/env-check",
+      "destination": "/api/env-check.js"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
