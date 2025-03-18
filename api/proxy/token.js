@@ -39,6 +39,7 @@ export default async function handler(req, res) {
 
   try {
     console.log('Received QBO token exchange request in Vercel function');
+    console.log('Request body:', JSON.stringify(req.body));
     
     const { code, redirectUri, clientId } = req.body;
     
@@ -58,6 +59,15 @@ export default async function handler(req, res) {
     console.log('Environment:', isProduction ? 'Production' : 'Sandbox');
     console.log('Redirect URI:', redirectUri);
     
+    // IMPORTANT: Check for exact match with registered redirect URI
+    const registeredRedirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
+    if (redirectUri !== registeredRedirectUri) {
+      console.warn(`⚠️ Redirect URI mismatch! Received: "${redirectUri}" but expected: "${registeredRedirectUri}"`);
+      
+      // Force the correct redirect URI
+      console.log('Forcing correct redirect URI for token exchange');
+    }
+    
     if (!finalClientId || !finalClientSecret) {
       console.error('Missing client credentials in environment variables');
       return res.status(500).json({
@@ -70,14 +80,18 @@ export default async function handler(req, res) {
     const requestData = {
       grant_type: 'authorization_code',
       code: code,
-      redirect_uri: redirectUri
+      redirect_uri: registeredRedirectUri // Always use the registered URI
     };
     
     // Create the authorization header
     const authString = `${finalClientId}:${finalClientSecret}`;
     const base64Auth = Buffer.from(authString).toString('base64');
     
-    console.log('Making request to QuickBooks API');
+    console.log('Making request to QuickBooks API with data:', {
+      grant_type: 'authorization_code',
+      code: '[REDACTED]',
+      redirect_uri: requestData.redirect_uri
+    });
     
     // Make the token request to QuickBooks
     try {
@@ -100,7 +114,7 @@ export default async function handler(req, res) {
       console.error('Error from QuickBooks API:', apiError.response?.data || apiError.message);
       console.error('Request details:', {
         clientId: finalClientId,
-        redirectUri: redirectUri,
+        redirectUri: requestData.redirect_uri,
         code: code ? '[REDACTED]' : 'missing'
       });
       
