@@ -56,6 +56,14 @@ export default async function handler(req, res) {
     console.log('Environment:', isProduction ? 'Production' : 'Sandbox');
     console.log('Using client ID:', finalClientId);
     
+    if (!finalClientId || !finalClientSecret) {
+      console.error('Missing client credentials in environment variables');
+      return res.status(500).json({
+        error: 'Server configuration error',
+        details: 'Missing OAuth credentials'
+      });
+    }
+    
     // Prepare the request to QuickBooks
     const requestData = {
       grant_type: 'refresh_token',

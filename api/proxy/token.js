@@ -58,6 +58,14 @@ export default async function handler(req, res) {
     console.log('Environment:', isProduction ? 'Production' : 'Sandbox');
     console.log('Redirect URI:', redirectUri);
     
+    if (!finalClientId || !finalClientSecret) {
+      console.error('Missing client credentials in environment variables');
+      return res.status(500).json({
+        error: 'Server configuration error',
+        details: 'Missing OAuth credentials'
+      });
+    }
+    
     // Prepare the request to QuickBooks
     const requestData = {
       grant_type: 'authorization_code',
