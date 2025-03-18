@@ -14,18 +14,42 @@ export class QBOTokenManager {
     this.config = QBOConfig.getInstance();
     
     // Determine proxy URL based on environment
-    const hostname = window.location.hostname.replace('preview--', '');
-    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
-      // Local development
-      this.proxyUrl = "http://localhost:3030/proxy";
+    // IMPORTANT: We need to check if we're in a browser environment first
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname.replace('preview--', '');
+      console.log("QBOTokenManager - Current hostname:", hostname);
+      
+      if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+        // Local development
+        this.proxyUrl = "http://localhost:3030/proxy";
+      } else {
+        // Production environment - use relative URL to avoid CORS issues
+        this.proxyUrl = "/api/proxy";
+      }
     } else {
-      // Production environment - use relative URL to avoid CORS issues
+      // Default to production proxy URL if not in browser
       this.proxyUrl = "/api/proxy";
     }
     
     console.log("QBOTokenManager initialized with proxy URL:", this.proxyUrl);
-    console.log("Current hostname:", hostname);
-    console.log("Is production environment:", this.config.isProduction);
+    console.log("QBOTokenManager - Is production environment:", this.config.isProduction);
+  }
+  
+  /**
+   * Get the appropriate proxy URL based on the current environment
+   */
+  private getProxyUrl(): string {
+    // IMPORTANT: We need to check if we're in a browser environment first
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname.replace('preview--', '');
+      
+      if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+        return "http://localhost:3030/proxy";
+      }
+    }
+    
+    // Production environment or non-browser context
+    return "/api/proxy";
   }
   
   /**
@@ -38,22 +62,21 @@ export class QBOTokenManager {
     x_refresh_token_expires_in: number;
     realmId: string;
   }> {
-    console.log("Exchanging authorization code for tokens via proxy...");
-    console.log("Using redirect URI:", this.config.redirectUri);
-    console.log("Using client ID:", this.config.clientId);
-    console.log("Using proxy URL:", this.proxyUrl);
+    console.log("Exchanging authorization code for tokens via CORS proxy...");
     
     try {
-      // Force the correct proxy URL based on the environment
-      const hostname = window.location.hostname.replace('preview--', '');
-      const finalProxyUrl = (hostname === 'localhost' || hostname.includes('127.0.0.1'))
-        ? "http://localhost:3030/proxy"
-        : "/api/proxy";
-        
-      console.log("Final proxy URL for token exchange:", finalProxyUrl);
+      // Always use the method to get the correct proxy URL
+      const proxyUrl = this.getProxyUrl();
+      
+      console.log("Token exchange details:", {
+        proxyUrl,
+        redirectUri: this.config.redirectUri,
+        clientId: this.config.clientId,
+        isProduction: this.config.isProduction
+      });
       
       // Use the CORS proxy to avoid CORS issues
-      const proxyResponse = await axios.post(`${finalProxyUrl}/token`, {
+      const proxyResponse = await axios.post(`${proxyUrl}/token`, {
         code,
         redirectUri: this.config.redirectUri,
         // In production, we don't send the client secret from the client
@@ -83,7 +106,6 @@ export class QBOTokenManager {
       if (error.response) {
         console.error("Response error data:", error.response.data);
         console.error("Response error status:", error.response.status);
-        console.error("Response error headers:", error.response.headers);
       }
       
       throw new Error("Failed to exchange authorization code for tokens: " + 
@@ -124,17 +146,13 @@ export class QBOTokenManager {
       
       console.log("Refreshing QBO token for connection:", connectionId);
       
-      // Force the correct proxy URL based on the environment
-      const hostname = window.location.hostname.replace('preview--', '');
-      const finalProxyUrl = (hostname === 'localhost' || hostname.includes('127.0.0.1'))
-        ? "http://localhost:3030/proxy"
-        : "/api/proxy";
-        
-      console.log("Final proxy URL for token refresh:", finalProxyUrl);
+      // Always use the method to get the correct proxy URL
+      const proxyUrl = this.getProxyUrl();
+      console.log("Using proxy URL for token refresh:", proxyUrl);
       
       // Use the CORS proxy to refresh the token
       try {
-        const proxyResponse = await axios.post(`${finalProxyUrl}/refresh`, {
+        const proxyResponse = await axios.post(`${proxyUrl}/refresh`, {
           refreshToken: connection.refresh_token
           // Don't send clientId and clientSecret - the proxy will use defaults
         }, {
@@ -166,7 +184,6 @@ export class QBOTokenManager {
         if (proxyError.response) {
           console.error("Proxy server response:", proxyError.response.data);
           console.error("Proxy server status:", proxyError.response.status);
-          console.error("Proxy server headers:", proxyError.response.headers);
         }
         throw new Error(`Proxy server error: ${proxyError.message}`);
       }
@@ -189,7 +206,7 @@ export class QBOTokenManager {
       .upsert({
         user_id: userId,
         company_id: realmId,
-        company_name: companyInfo.companyName,
+        company_name: companyInfo.CompanyName || companyInfo.companyName,
         access_token,
         refresh_token,
         expires_at: new Date(Date.now() + (expires_in * 1000)).toISOString(),
@@ -199,9 +216,9 @@ export class QBOTokenManager {
       
     if (error) {
       console.error("Error storing QBO tokens:", error);
-      throw new Error('Failed to store connection information');
+      throw new Error('Failed to store QBO connection');
     }
     
-    console.log("QBO connection successfully established");
+    console.log("QBO connection successfully stored");
   }
 }
