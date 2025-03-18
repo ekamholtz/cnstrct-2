@@ -13,7 +13,7 @@ export class QBOTokenManager {
     this.config = new QBOConfig();
     
     // Determine proxy URL based on environment
-    const hostname = window.location.hostname;
+    const hostname = window.location.hostname.replace('preview--', '');
     if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
       // Local development
       this.proxyUrl = "http://localhost:3030/proxy";
@@ -35,7 +35,7 @@ export class QBOTokenManager {
     x_refresh_token_expires_in: number;
     realmId: string;
   }> {
-    console.log("Exchanging authorization code for tokens via CORS proxy...");
+    console.log("Exchanging authorization code for tokens via proxy...");
     console.log("Using redirect URI:", this.config.redirectUri);
     
     try {
@@ -49,7 +49,7 @@ export class QBOTokenManager {
         clientSecret: this.config.isProduction ? undefined : this.config.clientSecret
       });
       
-      console.log("Token exchange successful via CORS proxy");
+      console.log("Token exchange successful via proxy");
       
       // Extract realmId from the URL query parameters (it's not in the token response)
       const urlParams = new URLSearchParams(window.location.search);
@@ -65,16 +65,20 @@ export class QBOTokenManager {
         realmId
       };
     } catch (error: any) {
-      console.error("CORS proxy token exchange failed:", error);
+      console.error("Proxy token exchange failed:", error);
       
       // Provide detailed error information
       if (error.response) {
         console.error("Response error data:", error.response.data);
         console.error("Response error status:", error.response.status);
+        console.error("Response error headers:", error.response.headers);
       }
       
       throw new Error("Failed to exchange authorization code for tokens: " + 
-                     (error.message || "Unknown error"));
+                     (error.response?.data?.error_description || 
+                      error.response?.data?.error || 
+                      error.message || 
+                      "Unknown error"));
     }
   }
   
@@ -142,6 +146,7 @@ export class QBOTokenManager {
         if (proxyError.response) {
           console.error("Proxy server response:", proxyError.response.data);
           console.error("Proxy server status:", proxyError.response.status);
+          console.error("Proxy server headers:", proxyError.response.headers);
         }
         throw new Error(`Proxy server error: ${proxyError.message}`);
       }
