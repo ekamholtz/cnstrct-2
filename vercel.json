@@ -9,6 +9,14 @@
       "destination": "/api/proxy/stripe.js"
     },
     {
+      "source": "/api/proxy/token",
+      "destination": "/api/proxy/token.js"
+    },
+    {
+      "source": "/api/proxy/refresh",
+      "destination": "/api/proxy/refresh.js"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
