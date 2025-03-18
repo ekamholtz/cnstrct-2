@@ -44,8 +44,6 @@ export class QBOConfig {
     // Use a hardcoded URL that exactly matches what's registered in the Intuit Developer Portal
     // IMPORTANT: This must match EXACTLY what's registered in the Intuit Developer Portal
     if (hostname === 'cnstrctnetwork.vercel.app') {
-      this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
-    } else if (hostname === 'cnstrctnetwork.vercel.app') {
       // This is the actual domain registered in Intuit Developer Portal
       this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
     } else if (hostname === 'cnstrct-2.lovable.app') {
