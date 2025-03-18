@@ -11,8 +11,18 @@ export class QBOTokenManager {
   
   constructor() {
     this.config = new QBOConfig();
-    // Use local CORS proxy for development
-    this.proxyUrl = "http://localhost:3030/proxy";
+    
+    // Determine proxy URL based on environment
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+      // Local development
+      this.proxyUrl = "http://localhost:3030/proxy";
+    } else {
+      // Production environment - use relative URL to avoid CORS issues
+      this.proxyUrl = "/api/proxy";
+    }
+    
+    console.log("QBOTokenManager initialized with proxy URL:", this.proxyUrl);
   }
   
   /**
@@ -26,14 +36,17 @@ export class QBOTokenManager {
     realmId: string;
   }> {
     console.log("Exchanging authorization code for tokens via CORS proxy...");
+    console.log("Using redirect URI:", this.config.redirectUri);
     
     try {
-      // Use the local CORS proxy to avoid CORS issues
+      // Use the CORS proxy to avoid CORS issues
       const proxyResponse = await axios.post(`${this.proxyUrl}/token`, {
         code,
         redirectUri: this.config.redirectUri,
+        // In production, we don't send the client secret from the client
+        // The server will use the environment variables
         clientId: this.config.clientId,
-        clientSecret: this.config.clientSecret
+        clientSecret: this.config.isProduction ? undefined : this.config.clientSecret
       });
       
       console.log("Token exchange successful via CORS proxy");
@@ -95,7 +108,7 @@ export class QBOTokenManager {
       
       console.log("Refreshing QBO token for connection:", connectionId);
       
-      // Use the local CORS proxy to refresh the token
+      // Use the CORS proxy to refresh the token
       try {
         const proxyResponse = await axios.post(`${this.proxyUrl}/refresh`, {
           refreshToken: connection.refresh_token
