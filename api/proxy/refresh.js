@@ -2,6 +2,7 @@
 // This serverless function handles the token refresh in production
 
 import axios from 'axios';
+import qs from 'querystring';
 
 // Environment detection
 const isProduction = process.env.NODE_ENV === 'production';
@@ -17,6 +18,20 @@ const DEFAULT_CLIENT_ID = isProduction ? QBO_PROD_CLIENT_ID : QBO_SANDBOX_CLIENT
 const DEFAULT_CLIENT_SECRET = isProduction ? QBO_PROD_CLIENT_SECRET : QBO_SANDBOX_CLIENT_SECRET;
 
 export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
+
+  // Handle OPTIONS request
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -39,12 +54,13 @@ export default async function handler(req, res) {
     const finalClientSecret = DEFAULT_CLIENT_SECRET;
     
     console.log('Environment:', isProduction ? 'Production' : 'Sandbox');
+    console.log('Using client ID:', finalClientId);
     
     // Prepare the request to QuickBooks
-    const params = new URLSearchParams({
+    const requestData = {
       grant_type: 'refresh_token',
       refresh_token: refreshToken
-    });
+    };
     
     // Create the authorization header
     const authString = `${finalClientId}:${finalClientSecret}`;
@@ -54,23 +70,27 @@ export default async function handler(req, res) {
     
     // Make the token request to QuickBooks
     try {
-      const response = await axios.post(
-        'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer',
-        params.toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${base64Auth}`
-          }
+      const response = await axios({
+        method: 'post',
+        url: 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer',
+        data: qs.stringify(requestData),
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Basic ${base64Auth}`,
+          'Accept': 'application/json'
         }
-      );
+      });
       
-      console.log('Received response from QuickBooks API');
+      console.log('Received successful response from QuickBooks API');
       
       // Return the token response to the client
       return res.status(200).json(response.data);
     } catch (apiError) {
       console.error('Error from QuickBooks API:', apiError.response?.data || apiError.message);
+      console.error('Request details:', {
+        clientId: finalClientId,
+        refreshToken: refreshToken ? '[REDACTED]' : 'missing'
+      });
       
       return res.status(apiError.response?.status || 500).json({
         error: 'Failed to refresh token',
