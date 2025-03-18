@@ -7,48 +7,39 @@ import { QBOConfig } from "../config/qboConfig";
  */
 export class QBOTokenManager {
   private config: QBOConfig;
-  private proxyUrl: string;
   
   constructor() {
     // Use the singleton instance to ensure consistent configuration
     this.config = QBOConfig.getInstance();
     
-    // Determine proxy URL based on environment
-    // IMPORTANT: We need to check if we're in a browser environment first
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname.replace('preview--', '');
-      console.log("QBOTokenManager - Current hostname:", hostname);
-      
-      if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
-        // Local development
-        this.proxyUrl = "http://localhost:3030/proxy";
-      } else {
-        // Production environment - use relative URL to avoid CORS issues
-        this.proxyUrl = "/api/proxy";
-      }
-    } else {
-      // Default to production proxy URL if not in browser
-      this.proxyUrl = "/api/proxy";
-    }
-    
-    console.log("QBOTokenManager initialized with proxy URL:", this.proxyUrl);
+    console.log("QBOTokenManager initialized");
     console.log("QBOTokenManager - Is production environment:", this.config.isProduction);
   }
   
   /**
    * Get the appropriate proxy URL based on the current environment
+   * This is a critical function that determines whether to use local development
+   * proxy or the Vercel serverless functions in production
    */
   private getProxyUrl(): string {
     // IMPORTANT: We need to check if we're in a browser environment first
-    if (typeof window !== 'undefined') {
-      const hostname = window.location.hostname.replace('preview--', '');
-      
-      if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
-        return "http://localhost:3030/proxy";
-      }
+    if (typeof window === 'undefined') {
+      console.log("QBOTokenManager.getProxyUrl - Not in browser, using production proxy URL");
+      return "/api/proxy";
     }
     
-    // Production environment or non-browser context
+    // Get the hostname and log it for debugging
+    const hostname = window.location.hostname;
+    console.log("QBOTokenManager.getProxyUrl - Current hostname:", hostname);
+    
+    // Check if we're on localhost
+    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+      console.log("QBOTokenManager.getProxyUrl - Using local development proxy URL");
+      return "http://localhost:3030/proxy";
+    }
+    
+    // We're in production - use the relative URL for Vercel serverless functions
+    console.log("QBOTokenManager.getProxyUrl - Using production proxy URL");
     return "/api/proxy";
   }
   
@@ -65,7 +56,7 @@ export class QBOTokenManager {
     console.log("Exchanging authorization code for tokens via CORS proxy...");
     
     try {
-      // Always use the method to get the correct proxy URL
+      // Get the correct proxy URL based on environment
       const proxyUrl = this.getProxyUrl();
       
       console.log("Token exchange details:", {
@@ -146,7 +137,7 @@ export class QBOTokenManager {
       
       console.log("Refreshing QBO token for connection:", connectionId);
       
-      // Always use the method to get the correct proxy URL
+      // Get the correct proxy URL based on environment
       const proxyUrl = this.getProxyUrl();
       console.log("Using proxy URL for token refresh:", proxyUrl);
       
