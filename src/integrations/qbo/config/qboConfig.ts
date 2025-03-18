@@ -1,5 +1,5 @@
-
 import { supabase } from "@/integrations/supabase/client";
+import axios from "axios";
 
 /**
  * Configuration for QuickBooks Online integration
@@ -27,9 +27,19 @@ export class QBOConfig {
     this.isProduction = hostname !== 'localhost' && 
                        !hostname.includes('127.0.0.1');
     
-    // Updated sandbox credentials
-    this.clientId = "AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j";
-    this.clientSecret = "4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau";
+    // For client-side, we only need the client ID, not the secret
+    // The client ID is safe to expose in the client-side code
+    if (this.isProduction) {
+      // Production client ID - this is safe to expose
+      this.clientId = "ABBj3cN2qzHyAjRg2Htq5BvstIO0HT79PmrHDNLBTdLKMirQr6";
+      // Secret will be handled by the server-side proxy
+      this.clientSecret = "";
+    } else {
+      // Sandbox client ID - this is safe to expose
+      this.clientId = "AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j";
+      // Secret will be handled by the server-side proxy
+      this.clientSecret = "";
+    }
     
     // Use a hardcoded URL that exactly matches what's registered in the Intuit Developer Portal
     if (hostname === 'cnstrctnetwork.vercel.app') {

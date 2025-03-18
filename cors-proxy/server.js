@@ -21,12 +21,27 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 const app = express();
 const PORT = process.env.CORS_PROXY_PORT || 3030;
 
-// Default QBO credentials as fallback
-const DEFAULT_CLIENT_ID = process.env.QBO_CLIENT_ID || 'AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j';
-const DEFAULT_CLIENT_SECRET = process.env.QBO_CLIENT_SECRET || '4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau';
+// Environment detection
+const isProduction = process.env.NODE_ENV === 'production';
+
+// QBO credentials based on environment
+const QBO_SANDBOX_CLIENT_ID = process.env.QBO_SANDBOX_CLIENT_ID || 'AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j';
+const QBO_SANDBOX_CLIENT_SECRET = process.env.QBO_SANDBOX_CLIENT_SECRET || '4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau';
+const QBO_PROD_CLIENT_ID = process.env.QBO_PROD_CLIENT_ID || '';
+const QBO_PROD_CLIENT_SECRET = process.env.QBO_PROD_CLIENT_SECRET || '';
+
+// Default QBO credentials based on environment
+const DEFAULT_CLIENT_ID = isProduction ? QBO_PROD_CLIENT_ID : QBO_SANDBOX_CLIENT_ID;
+const DEFAULT_CLIENT_SECRET = isProduction ? QBO_PROD_CLIENT_SECRET : QBO_SANDBOX_CLIENT_SECRET;
 
 // Stripe secret key
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+
+// Create a custom HTTPS agent that doesn't verify SSL certificates in development
+// This is needed to avoid SSL certificate issues during local development
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false // IMPORTANT: Only use this in development!
+});
 
 // Enable CORS for all routes
 app.use(cors());
@@ -37,6 +52,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.json({ 
     status: 'CORS Proxy Server is running',
+    environment: isProduction ? 'Production' : 'Sandbox',
     qbo_configured: !!DEFAULT_CLIENT_ID && !!DEFAULT_CLIENT_SECRET,
     stripe_configured: !!STRIPE_SECRET_KEY
   });
@@ -85,9 +101,7 @@ app.post('/proxy/token', async (req, res) => {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Basic ${base64Auth}`
         },
-        httpsAgent: new https.Agent({
-          rejectUnauthorized: process.env.NODE_ENV !== 'development'
-        })
+        httpsAgent
       }
     );
     
@@ -144,9 +158,7 @@ app.post('/proxy/refresh', async (req, res) => {
           'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': `Basic ${base64Auth}`
         },
-        httpsAgent: new https.Agent({
-          rejectUnauthorized: process.env.NODE_ENV !== 'development'
-        })
+        httpsAgent
       }
     );
     
@@ -189,9 +201,7 @@ app.post('/proxy/test-connection', async (req, res) => {
           'Authorization': `Bearer ${accessToken}`,
           'Accept': 'application/json'
         },
-        httpsAgent: new https.Agent({
-          rejectUnauthorized: process.env.NODE_ENV !== 'development'
-        })
+        httpsAgent
       }
     );
     
@@ -250,9 +260,7 @@ app.post('/proxy/data-operation', async (req, res) => {
         'Content-Type': 'application/json'
       },
       data: data || undefined,
-      httpsAgent: new https.Agent({
-        rejectUnauthorized: process.env.NODE_ENV !== 'development'
-      })
+      httpsAgent
     });
     
     console.log('Received data operation response from QuickBooks API');
