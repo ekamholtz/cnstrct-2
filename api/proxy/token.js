@@ -50,9 +50,9 @@ export default async function handler(req, res) {
       });
     }
     
-    // Use provided client ID or fall back to default
-    // Always use server-side secret for security
-    const finalClientId = clientId || DEFAULT_CLIENT_ID;
+    // CRITICAL: Always use the server-side environment variables for credentials
+    // Ignore any client-provided clientId to ensure security
+    const finalClientId = DEFAULT_CLIENT_ID;
     const finalClientSecret = DEFAULT_CLIENT_SECRET;
     
     console.log('Using client ID:', finalClientId);
@@ -90,7 +90,8 @@ export default async function handler(req, res) {
     console.log('Making request to QuickBooks API with data:', {
       grant_type: 'authorization_code',
       code: '[REDACTED]',
-      redirect_uri: requestData.redirect_uri
+      redirect_uri: requestData.redirect_uri,
+      client_id: finalClientId
     });
     
     // Make the token request to QuickBooks

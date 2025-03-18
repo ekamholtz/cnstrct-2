@@ -31,18 +31,29 @@ export class QBOConfig {
     // The client ID is safe to expose in the client-side code
     if (this.isProduction) {
       // Production client ID - this is safe to expose
+      // *********************************************
+      // IMPORTANT: This must EXACTLY match what's registered in the Intuit Developer Portal
+      // Failure to match will result in authentication errors
+      // *********************************************
       this.clientId = "ABBj3cN2qzHyAjRg2Htq5BvstIO0HT79PmrHDNLBTdLKMirQr6";
       // Secret will be handled by the server-side proxy
       this.clientSecret = "";
     } else {
       // Sandbox client ID - this is safe to expose
+      // *********************************************
+      // IMPORTANT: This must EXACTLY match what's registered in the Intuit Developer Portal
+      // Failure to match will result in authentication errors
+      // *********************************************
       this.clientId = "AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j";
       // Secret will be handled by the server-side proxy
       this.clientSecret = "";
     }
     
     // Use a hardcoded URL that exactly matches what's registered in the Intuit Developer Portal
-    // IMPORTANT: This must match EXACTLY what's registered in the Intuit Developer Portal
+    // *********************************************
+    // IMPORTANT: This must EXACTLY match what's registered in the Intuit Developer Portal
+    // Failure to match will result in authentication errors
+    // *********************************************
     if (hostname === 'cnstrctnetwork.vercel.app') {
       // This is the actual domain registered in Intuit Developer Portal
       this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
