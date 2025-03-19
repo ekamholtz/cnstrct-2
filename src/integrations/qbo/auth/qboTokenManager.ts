@@ -29,7 +29,7 @@ export class QBOTokenManager {
     refresh_token: string;
     expires_in: number;
     x_refresh_token_expires_in: number;
-    realmId: string;
+    realmId?: string;
   }> {
     console.log("Exchanging authorization code for tokens via CORS proxy...");
     console.log("Using proxy URL:", this.proxyUrl);
@@ -52,13 +52,14 @@ export class QBOTokenManager {
       
       console.log("Token exchange successful");
       
-      // Extract token data and realmId from response
+      // Extract token data from response
+      // Note: realmId might be missing in the token response, will be extracted from URL in the callback
       const tokenData = {
         access_token: proxyResponse.data.access_token,
         refresh_token: proxyResponse.data.refresh_token,
-        expires_in: proxyResponse.data.expires_in,
-        x_refresh_token_expires_in: proxyResponse.data.x_refresh_token_expires_in,
-        realmId: proxyResponse.data.realmId
+        expires_in: proxyResponse.data.expires_in || 3600, // Default to 1 hour if missing
+        x_refresh_token_expires_in: proxyResponse.data.x_refresh_token_expires_in || 8726400, // Default to 101 days if missing
+        realmId: proxyResponse.data.realmId // This might be undefined
       };
       
       return tokenData;
@@ -173,29 +174,70 @@ export class QBOTokenManager {
   async storeConnection(userId: string, tokenData: any, companyInfo: any): Promise<any> {
     try {
       console.log("Storing QBO connection for user:", userId);
+      console.log("Token data received:", JSON.stringify({
+        access_token: "[REDACTED]",
+        realmId: tokenData.realmId,
+        expires_in: tokenData.expires_in
+      }));
+      
+      // Extract realmId from URL if not present in token data
+      let realmId = tokenData.realmId;
+      
+      // If realmId is missing, try to extract it from URL parameters
+      if (!realmId && typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        realmId = urlParams.get('realmId');
+        console.log("Extracted realmId from URL:", realmId);
+      }
+      
+      // Validate that we have a realmId
+      if (!realmId) {
+        console.error("No realmId found in token data or URL parameters");
+        throw new Error("Missing realmId, unable to store connection");
+      }
+      
+      // Make sure we have valid numeric values for expiration times
+      const expiresIn = parseInt(String(tokenData.expires_in || '3600'), 10);
+      const refreshTokenExpiresIn = parseInt(String(tokenData.x_refresh_token_expires_in || '8726400'), 10);
+      
+      // Safely create expiration dates with validation
+      let expiresAt, refreshTokenExpiresAt, lastRefreshedAt;
+      try {
+        expiresAt = new Date(Date.now() + (expiresIn * 1000)).toISOString();
+        refreshTokenExpiresAt = new Date(Date.now() + (refreshTokenExpiresIn * 1000)).toISOString();
+        lastRefreshedAt = new Date().toISOString();
+      } catch (error) {
+        console.error("Error creating date values:", error);
+        // Use fallback dates if conversion fails
+        const now = new Date();
+        expiresAt = now.toISOString();
+        now.setDate(now.getDate() + 90); // 90 days for refresh token
+        refreshTokenExpiresAt = now.toISOString();
+        lastRefreshedAt = new Date().toISOString();
+      }
       
       // Check for existing connection
       const { data: existingConnection, error: findError } = await supabase
         .from('qbo_connections')
         .select('*')
         .eq('user_id', userId)
-        .eq('company_id', tokenData.realmId)
+        .eq('company_id', realmId)
         .single();
       
       const connectionData = {
         user_id: userId,
-        company_id: tokenData.realmId,
+        company_id: realmId,
         company_name: companyInfo?.CompanyName || 'Unknown Company',
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
         token_type: tokenData.token_type || 'bearer',
-        expires_in: tokenData.expires_in,
-        x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
-        expires_at: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString(),
-        refresh_token_expires_at: new Date(Date.now() + (tokenData.x_refresh_token_expires_in * 1000)).toISOString(),
+        expires_in: expiresIn,
+        x_refresh_token_expires_in: refreshTokenExpiresIn,
+        expires_at: expiresAt,
+        refresh_token_expires_at: refreshTokenExpiresAt,
         is_sandbox: !this.config.isProduction,
         client_id: this.config.clientId,
-        last_refreshed_at: new Date().toISOString()
+        last_refreshed_at: lastRefreshedAt
       };
       
       let result;

@@ -25,6 +25,7 @@ export default function QBOCallback() {
         const code = queryParams.get("code");
         const state = queryParams.get("state");
         const error = queryParams.get("error");
+        const realmId = queryParams.get("realmId");  // Extract realmId from URL
         
         if (error) {
           console.error("OAuth error:", error);
@@ -39,6 +40,9 @@ export default function QBOCallback() {
           setErrorMessage("Missing authorization code or state parameter");
           return;
         }
+        
+        // Log the realmId for debugging
+        console.log("RealmId from URL params:", realmId);
         
         // Get the stored user ID from localStorage (set during auth initiation)
         let userId = QBOSessionHelper.getStoredUserId();
@@ -61,7 +65,28 @@ export default function QBOCallback() {
         
         // Use the AuthorizationService for more flexible handling
         const authService = new AuthorizationService();
-        const result = await authService.handleCallback(code, state, userId);
+        
+        // Create a custom payload for better context
+        const callbackPayload = {
+          code,
+          state,
+          userId,
+          realmId
+        };
+        
+        console.log("Passing callback payload:", {
+          code: "[REDACTED]",
+          state: "[REDACTED]",
+          userId,
+          realmId
+        });
+        
+        const result = await authService.handleCallback(
+          code, 
+          state, 
+          userId, 
+          realmId // Pass realmId to the authorization service
+        );
         
         if (!result.success) {
           console.error("Callback handling error:", result.error);

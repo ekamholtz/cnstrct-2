@@ -54,13 +54,14 @@ export class AuthorizationService {
   /**
    * Handle the OAuth callback
    */
-  async handleCallback(code: string, state: string, userId: string | null): Promise<{
+  async handleCallback(code: string, state: string, userId: string | null, realmId?: string): Promise<{
     success: boolean;
     error?: string;
     companyName?: string;
   }> {
     try {
       console.log("Handling QBO callback for user:", userId);
+      console.log("RealmId from URL:", realmId);
       
       // Verify the state parameter to prevent CSRF attacks
       // Check multiple storage locations for redundancy
@@ -133,8 +134,14 @@ export class AuthorizationService {
       // Exchange the authorization code for tokens
       const tokenData = await this.tokenManager.exchangeCodeForTokens(code);
       
+      // If the token response doesn't include realmId, use the one from the URL
+      if (!tokenData.realmId && realmId) {
+        console.log("Using realmId from URL parameters instead of token response");
+        tokenData.realmId = realmId;
+      }
+      
       // Get company information using the access token
-      const companyInfo = await this.companyService.getCompanyInfo(tokenData.access_token, tokenData.realmId);
+      const companyInfo = await this.companyService.getCompanyInfo(tokenData.access_token, tokenData.realmId || realmId);
       
       // Store the connection in the database
       await this.tokenManager.storeConnection(userId, tokenData, companyInfo);
