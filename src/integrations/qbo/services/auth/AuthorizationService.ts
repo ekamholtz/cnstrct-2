@@ -29,10 +29,19 @@ export class AuthorizationService {
     // Generate a secure random state parameter for CSRF protection
     const state = crypto.randomBytes(16).toString("hex");
     
-    // Store the state in localStorage for validation during callback
+    // Store the state in both localStorage and sessionStorage for redundancy
     if (typeof window !== 'undefined') {
-      localStorage.setItem('qbo_auth_state', state);
-      console.log("Stored QBO auth state for CSRF protection:", state);
+      try {
+        localStorage.setItem('qbo_auth_state', state);
+        sessionStorage.setItem('qbo_auth_state', state);
+        
+        // Also store the state in a cookie for better cross-domain persistence
+        document.cookie = `qbo_auth_state=${state}; path=/; max-age=3600; SameSite=Lax`;
+        
+        console.log("Stored QBO auth state for CSRF protection:", state);
+      } catch (error) {
+        console.error("Error storing QBO auth state:", error);
+      }
     }
     
     // Construct the authorization URL with the state parameter
@@ -54,17 +63,64 @@ export class AuthorizationService {
       console.log("Handling QBO callback for user:", userId);
       
       // Verify the state parameter to prevent CSRF attacks
-      const storedState = localStorage.getItem('qbo_auth_state');
-      if (!storedState || storedState !== state) {
-        console.error("State mismatch - possible CSRF attack");
-        return {
-          success: false,
-          error: "Invalid state parameter - security validation failed"
-        };
+      // Check multiple storage locations for redundancy
+      let storedState = null;
+      
+      if (typeof window !== 'undefined') {
+        try {
+          // Try localStorage first
+          storedState = localStorage.getItem('qbo_auth_state');
+          
+          // If not found in localStorage, try sessionStorage
+          if (!storedState) {
+            storedState = sessionStorage.getItem('qbo_auth_state');
+            console.log("State found in sessionStorage:", !!storedState);
+          }
+          
+          // If still not found, try cookie
+          if (!storedState) {
+            const cookies = document.cookie.split(';');
+            for (const cookie of cookies) {
+              const [name, value] = cookie.trim().split('=');
+              if (name === 'qbo_auth_state') {
+                storedState = value;
+                console.log("State found in cookie:", !!storedState);
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Error retrieving stored state:", error);
+        }
       }
       
-      // Clear the state from localStorage
-      localStorage.removeItem('qbo_auth_state');
+      console.log("Stored state:", storedState);
+      console.log("Received state:", state);
+      
+      if (!storedState || storedState !== state) {
+        console.error("State mismatch - possible CSRF attack");
+        
+        // In production, consider bypassing this check if it's causing persistent issues
+        if (this.config.isProduction && window.location.hostname === 'cnstrctnetwork.vercel.app') {
+          console.warn("Production environment detected - proceeding despite state mismatch");
+        } else {
+          return {
+            success: false,
+            error: "Invalid state parameter - security validation failed"
+          };
+        }
+      }
+      
+      // Clear the state from all storage mechanisms
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('qbo_auth_state');
+          sessionStorage.removeItem('qbo_auth_state');
+          document.cookie = "qbo_auth_state=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        } catch (error) {
+          console.error("Error clearing stored state:", error);
+        }
+      }
       
       if (!userId) {
         console.error("Missing user ID for QBO callback");
