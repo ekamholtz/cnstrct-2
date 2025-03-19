@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { AuthorizationService } from "@/integrations/qbo/services/auth/AuthorizationServiceFinal";
+import { AuthorizationService } from "@/integrations/qbo/services/auth/AuthorizationService";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
