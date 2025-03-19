@@ -1,8 +1,8 @@
 import { supabase } from "@/integrations/supabase/client";
-import axios from "axios";
 
 /**
  * Configuration for QuickBooks Online integration
+ * This class provides a singleton pattern to ensure consistent configuration across the application.
  */
 export class QBOConfig {
   // Client credentials
@@ -34,9 +34,9 @@ export class QBOConfig {
     return QBOConfig.instance;
   }
   
-  private constructor() {
+  constructor() {
     // Environment detection - ignore preview prefix
-    const hostname = window.location.hostname.replace('preview--', '');
+    const hostname = typeof window !== 'undefined' ? window.location.hostname.replace('preview--', '') : '';
     this.isProduction = hostname !== 'localhost' && 
                        !hostname.includes('127.0.0.1');
     
@@ -44,34 +44,21 @@ export class QBOConfig {
     console.log("QBOConfig constructor - isProduction:", this.isProduction);
     
     // For client-side, we only need the client ID, not the secret
-    // The client ID is safe to expose in the client-side code
     if (this.isProduction) {
       // Production client ID - this is safe to expose
-      // *********************************************
-      // IMPORTANT: This must EXACTLY match what's registered in the Intuit Developer Portal
-      // Failure to match will result in authentication errors
-      // *********************************************
       this.clientId = "ABBj3cN2qzHyAjRg2Htq5BvstIO0HT79PmrHDNLBTdLKMirQr6";
       // Secret will be handled by the server-side proxy
       this.clientSecret = "";
     } else {
       // Sandbox client ID - this is safe to expose
-      // *********************************************
-      // IMPORTANT: This must EXACTLY match what's registered in the Intuit Developer Portal
-      // Failure to match will result in authentication errors
-      // *********************************************
       this.clientId = "AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j";
       // Secret will be handled by the server-side proxy
       this.clientSecret = "";
     }
     
     // Use a hardcoded URL that exactly matches what's registered in the Intuit Developer Portal
-    // *********************************************
     // IMPORTANT: This must EXACTLY match what's registered in the Intuit Developer Portal
-    // Failure to match will result in authentication errors
-    // *********************************************
     if (hostname === 'cnstrctnetwork.vercel.app') {
-      // This is the actual domain registered in Intuit Developer Portal
       this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
     } else if (hostname === 'cnstrct-2.lovable.app') {
       this.redirectUri = "https://cnstrct-2.lovable.app/qbo/callback";
@@ -80,7 +67,7 @@ export class QBOConfig {
       this.redirectUri = "http://localhost:8081/qbo/callback";
     } else {
       // Fallback to the dynamically generated URI with preview prefix removed
-      const origin = window.location.origin.replace('preview--', '');
+      const origin = typeof window !== 'undefined' ? window.location.origin.replace('preview--', '') : '';
       this.redirectUri = `${origin}/qbo/callback`;
     }
     
@@ -93,32 +80,36 @@ export class QBOConfig {
     // Use the v1 token endpoint which has better compatibility
     this.tokenEndpoint = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
     
-    // API base URL - switch between sandbox and production
-    this.apiBaseUrl = this.isProduction 
-      ? "https://quickbooks.api.intuit.com/v3"
-      : "https://sandbox-quickbooks.api.intuit.com/v3";
-      
-    // Store the current user ID before redirect
-    this.storeCurrentUserId();
+    // Use the correct API base URL based on environment
+    if (this.isProduction) {
+      // Production QBO API
+      this.apiBaseUrl = 'https://quickbooks.api.intuit.com/v3';
+    } else {
+      // Sandbox QBO API
+      this.apiBaseUrl = 'https://sandbox-quickbooks.api.intuit.com/v3';
+    }
     
-    console.log("QBO Config initialized with:", {
-      environment: this.isProduction ? "Production" : "Sandbox",
-      apiBaseUrl: this.apiBaseUrl,
+    console.log("QBOConfig Initialization Complete");
+    console.log({
       clientId: this.clientId,
       redirectUri: this.redirectUri,
-      scopes: this.scopes.join(' ')
+      environment: this.isProduction ? "Production" : "Sandbox",
+      apiBaseUrl: this.apiBaseUrl
     });
   }
-
-  // Method to store the current user ID in localStorage
-  private storeCurrentUserId(): void {
-    // Get user from supabase without using await
-    supabase.auth.getUser().then(({ data }) => {
-      if (data && data.user) {
-        localStorage.setItem('qbo_auth_user_id', data.user.id);
-      }
-    }).catch(error => {
-      console.error("Error getting current user:", error);
-    });
+  
+  /**
+   * Get the proxy URL appropriate for the current environment
+   */
+  public getProxyUrl(): string {
+    if (typeof window === 'undefined') {
+      return "/api/proxy";
+    }
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+      return "http://localhost:3030/proxy";
+    }
+    // For production, use the relative path to Vercel serverless functions
+    return "/api/proxy";
   }
 }

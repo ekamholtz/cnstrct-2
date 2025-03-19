@@ -1,6 +1,8 @@
 import { QBOConfig } from "../../config/qboConfig";
 import { QBOTokenManager } from "../../auth/qboTokenManager";
 import { QBOCompanyServiceProxy } from "../../company/qboCompanyServiceProxy";
+import { supabase } from "@/integrations/supabase/client";
+import crypto from "crypto";
 
 /**
  * Service for handling QBO authorization
@@ -18,6 +20,26 @@ export class AuthorizationService {
     
     console.log("AuthorizationService initialized with client ID:", this.config.clientId);
     console.log("AuthorizationService environment:", this.config.isProduction ? "Production" : "Sandbox");
+  }
+
+  /**
+   * Initiate the QBO OAuth flow
+   */
+  initiateAuth(): string {
+    // Generate a secure random state parameter for CSRF protection
+    const state = crypto.randomBytes(16).toString("hex");
+    
+    // Store the state in localStorage for validation during callback
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('qbo_auth_state', state);
+      console.log("Stored QBO auth state for CSRF protection:", state);
+    }
+    
+    // Construct the authorization URL with the state parameter
+    const authUrl = `${this.config.authEndpoint}?client_id=${this.config.clientId}&response_type=code&scope=${encodeURIComponent(this.config.scopes.join(' '))}&redirect_uri=${encodeURIComponent(this.config.redirectUri)}&state=${state}`;
+    
+    console.log("Initiating QBO authorization with URL:", authUrl);
+    return authUrl;
   }
   
   /**
@@ -52,35 +74,57 @@ export class AuthorizationService {
         };
       }
       
-      console.log("Exchanging code for tokens...");
-      
       // Exchange the authorization code for tokens
-      try {
-        const tokenData = await this.tokenManager.exchangeCodeForTokens(code);
-        
-        // Get the company information
-        const companyInfo = await this.companyService.getCompanyInfo(tokenData.access_token, tokenData.realmId);
-        
-        // Store the connection information
-        await this.tokenManager.storeConnection(userId, tokenData, companyInfo);
-        
-        return {
-          success: true,
-          companyName: companyInfo.CompanyName
-        };
-      } catch (error: any) {
-        console.error("Error exchanging code for tokens:", error);
-        return {
-          success: false,
-          error: `Failed to exchange authorization code for tokens: ${error.message}`
-        };
-      }
+      const tokenData = await this.tokenManager.exchangeCodeForTokens(code);
+      
+      // Get company information using the access token
+      const companyInfo = await this.companyService.getCompanyInfo(tokenData.access_token, tokenData.realmId);
+      
+      // Store the connection in the database
+      await this.tokenManager.storeConnection(userId, tokenData, companyInfo);
+      
+      console.log("QBO connection successfully established for company:", companyInfo.CompanyName);
+      
+      return {
+        success: true,
+        companyName: companyInfo.CompanyName
+      };
     } catch (error: any) {
       console.error("Error handling QBO callback:", error);
+      
       return {
         success: false,
-        error: `Error handling QBO callback: ${error.message}`
+        error: error.message || "Unknown error during QBO connection"
       };
+    }
+  }
+  
+  /**
+   * Get a QBO access token for a specific connection
+   */
+  async getAccessToken(connectionId: string): Promise<string> {
+    return this.tokenManager.refreshToken(connectionId);
+  }
+  
+  /**
+   * Get QBO connections for a specific user
+   */
+  async getUserConnections(userId: string): Promise<any[]> {
+    try {
+      const { data, error } = await supabase
+        .from('qbo_connections')
+        .select('*')
+        .eq('user_id', userId);
+        
+      if (error) {
+        console.error("Error fetching QBO connections:", error);
+        throw error;
+      }
+      
+      return data || [];
+    } catch (error) {
+      console.error("Error getting user QBO connections:", error);
+      throw error;
     }
   }
 }

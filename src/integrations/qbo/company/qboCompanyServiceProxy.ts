@@ -13,18 +13,26 @@ export class QBOCompanyServiceProxy {
     // Use the singleton instance to ensure consistent configuration
     this.config = QBOConfig.getInstance();
     
-    // Determine proxy URL based on environment
-    const hostname = window.location.hostname.replace('preview--', '');
-    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
-      // Local development
-      this.proxyUrl = "http://localhost:3030/proxy";
-    } else {
-      // Production environment - use relative URL to avoid CORS issues
-      this.proxyUrl = "/api/proxy";
-    }
+    // Get proxy URL dynamically based on environment
+    this.proxyUrl = this.getProxyUrl();
     
     console.log("QBOCompanyServiceProxy initialized with client ID:", this.config.clientId);
     console.log("QBOCompanyServiceProxy using proxy URL:", this.proxyUrl);
+  }
+  
+  /**
+   * Get the appropriate proxy URL based on environment
+   */
+  private getProxyUrl(): string {
+    if (typeof window === 'undefined') {
+      return "/api/proxy";
+    }
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+      return "http://localhost:3030/proxy";
+    }
+    // For production, use the relative path to Vercel serverless functions
+    return "/api/proxy";
   }
   
   /**
@@ -32,25 +40,27 @@ export class QBOCompanyServiceProxy {
    */
   async getCompanyInfo(accessToken: string, realmId: string): Promise<any> {
     try {
-      // Force the correct proxy URL based on the environment
-      const hostname = window.location.hostname.replace('preview--', '');
-      const finalProxyUrl = (hostname === 'localhost' || hostname.includes('127.0.0.1'))
-        ? "http://localhost:3030/proxy"
-        : "/api/proxy";
-        
-      console.log("Using proxy URL for company info:", finalProxyUrl);
+      console.log("Getting company info for realmId:", realmId);
       
-      const response = await axios.get(`${this.config.apiBaseUrl}/company/${realmId}/companyinfo/${realmId}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Accept': 'application/json'
-        }
+      // Use the proxy for data operations
+      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+        accessToken,
+        realmId,
+        endpoint: `company/${realmId}/companyinfo/${realmId}`,
+        method: 'get'
       });
       
+      console.log("Company info retrieved successfully");
       return response.data.CompanyInfo;
     } catch (error: any) {
-      console.error("Error getting company info:", error.response?.data || error.message);
-      throw new Error("Failed to get company information");
+      console.error("Error getting company info:", error);
+      
+      if (error.response) {
+        console.error("API response error:", error.response.data);
+        console.error("API response status:", error.response.status);
+      }
+      
+      throw new Error(`Failed to get company information: ${error.message}`);
     }
   }
   
@@ -73,5 +83,31 @@ export class QBOCompanyServiceProxy {
       .from('qbo_connections')
       .delete()
       .eq('user_id', userId);
+  }
+  
+  /**
+   * Test connection to QBO
+   */
+  async testConnection(accessToken: string, realmId: string): Promise<boolean> {
+    try {
+      console.log("Testing QBO connection for realmId:", realmId);
+      
+      // Use the test-connection endpoint of the proxy
+      const response = await axios.post(`${this.proxyUrl}/test-connection`, {
+        accessToken,
+        realmId
+      });
+      
+      console.log("Connection test result:", response.data);
+      return response.data.success;
+    } catch (error: any) {
+      console.error("Error testing connection:", error);
+      
+      if (error.response) {
+        console.error("API response error:", error.response.data);
+      }
+      
+      return false;
+    }
   }
 }

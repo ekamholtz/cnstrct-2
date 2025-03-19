@@ -17,6 +17,14 @@
       "destination": "/api/proxy/refresh.js"
     },
     {
+      "source": "/api/proxy/data-operation",
+      "destination": "/api/proxy/data-operation.js"
+    },
+    {
+      "source": "/api/proxy/test-connection",
+      "destination": "/api/proxy/test-connection.js"
+    },
+    {
       "source": "/api/env-check",
       "destination": "/api/env-check.js"
     },

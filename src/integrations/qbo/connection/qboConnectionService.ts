@@ -29,6 +29,8 @@ export class QBOConnectionService {
         .from('qbo_connections')
         .select('*')
         .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .single();
         
       if (error) {
@@ -55,119 +57,151 @@ export class QBOConnectionService {
         .single();
         
       if (error) {
-        console.log(`No QBO connection found with ID: ${connectionId}`);
+        console.error("Error getting QBO connection by ID:", connectionId, error);
         return null;
       }
       
       return data;
     } catch (err) {
-      console.error(`Error getting QBO connection with ID ${connectionId}:`, err);
+      console.error("Error getting QBO connection by ID:", connectionId, err);
       return null;
     }
   }
   
   /**
-   * Get user's QBO connection
+   * Store or update QBO connection
    */
-  async getUserConnection(userId?: string) {
+  async storeConnection(userId: string, tokenData: any, companyInfo: any) {
     try {
-      let finalUserId: string;
+      console.log("Storing QBO connection for user:", userId);
       
-      if (userId) {
-        finalUserId = userId;
-      } else {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          console.log("User not authenticated when getting QBO connection");
-          throw new Error("User not authenticated");
-        }
-        finalUserId = user.id;
-      }
-      
-      const { data: connection, error } = await supabase
+      // Check for existing connection
+      const { data: existingConnection, error: findError } = await supabase
         .from('qbo_connections')
         .select('*')
-        .eq('user_id', finalUserId)
+        .eq('user_id', userId)
+        .eq('company_id', tokenData.realmId)
+        .single();
+      
+      const connectionData = {
+        user_id: userId,
+        company_id: tokenData.realmId,
+        company_name: companyInfo?.CompanyName || 'Unknown Company',
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        token_type: tokenData.token_type,
+        expires_in: tokenData.expires_in,
+        x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
+        expires_at: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString(),
+        refresh_token_expires_at: new Date(Date.now() + (tokenData.x_refresh_token_expires_in * 1000)).toISOString(),
+        is_sandbox: !this.config.isProduction,
+        client_id: this.config.clientId,
+        last_refreshed_at: new Date().toISOString()
+      };
+      
+      let result;
+      
+      if (existingConnection) {
+        console.log("Updating existing QBO connection:", existingConnection.id);
+        
+        // Update existing connection
+        const { data, error } = await supabase
+          .from('qbo_connections')
+          .update(connectionData)
+          .eq('id', existingConnection.id)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error("Error updating QBO connection:", error);
+          throw error;
+        }
+        
+        result = data;
+      } else {
+        console.log("Creating new QBO connection");
+        
+        // Create new connection
+        const { data, error } = await supabase
+          .from('qbo_connections')
+          .insert(connectionData)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error("Error creating QBO connection:", error);
+          throw error;
+        }
+        
+        result = data;
+      }
+      
+      console.log("QBO connection stored successfully:", result.id);
+      return result;
+    } catch (err) {
+      console.error("Error storing QBO connection:", err);
+      throw err;
+    }
+  }
+  
+  /**
+   * Update QBO connection with new tokens
+   */
+  async updateTokens(connectionId: string, tokenData: any) {
+    try {
+      console.log("Updating tokens for QBO connection:", connectionId);
+      
+      const { data, error } = await supabase
+        .from('qbo_connections')
+        .update({
+          access_token: tokenData.access_token,
+          refresh_token: tokenData.refresh_token,
+          token_type: tokenData.token_type,
+          expires_in: tokenData.expires_in,
+          x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
+          expires_at: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString(),
+          refresh_token_expires_at: new Date(Date.now() + (tokenData.x_refresh_token_expires_in * 1000)).toISOString(),
+          last_refreshed_at: new Date().toISOString()
+        })
+        .eq('id', connectionId)
+        .select()
         .single();
         
       if (error) {
-        console.log("No QBO connection found for user", finalUserId);
-        return null;
+        console.error("Error updating QBO connection tokens:", error);
+        throw error;
       }
       
-      return connection;
-    } catch (error) {
-      console.error("Error getting user QBO connection:", error);
-      return null;
+      console.log("QBO connection tokens updated successfully");
+      return data;
+    } catch (err) {
+      console.error("Error updating QBO connection tokens:", err);
+      throw err;
     }
   }
   
   /**
-   * Disconnect from QBO
+   * Delete QBO connection
    */
-  async disconnect(): Promise<boolean> {
+  async deleteConnection(connectionId: string) {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error("No authenticated user found when disconnecting QBO");
-        return false;
-      }
-      
-      console.log("Disconnecting QBO for user:", user.id);
+      console.log("Deleting QBO connection:", connectionId);
       
       const { error } = await supabase
         .from('qbo_connections')
         .delete()
-        .eq('user_id', user.id);
+        .eq('id', connectionId);
         
       if (error) {
-        console.error("Error disconnecting from QBO:", error);
-        return false;
-      }
-      
-      console.log("QBO successfully disconnected");
-      return true;
-    } catch (error) {
-      console.error("Error disconnecting from QBO:", error);
-      return false;
-    }
-  }
-  
-  /**
-   * Update an existing QBO connection with new tokens
-   * @param connection The updated connection data
-   * @returns The updated connection
-   */
-  async updateConnection(connection: any) {
-    try {
-      // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        throw new Error("No authenticated user found");
-      }
-      
-      // Update the connection in the database
-      const { data, error } = await supabase
-        .from('qbo_connections')
-        .update({
-          access_token: connection.access_token,
-          refresh_token: connection.refresh_token,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', connection.id)
-        .eq('user_id', user.id)
-        .single();
-      
-      if (error) {
-        console.error("Error updating QBO connection:", error);
+        console.error("Error deleting QBO connection:", error);
         throw error;
       }
       
-      return data;
-    } catch (error) {
-      console.error("Error in updateConnection:", error);
-      throw error;
+      console.log("QBO connection deleted successfully");
+      return true;
+    } catch (err) {
+      console.error("Error deleting QBO connection:", err);
+      throw err;
     }
   }
 }

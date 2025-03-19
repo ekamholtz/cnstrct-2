@@ -23,10 +23,25 @@ export class BaseQBOServiceProxy {
     // Use the singleton instance to ensure consistent configuration
     this.config = QBOConfig.getInstance();
     this.baseUrl = this.config.apiBaseUrl;
-    this.proxyUrl = "http://localhost:3030/proxy";
+    this.proxyUrl = this.getProxyUrl();
       
     console.log("BaseQBOServiceProxy initialized with baseUrl:", this.baseUrl);
     console.log("Using CORS proxy at:", this.proxyUrl);
+  }
+  
+  /**
+   * Get the appropriate proxy URL based on environment
+   */
+  private getProxyUrl(): string {
+    if (typeof window === 'undefined') {
+      return "/api/proxy";
+    }
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
+      return "http://localhost:3030/proxy";
+    }
+    // For production, use the relative path to Vercel serverless functions
+    return "/api/proxy";
   }
   
   /**
@@ -80,31 +95,100 @@ export class BaseQBOServiceProxy {
     { success: boolean; error: any; status?: undefined; data?: undefined; }
   > {
     try {
-      const connection = await this.getUserConnection();
-      if (!connection) {
-        throw new Error("No QBO connection found");
+      let connection;
+      
+      if (connectionId && companyId) {
+        // Get specific connection
+        const { data, error } = await supabase
+          .from('qbo_connections')
+          .select('*')
+          .eq('id', connectionId)
+          .single();
+          
+        if (error || !data) {
+          console.error("Connection not found:", connectionId, error);
+          return { success: false, error: "Connection not found" };
+        }
+        
+        connection = data;
+      } else {
+        // Get current user's connection
+        connection = await this.getUserConnection();
       }
       
-      const actualConnectionId = connectionId || connection.id;
-      const actualCompanyId = companyId || connection.company_id;
+      if (!connection) {
+        return { success: false, error: "No QuickBooks Online connection found" };
+      }
       
-      // Use the proxy for the test connection
+      console.log("Testing QBO connection for company ID:", connection.company_id);
+      
+      // Use the test-connection endpoint
       const response = await axios.post(`${this.proxyUrl}/test-connection`, {
         accessToken: connection.access_token,
-        realmId: actualCompanyId
+        realmId: connection.company_id
       });
       
+      console.log("Connection test result:", response.data);
       return {
         success: true,
         status: response.status,
         data: response.data
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error testing QBO connection:", error);
+      
+      if (error.response) {
+        console.error("API response error:", error.response.data);
+        console.error("Status:", error.response.status);
+      }
+      
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error.message || "Failed to test QuickBooks Online connection"
       };
+    }
+  }
+  
+  /**
+   * Make a data operation request to QBO via the proxy
+   */
+  protected async makeRequest<T>(
+    connection: any,
+    endpoint: string,
+    method: string = 'get',
+    data: any = null
+  ): Promise<T> {
+    try {
+      if (!connection || !connection.access_token) {
+        throw new Error("Invalid QBO connection - missing access token");
+      }
+      
+      console.log(`Making ${method} request to QBO endpoint: ${endpoint}`);
+      
+      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+        accessToken: connection.access_token,
+        realmId: connection.company_id,
+        endpoint,
+        method,
+        data
+      });
+      
+      return response.data;
+    } catch (error: any) {
+      console.error(`Error making ${method} request to ${endpoint}:`, error);
+      
+      if (error.response?.data) {
+        console.error("API response error:", error.response.data);
+        console.error("Status:", error.response.status);
+        
+        // Check for token expiration
+        if (error.response.status === 401) {
+          console.error("Token expired - attempting refresh...");
+          // In a real implementation, you would handle token refresh here
+        }
+      }
+      
+      throw new Error(`QBO API request failed: ${error.message}`);
     }
   }
   

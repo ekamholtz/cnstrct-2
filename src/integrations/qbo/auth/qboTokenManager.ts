@@ -3,48 +3,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { QBOConfig } from "../config/qboConfig";
 
 /**
- * Handles token-related operations for QBO integration
+ * Handles token-related operations for QBO integration using a CORS proxy
  */
 export class QBOTokenManager {
   private config: QBOConfig;
+  private proxyUrl: string;
   
   constructor() {
-    // Use the singleton instance to ensure consistent configuration
+    // Use singleton instance instead of creating a new one
     this.config = QBOConfig.getInstance();
     
-    console.log("QBOTokenManager initialized");
-    console.log("QBOTokenManager - Is production environment:", this.config.isProduction);
+    // Get proxy URL dynamically based on environment
+    this.proxyUrl = this.config.getProxyUrl();
+    
+    console.log("QBOTokenManager initialized with client ID:", this.config.clientId);
+    console.log("QBOTokenManager environment:", this.config.isProduction ? "Production" : "Sandbox");
+    console.log("QBOTokenManager using proxy URL:", this.proxyUrl);
   }
   
   /**
-   * Get the appropriate proxy URL based on the current environment
-   * This is a critical function that determines whether to use local development
-   * proxy or the Vercel serverless functions in production
-   */
-  private getProxyUrl(): string {
-    // IMPORTANT: We need to check if we're in a browser environment first
-    if (typeof window === 'undefined') {
-      console.log("QBOTokenManager.getProxyUrl - Not in browser, using production proxy URL");
-      return "/api/proxy";
-    }
-    
-    // Get the hostname and log it for debugging
-    const hostname = window.location.hostname;
-    console.log("QBOTokenManager.getProxyUrl - Current hostname:", hostname);
-    
-    // Check if we're on localhost
-    if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
-      console.log("QBOTokenManager.getProxyUrl - Using local development proxy URL");
-      return "http://localhost:3030/proxy";
-    }
-    
-    // We're in production - use the relative URL for Vercel serverless functions
-    console.log("QBOTokenManager.getProxyUrl - Using production proxy URL");
-    return "/api/proxy";
-  }
-  
-  /**
-   * Exchange authorization code for tokens
+   * Exchange authorization code for tokens using CORS proxy
    */
   async exchangeCodeForTokens(code: string): Promise<{
     access_token: string;
@@ -54,162 +32,214 @@ export class QBOTokenManager {
     realmId: string;
   }> {
     console.log("Exchanging authorization code for tokens via CORS proxy...");
+    console.log("Using proxy URL:", this.proxyUrl);
+    console.log("Using client ID:", this.config.clientId);
     
     try {
-      // Get the correct proxy URL based on environment
-      const proxyUrl = this.getProxyUrl();
-      
-      console.log("Token exchange details:", {
-        proxyUrl,
-        redirectUri: this.config.redirectUri,
-        clientId: this.config.clientId,
-        isProduction: this.config.isProduction
-      });
-      
-      // Use the CORS proxy to avoid CORS issues
-      const proxyResponse = await axios.post(`${proxyUrl}/token`, {
+      // Use the appropriate CORS proxy to avoid CORS issues
+      const proxyResponse = await axios.post(`${this.proxyUrl}/token`, {
         code,
         redirectUri: this.config.redirectUri,
-        // In production, we don't send the client secret from the client
-        // The server will use the environment variables
         clientId: this.config.clientId
       });
       
-      console.log("Token exchange successful via proxy");
-      
-      // Extract realmId from the URL query parameters (it's not in the token response)
-      const urlParams = new URLSearchParams(window.location.search);
-      const realmId = urlParams.get('realmId');
-      
-      if (!realmId) {
-        throw new Error("Missing realmId in callback URL");
+      if (!proxyResponse.data || proxyResponse.data.error) {
+        console.error("Token exchange failed:", proxyResponse.data);
+        throw new Error(proxyResponse.data?.error_description || 
+                       proxyResponse.data?.error || 
+                       "Token exchange failed with unknown error");
       }
       
-      // Add realmId to the response
-      return {
-        ...proxyResponse.data,
-        realmId
+      console.log("Token exchange successful");
+      
+      // Extract token data and realmId from response
+      const tokenData = {
+        access_token: proxyResponse.data.access_token,
+        refresh_token: proxyResponse.data.refresh_token,
+        expires_in: proxyResponse.data.expires_in,
+        x_refresh_token_expires_in: proxyResponse.data.x_refresh_token_expires_in,
+        realmId: proxyResponse.data.realmId
       };
-    } catch (error: any) {
-      console.error("CORS proxy token exchange failed:", error);
       
-      // Provide detailed error information
+      return tokenData;
+    } catch (error: any) {
+      console.error("Error exchanging code for tokens:", error);
+      
+      // Enhanced error logging for better debugging
       if (error.response) {
-        console.error("Response error data:", error.response.data);
-        console.error("Response error status:", error.response.status);
+        console.error("Error response status:", error.response.status);
+        console.error("Error response data:", error.response.data);
       }
       
-      throw new Error("Failed to exchange authorization code for tokens: " + 
-                     (error.response?.data?.error_description || 
-                      error.response?.data?.error || 
-                      error.message || 
-                      "Unknown error"));
+      throw new Error(`Failed to exchange authorization code for tokens: ${error.message}`);
     }
   }
   
   /**
-   * Refresh the QBO access token
+   * Refresh the access token using the refresh token
    */
   async refreshToken(connectionId: string): Promise<string> {
     try {
-      // Get the connection
-      const { data: connection, error: fetchError } = await supabase
+      console.log("Refreshing QBO access token for connection:", connectionId);
+      
+      // Get the connection from the database
+      const { data: connection, error } = await supabase
         .from('qbo_connections')
         .select('*')
         .eq('id', connectionId)
         .single();
         
-      if (fetchError || !connection) {
-        console.error("QBO connection not found for ID:", connectionId);
-        throw new Error('QBO connection not found');
+      if (error || !connection) {
+        console.error("Connection not found:", error);
+        throw new Error(`Connection not found: ${error?.message || "Unknown error"}`);
       }
       
-      // Check if token is expired or about to expire (within 5 minutes)
-      const expiresAt = new Date(connection.expires_at).getTime();
-      const now = Date.now();
-      const fiveMinutesInMs = 5 * 60 * 1000;
+      // Check if the token is already expired
+      const now = new Date();
+      const expiresAt = new Date(connection.expires_at);
       
-      if (expiresAt - now > fiveMinutesInMs) {
-        // Token is still valid
-        console.log("QBO token still valid, not refreshing");
+      // If the token is not expired, return it
+      if (expiresAt > now) {
+        console.log("Access token still valid, returning existing token");
         return connection.access_token;
       }
       
-      console.log("Refreshing QBO token for connection:", connectionId);
+      console.log("Access token expired, refreshing...");
       
-      // Get the correct proxy URL based on environment
-      const proxyUrl = this.getProxyUrl();
-      console.log("Using proxy URL for token refresh:", proxyUrl);
-      
-      // Use the CORS proxy to refresh the token
-      try {
-        const proxyResponse = await axios.post(`${proxyUrl}/refresh`, {
-          refreshToken: connection.refresh_token
-          // Don't send clientId and clientSecret - the proxy will use defaults
-        }, {
-          timeout: 15000 // Increase timeout to 15 seconds
-        });
-        
-        const { access_token, refresh_token, expires_in } = proxyResponse.data;
-        
-        // Update the tokens in the database
-        const { error } = await supabase
-          .from('qbo_connections')
-          .update({
-            access_token,
-            refresh_token,
-            expires_at: new Date(Date.now() + (expires_in * 1000)).toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', connectionId);
-          
-        if (error) {
-          console.error("Error updating QBO tokens:", error);
-          throw new Error('Failed to update tokens');
-        }
-        
-        console.log("QBO token successfully refreshed");
-        return access_token;
-      } catch (proxyError: any) {
-        console.error("Error from proxy server:", proxyError.message);
-        if (proxyError.response) {
-          console.error("Proxy server response:", proxyError.response.data);
-          console.error("Proxy server status:", proxyError.response.status);
-        }
-        throw new Error(`Proxy server error: ${proxyError.message}`);
+      // Check if the refresh token is expired
+      const refreshTokenExpiresAt = new Date(connection.refresh_token_expires_at);
+      if (refreshTokenExpiresAt <= now) {
+        console.error("Refresh token expired, need to re-authenticate");
+        throw new Error("Refresh token expired, user needs to re-authenticate");
       }
+      
+      // Use the proxy for token refresh
+      const proxyResponse = await axios.post(`${this.proxyUrl}/refresh`, {
+        refreshToken: connection.refresh_token,
+        clientId: this.config.clientId
+      });
+      
+      if (!proxyResponse.data || proxyResponse.data.error) {
+        console.error("Token refresh failed:", proxyResponse.data);
+        throw new Error(proxyResponse.data?.error_description || 
+                       proxyResponse.data?.error || 
+                       "Token refresh failed with unknown error");
+      }
+      
+      console.log("Token refresh successful");
+      
+      // Update the connection in the database
+      const updatedData = {
+        access_token: proxyResponse.data.access_token,
+        refresh_token: proxyResponse.data.refresh_token,
+        token_type: proxyResponse.data.token_type,
+        expires_in: proxyResponse.data.expires_in,
+        x_refresh_token_expires_in: proxyResponse.data.x_refresh_token_expires_in,
+        expires_at: new Date(Date.now() + (proxyResponse.data.expires_in * 1000)).toISOString(),
+        refresh_token_expires_at: new Date(Date.now() + (proxyResponse.data.x_refresh_token_expires_in * 1000)).toISOString(),
+        last_refreshed_at: new Date().toISOString()
+      };
+      
+      const { data: updatedConnection, error: updateError } = await supabase
+        .from('qbo_connections')
+        .update(updatedData)
+        .eq('id', connectionId)
+        .select()
+        .single();
+        
+      if (updateError) {
+        console.error("Error updating connection:", updateError);
+        throw new Error(`Failed to update connection: ${updateError.message}`);
+      }
+      
+      console.log("Connection updated with refreshed tokens");
+      return proxyResponse.data.access_token;
     } catch (error: any) {
-      console.error("Error refreshing QBO token:", error);
-      throw new Error(`Failed to refresh token: ${error.message}`);
+      console.error("Error refreshing token:", error);
+      
+      // Enhanced error logging for better debugging
+      if (error.response) {
+        console.error("Error response status:", error.response.status);
+        console.error("Error response data:", error.response.data);
+      }
+      
+      throw new Error(`Failed to refresh access token: ${error.message}`);
     }
   }
   
   /**
-   * Store QBO connection in database
+   * Store QBO connection information in the database
    */
-  async storeConnection(userId: string, tokenData: any, companyInfo: any): Promise<void> {
-    const { access_token, refresh_token, expires_in, realmId } = tokenData;
-    
-    console.log("Storing QBO connection for user:", userId);
-    
-    const { error } = await supabase
-      .from('qbo_connections')
-      .upsert({
-        user_id: userId,
-        company_id: realmId,
-        company_name: companyInfo.CompanyName || companyInfo.companyName,
-        access_token,
-        refresh_token,
-        expires_at: new Date(Date.now() + (expires_in * 1000)).toISOString(),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
+  async storeConnection(userId: string, tokenData: any, companyInfo: any): Promise<any> {
+    try {
+      console.log("Storing QBO connection for user:", userId);
       
-    if (error) {
-      console.error("Error storing QBO tokens:", error);
-      throw new Error('Failed to store QBO connection');
+      // Check for existing connection
+      const { data: existingConnection, error: findError } = await supabase
+        .from('qbo_connections')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('company_id', tokenData.realmId)
+        .single();
+      
+      const connectionData = {
+        user_id: userId,
+        company_id: tokenData.realmId,
+        company_name: companyInfo?.CompanyName || 'Unknown Company',
+        access_token: tokenData.access_token,
+        refresh_token: tokenData.refresh_token,
+        token_type: tokenData.token_type || 'bearer',
+        expires_in: tokenData.expires_in,
+        x_refresh_token_expires_in: tokenData.x_refresh_token_expires_in,
+        expires_at: new Date(Date.now() + (tokenData.expires_in * 1000)).toISOString(),
+        refresh_token_expires_at: new Date(Date.now() + (tokenData.x_refresh_token_expires_in * 1000)).toISOString(),
+        is_sandbox: !this.config.isProduction,
+        client_id: this.config.clientId,
+        last_refreshed_at: new Date().toISOString()
+      };
+      
+      let result;
+      
+      if (existingConnection) {
+        console.log("Updating existing QBO connection:", existingConnection.id);
+        
+        // Update existing connection
+        const { data, error } = await supabase
+          .from('qbo_connections')
+          .update(connectionData)
+          .eq('id', existingConnection.id)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error("Error updating QBO connection:", error);
+          throw error;
+        }
+        
+        result = data;
+      } else {
+        console.log("Creating new QBO connection");
+        
+        // Create new connection
+        const { data, error } = await supabase
+          .from('qbo_connections')
+          .insert(connectionData)
+          .select()
+          .single();
+          
+        if (error) {
+          console.error("Error creating QBO connection:", error);
+          throw error;
+        }
+        
+        result = data;
+      }
+      
+      console.log("QBO connection stored successfully:", result.id);
+      return result;
+    } catch (err) {
+      console.error("Error storing QBO connection:", err);
+      throw err;
     }
-    
-    console.log("QBO connection successfully stored");
   }
 }
