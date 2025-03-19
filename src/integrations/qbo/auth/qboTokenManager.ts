@@ -236,7 +236,7 @@ export class QBOTokenManager {
         expires_at: expiresAt,
         refresh_token_expires_at: refreshTokenExpiresAt,
         is_sandbox: !this.config.isProduction,
-        client_id: this.config.clientId,
+        // Removed client_id field as it doesn't exist in the database schema
         last_refreshed_at: lastRefreshedAt
       };
       

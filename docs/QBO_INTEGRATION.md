@@ -23,11 +23,36 @@ The QBO integration uses a CORS proxy approach to overcome cross-origin restrict
 ## Authentication Flow
 
 1. User initiates QBO authorization via `AuthorizationService.initiateAuth()`
-2. User is redirected to Intuit's authorization page
-3. After authorization, Intuit redirects back to the application with an authorization code
-4. The application exchanges the code for tokens using `QBOTokenManager.exchangeCodeForTokens()`
-5. Tokens are stored in the database with company information
-6. Subsequent API requests use the stored tokens, refreshing them when necessary
+2. The application backs up the user's authentication session via `QBOSessionHelper.backupAuthSession()`
+3. User is redirected to Intuit's authorization page
+4. After authorization, Intuit redirects back to the application with an authorization code
+5. The application immediately restores the authentication session via `QBOSessionHelper.restoreAuthSession()`
+6. The application exchanges the code for tokens using `QBOTokenManager.exchangeCodeForTokens()`
+7. Tokens are stored in the database with company information
+8. Subsequent API requests use the stored tokens, refreshing them when necessary
+
+### Session Persistence During OAuth Flow
+
+To prevent users from being logged out during the OAuth redirect, the application implements a robust session persistence mechanism:
+
+```typescript
+// Before redirecting to QuickBooks
+QBOSessionHelper.backupAuthSession(userId);
+
+// After returning from QuickBooks
+await QBOSessionHelper.restoreAuthSession();
+```
+
+The session helper stores authentication data in multiple locations (localStorage, sessionStorage) for redundancy, and implements proper error handling to recover from potential session loss.
+
+### State Parameter Management
+
+The OAuth state parameter is stored in multiple places for redundancy:
+- localStorage
+- sessionStorage
+- cookies
+
+This ensures the application can validate the state parameter regardless of browser inconsistencies during redirects.
 
 ## CORS Proxy Approach
 
@@ -93,6 +118,14 @@ Connections are stored in the `qbo_connections` table with the following informa
 
 4. **API Call Failures**: Verify the correct formatting of API requests through the proxy, ensuring all required parameters are provided.
 
+5. **Session Loss During OAuth**: If users are logged out during the QBO connection process:
+   - Check that `QBOSessionHelper` is properly backing up and restoring the session
+   - Verify the correct Supabase session key is being used (it includes the project reference)
+   - Ensure the session restoration happens immediately upon returning from the OAuth redirect
+   - Check browser console for any session-related errors
+
+6. **Missing realmId**: The QBO TokenManager now extracts the realmId from URL parameters if it's not included in the token response.
+
 ## Development Guidelines
 
 1. Always use the singleton instance of `QBOConfig` for consistent configuration
@@ -126,4 +159,3 @@ The production environment uses Vercel serverless functions to handle proxy oper
     }
   ]
 }
-```
