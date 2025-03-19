@@ -7,19 +7,30 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { QBOSessionHelper } from "@/integrations/qbo/utils/qboSessionHelper";
+import { QBOUtils } from "@/integrations/qbo/utils/qboUtils";
 
 export default function QBOCallback() {
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "processing" | "success" | "error">("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
   const [companyName, setCompanyName] = useState<string>("");
   const navigate = useNavigate();
   const location = useLocation();
   
   useEffect(() => {
-    async function handleCallback() {
+    async function handleOAuthCallback() {
       try {
-        // First, try to restore the auth session if it was lost
-        await QBOSessionHelper.restoreAuthSession();
+        setStatus("processing");
+        
+        // IMPORTANT: First attempt to restore the auth session before
+        // doing anything else to prevent being redirected to login
+        console.log("Attempting to restore auth session from backup...");
+        const sessionRestored = await QBOSessionHelper.restoreAuthSession();
+        console.log("Auth session restored:", sessionRestored);
+        
+        // Wait a moment for Supabase client to recognize the restored session
+        if (sessionRestored) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
         
         const queryParams = new URLSearchParams(location.search);
         const code = queryParams.get("code");
@@ -31,6 +42,9 @@ export default function QBOCallback() {
           console.error("OAuth error:", error);
           setStatus("error");
           setErrorMessage(`Authorization error: ${error}`);
+          
+          // Clean up even on error
+          QBOUtils.clearOAuthState();
           return;
         }
         
@@ -38,6 +52,9 @@ export default function QBOCallback() {
           console.error("Missing code or state");
           setStatus("error");
           setErrorMessage("Missing authorization code or state parameter");
+          
+          // Clean up
+          QBOUtils.clearOAuthState();
           return;
         }
         
@@ -47,6 +64,19 @@ export default function QBOCallback() {
         // Get the stored user ID from localStorage (set during auth initiation)
         let userId = QBOSessionHelper.getStoredUserId();
         console.log("Retrieved user ID from localStorage:", userId);
+        
+        // If we don't have a user ID but session was restored, try to get it from Supabase
+        if (!userId && sessionRestored) {
+          try {
+            const { data } = await supabase.auth.getUser();
+            if (data?.user) {
+              userId = data.user.id;
+              console.log("Retrieved user ID from Supabase session:", userId);
+            }
+          } catch (error) {
+            console.error("Error getting user from Supabase session:", error);
+          }
+        }
         
         if (!userId) {
           // Try to get the current user from Supabase
@@ -105,7 +135,7 @@ export default function QBOCallback() {
       }
     }
     
-    handleCallback();
+    handleOAuthCallback();
   }, [location]);
   
   const handleNavigate = () => {
