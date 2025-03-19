@@ -129,21 +129,16 @@ export class QBOTokenManager {
       
       console.log("Token refresh successful");
       
-      // Update the connection in the database
-      const updatedData = {
+      // Prepare data for update
+      const updateData = {
         access_token: proxyResponse.data.access_token,
         refresh_token: proxyResponse.data.refresh_token,
-        token_type: proxyResponse.data.token_type,
-        expires_in: proxyResponse.data.expires_in,
-        x_refresh_token_expires_in: proxyResponse.data.x_refresh_token_expires_in,
-        expires_at: new Date(Date.now() + (proxyResponse.data.expires_in * 1000)).toISOString(),
-        refresh_token_expires_at: new Date(Date.now() + (proxyResponse.data.x_refresh_token_expires_in * 1000)).toISOString(),
-        last_refreshed_at: new Date().toISOString()
+        expires_at: new Date(Date.now() + (proxyResponse.data.expires_in * 1000)).toISOString()
       };
       
       const { data: updatedConnection, error: updateError } = await supabase
         .from('qbo_connections')
-        .update(updatedData)
+        .update(updateData)
         .eq('id', connectionId)
         .select()
         .single();
@@ -231,8 +226,7 @@ export class QBOTokenManager {
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
         token_type: tokenData.token_type || 'bearer',
-        expires_at: expiresAt,
-        refresh_token_expires_at: refreshTokenExpiresAt
+        expires_at: expiresAt
       };
       
       let result;
