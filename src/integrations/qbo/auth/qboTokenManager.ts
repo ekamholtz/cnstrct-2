@@ -225,8 +225,8 @@ export class QBOTokenManager {
         company_name: companyInfo?.CompanyName || 'Unknown Company',
         access_token: tokenData.access_token,
         refresh_token: tokenData.refresh_token,
-        token_type: tokenData.token_type || 'bearer',
         expires_at: expiresAt
+        // Removed token_type field as it doesn't exist in the database schema
       };
       
       let result;
