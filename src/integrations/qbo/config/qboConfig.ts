@@ -60,15 +60,19 @@ export class QBOConfig {
     // IMPORTANT: This must EXACTLY match what's registered in the Intuit Developer Portal
     if (hostname === 'cnstrctnetwork.vercel.app') {
       this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
+    } else if (hostname.includes('cnstrctnetwork-') && hostname.includes('vercel.app')) {
+      // For Vercel preview deployments, still use the production redirect URI
+      // This is critical since Intuit only accepts exact matches with registered URIs
+      this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
     } else if (hostname === 'cnstrct-2.lovable.app') {
       this.redirectUri = "https://cnstrct-2.lovable.app/qbo/callback";
     } else if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
       // For local development, use the correct port (8081) and protocol (http)
       this.redirectUri = "http://localhost:8081/qbo/callback";
     } else {
-      // Fallback to the dynamically generated URI with preview prefix removed
-      const origin = typeof window !== 'undefined' ? window.location.origin.replace('preview--', '') : '';
-      this.redirectUri = `${origin}/qbo/callback`;
+      // Fallback to the production URI for any other hostname
+      // This ensures we always use a registered URI with Intuit
+      this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
     }
     
     // Use the simplest scope format for QuickBooks API
