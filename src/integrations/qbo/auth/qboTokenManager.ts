@@ -232,8 +232,7 @@ export class QBOTokenManager {
         refresh_token: tokenData.refresh_token,
         token_type: tokenData.token_type || 'bearer',
         expires_at: expiresAt,
-        refresh_token_expires_at: refreshTokenExpiresAt,
-        is_sandbox: !this.config.isProduction
+        refresh_token_expires_at: refreshTokenExpiresAt
       };
       
       let result;
