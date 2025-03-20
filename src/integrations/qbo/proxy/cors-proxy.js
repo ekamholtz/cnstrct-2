@@ -406,6 +406,180 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+// Stripe OAuth token exchange endpoint
+app.post('/proxy/stripe/token', async (req, res) => {
+  try {
+    console.log('Received Stripe token exchange request');
+    
+    const { code, grant_type } = req.body;
+    
+    if (!code) {
+      return res.status(400).json({
+        error: 'Missing required parameter: code'
+      });
+    }
+    
+    if (grant_type !== 'authorization_code') {
+      return res.status(400).json({
+        error: 'Invalid grant_type'
+      });
+    }
+    
+    // Get Stripe secret key from environment or use a placeholder during development
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder';
+    
+    // Make the request to Stripe
+    const response = await axios.post(
+      'https://api.stripe.com/v1/oauth/token',
+      new URLSearchParams({
+        grant_type: 'authorization_code',
+        code
+      }).toString(),
+      {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Authorization': `Bearer ${stripeSecretKey}`
+        }
+      }
+    );
+    
+    console.log('Stripe token exchange successful');
+    
+    // Return the token response to the client
+    return res.status(200).json(response.data);
+  } catch (error) {
+    console.error('Error in Stripe token exchange proxy:', error);
+    
+    // Provide detailed error information
+    if (error.response) {
+      console.error('Response error data:', error.response.data);
+      console.error('Response error status:', error.response.status);
+      
+      return res.status(error.response.status).json({
+        error: 'Stripe API error',
+        details: error.response.data
+      });
+    }
+    
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+// Stripe account info endpoint
+app.post('/proxy/stripe/account', async (req, res) => {
+  try {
+    console.log('Received Stripe account info request');
+    
+    const { accountId, accessToken } = req.body;
+    
+    if (!accountId || !accessToken) {
+      return res.status(400).json({
+        error: 'Missing required parameters',
+        requiredParams: ['accountId', 'accessToken']
+      });
+    }
+    
+    // Make request to Stripe API
+    const response = await axios.get(
+      `https://api.stripe.com/v1/accounts/${accountId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      }
+    );
+    
+    console.log('Stripe account info retrieved successfully');
+    
+    return res.status(200).json(response.data);
+  } catch (error) {
+    console.error('Error getting Stripe account info:', error);
+    
+    if (error.response) {
+      return res.status(error.response.status).json({
+        error: 'Stripe API error',
+        details: error.response.data
+      });
+    }
+    
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
+// General Stripe API request proxy
+app.post('/proxy/stripe/request', async (req, res) => {
+  try {
+    console.log('Received Stripe API request');
+    
+    const { endpoint, method, accountId, accessToken, data } = req.body;
+    
+    if (!endpoint || !method || !accessToken) {
+      return res.status(400).json({
+        error: 'Missing required parameters',
+        requiredParams: ['endpoint', 'method', 'accessToken']
+      });
+    }
+    
+    // Build full Stripe API URL
+    const url = `https://api.stripe.com/v1/${endpoint}`;
+    console.log(`Making ${method.toUpperCase()} request to Stripe API: ${url}`);
+    
+    // Set up request options
+    const requestOptions = {
+      method: method.toLowerCase(),
+      url,
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    };
+    
+    // Add Stripe-Account header for Connect API calls
+    if (accountId) {
+      requestOptions.headers['Stripe-Account'] = accountId;
+    }
+    
+    // Add data for POST/PUT requests
+    if (['post', 'put'].includes(method.toLowerCase()) && data) {
+      requestOptions.data = new URLSearchParams(data).toString();
+    } else if (method.toLowerCase() === 'get' && data) {
+      // For GET requests, add query parameters
+      requestOptions.params = data;
+    }
+    
+    // Make the request to Stripe
+    const response = await axios(requestOptions);
+    
+    console.log('Stripe API request successful');
+    
+    // Return the response to the client
+    return res.status(200).json(response.data);
+  } catch (error) {
+    console.error('Error in Stripe API request proxy:', error);
+    
+    if (error.response) {
+      console.error('Response error data:', error.response.data);
+      console.error('Response error status:', error.response.status);
+      
+      return res.status(error.response.status).json({
+        error: 'Stripe API error',
+        details: error.response.data
+      });
+    }
+    
+    return res.status(500).json({
+      error: 'Internal server error',
+      message: error.message
+    });
+  }
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`CORS Proxy running at http://localhost:${PORT}`);
@@ -414,4 +588,7 @@ app.listen(PORT, () => {
   console.log(`Company info endpoint: http://localhost:${PORT}/proxy/company-info`);
   console.log(`Test connection endpoint: http://localhost:${PORT}/proxy/test-connection`);
   console.log(`Data operation endpoint: http://localhost:${PORT}/proxy/data-operation`);
+  console.log(`Stripe token exchange: http://localhost:${PORT}/proxy/stripe/token`);
+  console.log(`Stripe account info: http://localhost:${PORT}/proxy/stripe/account`);
+  console.log(`Stripe API requests: http://localhost:${PORT}/proxy/stripe/request`);
 });

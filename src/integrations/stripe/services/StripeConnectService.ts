@@ -53,7 +53,7 @@ export const getStripeAccessToken = async (): Promise<string | null> => {
  */
 export const createConnectedAccount = async (userId: string, accessToken: string) => {
   try {
-    const response = await axios.post(proxyUrl, {
+    const response = await axios.post(`${proxyUrl}/request`, {
       accessToken,
       endpoint: 'accounts',
       method: 'post',
@@ -96,7 +96,7 @@ export const createAccountLink = async (
   returnUrl: string
 ) => {
   try {
-    const response = await axios.post(proxyUrl, {
+    const response = await axios.post(`${proxyUrl}/request`, {
       accessToken,
       endpoint: 'account_links',
       method: 'post',
@@ -123,7 +123,7 @@ export const createAccountLink = async (
  */
 export const getConnectedAccount = async (accountId: string, accessToken: string) => {
   try {
-    const response = await axios.post(proxyUrl, {
+    const response = await axios.post(`${proxyUrl}/request`, {
       accessToken,
       endpoint: `accounts/${accountId}`,
       method: 'get',
@@ -145,7 +145,7 @@ export const getConnectedAccount = async (accountId: string, accessToken: string
  */
 export const createLoginLink = async (accountId: string, accessToken: string) => {
   try {
-    const response = await axios.post(proxyUrl, {
+    const response = await axios.post(`${proxyUrl}/request`, {
       accessToken,
       endpoint: `accounts/${accountId}/login_links`,
       method: 'post',

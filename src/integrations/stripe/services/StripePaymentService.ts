@@ -25,8 +25,8 @@ export const createPaymentLink = async (
   metadata: any = {}
 ) => {
   try {
-    // Create a payment link using the Stripe API
-    const response = await axios.post(proxyUrl, {
+    // Create a payment link using the Stripe API through the CORS proxy
+    const response = await axios.post(`${proxyUrl}/request`, {
       accessToken,
       endpoint: 'payment_links',
       method: 'post',
@@ -70,7 +70,7 @@ export const createPaymentLink = async (
  */
 export const getPaymentLink = async (paymentLinkId: string, accessToken: string) => {
   try {
-    const response = await axios.post(proxyUrl, {
+    const response = await axios.post(`${proxyUrl}/request`, {
       accessToken,
       endpoint: `payment_links/${paymentLinkId}`,
       method: 'get',

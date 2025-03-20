@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -86,7 +85,8 @@ export function TeamMembersSection() {
   // Filter team members based on the active tab
   const filteredTeamMembers = teamMembers.filter(member => {
     if (activeTab === "employees") {
-      return member.role === "contractor" || member.role === "employee";
+      // Show all team members in the Team Members tab
+      return true;
     }
     if (activeTab === "project_managers") {
       return member.role === "project_manager";
