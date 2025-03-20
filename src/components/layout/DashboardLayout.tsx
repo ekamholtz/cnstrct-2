@@ -1,4 +1,4 @@
-import { MainNav } from "@/components/navigation/MainNav";
+import { MainNav } from "@/components/navigation/MainNavWithSettings";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;

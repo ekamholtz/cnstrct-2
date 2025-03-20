@@ -48,7 +48,7 @@ const ReportingDashboard = () => {
     (monthlyFinancialData && monthlyFinancialData.length > 0);
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto pt-20 pb-6 space-y-6">
       <div className="flex justify-between items-center">
         <PageHeader
           title="Financial Reporting"
