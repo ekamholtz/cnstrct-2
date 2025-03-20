@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { MainNav } from "@/components/navigation/MainNav";
+import { MainNav } from "@/components/navigation/MainNavWithSettings";
 import { useAuth } from "@/hooks/useAuth";
 import { Database } from "@/integrations/supabase/database.types";
 import { isRoleAdmin } from "@/utils/role-utils";
