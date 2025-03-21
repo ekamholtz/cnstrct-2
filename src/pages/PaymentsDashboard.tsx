@@ -91,7 +91,7 @@ export default function PaymentsDashboard() {
   });
 
   // Transform raw payment data to match the Payment type
-  const mappedPayments = rawPayments.map(payment => {
+  const mappedPayments = rawPayments ? rawPayments.map(payment => {
     // Handle invoice-related payments
     let paymentInvoice = undefined;
     if (payment.invoice && payment.invoice[0]) {
@@ -144,7 +144,7 @@ export default function PaymentsDashboard() {
       simulation_data: payment.simulation_data,
       simulation_mode: payment.simulation_mode
     } as Payment;
-  });
+  }) : [];
 
   return (
     <div className="min-h-screen bg-[#f5f7fa]">
