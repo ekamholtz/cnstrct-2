@@ -131,7 +131,12 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <Navigate to="/dashboard" replace />;
   }
 
-  const Navigation = isRoleAdmin(currentRole) ? AdminNav : MainNav;
+  // Use MainNav for gc_admin users on the reporting page, otherwise use AdminNav for admin roles
+  const Navigation = currentRole === 'gc_admin' && location.pathname === '/reporting' 
+    ? MainNav 
+    : isRoleAdmin(currentRole) 
+      ? AdminNav 
+      : MainNav;
   
   return (
     <>
