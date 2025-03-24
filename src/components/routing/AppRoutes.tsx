@@ -36,6 +36,9 @@ import CreatePaymentLink from "@/pages/stripe/CreatePaymentLink";
 import PaymentHistory from "@/pages/stripe/PaymentHistory";
 import PaymentSettings from "@/pages/settings/PaymentSettings";
 import DebugPage from "@/pages/DebugPage";
+import ClientProjectsDebug from "@/pages/ClientProjectsDebug";
+import DirectSQLDebug from "@/pages/DirectSQLDebug";
+import RLSDebug from "@/pages/RLSDebug";
 
 export const AppRoutes = () => {
   return (
@@ -228,12 +231,27 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      {/* Stripe Connect Routes */}
       <Route
-        path="/settings/payments"
+        path="/terms"
+        element={<TermsOfService />}
+      />
+      <Route
+        path="/privacy"
+        element={<PrivacyPolicy />}
+      />
+      <Route
+        path="/stripe/onboarding"
         element={
           <ProtectedRoute>
-            <PaymentSettings />
+            <StripeConnectOnboarding />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/stripe/onboarding-complete"
+        element={
+          <ProtectedRoute>
+            <StripeOnboardingComplete />
           </ProtectedRoute>
         }
       />
@@ -254,24 +272,29 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/stripe/onboarding"
+        path="/settings/payments"
         element={
           <ProtectedRoute>
-            <StripeConnectOnboarding />
+            <PaymentSettings />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/stripe/onboarding-complete"
-        element={
-          <ProtectedRoute>
-            <StripeOnboardingComplete />
-          </ProtectedRoute>
-        }
+        path="/debug"
+        element={<DebugPage />}
       />
-      <Route path="/debug" element={<DebugPage />} />
-      <Route path="/terms" element={<TermsOfService />} />
-      <Route path="/privacy" element={<PrivacyPolicy />} />
+      <Route
+        path="/debug/client-projects"
+        element={<ClientProjectsDebug />}
+      />
+      <Route
+        path="/debug/sql"
+        element={<DirectSQLDebug />}
+      />
+      <Route
+        path="/debug/rls"
+        element={<RLSDebug />}
+      />
       <Route path="/landing" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

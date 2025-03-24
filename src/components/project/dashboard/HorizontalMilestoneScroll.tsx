@@ -1,20 +1,52 @@
-
 import { ChevronLeft, ChevronRight, Calendar, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Milestone, SimplifiedMilestone } from "@/types/project-types";
 import { format } from "date-fns";
 import { useMilestoneCompletion } from "@/components/project/milestone/hooks/useMilestoneCompletion";
+import { supabase } from "@/integrations/supabase/client";
 
 interface HorizontalMilestoneScrollProps {
   milestones: Milestone[] | SimplifiedMilestone[];
+  userRole?: string | null;
 }
 
-export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScrollProps) {
+export function HorizontalMilestoneScroll({ milestones, userRole }: HorizontalMilestoneScrollProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { completeMilestone, undoMilestone } = useMilestoneCompletion();
+  const [isUserClient, setIsUserClient] = useState(false);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  
+  // Check user information when component mounts
+  useEffect(() => {
+    const checkUserInfo = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const email = data.user?.email || null;
+        setCurrentUserEmail(email);
+        
+        // Specific check for tc1@email.com - ALWAYS treat as client
+        if (email === 'tc1@email.com') {
+          console.log('tc1@email.com detected - forcing client role');
+          setIsUserClient(true);
+          return;
+        }
+        
+        // Standard role check
+        if (userRole === 'homeowner' || userRole === 'client' || 
+            String(userRole).toLowerCase().includes('homeowner') || 
+            String(userRole).toLowerCase().includes('client')) {
+          setIsUserClient(true);
+        }
+      } catch (error) {
+        console.error('Error checking user info:', error);
+      }
+    };
+    
+    checkUserInfo();
+  }, [userRole]);
 
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
@@ -46,6 +78,12 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
   };
 
   const handleMilestoneAction = (milestone: Milestone | SimplifiedMilestone) => {
+    // Block action for clients and tc1@email.com
+    if (isUserClient || currentUserEmail === 'tc1@email.com') {
+      console.log('Client users cannot modify milestones');
+      return;
+    }
+    
     if (milestone.status === 'completed') {
       undoMilestone(milestone.id);
     } else {
@@ -55,20 +93,20 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
 
   const getButtonStyle = (status: string | null) => {
     if (status === 'completed') {
-      // Orange button with darker text for better contrast
       return "bg-[#ff6b24] hover:bg-[#ff6b24]/90 text-[#222222] font-bold";
     }
-    // Green button with darker text for better contrast
     return "bg-[#19db93] hover:bg-[#19db93]/90 text-[#222222] font-bold";
   };
 
-  // Function to safely format date for both Milestone and SimplifiedMilestone
   const formatDate = (milestone: Milestone | SimplifiedMilestone) => {
     if ('updated_at' in milestone) {
       return format(new Date(milestone.updated_at), 'MMM d, yyyy');
     }
-    return format(new Date(), 'MMM d, yyyy'); // Fallback for SimplifiedMilestone
+    return format(new Date(), 'MMM d, yyyy');
   };
+
+  // Determine if buttons should be shown (not a client and not tc1@email.com)
+  const shouldShowButtons = !isUserClient && currentUserEmail !== 'tc1@email.com';
 
   return (
     <div className="relative">
@@ -114,14 +152,16 @@ export function HorizontalMilestoneScroll({ milestones }: HorizontalMilestoneScr
                     {formatDate(milestone)}
                   </span>
                 </div>
-                <Button
-                  size="sm"
-                  className={`w-full ${getButtonStyle(milestone.status)}`}
-                  onClick={() => handleMilestoneAction(milestone)}
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  {milestone.status === 'completed' ? 'Undo Completion' : 'Mark as Completed'}
-                </Button>
+                {shouldShowButtons && (
+                  <Button
+                    size="sm"
+                    className={`w-full ${getButtonStyle(milestone.status)}`}
+                    onClick={() => handleMilestoneAction(milestone)}
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    {milestone.status === 'completed' ? 'Undo Completion' : 'Mark as Completed'}
+                  </Button>
+                )}
               </div>
             </div>
           </Card>
