@@ -1,22 +1,24 @@
-import React, { useState } from 'react';
-import { Button, Box, Typography, Alert, CircularProgress } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from '../../hooks/useAuth';
-import StripeAuthorizationService from '../../integrations/stripe/auth/StripeAuthorizationService';
-import StripeTokenManager from '../../integrations/stripe/auth/stripeTokenManager';
+import { StripeService } from '../../integrations/services/StripeService';
+import { Loader2, Check } from "lucide-react";
 
 interface StripeConnectButtonProps {
   onStatusChange?: (isConnected: boolean) => void;
   buttonText?: string;
-  variant?: 'contained' | 'outlined' | 'text';
-  size?: 'small' | 'medium' | 'large';
+  variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link';
+  size?: 'default' | 'sm' | 'lg' | 'icon';
   redirectPath?: string;
 }
 
 const StripeConnectButton: React.FC<StripeConnectButtonProps> = ({
   onStatusChange,
   buttonText = 'Connect with Stripe',
-  variant = 'contained',
-  size = 'medium',
+  variant = 'default',
+  size = 'default',
   redirectPath = '/settings'
 }) => {
   const { user } = useAuth();
@@ -24,20 +26,35 @@ const StripeConnectButton: React.FC<StripeConnectButtonProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   
-  const authService = new StripeAuthorizationService();
-  const tokenManager = new StripeTokenManager();
+  // Create an instance of the StripeService
+  const stripeService = new StripeService({
+    secretKey: process.env.STRIPE_SECRET_KEY || 'sk_test_your_secret_key'
+  });
   
   // Check connection status on component mount
-  React.useEffect(() => {
+  useEffect(() => {
     const checkConnectionStatus = async () => {
       if (!user?.id) return;
       
       try {
-        const isValid = await tokenManager.hasValidConnectAccount(user.id);
-        setIsConnected(isValid);
+        // Use the account info stored in your database or state management
+        const accountId = localStorage.getItem(`stripe_account_${user.id}`);
         
-        if (onStatusChange) {
-          onStatusChange(isValid);
+        if (accountId) {
+          // Verify the account is still valid by trying to fetch it
+          const response = await stripeService.getConnectAccount(accountId);
+          const isValid = response.success && response.data.payouts_enabled;
+          
+          setIsConnected(isValid);
+          
+          if (onStatusChange) {
+            onStatusChange(isValid);
+          }
+        } else {
+          setIsConnected(false);
+          if (onStatusChange) {
+            onStatusChange(false);
+          }
         }
       } catch (err) {
         console.error('Error checking Stripe connection status:', err);
@@ -46,9 +63,9 @@ const StripeConnectButton: React.FC<StripeConnectButtonProps> = ({
     };
     
     checkConnectionStatus();
-  }, [user?.id]);
+  }, [user?.id, onStatusChange, stripeService]);
   
-  const handleConnect = () => {
+  const handleConnect = async () => {
     if (!user?.id) {
       setError('You must be logged in to connect your Stripe account');
       return;
@@ -58,8 +75,34 @@ const StripeConnectButton: React.FC<StripeConnectButtonProps> = ({
     setError(null);
     
     try {
-      // Initiate the Stripe Connect OAuth flow
-      authService.initiateAuth(user.id, redirectPath);
+      // Create a Stripe Connect account
+      const accountResponse = await stripeService.createConnectAccount(
+        user.email || 'user@example.com',
+        'US',
+        'individual'
+      );
+      
+      if (!accountResponse.success) {
+        throw new Error(accountResponse.error?.message || 'Failed to create Stripe account');
+      }
+      
+      // Store the account ID for later use
+      localStorage.setItem(`stripe_account_${user.id}`, accountResponse.data.id);
+      
+      // Create an account link for onboarding
+      const origin = window.location.origin;
+      const linkResponse = await stripeService.createAccountLink(
+        accountResponse.data.id,
+        `${origin}${redirectPath}?refresh=true`,
+        `${origin}${redirectPath}?success=true`
+      );
+      
+      if (!linkResponse.success) {
+        throw new Error(linkResponse.error?.message || 'Failed to create onboarding link');
+      }
+      
+      // Redirect to the Stripe onboarding page
+      window.location.href = linkResponse.data.url;
     } catch (err: any) {
       console.error('Error initiating Stripe Connect auth:', err);
       setError(err.message || 'Failed to start Stripe Connect process');
@@ -67,54 +110,54 @@ const StripeConnectButton: React.FC<StripeConnectButtonProps> = ({
     }
   };
   
-  const buttonStyle = {
-    backgroundColor: isConnected ? '#EFEFEF' : '#6772e5',
-    color: isConnected ? '#333333' : '#ffffff',
-    '&:hover': {
-      backgroundColor: isConnected ? '#DDDDDD' : '#5469d4',
-    }
-  };
-  
   return (
-    <Box sx={{ mb: 2 }}>
+    <div className="space-y-4">
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+        <Alert variant="destructive">
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       
       <Button
-        variant={variant}
+        variant={isConnected ? "outline" : variant}
         onClick={handleConnect}
         disabled={loading || (isConnected === true)}
         size={size}
-        sx={{
-          ...buttonStyle,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1
-        }}
+        className={`flex items-center gap-2 ${isConnected ? 'bg-slate-100 hover:bg-slate-200 text-slate-900' : ''}`}
       >
         {loading ? (
-          <CircularProgress size={24} color="inherit" />
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span>Connecting...</span>
+          </>
         ) : (
           <>
             <img 
               src="https://stripe.com/img/v3/home/social.png" 
               alt="Stripe Logo" 
-              style={{ height: '20px', marginRight: '8px' }} 
+              className="h-5 w-auto" 
             />
-            {isConnected ? 'Connected with Stripe' : buttonText}
+            {isConnected ? (
+              <>
+                <Check className="h-4 w-4" />
+                <span>Connected with Stripe</span>
+              </>
+            ) : (
+              <span>{buttonText}</span>
+            )}
           </>
         )}
       </Button>
       
       {isConnected && (
-        <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
-          Your Stripe account is connected and ready to receive payments
-        </Typography>
+        <Card className="bg-slate-50">
+          <CardContent className="pt-4 text-sm text-muted-foreground">
+            Your Stripe account is connected and ready to receive payments
+          </CardContent>
+        </Card>
       )}
-    </Box>
+    </div>
   );
 };
 

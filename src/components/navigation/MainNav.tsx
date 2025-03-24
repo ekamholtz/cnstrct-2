@@ -30,7 +30,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function MainNav() {
+export interface MainNavProps {
+  /**
+   * Whether to show settings in the main navigation bar
+   */
+  showSettingsInNav?: boolean;
+  
+  /**
+   * Whether to show settings in the dropdown menu
+   */
+  showSettingsInDropdown?: boolean;
+}
+
+/**
+ * Main navigation component for the application
+ * Displays navigation items based on user role and provides access to user profile
+ */
+export function MainNav({ 
+  showSettingsInNav = false, 
+  showSettingsInDropdown = false 
+}: MainNavProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
@@ -106,15 +125,19 @@ export function MainNav() {
 
   const showReporting = profile?.role === 'gc_admin' || profile?.role === 'platform_admin';
 
-  const navItems = [
+  const baseNavItems = [
     { label: "Home", path: homeRoute, icon: Home },
     { label: "Projects", path: projectsRoute, icon: Grid },
     { label: "Invoices", path: invoicesRoute, icon: FileText },
     { label: "Expenses", path: "/expenses", icon: DollarSign },
     { label: "Payments", path: "/payments", icon: DollarSign },
     ...(showReporting ? [{ label: "Reports", path: "/reporting", icon: BarChart }] : []),
-    { label: "Settings", path: "/settings", icon: Settings },
   ];
+  
+  // Add settings to nav items conditionally
+  const navItems = showSettingsInNav 
+    ? [...baseNavItems, { label: "Settings", path: "/settings", icon: Settings }]
+    : baseNavItems;
 
   const isActive = (path: string) => {
     if (path === '/invoice' || path === '/invoices' || path === '/client-invoices') {
@@ -193,6 +216,12 @@ export function MainNav() {
                   <User className="h-4 w-4 mr-2" />
                   Profile
                 </DropdownMenuItem>
+                {showSettingsInDropdown && (
+                  <DropdownMenuItem onClick={() => handleNavigation('/settings')}>
+                    <Settings className="h-4 w-4 mr-2" />
+                    Settings
+                  </DropdownMenuItem>
+                )}
                 <DropdownMenuItem onClick={() => handleNavigation('/help')}>
                   <HelpCircle className="h-4 w-4 mr-2" />
                   Help
@@ -200,73 +229,60 @@ export function MainNav() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                   <LogOut className="h-4 w-4 mr-2" />
-                  Logout
+                  Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
-          <button
-            className="md:hidden p-2 rounded-md hover:bg-cnstrct-gray transition-colors"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? (
-              <X className="h-6 w-6 text-gray-600" />
-            ) : (
-              <Menu className="h-6 w-6 text-gray-600" />
-            )}
-          </button>
-        </div>
-
-        {isMenuOpen && (
-          <div className="md:hidden py-4 border-t">
-            <div className="flex flex-col space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.path);
-                return (
-                  <button
-                    key={item.label}
-                    onClick={() => handleNavigation(item.path)}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      active
-                        ? "bg-cnstrct-navy/5 text-cnstrct-navy"
-                        : "text-gray-600 hover:bg-cnstrct-navy/5 hover:text-cnstrct-navy"
-                    }`}
-                  >
-                    <Icon className={`h-4 w-4 ${active ? 'text-cnstrct-orange' : ''}`} />
-                    <span>{item.label}</span>
-                  </button>
-                );
-              })}
-              <button
-                onClick={() => handleNavigation('/profile')}
-                className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:bg-cnstrct-navy/5 hover:text-cnstrct-navy"
-              >
-                <User className="h-4 w-4" />
-                <span>Profile</span>
-              </button>
-              <button
-                onClick={() => handleNavigation('/help')}
-                className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-gray-600 hover:bg-cnstrct-navy/5 hover:text-cnstrct-navy"
-              >
-                <HelpCircle className="h-4 w-4" />
-                <span>Help</span>
-              </button>
-              <button
-                className="flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-colors text-red-600 hover:bg-red-50"
-                onClick={() => {
-                  handleLogout();
-                  setIsMenuOpen(false);
-                }}
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Logout</span>
-              </button>
-            </div>
+          <div className="md:hidden flex items-center">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-cnstrct-navy focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
+            >
+              <span className="sr-only">Open main menu</span>
+              {isMenuOpen ? (
+                <X className="block h-6 w-6" aria-hidden="true" />
+              ) : (
+                <Menu className="block h-6 w-6" aria-hidden="true" />
+              )}
+            </button>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Mobile menu, show/hide based on menu state */}
+      {isMenuOpen && (
+        <div className="md:hidden">
+          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white shadow-lg">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              return (
+                <button
+                  key={item.label}
+                  onClick={() => handleNavigation(item.path)}
+                  className={`flex items-center space-x-2 w-full px-3 py-2 rounded-md text-sm font-medium ${
+                    active
+                      ? "bg-cnstrct-navy/5 text-cnstrct-navy"
+                      : "text-gray-600 hover:bg-cnstrct-navy/5 hover:text-cnstrct-navy"
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 ${active ? 'text-cnstrct-orange' : ''}`} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+            <button
+              onClick={handleLogout}
+              className="flex items-center space-x-2 w-full px-3 py-2 rounded-md text-sm font-medium text-red-600 hover:bg-red-100"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Log out</span>
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 }

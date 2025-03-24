@@ -1,3 +1,11 @@
+/**
+ * ======================================================
+ * DEPRECATED: This CORS proxy has been replaced by the unified CORS proxy.
+ * Please use src/integrations/proxy/unified-cors-proxy.js instead.
+ * This file will be removed in a future version.
+ * ======================================================
+ */
+
 // CORS Proxy for QuickBooks Online Token Exchange
 // This simple proxy helps bypass CORS restrictions during local development
 

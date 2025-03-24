@@ -1,5 +1,5 @@
 /**
- * QuickBooks Online Token Exchange Debug Script (Using CORS Proxy)
+ * QuickBooks Online Token Exchange Debug Script (Using Unified CORS Proxy)
  * 
  * Copy and paste this entire script into your browser console
  * when you're on the callback page to debug the token exchange.
@@ -16,7 +16,7 @@
     return;
   }
   
-  console.log("🔍 Starting QuickBooks token exchange debug (using CORS proxy)");
+  console.log("🔍 Starting QuickBooks token exchange debug (using unified CORS proxy)");
   console.log("Authorization code:", code);
   console.log("Realm ID:", realmId);
   
@@ -25,15 +25,15 @@
   const clientSecret = "4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau";
   const redirectUri = "http://localhost:8080/qbo/callback";
   
-  // CORS proxy URL
-  const proxyUrl = "http://localhost:3031/proxy/token";
+  // Unified CORS proxy URL
+  const proxyUrl = "http://localhost:3030/proxy/qbo/token";
   
   console.log("Request details:");
   console.log("- Proxy endpoint:", proxyUrl);
   console.log("- Redirect URI:", redirectUri);
   
   try {
-    console.log("Making token exchange request via proxy...");
+    console.log("Making token exchange request via unified proxy...");
     
     // Make the token request through the proxy
     const response = await fetch(proxyUrl, {

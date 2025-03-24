@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import {
@@ -10,14 +9,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AlertTriangle } from "lucide-react";
 import type { Payment } from "./types";
 
 interface PaymentsTableProps {
   payments: Payment[];
   isLoading: boolean;
+  error?: Error | null;
 }
 
-export function PaymentsTable({ payments, isLoading }: PaymentsTableProps) {
+export function PaymentsTable({ payments, isLoading, error }: PaymentsTableProps) {
+  // Handle loading state
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-48">
@@ -26,6 +28,19 @@ export function PaymentsTable({ payments, isLoading }: PaymentsTableProps) {
     );
   }
 
+  // Handle error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-48 p-6 text-center">
+        <AlertTriangle className="h-8 w-8 text-red-500 mb-2" />
+        <h3 className="text-lg font-medium text-red-800">Error loading payments</h3>
+        <p className="text-sm text-gray-600 mt-1">{error.message || 'An unexpected error occurred'}</p>
+        <p className="text-xs text-gray-500 mt-4">Please try refreshing the page or contact support if the problem persists.</p>
+      </div>
+    );
+  }
+
+  // Handle empty state
   if (!payments || payments.length === 0) {
     return (
       <div className="text-center py-8">

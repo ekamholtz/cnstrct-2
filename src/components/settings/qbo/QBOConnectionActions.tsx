@@ -1,14 +1,16 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, RefreshCw } from "lucide-react";
-import { QBOProxyService } from "@/integrations/qbo/qboProxyService";
 import { useToast } from "@/components/ui/use-toast";
 import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { QboService } from "@/integrations/services/QboService";
 
 interface QBOConnection {
   id: string;
   company_id: string;
   company_name: string;
+  access_token: string;
+  refresh_token: string;
   created_at: string;
   updated_at: string;
 }
@@ -36,16 +38,24 @@ export function QBOConnectionActions({
   };
   
   const testConnection = async () => {
+    if (!connection) return;
+    
     setIsTesting(true);
     
     try {
-      // Create a QBO proxy service instance
-      const qboProxyService = new QBOProxyService();
+      // Create a QboService instance using the new unified service
+      const qboService = new QboService({
+        clientId: process.env.QBO_CLIENT_ID || 'AB6pN0pnXfsEqiCl1S03SYSdoRISCVD2ZQDxDgR4yYvbDdEx4j',
+        clientSecret: process.env.QBO_CLIENT_SECRET || '4zjveAX4tFhuxWx1sfgN3bE4zRVUquuFun3YqVau'
+      });
       
-      // Use our proxy-enabled test connection method
-      const result = await qboProxyService.testConnection();
+      // Use the testConnection method from the new QboService
+      const { success, error } = await qboService.testConnection(
+        connection.access_token,
+        connection.company_id
+      );
       
-      if (result.success) {
+      if (success) {
         toast({ 
           title: "Connection Successful", 
           description: "Connection to QuickBooks API is working properly.",
@@ -54,7 +64,7 @@ export function QBOConnectionActions({
       } else {
         toast({ 
           title: "Connection Failed", 
-          description: `Connection test failed: ${result.error?.message || 'Unknown error'}`,
+          description: `Connection test failed: ${error?.message || 'Unknown error'}`,
           variant: "destructive"
         });
       }
