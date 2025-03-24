@@ -1,6 +1,5 @@
-
 import { Project } from "@/types/project";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +14,9 @@ interface ProjectsListProps {
 }
 
 export function ProjectsList({ projects, loading }: ProjectsListProps) {
+  const location = useLocation();
+  const isProjectsPage = location.pathname === "/gc-projects";
+
   // Query to fetch any additional milestone data if needed
   const { data: milestones } = useQuery({
     queryKey: ['all-projects-milestones', projects.map(p => p.id)],
@@ -56,24 +58,27 @@ export function ProjectsList({ projects, loading }: ProjectsListProps) {
     );
   }
 
-  // Show only the most recent 3 projects
-  const recentProjects = [...projects].sort((a, b) => {
+  // Sort projects by creation date (newest first)
+  const sortedProjects = [...projects].sort((a, b) => {
     const dateA = a.created_at ? new Date(a.created_at) : new Date(0);
     const dateB = b.created_at ? new Date(b.created_at) : new Date(0);
     return dateB.getTime() - dateA.getTime();
-  }).slice(0, 3);
+  });
+
+  // Show all projects if on the projects page, otherwise show only the most recent 3
+  const displayedProjects = isProjectsPage ? sortedProjects : sortedProjects.slice(0, 3);
 
   return (
     <div>
       {projects.length > 0 ? (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {recentProjects.map((project) => (
+            {displayedProjects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
           </div>
           
-          {projects.length > 3 && (
+          {!isProjectsPage && projects.length > 3 && (
             <div className="mt-6 flex justify-center">
               <Link to="/gc-projects">
                 <Button variant="outline" className="group">
