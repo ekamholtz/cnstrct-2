@@ -38,7 +38,7 @@ export const createClient = async (clientData: {
     name: clientData.name,
     email: normalizedEmail,
     address: clientData.address,
-    phone: clientData.phone_number, // Match the field name in the database
+    phone_number: clientData.phone_number, // Use phone_number instead of phone to match the database column
     user_id: user?.id // Link to current user if available
   };
   
