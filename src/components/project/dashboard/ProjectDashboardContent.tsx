@@ -58,6 +58,7 @@ export function ProjectDashboardContent({
             projectId={projectId}
             expenses={gcExpenses}
             invoices={invoices}
+            userRole={userRole}
           />
         )}
       </div>

@@ -44,6 +44,7 @@ export const ProjectFileService = {
    * @returns The created project file record
    */
   async uploadFile({ projectId, file, shareWithClient }: FileUploadParams): Promise<{ file: ProjectFile | null; error?: string }> {
+    console.log('ProjectFileService.uploadFile called', { projectId, fileName: file.name, fileSize: file.size, shareWithClient });
     try {
       // Validate file size
       if (file.size > MAX_FILE_SIZE) {
@@ -98,6 +99,7 @@ export const ProjectFileService = {
       const filePath = `${projectId}/${fileName}`;
       
       // Upload file to Supabase Storage
+      console.log('Uploading file to Supabase Storage');
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('project-files')
         .upload(filePath, file, {
@@ -111,11 +113,14 @@ export const ProjectFileService = {
         return { file: null, error: 'Error uploading file to storage. Please try again.' };
       }
 
+      console.log('File uploaded successfully to Supabase Storage');
+
       // Store the file path instead of the public URL
       // We'll generate signed URLs when needed
       const fileUrl = filePath;
 
       // Create a record in the project_files table
+      console.log('Creating file record in database');
       const { data: fileRecord, error: insertError } = await supabase
         .from('project_files')
         .insert({
@@ -137,6 +142,8 @@ export const ProjectFileService = {
         return { file: null, error: 'Error creating file record. Please try again.' };
       }
 
+      console.log('File record created successfully in database');
+
       return { file: fileRecord };
     } catch (error) {
       console.error('Unexpected error in uploadFile:', error);
@@ -150,8 +157,10 @@ export const ProjectFileService = {
    * @returns Array of project files with uploader information
    */
   async getProjectFiles(projectId: string): Promise<{ files: ProjectFileWithUploaderInfo[]; error?: string }> {
+    console.log('ProjectFileService.getProjectFiles called', { projectId });
     try {
       // Get the files with a join to the profiles table for uploader info
+      console.log('Querying Supabase for project files');
       const { data, error } = await supabase
         .from('project_files')
         .select(`
@@ -162,9 +171,11 @@ export const ProjectFileService = {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching project files:', error);
+        console.error('Error fetching project files from Supabase:', error);
         return { files: [], error: 'Error fetching project files. Please try again.' };
       }
+
+      console.log(`Found ${data.length} project files in database`);
 
       // Transform the data to match our expected format
       const filesWithUploaderInfo = data.map(file => ({
@@ -173,6 +184,7 @@ export const ProjectFileService = {
       }));
 
       // For files with paths (not full URLs), generate signed URLs
+      console.log('Generating signed URLs for files');
       const filesWithUrls = await Promise.all(
         filesWithUploaderInfo.map(async (file) => {
           // If it's already a full URL, return as is
@@ -181,6 +193,7 @@ export const ProjectFileService = {
           }
           
           // Otherwise, generate a signed URL
+          console.log(`Generating signed URL for file ${file.file_url}`);
           const { data } = await supabase.storage
             .from('project-files')
             .createSignedUrl(file.file_url, 60 * 60); // 1 hour expiry
@@ -191,6 +204,8 @@ export const ProjectFileService = {
           };
         })
       );
+
+      console.log('Signed URLs generated successfully');
 
       return { files: filesWithUrls };
     } catch (error) {
@@ -251,6 +266,7 @@ export const ProjectFileService = {
       }
 
       // Delete the file from storage
+      console.log('Deleting file from Supabase Storage');
       const { error: storageError } = await supabase.storage
         .from('project-files')
         .remove([storagePath]);
@@ -261,7 +277,10 @@ export const ProjectFileService = {
         // This prevents orphaned records
       }
 
+      console.log('File deleted successfully from Supabase Storage');
+
       // Delete the record from the database
+      console.log('Deleting file record from database');
       const { error: deleteError } = await supabase
         .from('project_files')
         .delete()
@@ -270,6 +289,8 @@ export const ProjectFileService = {
       if (deleteError) {
         return { success: false, error: 'Error deleting file record. Please try again.' };
       }
+
+      console.log('File record deleted successfully from database');
 
       return { success: true };
     } catch (error) {

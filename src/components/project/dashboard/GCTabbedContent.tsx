@@ -1,6 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectExpenses } from "@/components/project/ProjectExpenses";
 import { ProjectInvoices } from "@/components/project/invoice/ProjectInvoices";
+import { ProjectFiles } from "@/components/project/files/ProjectFiles";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -9,6 +10,7 @@ interface GCTabbedContentProps {
   projectId: string;
   expenses?: any[];
   invoices?: any[];
+  userRole?: string | null;
 }
 
 // Fallback UI for errors
@@ -20,7 +22,10 @@ const ErrorFallback = ({ title, message }: { title: string, message: string }) =
   </Alert>
 );
 
-export function GCTabbedContent({ projectId, expenses = [], invoices = [] }: GCTabbedContentProps) {
+export function GCTabbedContent({ projectId, expenses = [], invoices = [], userRole = 'gc_admin' }: GCTabbedContentProps) {
+  // Add debug logging
+  console.log('GCTabbedContent rendering', { projectId, userRole });
+  
   // Ensure expenses and invoices are always arrays
   const safeExpenses = Array.isArray(expenses) ? expenses : [];
   const safeInvoices = Array.isArray(invoices) ? invoices : [];
@@ -62,9 +67,10 @@ export function GCTabbedContent({ projectId, expenses = [], invoices = [] }: GCT
 
   return (
     <Tabs defaultValue="expenses" className="w-full">
-      <TabsList className="grid w-full grid-cols-2">
+      <TabsList className="grid w-full grid-cols-3">
         <TabsTrigger value="expenses">Expenses</TabsTrigger>
         <TabsTrigger value="invoices">Invoices</TabsTrigger>
+        <TabsTrigger value="files">Files</TabsTrigger>
       </TabsList>
       <TabsContent value="expenses">
         {renderProjectExpenses()}
@@ -79,6 +85,18 @@ export function GCTabbedContent({ projectId, expenses = [], invoices = [] }: GCT
           }
         >
           <ProjectInvoices projectId={projectId} invoices={safeInvoices} />
+        </ErrorBoundary>
+      </TabsContent>
+      <TabsContent value="files">
+        <ErrorBoundary
+          fallback={
+            <ErrorFallback 
+              title="Error Loading Files" 
+              message="There was a problem loading the files for this project. Please try refreshing the page." 
+            />
+          }
+        >
+          <ProjectFiles projectId={projectId} userRole={userRole} />
         </ErrorBoundary>
       </TabsContent>
     </Tabs>

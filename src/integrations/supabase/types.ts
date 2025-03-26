@@ -644,6 +644,60 @@ export type Database = {
           },
         ]
       }
+      project_files: {
+        Row: {
+          id: string
+          project_id: string
+          uploader_id: string
+          file_url: string
+          filename: string
+          mime_type: string
+          file_size: number
+          share_with_client: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          uploader_id: string
+          file_url: string
+          filename: string
+          mime_type: string
+          file_size: number
+          share_with_client?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          uploader_id?: string
+          file_url?: string
+          filename?: string
+          mime_type?: string
+          file_size?: number
+          share_with_client?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_files_uploader_id_fkey"
+            columns: ["uploader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       profiles: {
         Row: {
           account_status: string

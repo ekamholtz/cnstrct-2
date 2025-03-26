@@ -9,6 +9,8 @@ import { supabase } from '@/integrations/supabase/client';
  * @param projectId The ID of the project
  */
 export const useProjectFiles = (projectId: string) => {
+  console.log('useProjectFiles hook initialized', { projectId, env: process.env.NODE_ENV });
+  
   const queryClient = useQueryClient();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -24,16 +26,25 @@ export const useProjectFiles = (projectId: string) => {
   } = useQuery({
     queryKey: ['projectFiles', projectId],
     queryFn: async () => {
-      const result = await ProjectFileService.getProjectFiles(projectId);
-      if (result.error) {
-        throw new Error(result.error);
+      console.log('Fetching project files for', projectId);
+      try {
+        const result = await ProjectFileService.getProjectFiles(projectId);
+        console.log('Project files fetch result:', result);
+        if (result.error) {
+          console.error('Error fetching project files:', result.error);
+          throw new Error(result.error);
+        }
+        return result.files;
+      } catch (err) {
+        console.error('Exception in project files fetch:', err);
+        throw err;
       }
-      return result.files;
     },
     enabled: !!projectId,
   });
 
   const files = filesData || [];
+  console.log('Files data from query:', { count: files.length, isLoading, isError, error });
 
   // Mutation for uploading a file
   const uploadFileMutation = useMutation({

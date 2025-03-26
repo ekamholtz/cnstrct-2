@@ -20,6 +20,9 @@ const ErrorFallback = ({ title, message }: { title: string, message: string }) =
 );
 
 export function ProjectFiles({ projectId, userRole }: ProjectFilesProps) {
+  // Add debug logging
+  console.log('ProjectFiles component rendering', { projectId, userRole, env: process.env.NODE_ENV });
+  
   const isClient = userRole === 'homeowner';
   const canUpload = userRole === 'gc_admin' || userRole === 'project_manager';
   
