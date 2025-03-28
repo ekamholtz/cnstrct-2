@@ -101,6 +101,59 @@ export type Database = {
         }
         Relationships: []
       }
+      checkout_sessions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          currency: string
+          description: string | null
+          gc_account_id: string | null
+          id: string
+          metadata: Json | null
+          status: string
+          stripe_account_id: string
+          stripe_session_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          currency?: string
+          description?: string | null
+          gc_account_id?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          stripe_account_id: string
+          stripe_session_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          currency?: string
+          description?: string | null
+          gc_account_id?: string | null
+          id?: string
+          metadata?: Json | null
+          status?: string
+          stripe_account_id?: string
+          stripe_session_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checkout_sessions_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            isOneToOne: false
+            referencedRelation: "gc_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           address: string
@@ -501,6 +554,7 @@ export type Database = {
       payment_records: {
         Row: {
           amount: number
+          checkout_session_id: string | null
           created_at: string | null
           currency: string
           customer_email: string | null
@@ -518,6 +572,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          checkout_session_id?: string | null
           created_at?: string | null
           currency: string
           customer_email?: string | null
@@ -535,6 +590,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          checkout_session_id?: string | null
           created_at?: string | null
           currency?: string
           customer_email?: string | null
@@ -550,7 +606,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "payment_records_checkout_session_id_fkey"
+            columns: ["checkout_session_id"]
+            isOneToOne: false
+            referencedRelation: "checkout_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       payments: {
         Row: {
@@ -644,60 +708,6 @@ export type Database = {
           },
         ]
       }
-      project_files: {
-        Row: {
-          id: string
-          project_id: string
-          uploader_id: string
-          file_url: string
-          filename: string
-          mime_type: string
-          file_size: number
-          share_with_client: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          project_id: string
-          uploader_id: string
-          file_url: string
-          filename: string
-          mime_type: string
-          file_size: number
-          share_with_client?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          project_id?: string
-          uploader_id?: string
-          file_url?: string
-          filename?: string
-          mime_type?: string
-          file_size?: number
-          share_with_client?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "project_files_project_id_fkey"
-            columns: ["project_id"]
-            isOneToOne: false
-            referencedRelation: "projects"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "project_files_uploader_id_fkey"
-            columns: ["uploader_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       profiles: {
         Row: {
           account_status: string
@@ -756,6 +766,60 @@ export type Database = {
             columns: ["subscription_tier_id"]
             isOneToOne: false
             referencedRelation: "subscription_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_files: {
+        Row: {
+          created_at: string
+          file_size: number
+          file_url: string
+          filename: string
+          id: string
+          mime_type: string
+          project_id: string
+          share_with_client: boolean
+          updated_at: string
+          uploader_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_size: number
+          file_url: string
+          filename: string
+          id?: string
+          mime_type: string
+          project_id: string
+          share_with_client?: boolean
+          updated_at?: string
+          uploader_id: string
+        }
+        Update: {
+          created_at?: string
+          file_size?: number
+          file_url?: string
+          filename?: string
+          id?: string
+          mime_type?: string
+          project_id?: string
+          share_with_client?: boolean
+          updated_at?: string
+          uploader_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "project_files_uploader_id_fkey"
+            columns: ["uploader_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -934,33 +998,95 @@ export type Database = {
       }
       stripe_connect_accounts: {
         Row: {
+          access_token: string | null
           account_id: string
           charges_enabled: boolean | null
           created_at: string | null
+          details: Json | null
           details_submitted: boolean | null
+          gc_account_id: string | null
           id: string
           payouts_enabled: boolean | null
+          refresh_token: string | null
+          scope: string | null
+          token_type: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          access_token?: string | null
           account_id: string
           charges_enabled?: boolean | null
           created_at?: string | null
+          details?: Json | null
           details_submitted?: boolean | null
+          gc_account_id?: string | null
           id?: string
           payouts_enabled?: boolean | null
+          refresh_token?: string | null
+          scope?: string | null
+          token_type?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          access_token?: string | null
           account_id?: string
           charges_enabled?: boolean | null
           created_at?: string | null
+          details?: Json | null
           details_submitted?: boolean | null
+          gc_account_id?: string | null
           id?: string
           payouts_enabled?: boolean | null
+          refresh_token?: string | null
+          scope?: string | null
+          token_type?: string | null
           updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_connect_accounts_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            isOneToOne: true
+            referencedRelation: "gc_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_connections: {
+        Row: {
+          access_token: string
+          account_id: string
+          created_at: string
+          id: string
+          publishable_key: string
+          refresh_token: string | null
+          scope: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token: string
+          account_id: string
+          created_at?: string
+          id?: string
+          publishable_key: string
+          refresh_token?: string | null
+          scope: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string
+          account_id?: string
+          created_at?: string
+          id?: string
+          publishable_key?: string
+          refresh_token?: string | null
+          scope?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []

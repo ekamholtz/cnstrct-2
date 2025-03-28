@@ -1,0 +1,15 @@
+
+[global]
+project_id = "wkspjzbybjhvscqdmpwi"
+
+[[edge_functions]]
+path = "stripe-connect"
+verify_jwt = false
+
+[[edge_functions]]
+path = "stripe-payment"
+verify_jwt = false
+
+[[edge_functions]]
+path = "stripe-webhook"
+verify_jwt = false
