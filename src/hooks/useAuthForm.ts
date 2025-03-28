@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -14,9 +13,11 @@ export const useAuthForm = () => {
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
       setIsLoading(true);
+      console.log("Handle register called with:", data);
       console.log("Registering with role:", data.role); // Debug log
       
-      const { error } = await supabase.auth.signUp({
+      // First create the user in Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
         options: {
@@ -27,13 +28,51 @@ export const useAuthForm = () => {
         },
       });
       
-      if (error) {
-        console.error("Registration error:", error);
-        throw error;
+      if (authError) {
+        console.error("Registration error:", authError);
+        throw authError;
+      }
+
+      if (!authData.user) {
+        throw new Error("No user data returned from signup");
+      }
+
+      // If this is a gc_admin, create a GC account first
+      if (data.role === 'gc_admin') {
+        try {
+          // Create a GC account
+          const { data: gcAccount, error: gcError } = await supabase
+            .from('gc_accounts')
+            .insert([
+              { 
+                name: data.fullName + "'s Company", 
+                owner_id: authData.user.id 
+              }
+            ])
+            .select('id')
+            .single();
+          
+          if (gcError) {
+            console.error("Error creating GC account:", gcError);
+            // Continue anyway, as the user is created
+          } else if (gcAccount) {
+            // Update the user's profile with the GC account ID
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .update({ gc_account_id: gcAccount.id })
+              .eq('id', authData.user.id);
+            
+            if (profileError) {
+              console.error("Error updating profile with GC account:", profileError);
+            }
+          }
+        } catch (error) {
+          console.error("Error in GC account creation process:", error);
+          // Continue anyway, as the user is created
+        }
       }
       
-      // Note: The profile is created by a database trigger in Supabase
-      // The subscription_tier_id will be set during profile completion
+      return authData;
     },
     onSuccess: () => {
       setIsLoading(false);
