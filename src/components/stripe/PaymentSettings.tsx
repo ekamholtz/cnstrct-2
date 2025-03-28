@@ -1,25 +1,59 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { AlertTriangle, Database } from 'lucide-react';
+import { 
+  Box, 
+  Button, 
+  Card, 
+  CardContent, 
+  CircularProgress, 
+  Divider, 
+  Grid, 
+  Paper, 
+  Tab, 
+  Tabs, 
+  Typography, 
+  Alert,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow
+} from '@mui/material';
+import { useAuth } from '../../hooks/useAuth';
 import { createClient } from '@supabase/supabase-js';
-import { Box } from '@/components/ui/box';
-import { Separator } from '@/components/ui/separator';
+import StripeConnectButton from './StripeConnectButton';
 import StripeTokenManager from '../../integrations/stripe/auth/stripeTokenManager';
-import { StripeConnectTab } from './tabs/StripeConnectTab';
-import { PaymentHistoryTab } from './tabs/PaymentHistoryTab';
-import { PaymentSettingsTab } from './tabs/PaymentSettingsTab';
-import { PaymentLoadingState } from './PaymentLoadingState';
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+interface TabPanelProps {
+  children?: React.ReactNode;
+  index: number;
+  value: number;
+}
+
+const TabPanel = (props: TabPanelProps) => {
+  const { children, value, index, ...other } = props;
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`payment-settings-tabpanel-${index}`}
+      aria-labelledby={`payment-settings-tab-${index}`}
+      {...other}
+    >
+      {value === index && (
+        <Box sx={{ pt: 3 }}>
+          {children}
+        </Box>
+      )}
+    </div>
+  );
+};
 
 interface PaymentRecord {
   id: string;
@@ -46,15 +80,12 @@ interface StripeAccount {
 
 const PaymentSettings: React.FC = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [stripeConnected, setStripeConnected] = useState(false);
   const [accountInfo, setAccountInfo] = useState<StripeAccount | null>(null);
   const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
-  const [creatingAccount, setCreatingAccount] = useState(false);
   
   const tokenManager = new StripeTokenManager();
   
@@ -118,21 +149,6 @@ const PaymentSettings: React.FC = () => {
   const handleConnectionStatusChange = (isConnected: boolean) => {
     setStripeConnected(isConnected);
   };
-
-  const handleConnectStripe = async () => {
-    setCreatingAccount(true);
-    setTimeout(() => {
-      setCreatingAccount(false);
-      setStripeConnected(true);
-    }, 2000);
-  };
-  
-  const handleManageAccount = async () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-  };
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -153,70 +169,235 @@ const PaymentSettings: React.FC = () => {
   
   if (!user) {
     return (
-      <Alert variant="warning">
-        <AlertTitle>Authentication Required</AlertTitle>
-        <AlertDescription>
-          You must be logged in to access payment settings.
-        </AlertDescription>
+      <Alert severity="warning">
+        You must be logged in to access payment settings.
       </Alert>
     );
   }
   
   if (loading) {
-    return <PaymentLoadingState />;
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
   }
   
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-6">Payment Settings</h2>
+    <Paper elevation={1} sx={{ p: 3 }}>
+      <Typography variant="h5" gutterBottom>
+        Payment Settings
+      </Typography>
       
-      <Separator className="mb-6" />
+      <Divider sx={{ mb: 3 }} />
       
       {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
         </Alert>
       )}
       
-      <div className="w-full">
-        <Tabs defaultValue="connect" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="connect">Stripe Connect</TabsTrigger>
-            <TabsTrigger value="history" disabled={!stripeConnected}>Payment History</TabsTrigger>
-            <TabsTrigger value="settings" disabled={!stripeConnected}>Settings</TabsTrigger>
-          </TabsList>
+      <Box sx={{ width: '100%' }}>
+        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+          <Tabs value={tabValue} onChange={handleTabChange} aria-label="payment settings tabs">
+            <Tab label="Stripe Connect" />
+            <Tab label="Payment History" disabled={!stripeConnected} />
+            <Tab label="Settings" disabled={!stripeConnected} />
+          </Tabs>
+        </Box>
+        
+        <TabPanel value={tabValue} index={0}>
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography variant="h6" gutterBottom>
+                    Connect Your Stripe Account
+                  </Typography>
+                  
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    Connect your Stripe account to start accepting payments for your invoices.
+                  </Typography>
+                  
+                  <StripeConnectButton 
+                    onStatusChange={handleConnectionStatusChange}
+                    redirectPath="/settings/payments"
+                  />
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
           
-          <TabsContent value="connect">
-            <StripeConnectTab
-              accountInfo={accountInfo}
-              accountStatus={{}}
-              stripeConnected={stripeConnected}
-              loading={loading}
-              creatingAccount={creatingAccount}
-              error={error}
-              handleConnectStripe={handleConnectStripe}
-              handleConnectionStatusChange={handleConnectionStatusChange}
-              handleManageAccount={handleManageAccount}
-              formatDate={formatDate}
-            />
-          </TabsContent>
+          {stripeConnected && accountInfo && (
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Connected Account
+                </Typography>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>Account Name:</strong> {accountInfo.account_name}
+                    </Typography>
+                    
+                    <Typography variant="body2">
+                      <strong>Email:</strong> {accountInfo.account_email}
+                    </Typography>
+                    
+                    <Typography variant="body2">
+                      <strong>Status:</strong> {accountInfo.account_status}
+                    </Typography>
+                  </Grid>
+                  
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>Account ID:</strong> {accountInfo.account_id}
+                    </Typography>
+                    
+                    <Typography variant="body2">
+                      <strong>Connected:</strong> {formatDate(accountInfo.created_at)}
+                    </Typography>
+                    
+                    <Typography variant="body2">
+                      <strong>Default Account:</strong> {accountInfo.default_account ? 'Yes' : 'No'}
+                    </Typography>
+                  </Grid>
+                  
+                  <Grid item xs={12} sx={{ mt: 2 }}>
+                    <Button 
+                      variant="contained" 
+                      color="primary"
+                      href="https://dashboard.stripe.com" 
+                      target="_blank"
+                      sx={{ mr: 2 }}
+                    >
+                      Stripe Dashboard
+                    </Button>
+                    
+                    <Button 
+                      variant="outlined" 
+                      color="error"
+                      onClick={() => {
+                        // Implement disconnect functionality here
+                        alert('This would disconnect your Stripe account. Functionality not yet implemented.');
+                      }}
+                    >
+                      Disconnect Account
+                    </Button>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          )}
+        </TabPanel>
+        
+        <TabPanel value={tabValue} index={1}>
+          <Typography variant="h6" gutterBottom>
+            Payment History
+          </Typography>
           
-          <TabsContent value="history">
-            <PaymentHistoryTab
-              paymentRecords={paymentRecords}
-              formatCurrency={formatCurrency}
-              formatDate={formatDate}
-            />
-          </TabsContent>
+          {paymentRecords.length === 0 ? (
+            <Alert severity="info">
+              No payment records found. When you start receiving payments, they will appear here.
+            </Alert>
+          ) : (
+            <TableContainer component={Paper} sx={{ mt: 2 }}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Invoice</TableCell>
+                    <TableCell>Amount</TableCell>
+                    <TableCell>Payment Method</TableCell>
+                    <TableCell>Status</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {paymentRecords.map((record) => (
+                    <TableRow key={record.id}>
+                      <TableCell>{formatDate(record.created_at)}</TableCell>
+                      <TableCell>{record.invoice_id}</TableCell>
+                      <TableCell>{formatCurrency(record.amount)}</TableCell>
+                      <TableCell>
+                        {record.payment_method.charAt(0).toUpperCase() + record.payment_method.slice(1)}
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ 
+                          display: 'inline-block', 
+                          px: 1, 
+                          py: 0.5, 
+                          borderRadius: 1,
+                          backgroundColor: 
+                            record.status === 'succeeded' ? 'success.light' : 
+                            record.status === 'failed' ? 'error.light' : 
+                            'warning.light',
+                          color: 'white'
+                        }}>
+                          {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </TabPanel>
+        
+        <TabPanel value={tabValue} index={2}>
+          <Typography variant="h6" gutterBottom>
+            Payment Settings
+          </Typography>
           
-          <TabsContent value="settings">
-            <PaymentSettingsTab />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
+          <Grid container spacing={3}>
+            <Grid item xs={12} md={6}>
+              <Card sx={{ mb: 3 }}>
+                <CardContent>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Platform Fee
+                  </Typography>
+                  
+                  <Typography variant="body2" sx={{ mb: 2 }}>
+                    The platform fee is automatically calculated and applied to all payments.
+                  </Typography>
+                  
+                  <Typography variant="h6">
+                    {import.meta.env.VITE_STRIPE_PLATFORM_FEE_PERCENTAGE || '2.5'}%
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12} md={6}>
+              <Card sx={{ mb: 3 }}>
+                <CardContent>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Payment Methods
+                  </Typography>
+                  
+                  <Typography variant="body2">
+                    The following payment methods are enabled for your account:
+                  </Typography>
+                  
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2">✅ Credit and Debit Cards</Typography>
+                    <Typography variant="body2">✅ ACH Direct Debit (US only)</Typography>
+                    <Typography variant="body2">✅ Bank Transfers</Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+            
+            <Grid item xs={12}>
+              <Alert severity="info">
+                Additional payment settings are managed directly through your Stripe Dashboard.
+              </Alert>
+            </Grid>
+          </Grid>
+        </TabPanel>
+      </Box>
+    </Paper>
   );
 };
 

@@ -1,15 +1,12 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { QBOAuthService } from "@/integrations/qbo/authService";
 import { useAuth } from "@/hooks/useAuth";
 
-export interface QBOConnection {
+interface QBOConnection {
   id: string;
   company_id: string;
   company_name: string;
-  access_token: string;
-  refresh_token: string;
   created_at: string;
   updated_at: string;
 }
@@ -44,7 +41,7 @@ export function useQBOConnection(): QBOConnectionHook {
         // Query for existing connection
         const { data, error } = await supabase
           .from('qbo_connections')
-          .select('id, company_id, company_name, access_token, refresh_token, created_at, updated_at')
+          .select('id, company_id, company_name, created_at, updated_at')
           .eq('user_id', user.id)
           .single();
           

@@ -1,4 +1,3 @@
-
 import axios from "axios";
 import { QBOConnectionService } from "./connection/qboConnectionService";
 
@@ -44,22 +43,30 @@ export class QBOProxyService {
       
       // If we got a new access token from the proxy, update the connection
       if (response.data.newAccessToken) {
-        await this.connectionService.updateConnection(connection.id, {
-          access_token: response.data.newAccessToken,
-          refresh_token: connection.refresh_token,
-          expires_in: 3600 // Default to 1 hour
-        });
+        console.log('Received new access token from proxy, updating connection');
+        
+        try {
+          // Update the connection in the database
+          await this.connectionService.updateConnection({
+            ...connection,
+            access_token: response.data.newAccessToken,
+            refresh_token: response.data.newRefreshToken || connection.refresh_token
+          });
+        } catch (updateError) {
+          console.error('Error updating connection with new tokens:', updateError);
+        }
       }
       
       return {
         success: true,
+        status: response.status,
         data: response.data
       };
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error testing QBO connection:", error);
       return {
         success: false,
-        error: error.response?.data || error.message
+        error: error
       };
     }
   }
