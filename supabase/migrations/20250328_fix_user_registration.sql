@@ -6,63 +6,70 @@ DO $$
 BEGIN
   -- Drop any existing broken triggers if they exist
   DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
-  
-  -- Create a more robust trigger for handling user creation
-  CREATE OR REPLACE FUNCTION public.handle_new_user()
-  RETURNS TRIGGER AS $$
-  BEGIN
-    DECLARE
-      gc_account_id uuid;
-    -- Create a new GC account if the user is a gc_admin
-    IF NEW.raw_user_meta_data->>'role' = 'gc_admin' THEN
-      INSERT INTO public.gc_accounts (name, owner_id, created_at, updated_at)
-      VALUES (
-        (NEW.raw_user_meta_data->>'full_name') || '''s Company',
-        NEW.id,
-        NOW(),
-        NOW()
-      )
-      RETURNING id INTO gc_account_id;
-    END IF;
+END
+$$;
 
-    -- Insert a row into public.profiles for the new user
-    INSERT INTO public.profiles (
-      id,
-      full_name,
-      email,
-      role,
-      gc_account_id,
-      account_status,
-      has_completed_profile,
-      created_at,
-      updated_at
-    ) VALUES (
+-- Create a more robust trigger for handling user creation
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+DECLARE
+  gc_account_id uuid;
+BEGIN
+  -- Create a new GC account if the user is a gc_admin
+  IF NEW.raw_user_meta_data->>'role' = 'gc_admin' THEN
+    INSERT INTO public.gc_accounts (name, owner_id, created_at, updated_at)
+    VALUES (
+      (NEW.raw_user_meta_data->>'full_name') || '''s Company',
       NEW.id,
-      COALESCE(NEW.raw_user_meta_data->>'full_name', 'New User'),
-      NEW.email,
-      COALESCE(NEW.raw_user_meta_data->>'role', 'gc_admin')::public.UserRole,
-      gc_account_id,
-      'active',
-      false,
       NOW(),
       NOW()
-    );
+    )
+    RETURNING id INTO gc_account_id;
+  END IF;
 
+  -- Insert a row into public.profiles for the new user
+  INSERT INTO public.profiles (
+    id,
+    full_name,
+    email,
+    role,
+    gc_account_id,
+    account_status,
+    has_completed_profile,
+    created_at,
+    updated_at
+  ) VALUES (
+    NEW.id,
+    COALESCE(NEW.raw_user_meta_data->>'full_name', 'New User'),
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'role', 'gc_admin')::public.UserRole,
+    gc_account_id,
+    'active',
+    false,
+    NOW(),
+    NOW()
+  );
+
+  RETURN NEW;
+EXCEPTION
+  WHEN OTHERS THEN
+    -- Log the error for debugging
+    RAISE NOTICE 'Error in handle_new_user trigger: %', SQLERRM;
+    -- Continue with user creation even if profile creation fails
     RETURN NEW;
-  EXCEPTION
-    WHEN OTHERS THEN
-      -- Log the error for debugging
-      RAISE NOTICE 'Error in handle_new_user trigger: %', SQLERRM;
-      -- Continue with user creation even if profile creation fails
-      RETURN NEW;
-  END;
-  $$ LANGUAGE plpgsql SECURITY DEFINER;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-  -- Create the trigger
+-- Create the trigger
+DO $$
+BEGIN
   CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW
     EXECUTE FUNCTION public.handle_new_user();
+EXCEPTION
+  WHEN OTHERS THEN
+    RAISE NOTICE 'Error creating trigger: %', SQLERRM;
 END
 $$;
 
