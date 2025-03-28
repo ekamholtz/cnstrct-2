@@ -10,9 +10,9 @@ BEGIN
   -- Create a more robust trigger for handling user creation
   CREATE OR REPLACE FUNCTION public.handle_new_user()
   RETURNS TRIGGER AS $$
-  DECLARE
-    gc_account_id uuid;
   BEGIN
+    DECLARE
+      gc_account_id uuid;
     -- Create a new GC account if the user is a gc_admin
     IF NEW.raw_user_meta_data->>'role' = 'gc_admin' THEN
       INSERT INTO public.gc_accounts (name, owner_id, created_at, updated_at)
