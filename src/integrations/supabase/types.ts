@@ -1049,7 +1049,7 @@ export type Database = {
           {
             foreignKeyName: "stripe_connect_accounts_gc_account_id_fkey"
             columns: ["gc_account_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "gc_accounts"
             referencedColumns: ["id"]
           },

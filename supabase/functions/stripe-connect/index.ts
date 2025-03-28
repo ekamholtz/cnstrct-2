@@ -27,6 +27,7 @@ interface RequestParams {
   accountId?: string
   code?: string
   state?: string
+  userId?: string
   [key: string]: any
 }
 
@@ -57,6 +58,29 @@ serve(async (req) => {
     const requestData: RequestParams = await req.json()
     const { action } = requestData
 
+    // --- Get Authenticated User --- 
+    let userId: string | undefined;
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Missing or invalid authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
+
+    if (userError || !user) {
+      console.error('Auth Error:', userError)
+      return new Response(JSON.stringify({ error: 'Invalid token or user not found' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    userId = user.id;
+    // --- End Get Authenticated User ---
+
     let result
     
     // Route to appropriate handler based on action
@@ -65,7 +89,8 @@ serve(async (req) => {
         result = await initiateOAuth(requestData)
         break
       case 'handle-oauth-callback':
-        result = await handleOAuthCallback(requestData)
+        // Pass userId to the handler
+        result = await handleOAuthCallback({ ...requestData, userId })
         break
       case 'create-account-link':
         result = await createAccountLink(requestData)
@@ -131,13 +156,18 @@ async function initiateOAuth({ gcAccountId }: RequestParams) {
 /**
  * Handles the OAuth callback from Stripe
  */
-async function handleOAuthCallback({ code, state }: RequestParams) {
+async function handleOAuthCallback({ code, state, userId }: RequestParams) { 
   if (!code) {
     throw new Error('Authorization code is required')
   }
 
   if (!state) {
     throw new Error('State parameter is required')
+  }
+
+  if (!userId) {
+    // This should ideally not happen if auth check passed before calling this
+    throw new Error('User ID is required but was not provided')
   }
 
   // Exchange the authorization code for an access token
@@ -156,6 +186,7 @@ async function handleOAuthCallback({ code, state }: RequestParams) {
     .upsert({
       gc_account_id: gcAccountId,
       account_id: stripe_user_id,
+      user_id: userId, 
       access_token,
       refresh_token,
       scope,
