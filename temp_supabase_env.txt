@@ -1,0 +1,11 @@
+# Stripe API credentials
+STRIPE_SECRET_KEY=sk_test_51Qc3hmApu80f9E3HiIZwWLEL8UfeNeIF3UkB251FzuCt5kH0eQxAq61ZmwuftjQ5wIjq5QZfKvdXuL8hZ1rIf8dKNM5sXjfT7P
+STRIPE_CLIENT_ID=ca_TestClientId
+STRIPE_PLATFORM_FEE_PERCENTAGE=0.025
+
+# Supabase connection details
+SUPABASE_URL=https://wkspjzbybjhvscqdmpwi.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Frontend URL for redirects
+FRONTEND_URL=http://localhost:8080

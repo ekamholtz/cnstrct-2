@@ -1,0 +1,2 @@
+# Add this line to your .env file:
+VITE_SUPABASE_FUNCTIONS_URL=https://wkspjzbybjhvscqdmpwi.supabase.co/functions/v1
