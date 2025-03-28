@@ -998,35 +998,50 @@ export type Database = {
       }
       stripe_connect_accounts: {
         Row: {
+          access_token: string | null
           account_id: string
           charges_enabled: boolean | null
           created_at: string | null
+          details: Json | null
           details_submitted: boolean | null
           gc_account_id: string | null
           id: string
           payouts_enabled: boolean | null
+          refresh_token: string | null
+          scope: string | null
+          token_type: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          access_token?: string | null
           account_id: string
           charges_enabled?: boolean | null
           created_at?: string | null
+          details?: Json | null
           details_submitted?: boolean | null
           gc_account_id?: string | null
           id?: string
           payouts_enabled?: boolean | null
+          refresh_token?: string | null
+          scope?: string | null
+          token_type?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          access_token?: string | null
           account_id?: string
           charges_enabled?: boolean | null
           created_at?: string | null
+          details?: Json | null
           details_submitted?: boolean | null
           gc_account_id?: string | null
           id?: string
           payouts_enabled?: boolean | null
+          refresh_token?: string | null
+          scope?: string | null
+          token_type?: string | null
           updated_at?: string | null
           user_id?: string
         }
