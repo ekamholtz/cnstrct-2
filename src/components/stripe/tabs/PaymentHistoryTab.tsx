@@ -66,9 +66,13 @@ export function PaymentHistoryTab({
                       </TableCell>
                       <TableCell>
                         <Badge variant={
-                          record.status === 'succeeded' ? 'success' : 
+                          record.status === 'succeeded' ? 'default' : 
                           record.status === 'failed' ? 'destructive' : 
-                          'warning'
+                          'secondary'
+                        } className={
+                          record.status === 'succeeded' ? 'bg-green-100 text-green-800 hover:bg-green-100' : 
+                          record.status === 'failed' ? 'bg-red-100 text-red-800 hover:bg-red-100' : 
+                          'bg-yellow-100 text-yellow-800 hover:bg-yellow-100'
                         }>
                           {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
                         </Badge>
