@@ -93,7 +93,11 @@ serve(async (req) => {
         result = await handleOAuthCallback({ ...requestData, userId })
         break
       case 'create-account-link':
-        result = await createAccountLink(requestData)
+        // Ensure accountId is provided in the requestData for this action
+        if (!requestData.accountId) {
+          throw new Error('accountId is required for create-account-link action')
+        }
+        result = await createAccountLink(requestData.accountId)
         break
       case 'get-account':
         result = await getAccount(requestData)
@@ -154,7 +158,8 @@ async function initiateOAuth({ gcAccountId }: RequestParams) {
 }
 
 /**
- * Handles the OAuth callback from Stripe
+ * Handles the OAuth callback from Stripe, saves account details, 
+ * and generates an onboarding link.
  */
 async function handleOAuthCallback({ code, state, userId }: RequestParams) { 
   if (!code) {
@@ -201,16 +206,31 @@ async function handleOAuthCallback({ code, state, userId }: RequestParams) {
     throw new Error(`Failed to save connected account: ${error.message}`)
   }
 
-  return {
-    success: true,
-    accountId: stripe_user_id,
+  // Immediately create an onboarding link for the newly connected account
+  try {
+    // Call createAccountLink directly with the account ID
+    const accountLink = await createAccountLink(stripe_user_id)
+    return {
+      success: true,
+      accountId: stripe_user_id,
+      onboardingUrl: accountLink.url, // Return the onboarding URL
+    }
+  } catch (linkError) {
+    console.error(`Failed to create account link after callback for ${stripe_user_id}:`, linkError)
+    // Proceed even if link creation fails, but indicate it
+    return { 
+      success: true, 
+      accountId: stripe_user_id, 
+      onboardingUrl: null, 
+      warning: 'Account connected, but failed to generate onboarding link.' 
+    }
   }
 }
 
 /**
  * Creates an account link for onboarding or updating a connected account
  */
-async function createAccountLink({ accountId }: RequestParams) {
+async function createAccountLink(accountId: string) { // Accept accountId directly
   if (!accountId) {
     throw new Error('accountId is required')
   }
