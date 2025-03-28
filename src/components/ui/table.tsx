@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 
 const Table = React.forwardRef<
   HTMLTableElement,
-  React.HTMLTableElement & React.HTMLAttributes<HTMLTableElement>
+  React.TableHTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
   <table
     ref={ref}

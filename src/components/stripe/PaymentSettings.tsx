@@ -1,21 +1,20 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Table, TableBody, TableCell, TableContainer, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { AlertTriangle, Database } from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
 import { Box } from '@/components/ui/box';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
-import { CheckCircle, XCircle, Loader2, AlertTriangle, Database, ExternalLink, HelpCircle } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-import StripeConnectButton from './StripeConnectButton';
 import StripeTokenManager from '../../integrations/stripe/auth/stripeTokenManager';
+import { StripeConnectTab } from './tabs/StripeConnectTab';
+import { PaymentHistoryTab } from './tabs/PaymentHistoryTab';
+import { PaymentSettingsTab } from './tabs/PaymentSettingsTab';
+import { PaymentLoadingState } from './PaymentLoadingState';
 
 // Initialize Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
@@ -55,6 +54,7 @@ const PaymentSettings: React.FC = () => {
   const [stripeConnected, setStripeConnected] = useState(false);
   const [accountInfo, setAccountInfo] = useState<StripeAccount | null>(null);
   const [paymentRecords, setPaymentRecords] = useState<PaymentRecord[]>([]);
+  const [creatingAccount, setCreatingAccount] = useState(false);
   
   const tokenManager = new StripeTokenManager();
   
@@ -118,6 +118,21 @@ const PaymentSettings: React.FC = () => {
   const handleConnectionStatusChange = (isConnected: boolean) => {
     setStripeConnected(isConnected);
   };
+
+  const handleConnectStripe = async () => {
+    setCreatingAccount(true);
+    setTimeout(() => {
+      setCreatingAccount(false);
+      setStripeConnected(true);
+    }, 2000);
+  };
+  
+  const handleManageAccount = async () => {
+    setLoading(true);
+    setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+  };
   
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
@@ -148,11 +163,7 @@ const PaymentSettings: React.FC = () => {
   }
   
   if (loading) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-800"></div>
-      </div>
-    );
+    return <PaymentLoadingState />;
   }
   
   return (
@@ -178,189 +189,30 @@ const PaymentSettings: React.FC = () => {
           </TabsList>
           
           <TabsContent value="connect">
-            <Card className="mb-6">
-              <CardHeader>
-                <CardTitle>Connect Your Stripe Account</CardTitle>
-                <CardDescription>
-                  Connect your Stripe account to start accepting payments for your invoices.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 gap-4">
-                  <StripeConnectButton 
-                    onStatusChange={handleConnectionStatusChange}
-                    redirectPath="/settings/payments"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-            
-            {stripeConnected && accountInfo && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Connected Account</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-sm font-medium">Account Name</p>
-                      <p className="text-sm">{accountInfo.account_name}</p>
-                      
-                      <p className="text-sm font-medium mt-3">Email</p>
-                      <p className="text-sm">{accountInfo.account_email}</p>
-                      
-                      <p className="text-sm font-medium mt-3">Status</p>
-                      <p className="text-sm">{accountInfo.account_status}</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-sm font-medium">Account ID</p>
-                      <p className="text-sm">{accountInfo.account_id}</p>
-                      
-                      <p className="text-sm font-medium mt-3">Connected</p>
-                      <p className="text-sm">{formatDate(accountInfo.created_at)}</p>
-                      
-                      <p className="text-sm font-medium mt-3">Default Account</p>
-                      <p className="text-sm">{accountInfo.default_account ? 'Yes' : 'No'}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 flex gap-3">
-                    <Button 
-                      variant="default" 
-                      onClick={() => window.open('https://dashboard.stripe.com', '_blank')}
-                      className="flex items-center"
-                    >
-                      <ExternalLink className="mr-2 h-4 w-4" />
-                      Stripe Dashboard
-                    </Button>
-                    
-                    <Button 
-                      variant="destructive" 
-                      onClick={() => {
-                        // Implement disconnect functionality here
-                        alert('This would disconnect your Stripe account. Functionality not yet implemented.');
-                      }}
-                    >
-                      Disconnect Account
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+            <StripeConnectTab
+              accountInfo={accountInfo}
+              accountStatus={{}}
+              stripeConnected={stripeConnected}
+              loading={loading}
+              creatingAccount={creatingAccount}
+              error={error}
+              handleConnectStripe={handleConnectStripe}
+              handleConnectionStatusChange={handleConnectionStatusChange}
+              handleManageAccount={handleManageAccount}
+              formatDate={formatDate}
+            />
           </TabsContent>
           
           <TabsContent value="history">
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment History</CardTitle>
-                <CardDescription>View your payment transaction history</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {paymentRecords.length === 0 ? (
-                  <Alert variant="warning" className="bg-amber-50">
-                    <AlertTitle>No Payments Found</AlertTitle>
-                    <AlertDescription>
-                      No payment records found. When you start receiving payments, they will appear here.
-                    </AlertDescription>
-                  </Alert>
-                ) : (
-                  <div className="border rounded-md">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Invoice</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Payment Method</TableHead>
-                          <TableHead>Status</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {paymentRecords.map((record) => (
-                          <TableRow key={record.id}>
-                            <TableCell>{formatDate(record.created_at)}</TableCell>
-                            <TableCell>{record.invoice_id}</TableCell>
-                            <TableCell>{formatCurrency(record.amount)}</TableCell>
-                            <TableCell>
-                              {record.payment_method.charAt(0).toUpperCase() + record.payment_method.slice(1)}
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={
-                                record.status === 'succeeded' ? 'success' : 
-                                record.status === 'failed' ? 'destructive' : 
-                                'warning'
-                              }>
-                                {record.status.charAt(0).toUpperCase() + record.status.slice(1)}
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <PaymentHistoryTab
+              paymentRecords={paymentRecords}
+              formatCurrency={formatCurrency}
+              formatDate={formatDate}
+            />
           </TabsContent>
           
           <TabsContent value="settings">
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Settings</CardTitle>
-                <CardDescription>Configure payment preferences and options</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card className="shadow-sm">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">Platform Fee</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm mb-2">
-                        The platform fee is automatically calculated and applied to all payments.
-                      </p>
-                      <p className="text-lg font-bold">
-                        {import.meta.env.VITE_STRIPE_PLATFORM_FEE_PERCENTAGE || '2.5'}%
-                      </p>
-                    </CardContent>
-                  </Card>
-                  
-                  <Card className="shadow-sm">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg">Payment Methods</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm mb-2">
-                        The following payment methods are enabled for your account:
-                      </p>
-                      <div className="mt-2 space-y-1">
-                        <p className="text-sm flex items-center">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          Credit and Debit Cards
-                        </p>
-                        <p className="text-sm flex items-center">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          ACH Direct Debit (US only)
-                        </p>
-                        <p className="text-sm flex items-center">
-                          <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                          Bank Transfers
-                        </p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-                
-                <Alert variant="warning" className="mt-6">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Additional Settings</AlertTitle>
-                  <AlertDescription>
-                    Additional payment settings are managed directly through your Stripe Dashboard.
-                  </AlertDescription>
-                </Alert>
-              </CardContent>
-            </Card>
+            <PaymentSettingsTab />
           </TabsContent>
         </Tabs>
       </div>
