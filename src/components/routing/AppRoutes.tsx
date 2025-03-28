@@ -1,302 +1,83 @@
+
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
+import { ProtectedRouteWithSettings } from "./ProtectedRouteWithSettings";
 import { AdminRoute } from "./AdminRoute";
-import Index from "@/pages/Index";
-import Auth from "@/pages/Auth";
-import NotFound from "@/pages/NotFound";
-import ProfileCompletion from "@/pages/ProfileCompletion";
-import Dashboard from "@/pages/Dashboard";
-import GCProjects from "@/pages/GCProjects";
-import ClientDashboard from "@/pages/ClientDashboard";
-import ClientProjectsPage from "@/pages/ClientProjectsPage";
-import ClientInvoicesPage from "@/pages/ClientInvoicesPage";
-import ClientInvoiceDashboard from "@/pages/ClientInvoiceDashboard"; // Support both implementations
-import ProjectDashboard from "@/pages/ProjectDashboard";
-import InvoiceDashboard from "@/pages/InvoiceDashboard";
-import InvoiceDetails from "@/pages/InvoiceDetails";
-import HomeownerProfile from "@/pages/HomeownerProfile";
-import AdminDashboard from "@/pages/AdminDashboard";
-import AdminUsers from "@/pages/AdminUsers";
-import AdminTransactions from "@/pages/AdminTransactions";
-import AdminProjects from "@/pages/AdminProjects";
-import ExpenseDashboard from "@/pages/ExpenseDashboard";
-import ExpenseDetails from "@/pages/ExpenseDetails";
-import PaymentDetails from "@/pages/PaymentDetails";
-import PaymentsDashboard from "@/pages/PaymentsDashboard";
-import Help from "@/pages/Help";
-import ReportingDashboard from "@/pages/ReportingDashboard";
-import QBOCallback from "@/pages/qbo/QBOCallbackFinal";
-import Settings from "@/pages/Settings";
-import TermsOfService from "@/pages/TermsOfService";
-import PrivacyPolicy from "@/pages/PrivacyPolicy";
-// Import Stripe Connect components
-import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
-import StripeOnboardingComplete from "../../pages/stripe/StripeOnboardingComplete";
-import CreatePaymentLink from "@/pages/stripe/CreatePaymentLink";
-import PaymentHistory from "@/pages/stripe/PaymentHistory";
-import PaymentSettings from "@/pages/settings/PaymentSettings";
-import DebugPage from "@/pages/DebugPage";
-import ClientProjectsDebug from "@/pages/ClientProjectsDebug";
-import DirectSQLDebug from "@/pages/DirectSQLDebug";
-import RLSDebug from "@/pages/RLSDebug";
+import { LoadingSpinner } from "@/components/project/dashboard/LoadingSpinner";
 
-export const AppRoutes = () => {
+// Lazy-loaded components for improved performance
+const Landing = lazy(() => import("@/pages/Landing"));
+const Auth = lazy(() => import("@/pages/Auth"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const ClientDashboard = lazy(() => import("@/pages/client/ClientDashboard"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const ProfileCompletion = lazy(() => import("@/pages/ProfileCompletion"));
+const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
+const Projects = lazy(() => import("@/pages/Projects"));
+const ProjectDetails = lazy(() => import("@/pages/ProjectDetails"));
+const ProjectEdit = lazy(() => import("@/pages/ProjectEdit"));
+const ClientProjects = lazy(() => import("@/pages/client/ClientProjects"));
+const AdminProjects = lazy(() => import("@/pages/admin/AdminProjects"));
+const Expenses = lazy(() => import("@/pages/Expenses"));
+const ProjectExpenses = lazy(() => import("@/pages/ProjectExpenses"));
+const ExpenseCreate = lazy(() => import("@/pages/ExpenseCreate"));
+const ExpenseEdit = lazy(() => import("@/pages/ExpenseEdit"));
+const AdminTransactions = lazy(() => import("@/pages/admin/AdminTransactions"));
+const AdminUsers = lazy(() => import("@/pages/admin/AdminUsers"));
+const ClientInvoices = lazy(() => import("@/pages/client/ClientInvoices"));
+const Invoices = lazy(() => import("@/pages/Invoices"));
+const InvoiceDetails = lazy(() => import("@/pages/InvoiceDetails"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const PaymentSettings = lazy(() => import("@/pages/settings/PaymentSettings"));
+const Help = lazy(() => import("@/pages/Help"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const Payments = lazy(() => import("@/pages/Payments"));
+const Reporting = lazy(() => import("@/pages/Reporting"));
+
+export function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/auth" element={<Auth />} />
-      <Route path="/" element={<Index />} />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <AdminRoute>
-            <AdminDashboard />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/admin/users"
-        element={
-          <AdminRoute>
-            <AdminUsers />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/admin/projects"
-        element={
-          <AdminRoute>
-            <AdminProjects />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/gc-projects"
-        element={
-          <ProtectedRoute>
-            <GCProjects />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/client-dashboard"
-        element={
-          <ProtectedRoute>
-            <ClientDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/client-projects"
-        element={
-          <ProtectedRoute>
-            <ClientProjectsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/client-invoices"
-        element={
-          <ProtectedRoute>
-            <ClientInvoicesPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/project/:projectId"
-        element={
-          <ProtectedRoute>
-            <ProjectDashboard />
-          </ProtectedRoute>
-        }
-      />
-      {/* For GC users */}
-      <Route
-        path="/invoices"
-        element={
-          <ProtectedRoute>
-            <InvoiceDashboard />
-          </ProtectedRoute>
-        }
-      />
-      {/* For client/homeowner users */}
-      <Route
-        path="/invoice"
-        element={
-          <ProtectedRoute>
-            <ClientInvoiceDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/invoices/:invoiceId"
-        element={
-          <ProtectedRoute>
-            <InvoiceDetails />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/expenses"
-        element={
-          <ProtectedRoute>
-            <ExpenseDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/expenses/:expenseId"
-        element={
-          <ProtectedRoute>
-            <ExpenseDetails />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/payments/:paymentId"
-        element={
-          <ProtectedRoute>
-            <PaymentDetails />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/payments"
-        element={
-          <ProtectedRoute>
-            <PaymentsDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/reporting"
-        element={
-          <ProtectedRoute>
-            <ReportingDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/help"
-        element={
-          <ProtectedRoute>
-            <Help />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <HomeownerProfile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/profile-completion"
-        element={
-          <ProtectedRoute>
-            <ProfileCompletion />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/transactions"
-        element={
-          <AdminRoute>
-            <AdminTransactions />
-          </AdminRoute>
-        }
-      />
-      <Route
-        path="/qbo/callback"
-        element={
-          <ProtectedRoute>
-            <QBOCallback />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings"
-        element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/terms"
-        element={<TermsOfService />}
-      />
-      <Route
-        path="/privacy"
-        element={<PrivacyPolicy />}
-      />
-      <Route
-        path="/stripe/onboarding"
-        element={
-          <ProtectedRoute>
-            <StripeConnectOnboarding />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/stripe/onboarding-complete"
-        element={
-          <ProtectedRoute>
-            <StripeOnboardingComplete />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/stripe/create-payment"
-        element={
-          <ProtectedRoute>
-            <CreatePaymentLink />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/stripe/payment-history"
-        element={
-          <ProtectedRoute>
-            <PaymentHistory />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/payments"
-        element={
-          <ProtectedRoute>
-            <PaymentSettings />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/debug"
-        element={<DebugPage />}
-      />
-      <Route
-        path="/debug/client-projects"
-        element={<ClientProjectsDebug />}
-      />
-      <Route
-        path="/debug/sql"
-        element={<DirectSQLDebug />}
-      />
-      <Route
-        path="/debug/rls"
-        element={<RLSDebug />}
-      />
-      <Route path="/landing" element={<Navigate to="/" replace />} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<LoadingSpinner />}>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/landing" element={<Landing />} />
+        <Route path="/auth" element={<Auth />} />
+        
+        {/* Protected routes */}
+        <Route path="/" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/profile-completion" element={<ProfileCompletion />} />
+        <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+        <Route path="/gc-projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
+        <Route path="/project/:id" element={<ProtectedRoute><ProjectDetails /></ProtectedRoute>} />
+        <Route path="/project/:id/edit" element={<ProtectedRoute><ProjectEdit /></ProtectedRoute>} />
+        <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
+        <Route path="/project/:id/expenses" element={<ProtectedRoute><ProjectExpenses /></ProtectedRoute>} />
+        <Route path="/expense/create" element={<ProtectedRoute><ExpenseCreate /></ProtectedRoute>} />
+        <Route path="/expense/:id/edit" element={<ProtectedRoute><ExpenseEdit /></ProtectedRoute>} />
+        <Route path="/invoices" element={<ProtectedRoute><Invoices /></ProtectedRoute>} />
+        <Route path="/invoice/:id" element={<ProtectedRoute><InvoiceDetails /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+        <Route path="/settings/payments" element={<ProtectedRoute><PaymentSettings /></ProtectedRoute>} />
+        <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
+        <Route path="/payments" element={<ProtectedRoute><Payments /></ProtectedRoute>} />
+        <Route path="/reporting" element={<ProtectedRoute><Reporting /></ProtectedRoute>} />
+        
+        {/* Client routes */}
+        <Route path="/client-dashboard" element={<ProtectedRoute><ClientDashboard /></ProtectedRoute>} />
+        <Route path="/client-projects" element={<ProtectedRoute><ClientProjects /></ProtectedRoute>} />
+        <Route path="/client-invoices" element={<ProtectedRoute><ClientInvoices /></ProtectedRoute>} />
+        
+        {/* Admin routes */}
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="/admin/projects" element={<AdminRoute><AdminProjects /></AdminRoute>} />
+        <Route path="/admin/transactions" element={<AdminRoute><AdminTransactions /></AdminRoute>} />
+        <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+        
+        {/* Fallback route */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
-};
+}

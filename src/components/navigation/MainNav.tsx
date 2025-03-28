@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -47,8 +48,8 @@ export interface MainNavProps {
  * Displays navigation items based on user role and provides access to user profile
  */
 export function MainNav({ 
-  showSettingsInNav = false, 
-  showSettingsInDropdown = false 
+  showSettingsInNav = true, 
+  showSettingsInDropdown = true 
 }: MainNavProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);

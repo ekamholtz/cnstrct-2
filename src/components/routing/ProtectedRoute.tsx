@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -138,9 +139,16 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       ? AdminNav 
       : MainNav;
   
+  // Determine if we should show settings in the MainNav based on the current route
+  const showSettingsInNav = !location.pathname.startsWith('/settings');
+  
   return (
     <>
-      <Navigation />
+      {Navigation === MainNav ? (
+        <MainNav showSettingsInNav={showSettingsInNav} showSettingsInDropdown={true} />
+      ) : (
+        <Navigation />
+      )}
       {children}
     </>
   );

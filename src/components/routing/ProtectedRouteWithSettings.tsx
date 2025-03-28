@@ -1,8 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { MainNav } from "@/components/navigation/MainNavWithSettings";
+import { MainNav } from "@/components/navigation/MainNav";
 import { useAuth } from "@/hooks/useAuth";
 import { Database } from "@/integrations/supabase/database.types";
 
@@ -121,9 +122,14 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   const Navigation = currentRole === 'admin' ? AdminNav : MainNav;
   
+  // Since this is the settings version, we want to show the settings in the dropdown but not in the nav
   return (
     <>
-      <Navigation />
+      {Navigation === MainNav ? (
+        <MainNav showSettingsInNav={false} showSettingsInDropdown={true} />
+      ) : (
+        <Navigation />
+      )}
       {children}
     </>
   );
