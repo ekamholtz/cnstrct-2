@@ -13,6 +13,7 @@ const Settings = lazy(() => import("@/pages/Settings"));
 const PaymentSettings = lazy(() => import("@/pages/settings/PaymentSettings"));
 const Help = lazy(() => import("@/pages/Help"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
+const HomeownerProfile = lazy(() => import("@/pages/HomeownerProfile"));
 
 export function AppRoutes() {
   return (
@@ -25,6 +26,7 @@ export function AppRoutes() {
         <Route path="/" element={<ProtectedRoute><Navigate to="/dashboard" replace /></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/profile-completion" element={<ProfileCompletion />} />
+        <Route path="/profile" element={<ProtectedRoute><HomeownerProfile /></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
         <Route path="/settings/payments" element={<ProtectedRoute><PaymentSettings /></ProtectedRoute>} />
         <Route path="/help" element={<ProtectedRoute><Help /></ProtectedRoute>} />
