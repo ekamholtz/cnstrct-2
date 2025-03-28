@@ -9,7 +9,7 @@ import { Database } from "@/integrations/supabase/database.types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
-export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+export const ProtectedRouteWithSettings = ({ children }: { children: React.ReactNode }) => {
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,9 +116,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     console.log("GC attempting to access client pages");
     return <Navigate to="/dashboard" replace />;
   }
-
-  // REMOVED THE HOMEOWNER INVOICE REDIRECTION: Allow homeowners to access invoice pages
-  // This allows the homeowner to view their invoices
 
   const Navigation = currentRole === 'admin' ? AdminNav : MainNav;
   
