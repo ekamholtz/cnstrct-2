@@ -39,6 +39,7 @@ import DebugPage from "@/pages/DebugPage";
 import ClientProjectsDebug from "@/pages/ClientProjectsDebug";
 import DirectSQLDebug from "@/pages/DirectSQLDebug";
 import RLSDebug from "@/pages/RLSDebug";
+import SubscriptionSelection from "@/pages/SubscriptionSelection";
 
 export const AppRoutes = () => {
   return (
@@ -204,6 +205,14 @@ export const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <ProfileCompletion />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/subscription-selection"
+        element={
+          <ProtectedRoute>
+            <SubscriptionSelection />
           </ProtectedRoute>
         }
       />

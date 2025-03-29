@@ -130,10 +130,18 @@ export const useAuthForm = () => {
       // If no profile is found, use the role from auth metadata or default to gc_admin
       const role = profileData?.role || authResponse.user.user_metadata?.role || 'gc_admin';
       const hasCompletedProfile = profileData?.has_completed_profile || false;
+      const hasSubscription = !!profileData?.subscription_tier_id;
+      
       console.log("Determined role:", role);
       console.log("Profile completion status:", hasCompletedProfile);
+      console.log("Has subscription:", hasSubscription);
 
-      return { role, hasCompletedProfile };
+      return { 
+        role, 
+        hasCompletedProfile, 
+        hasSubscription,
+        userId: authResponse.user.id
+      };
     },
     onSuccess: (data) => {
       setIsLoading(false);
@@ -144,13 +152,25 @@ export const useAuthForm = () => {
 
       console.log("Navigating based on role:", data.role);
       
-      // First check if profile is completed
+      // First check if user needs to select a subscription (for gc_admin users)
+      if (data.role === 'gc_admin' && !data.hasSubscription) {
+        console.log("GC admin needs to select a subscription");
+        navigate('/subscription-selection', { 
+          state: { 
+            userId: data.userId,
+            isNewUser: true
+          } 
+        });
+        return;
+      }
+      
+      // Then check if profile is completed
       if (!data.hasCompletedProfile) {
         navigate('/profile-completion');
         return;
       }
       
-      // If profile is completed, route based on user role
+      // If profile is completed and subscription is selected, route based on user role
       if (data.role === 'platform_admin') {
         navigate('/admin');
       } else if (data.role === 'homeowner') {
