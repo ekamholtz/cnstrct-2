@@ -1,98 +1,219 @@
-
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { useToast } from '@/components/ui/use-toast';
-import { Input } from '@/components/ui/input';
-import { Loader2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  Box, 
+  Button, 
+  CircularProgress, 
+  TextField, 
+  Typography, 
+  Alert,
+  Paper,
+  Grid
+} from '@mui/material';
+import { useAuth } from '../../hooks/useAuth';
+import StripePaymentLinkService, { InvoiceData, PaymentLinkResponse } from '../../integrations/stripe/services/stripePaymentLinkService';
 
 interface CreatePaymentLinkProps {
-  onLinkCreated: (link: string) => void;
-  projectId?: string;
+  invoiceId: string;
+  invoiceNumber: string;
+  customerName: string;
+  customerEmail: string;
+  amount: number;
+  description: string;
+  lineItems: Array<{
+    description: string;
+    quantity: number;
+    unitAmount: number;
+  }>;
+  dueDate?: string;
+  onLinkCreated?: (paymentLink: PaymentLinkResponse) => void;
 }
 
-export function CreatePaymentLink({ onLinkCreated, projectId }: CreatePaymentLinkProps) {
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
+const CreatePaymentLink: React.FC<CreatePaymentLinkProps> = ({
+  invoiceId,
+  invoiceNumber,
+  customerName,
+  customerEmail,
+  amount,
+  description,
+  lineItems,
+  dueDate,
+  onLinkCreated
+}) => {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-
-  const handleCreateLink = async () => {
+  const [error, setError] = useState<string | null>(null);
+  const [paymentLink, setPaymentLink] = useState<PaymentLinkResponse | null>(null);
+  
+  const paymentLinkService = new StripePaymentLinkService();
+  
+  const handleCreatePaymentLink = async () => {
+    if (!user?.id) {
+      setError('You must be logged in to create a payment link');
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    
     try {
-      setLoading(true);
+      // Format invoice data for the payment link service
+      const invoiceData: InvoiceData = {
+        id: invoiceId,
+        number: invoiceNumber,
+        customer_name: customerName,
+        customer_email: customerEmail,
+        amount,
+        description,
+        due_date: dueDate,
+        line_items: lineItems.map(item => ({
+          description: item.description,
+          quantity: item.quantity,
+          unit_amount: item.unitAmount
+        }))
+      };
       
-      // Validation
-      if (!amount || isNaN(parseFloat(amount)) || parseFloat(amount) <= 0) {
-        toast({
-          variant: 'destructive',
-          title: 'Invalid amount',
-          description: 'Please enter a valid amount greater than 0'
-        });
-        return;
+      // Create the payment link
+      const response = await paymentLinkService.createPaymentLink(user.id, invoiceData);
+      
+      setPaymentLink(response);
+      
+      // Notify parent component if callback is provided
+      if (onLinkCreated) {
+        onLinkCreated(response);
       }
-      
-      // Mock creating a payment link
-      // In a real app, this would call your server to create a Stripe payment link
-      setTimeout(() => {
-        const mockLink = `https://checkout.stripe.com/pay/cs_test_${Math.random().toString(36).substring(2, 15)}`;
-        onLinkCreated(mockLink);
-        setAmount('');
-        setDescription('');
-        toast({
-          title: 'Payment link created',
-          description: 'Your payment link has been created successfully'
-        });
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error('Error creating payment link:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: 'Failed to create payment link. Please try again.'
-      });
+    } catch (err: any) {
+      console.error('Error creating payment link:', err);
+      setError(err.message || 'Failed to create payment link');
+    } finally {
       setLoading(false);
     }
   };
-
+  
+  const copyToClipboard = () => {
+    if (paymentLink?.url) {
+      navigator.clipboard.writeText(paymentLink.url)
+        .then(() => {
+          // Show temporary success message
+          const messageCopy = document.getElementById('copy-message');
+          if (messageCopy) {
+            messageCopy.style.opacity = '1';
+            setTimeout(() => {
+              messageCopy.style.opacity = '0';
+            }, 2000);
+          }
+        })
+        .catch(err => {
+          console.error('Error copying to clipboard:', err);
+        });
+    }
+  };
+  
   return (
-    <div className="space-y-4">
-      <div>
-        <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-          Amount ($)
-        </label>
-        <Input
-          id="amount"
-          type="number"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder="Enter amount"
-          min="0"
-          step="0.01"
-          className="w-full"
-        />
-      </div>
+    <Box>
+      {error && (
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
       
-      <div>
-        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-          Description (optional)
-        </label>
-        <Input
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Enter description"
-          className="w-full"
-        />
-      </div>
-      
-      <Button 
-        onClick={handleCreateLink} 
-        disabled={loading || !amount}
-        className="w-full"
-      >
-        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-        Create Payment Link
-      </Button>
-    </div>
+      {paymentLink ? (
+        <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+          <Typography variant="h6" gutterBottom>
+            Payment Link Created
+          </Typography>
+          
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <TextField
+              fullWidth
+              value={paymentLink.url}
+              InputProps={{ readOnly: true }}
+              size="small"
+              sx={{ mr: 1 }}
+            />
+            <Button 
+              variant="outlined" 
+              onClick={copyToClipboard}
+              size="small"
+            >
+              Copy
+            </Button>
+          </Box>
+          
+          <Typography 
+            id="copy-message" 
+            variant="caption" 
+            sx={{ 
+              opacity: 0, 
+              transition: 'opacity 0.3s',
+              color: 'success.main' 
+            }}
+          >
+            Copied to clipboard!
+          </Typography>
+          
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            Send this link to your customer to collect payment for invoice #{invoiceNumber}.
+          </Typography>
+          
+          <Button 
+            variant="contained" 
+            color="primary" 
+            href={paymentLink.url} 
+            target="_blank" 
+            sx={{ mt: 2 }}
+          >
+            View Payment Page
+          </Button>
+        </Paper>
+      ) : (
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={12}>
+            <Typography variant="h6">
+              Create Payment Link for Invoice #{invoiceNumber}
+            </Typography>
+          </Grid>
+          
+          <Grid item xs={12} sm={6}>
+            <Typography variant="body2">
+              <strong>Customer:</strong> {customerName}
+            </Typography>
+            {customerEmail && (
+              <Typography variant="body2">
+                <strong>Email:</strong> {customerEmail}
+              </Typography>
+            )}
+          </Grid>
+          
+          <Grid item xs={12} sm={6} sx={{ textAlign: { sm: 'right' } }}>
+            <Typography variant="body2">
+              <strong>Amount:</strong> ${amount.toFixed(2)}
+            </Typography>
+            {dueDate && (
+              <Typography variant="body2">
+                <strong>Due Date:</strong> {new Date(dueDate).toLocaleDateString()}
+              </Typography>
+            )}
+          </Grid>
+          
+          <Grid item xs={12}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleCreatePaymentLink}
+              disabled={loading}
+              sx={{ mt: 2 }}
+            >
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                'Create Payment Link'
+              )}
+            </Button>
+          </Grid>
+        </Grid>
+      )}
+    </Box>
   );
-}
+};
+
+export default CreatePaymentLink;

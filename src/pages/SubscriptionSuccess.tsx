@@ -24,6 +24,7 @@ const SubscriptionSuccess = () => {
       if (!sessionId || !gcAccountId) {
         console.log("Missing required parameters:", { sessionId, gcAccountId });
         toast({
+          variant: 'warning',
           title: 'Warning',
           description: 'Missing subscription information. Your subscription may not be activated correctly.',
         });
@@ -89,41 +90,9 @@ const SubscriptionSuccess = () => {
         return;
       }
       
-      // Determine where to navigate based on isNewUser and potentially user role
       if (isNewUser) {
-        // Get the user's role to determine where to navigate
-        supabase.auth.getUser().then(({ data: { user } }) => {
-          if (!user) {
-            navigate('/auth');
-            return;
-          }
-          
-          // Check user role
-          supabase
-            .from("profiles")
-            .select("role")
-            .eq("id", user.id)
-            .single()
-            .then(({ data: profile, error }) => {
-              if (error || !profile) {
-                console.error("Error fetching profile:", error);
-                navigate('/dashboard'); // Default fallback
-                return;
-              }
-              
-              if (profile.role === "homeowner") {
-                navigate('/client-dashboard');
-              } else if (profile.role === "gc_admin" || profile.role === "general_contractor") {
-                navigate('/dashboard');
-              } else if (profile.role === "admin") {
-                navigate('/admin');
-              } else {
-                navigate('/dashboard');
-              }
-            });
-        });
+        navigate('/profile-completion');
       } else {
-        // For existing users updating subscription, always go to dashboard
         navigate('/dashboard');
       }
     });
@@ -180,7 +149,7 @@ const SubscriptionSuccess = () => {
                 onClick={handleContinue}
                 className="w-full bg-gradient-to-r from-cnstrct-orange to-cnstrct-orange/90 hover:from-cnstrct-orange/90 hover:to-cnstrct-orange text-white"
               >
-                Continue to Dashboard
+                Continue to {isNewUser ? 'Profile Setup' : 'Dashboard'}
               </Button>
             </>
           )}
