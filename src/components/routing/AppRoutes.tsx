@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -10,7 +11,7 @@ import GCProjects from "@/pages/GCProjects";
 import ClientDashboard from "@/pages/ClientDashboard";
 import ClientProjectsPage from "@/pages/ClientProjectsPage";
 import ClientInvoicesPage from "@/pages/ClientInvoicesPage";
-import ClientInvoiceDashboard from "@/pages/ClientInvoiceDashboard"; // Support both implementations
+import ClientInvoiceDashboard from "@/pages/ClientInvoiceDashboard";
 import ProjectDashboard from "@/pages/ProjectDashboard";
 import InvoiceDashboard from "@/pages/InvoiceDashboard";
 import InvoiceDetails from "@/pages/InvoiceDetails";
@@ -25,33 +26,22 @@ import PaymentDetails from "@/pages/PaymentDetails";
 import PaymentsDashboard from "@/pages/PaymentsDashboard";
 import Help from "@/pages/Help";
 import ReportingDashboard from "@/pages/ReportingDashboard";
-import QBOCallback from "@/pages/qbo/QBOCallbackFinal";
+import QBOCallback from "@/pages/qbo/QBOCallback";
 import Settings from "@/pages/Settings";
-import TermsOfService from "@/pages/TermsOfService";
-import PrivacyPolicy from "@/pages/PrivacyPolicy";
-// Import Stripe Connect components
-import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
-import StripeOnboardingComplete from "../../pages/stripe/StripeOnboardingComplete";
-import CreatePaymentLink from "@/pages/stripe/CreatePaymentLink";
-import PaymentHistory from "@/pages/stripe/PaymentHistory";
-import PaymentSettings from "@/pages/settings/PaymentSettings";
-import DebugPage from "@/pages/DebugPage";
-import ClientProjectsDebug from "@/pages/ClientProjectsDebug";
-import DirectSQLDebug from "@/pages/DirectSQLDebug";
-import RLSDebug from "@/pages/RLSDebug";
-import SubscriptionSelection from "@/pages/SubscriptionSelection";
+import QBOTest from "@/pages/QBOTest";
+import { CompanyDetailsPage } from "@/pages/auth/CompanyDetailsPage";
 import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
-import CompanyDetailsPage from "@/pages/auth/CompanyDetailsPage";
+import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
 
 export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/company-details" element={<CompanyDetailsPage />} />
-      <Route path="/" element={<Index />} />
       <Route path="/subscription-checkout" element={<SubscriptionCheckout />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+      <Route path="/" element={<Index />} />
       <Route
         path="/dashboard"
         element={
@@ -215,14 +205,6 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/subscription-selection"
-        element={
-          <ProtectedRoute>
-            <SubscriptionSelection />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/admin/transactions"
         element={
           <AdminRoute>
@@ -247,15 +229,7 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/terms"
-        element={<TermsOfService />}
-      />
-      <Route
-        path="/privacy"
-        element={<PrivacyPolicy />}
-      />
-      <Route
-        path="/stripe/onboarding"
+        path="/stripe-connect-onboarding"
         element={
           <ProtectedRoute>
             <StripeConnectOnboarding />
@@ -263,52 +237,12 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/stripe/onboarding-complete"
+        path="/qbo-test"
         element={
           <ProtectedRoute>
-            <StripeOnboardingComplete />
+            <QBOTest />
           </ProtectedRoute>
         }
-      />
-      <Route
-        path="/stripe/create-payment"
-        element={
-          <ProtectedRoute>
-            <CreatePaymentLink />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/stripe/payment-history"
-        element={
-          <ProtectedRoute>
-            <PaymentHistory />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/settings/payments"
-        element={
-          <ProtectedRoute>
-            <PaymentSettings />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/debug"
-        element={<DebugPage />}
-      />
-      <Route
-        path="/debug/client-projects"
-        element={<ClientProjectsDebug />}
-      />
-      <Route
-        path="/debug/sql"
-        element={<DirectSQLDebug />}
-      />
-      <Route
-        path="/debug/rls"
-        element={<RLSDebug />}
       />
       <Route path="/landing" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />

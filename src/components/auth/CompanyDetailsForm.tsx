@@ -1,7 +1,8 @@
+
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
@@ -10,16 +11,23 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { companyDetailsSchema, type CompanyDetailsFormData } from "./authSchemas";
-import { Globe, FileText, MapPin, Phone } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import {
+  companyDetailsSchema,
+  CompanyDetailsFormData,
+} from "./authSchemas";
 
 interface CompanyDetailsFormProps {
-  onSubmit: (values: CompanyDetailsFormData) => Promise<void>;
+  onSubmit: (data: CompanyDetailsFormData) => void;
   loading: boolean;
   companyName: string;
 }
 
-export const CompanyDetailsForm = ({ onSubmit, loading, companyName }: CompanyDetailsFormProps) => {
+export const CompanyDetailsForm = ({
+  onSubmit,
+  loading,
+  companyName,
+}: CompanyDetailsFormProps) => {
   const form = useForm<CompanyDetailsFormData>({
     resolver: zodResolver(companyDetailsSchema),
     defaultValues: {
@@ -28,38 +36,28 @@ export const CompanyDetailsForm = ({ onSubmit, loading, companyName }: CompanyDe
       address: "",
       phoneNumber: "",
     },
-    mode: "all"
   });
 
-  const handleSubmit = async (values: CompanyDetailsFormData) => {
-    await onSubmit(values);
+  const handleSubmit = (data: CompanyDetailsFormData) => {
+    onSubmit(data);
   };
 
   return (
     <Form {...form}>
-      <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Company Details</h2>
-        <p className="text-gray-600">Tell us more about {companyName}</p>
-      </div>
-      
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
+      <form
+        className="space-y-6"
+        onSubmit={form.handleSubmit(handleSubmit)}
+      >
         <FormField
           control={form.control}
           name="website"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-700 font-medium">Company Website (Optional)</FormLabel>
+              <FormLabel>Website (Optional)</FormLabel>
               <FormControl>
-                <div className="relative">
-                  <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <Input 
-                    placeholder="https://yourcompany.com" 
-                    {...field} 
-                    className="bg-white/70 border-gray-200 pl-10 py-6 rounded-xl focus:ring-cnstrct-orange focus:border-cnstrct-orange" 
-                  />
-                </div>
+                <Input placeholder="https://example.com" {...field} />
               </FormControl>
-              <FormMessage className="text-red-500" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -69,18 +67,11 @@ export const CompanyDetailsForm = ({ onSubmit, loading, companyName }: CompanyDe
           name="licenseNumber"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-700 font-medium">License Number (Optional)</FormLabel>
+              <FormLabel>License Number (Optional)</FormLabel>
               <FormControl>
-                <div className="relative">
-                  <FileText className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <Input 
-                    placeholder="License #" 
-                    {...field} 
-                    className="bg-white/70 border-gray-200 pl-10 py-6 rounded-xl focus:ring-cnstrct-orange focus:border-cnstrct-orange" 
-                  />
-                </div>
+                <Input placeholder="License Number" {...field} />
               </FormControl>
-              <FormMessage className="text-red-500" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -90,18 +81,11 @@ export const CompanyDetailsForm = ({ onSubmit, loading, companyName }: CompanyDe
           name="address"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-700 font-medium">Office Address</FormLabel>
+              <FormLabel>Office Address</FormLabel>
               <FormControl>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <Input 
-                    placeholder="123 Main St, City, State Zip" 
-                    {...field} 
-                    className="bg-white/70 border-gray-200 pl-10 py-6 rounded-xl focus:ring-cnstrct-orange focus:border-cnstrct-orange" 
-                  />
-                </div>
+                <Input placeholder="123 Main St, City, State, Zip" {...field} />
               </FormControl>
-              <FormMessage className="text-red-500" />
+              <FormMessage />
             </FormItem>
           )}
         />
@@ -111,28 +95,16 @@ export const CompanyDetailsForm = ({ onSubmit, loading, companyName }: CompanyDe
           name="phoneNumber"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-700 font-medium">Office Phone Number</FormLabel>
+              <FormLabel>Phone Number</FormLabel>
               <FormControl>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
-                  <Input
-                    type="tel"
-                    placeholder="(555) 123-4567"
-                    {...field}
-                    className="bg-white/70 border-gray-200 pl-10 py-6 rounded-xl focus:ring-cnstrct-orange focus:border-cnstrct-orange"
-                  />
-                </div>
+                <Input placeholder="(555) 123-4567" {...field} />
               </FormControl>
-              <FormMessage className="text-red-500" />
+              <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button
-          type="submit"
-          className="w-full bg-gradient-to-r from-cnstrct-orange to-cnstrct-orange/90 hover:from-cnstrct-orange/90 hover:to-cnstrct-orange text-white py-6 rounded-xl mt-6 font-medium text-base shadow-lg hover:shadow-xl transition-all"
-          disabled={loading}
-        >
+        <Button type="submit" className="w-full" disabled={loading}>
           {loading ? "Saving..." : "Continue to Subscription"}
         </Button>
       </form>

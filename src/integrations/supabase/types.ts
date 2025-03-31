@@ -255,27 +255,50 @@ export type Database = {
       }
       gc_accounts: {
         Row: {
+          address: string | null
           company_name: string
           created_at: string | null
           id: string
+          license_number: string | null
           owner_id: string | null
+          phone_number: string | null
+          subscription_tier_id: string | null
           updated_at: string | null
+          website: string | null
         }
         Insert: {
+          address?: string | null
           company_name: string
           created_at?: string | null
           id?: string
+          license_number?: string | null
           owner_id?: string | null
+          phone_number?: string | null
+          subscription_tier_id?: string | null
           updated_at?: string | null
+          website?: string | null
         }
         Update: {
+          address?: string | null
           company_name?: string
           created_at?: string | null
           id?: string
+          license_number?: string | null
           owner_id?: string | null
+          phone_number?: string | null
+          subscription_tier_id?: string | null
           updated_at?: string | null
+          website?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "gc_accounts_subscription_tier_id_fkey"
+            columns: ["subscription_tier_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       homeowner_expenses: {
         Row: {
@@ -722,7 +745,7 @@ export type Database = {
           license_number: string | null
           phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
-          subscription_tier_id: string
+          subscription_tier_id: string | null
           updated_at: string | null
           website: string | null
         }
@@ -739,7 +762,7 @@ export type Database = {
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
-          subscription_tier_id: string
+          subscription_tier_id?: string | null
           updated_at?: string | null
           website?: string | null
         }
@@ -756,7 +779,7 @@ export type Database = {
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
-          subscription_tier_id?: string
+          subscription_tier_id?: string | null
           updated_at?: string | null
           website?: string | null
         }
@@ -1398,6 +1421,7 @@ export type Database = {
       project_status: "draft" | "active" | "completed" | "cancelled"
       subscription_status: "active" | "cancelled" | "past_due" | "trialing"
       user_role: "platform_admin" | "gc_admin" | "project_manager" | "homeowner"
+      userrole: "gc_admin" | "subcontractor" | "client"
     }
     CompositeTypes: {
       [_ in never]: never

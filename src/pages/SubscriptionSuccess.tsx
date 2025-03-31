@@ -1,133 +1,70 @@
-import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+
+import { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Check, Loader2 } from 'lucide-react';
-import axios from 'axios';
+import { CheckCircle } from 'lucide-react';
 import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
 
-// Edge function URL for Stripe operations
-const EDGE_FUNCTION_URL = import.meta.env.VITE_SUPABASE_URL 
-  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscriptions`
-  : 'http://localhost:54321/functions/v1/stripe-subscriptions';
-
 const SubscriptionSuccess = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
-
+  
+  // Get query parameters
+  const searchParams = new URLSearchParams(location.search);
   const sessionId = searchParams.get('session_id');
   const gcAccountId = searchParams.get('gc_account_id');
   const isNewUser = searchParams.get('is_new_user') === 'true';
 
   useEffect(() => {
-    const processSubscription = async () => {
+    const updateSubscriptionStatus = async () => {
       if (!sessionId || !gcAccountId) {
-        setError('Missing session information. Please try again.');
-        setLoading(false);
         return;
       }
 
       try {
-        console.log("Processing subscription for session:", sessionId, "and GC account:", gcAccountId);
-        
-        // Get the current user session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          throw new Error('No active session found');
-        }
-
-        // Call the Supabase Edge Function to verify and process the subscription
-        const requestData = {
-          type: 'verify_checkout',
-          session_id: sessionId,
-          metadata: {
-            gc_account_id: gcAccountId
-          }
-        };
-
-        console.log("Sending verification request to Stripe Subscriptions Edge Function:", requestData);
-        
-        const response = await axios.post(EDGE_FUNCTION_URL, requestData, {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`
-          }
-        });
-
-        console.log("Verification response:", response.data);
-
-        if (!response.data?.success) {
-          throw new Error(response.data?.message || 'Failed to verify subscription');
-        }
-
-        const subscriptionTierId = response.data.subscription_tier_id || response.data.subscriptionTierId;
-        console.log("Subscription tier ID:", subscriptionTierId);
-
-        // Update the GC account with the subscription tier ID
-        const { error: updateError } = await supabase
+        // Update the subscription status in the database
+        const { error } = await supabase
           .from('gc_accounts')
           .update({ 
-            subscription_tier_id: subscriptionTierId,
-            updated_at: new Date()
+            subscription_status: 'active',
+            has_subscription: true,
+            updated_at: new Date().toISOString()
           })
           .eq('id', gcAccountId);
 
-        if (updateError) {
-          console.error("GC account update error:", updateError);
-          throw new Error('Failed to update subscription information');
+        if (error) {
+          console.error('Error updating subscription status:', error);
+          toast({
+            variant: 'destructive',
+            title: 'Error',
+            description: 'Failed to update subscription status.',
+          });
         }
-
-        // If this is a new user, we need to get their user ID to update profile completion status
-        if (isNewUser) {
-          // Get the current user
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            // Update the user's profile to mark it as completed
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .update({ 
-                has_completed_profile: true,
-                updated_at: new Date()
-              })
-              .eq('id', user.id);
-
-            if (profileError) {
-              console.error("Profile update error:", profileError);
-              // Non-fatal error, can continue
-            }
-          }
-        }
-
-        // Show success message
-        toast({
-          title: 'Success',
-          description: 'Your subscription has been activated successfully!'
-        });
-
-        // Wait a moment before redirecting
-        setTimeout(() => {
-          navigate('/dashboard');
-        }, 2000);
-      } catch (error: any) {
-        console.error('Error processing subscription:', error);
-        setError(error.message || 'Failed to process subscription. Please contact support.');
-      } finally {
-        setLoading(false);
+      } catch (error) {
+        console.error('Error in subscription success:', error);
       }
     };
 
-    processSubscription();
-  }, [sessionId, gcAccountId, isNewUser, navigate, toast]);
+    updateSubscriptionStatus();
+  }, [sessionId, gcAccountId, toast]);
+
+  const handleContinue = () => {
+    if (isNewUser) {
+      navigate('/profile-completion');
+    } else {
+      navigate('/dashboard');
+    }
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden">
       {/* Animated background */}
+      <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-cnstrct-navy/5 to-cnstrct-navy/10 z-0"></div>
       <AnimatedGridPattern 
-        className="absolute inset-0 z-0" 
+        className="z-0" 
         lineColor="rgba(16, 24, 64, 0.07)" 
         dotColor="rgba(16, 24, 64, 0.15)"
         lineOpacity={0.3}
@@ -135,59 +72,50 @@ const SubscriptionSuccess = () => {
         speed={0.2}
         size={35}
       />
-      
+
       {/* Header */}
       <header className="p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm z-10 relative">
         <div className="container mx-auto">
           <img
             src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
             alt="CNSTRCT Logo"
-            className="h-10 cursor-pointer"
-            onClick={() => navigate("/")}
+            className="h-10"
           />
         </div>
       </header>
-      
+
       {/* Main Content */}
-      <main className="flex-grow flex items-center justify-center p-6 z-10 relative">
-        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-gray-100">
-          {loading ? (
-            <div className="text-center">
-              <Loader2 className="h-16 w-16 animate-spin text-cnstrct-orange mx-auto mb-6" />
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Activating Your Subscription</h2>
-              <p className="text-gray-600">
-                We're finalizing your subscription details. This will only take a moment...
-              </p>
+      <main className="flex-grow container mx-auto px-4 py-12 z-10 relative flex items-center justify-center">
+        <div className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-8 text-center">
+          <div className="flex justify-center mb-6">
+            <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center">
+              <CheckCircle className="h-12 w-12 text-green-600" />
             </div>
-          ) : error ? (
-            <div className="text-center">
-              <div className="h-16 w-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Something Went Wrong</h2>
-              <p className="text-gray-600 mb-6">{error}</p>
-              <Button onClick={() => navigate("/auth")} className="w-full bg-cnstrct-orange text-white">
-                Return to Login
-              </Button>
-            </div>
-          ) : (
-            <div className="text-center">
-              <div className="h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Check className="h-8 w-8 text-green-500" />
-              </div>
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Subscription Activated!</h2>
-              <p className="text-gray-600 mb-8">
-                Your subscription has been successfully activated. You now have full access to all platform features.
-              </p>
-              <Button onClick={() => navigate("/dashboard")} className="w-full bg-gradient-to-r from-cnstrct-orange to-cnstrct-orange/90 text-white">
-                Go to Dashboard
-              </Button>
-            </div>
-          )}
+          </div>
+          
+          <h1 className="text-2xl font-bold text-cnstrct-navy mb-3">Subscription Activated!</h1>
+          
+          <p className="text-gray-600 mb-6">
+            Thank you for subscribing to CNSTRCT. Your account has been successfully activated and you now have access to all features.
+          </p>
+          
+          <Button 
+            onClick={handleContinue}
+            className="w-full bg-gradient-to-r from-cnstrct-orange to-cnstrct-orange/90 hover:from-cnstrct-orange/90 hover:to-cnstrct-orange text-white"
+          >
+            Continue to {isNewUser ? 'Profile Setup' : 'Dashboard'}
+          </Button>
         </div>
       </main>
+      
+      {/* Footer */}
+      <footer className="py-6 border-t border-gray-200 bg-white/80 backdrop-blur-sm z-10 relative">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm text-gray-500">
+            © {new Date().getFullYear()} CNSTRCT. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };

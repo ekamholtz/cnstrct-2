@@ -1,173 +1,148 @@
-import { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/components/ui/use-toast';
-import { Loader2 } from 'lucide-react';
-import axios from 'axios';
 
-// Edge function URL for Stripe operations
-const EDGE_FUNCTION_URL = import.meta.env.VITE_SUPABASE_URL 
-  ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-subscriptions`
-  : 'http://localhost:54321/functions/v1/stripe-subscriptions';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast';
+import { Button } from '@/components/ui/button';
+import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
+import { Loader2 } from 'lucide-react';
 
 interface LocationState {
-  gcAccountId?: string;
   userId?: string;
+  gcAccountId?: string;
   isNewUser?: boolean;
 }
 
 const SubscriptionCheckout = () => {
   const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
   const state = location.state as LocationState;
 
   useEffect(() => {
-    const createCheckoutSession = async () => {
+    // Load the Stripe Pricing Table script
+    const script = document.createElement('script');
+    script.src = 'https://js.stripe.com/v3/pricing-table.js';
+    script.async = true;
+    document.body.appendChild(script);
+    
+    const checkUser = async () => {
       try {
-        setLoading(true);
-        
-        // Get the current user session
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          throw new Error('No active session found');
+        // If we have no user and no state, redirect to login
+        if (!user && (!state || !state.userId)) {
+          navigate("/auth");
+          return;
         }
         
-        // Get current user information
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          throw new Error('User not authenticated');
-        }
-        
-        const userId = state?.userId || user.id;
-        const userEmail = user.email || '';
-        
-        console.log("Creating checkout session for user:", userId);
-
-        // Get the user's profile to find their GC account
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('gc_account_id, full_name')
-          .eq('id', userId)
-          .single();
-
-        if (profileError) {
-          console.error("Profile fetch error:", profileError);
-          throw new Error('Failed to load user profile');
-        }
-
-        // Make sure we have a GC account ID (either from state or profile)
-        const gcAccountId = state?.gcAccountId || profileData.gc_account_id;
-        if (!gcAccountId) {
-          throw new Error('GC account not found');
-        }
-        
-        // Get GC account details to obtain company name
-        const { data: gcAccountData, error: gcAccountError } = await supabase
-          .from('gc_accounts')
-          .select('company_name')
-          .eq('id', gcAccountId)
-          .single();
-          
-        if (gcAccountError) {
-          console.error("GC Account fetch error:", gcAccountError);
-          throw new Error('Failed to load company information');
-        }
-        
-        const userName = profileData.full_name || 'Customer';
-        const companyName = gcAccountData.company_name || 'Company';
-
-        // Call the Supabase Edge Function to create a Stripe Checkout session
-        try {
-          const successUrl = `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}&gc_account_id=${gcAccountId}&is_new_user=${state?.isNewUser ? 'true' : 'false'}`;
-          const cancelUrl = `${window.location.origin}/auth`;
-          
-          // This is for direct platform subscription, not Stripe Connect
-          const requestData = {
-            type: 'create_checkout',
-            customer: {
-              id: userId,
-              email: userEmail,
-              name: userName,
-              metadata: {
-                gc_account_id: gcAccountId,
-                company_name: companyName
-              }
-            },
-            success_url: successUrl,
-            cancel_url: cancelUrl
-          };
-          
-          console.log("Sending request to Stripe Subscriptions Edge Function with params:", requestData);
-          
-          const response = await axios.post(
-            EDGE_FUNCTION_URL, 
-            requestData,
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session.access_token}`
-              }
-            }
-          );
-          
-          console.log("Edge Function response:", response.data);
-          
-          // Redirect to the Stripe Checkout page
-          if (response.data?.url) {
-            window.location.href = response.data.url;
-          } else {
-            throw new Error('No checkout URL returned from Edge Function');
-          }
-        } catch (error: any) {
-          console.error('Error from Edge Function:', error);
-          if (error.response) {
-            console.error('Response data:', error.response.data);
-            console.error('Response status:', error.response.status);
-            console.error('Response headers:', error.response.headers);
-            throw new Error(`API Error (${error.response.status}): ${JSON.stringify(error.response.data)}`);
-          } else if (error.request) {
-            console.error('No response received:', error.request);
-            throw new Error('No response received from server');
-          } else {
-            throw error;
-          }
-        }
-      } catch (error: any) {
-        console.error('Error creating checkout session:', error);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error in subscription checkout:', error);
         toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: error.message || 'Failed to create checkout session. Please try again.'
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load subscription options.",
         });
-        navigate('/auth');
-      } finally {
         setLoading(false);
       }
     };
+    
+    checkUser();
+    
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, [user, navigate, toast, state]);
+  
+  const handleGoBack = () => {
+    navigate(-1);
+  };
 
-    createCheckoutSession();
-  }, [navigate, state, toast]);
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-cnstrct-orange mx-auto mb-4" />
+          <p className="text-gray-600">Loading subscription options...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100">
-      <div className="text-center p-8 max-w-md w-full">
-        <img 
-          src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png" 
-          alt="CNSTRCT" 
-          className="h-12 mx-auto mb-8"
-        />
-        {loading ? (
-          <div className="bg-white p-8 rounded-xl shadow-lg">
-            <Loader2 className="h-12 w-12 animate-spin text-cnstrct-orange mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-800 mb-2">Preparing Your Subscription</h2>
-            <p className="text-gray-600">
-              We're setting up your subscription options. Please wait a moment.
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-cnstrct-navy/5 to-cnstrct-navy/10 z-0"></div>
+      <AnimatedGridPattern 
+        className="z-0" 
+        lineColor="rgba(16, 24, 64, 0.07)" 
+        dotColor="rgba(16, 24, 64, 0.15)"
+        lineOpacity={0.3}
+        dotOpacity={0.5}
+        speed={0.2}
+        size={35}
+      />
+
+      {/* Header */}
+      <header className="p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm z-10 relative">
+        <div className="container mx-auto">
+          <img
+            src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
+            alt="CNSTRCT Logo"
+            className="h-10 cursor-pointer"
+            onClick={() => navigate("/")}
+          />
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-grow container mx-auto px-4 py-12 z-10 relative">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-3xl font-bold text-cnstrct-navy mb-3">Select Your Subscription Plan</h1>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Choose the subscription tier that best fits your business needs. You can upgrade or downgrade your plan at any time.
             </p>
           </div>
-        ) : null}
-      </div>
+
+          {/* Stripe Pricing Table */}
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-4 mb-8">
+            <stripe-pricing-table 
+              pricing-table-id="prctbl_1R2HRTApu80f9E3HqCXBahYx"
+              publishable-key="pk_live_51QzjhnApu80f9E3HQcOCt84dyoMh2k9e4QlmNR7a11j9ddZcjrPOqIfi1S1J47tgRTKFaDD3cL3odKRaNya6PIny00BA5N7LnX">
+            </stripe-pricing-table>
+          </div>
+
+          <div className="text-center">
+            <Button
+              variant="outline"
+              onClick={handleGoBack}
+              className="mt-4"
+            >
+              Go Back
+            </Button>
+          </div>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="py-6 border-t border-gray-200 bg-white/80 backdrop-blur-sm z-10 relative">
+        <div className="container mx-auto px-4 text-center">
+          <p className="text-sm text-gray-500">
+            By continuing, you agree to CNSTRCT's{" "}
+            <a href="#" className="text-cnstrct-orange hover:underline font-medium">
+              Terms of Service
+            </a>{" "}
+            and{" "}
+            <a href="#" className="text-cnstrct-orange hover:underline font-medium">
+              Privacy Policy
+            </a>
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
