@@ -11,6 +11,7 @@ type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [hasCompletedProfile, setHasCompletedProfile] = useState<boolean | null>(null);
+  const [hasSubscription, setHasSubscription] = useState<boolean | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const { user, loading: authLoading } = useAuth();
@@ -28,7 +29,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
         const { data, error } = await supabase
           .from("profiles")
-          .select("has_completed_profile, role")
+          .select("has_completed_profile, role, gc_account_id")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -56,9 +57,29 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           }
           setHasCompletedProfile(true);
           setUserRole(user.user_metadata.role || 'contractor');
+          setHasSubscription(false); // New profile doesn't have subscription
         } else {
           setHasCompletedProfile(data.has_completed_profile);
           setUserRole(data.role);
+          
+          // Check for subscription in gc_accounts if this is a gc_admin with a gc_account_id
+          if (data.role === 'gc_admin' && data.gc_account_id) {
+            const { data: gcAccount, error: gcError } = await supabase
+              .from("gc_accounts")
+              .select("subscription_tier_id")
+              .eq("id", data.gc_account_id)
+              .maybeSingle();
+              
+            if (gcError) {
+              console.error("Error fetching GC account:", gcError);
+              setHasSubscription(false);
+            } else {
+              setHasSubscription(!!gcAccount?.subscription_tier_id);
+            }
+          } else {
+            // For non-gc_admin users or gc_admin without account, no subscription required
+            setHasSubscription(true);
+          }
         }
         
         setLoading(false);
@@ -80,10 +101,11 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       loading,
       authLoading,
       hasCompletedProfile,
+      hasSubscription,
       userRole,
       path: location.pathname
     });
-  }, [user, loading, authLoading, hasCompletedProfile, userRole, location.pathname]);
+  }, [user, loading, authLoading, hasCompletedProfile, hasSubscription, userRole, location.pathname]);
 
   if (authLoading || loading) {
     console.log("Loading authentication and profile state...");
@@ -99,49 +121,44 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   const currentRole = user?.user_metadata?.role || userRole;
   
-  console.log("Navigation check:", {
-    path: location.pathname,
-    role: currentRole,
-    hasCompletedProfile,
-    isInvoicePath: ['/invoice', '/invoices'].includes(location.pathname)
-  });
-
-  // Handle profile completion check
-  if (hasCompletedProfile === false && location.pathname !== '/profile-completion') {
-    console.log("Redirecting to profile completion");
+  // Check if user needs to complete profile
+  if (hasCompletedProfile === false && location.pathname !== "/profile-completion") {
+    console.log("Profile not completed, redirecting to profile completion");
     return <Navigate to="/profile-completion" replace />;
   }
 
-  // Root path handling
-  if (location.pathname === '/') {
-    console.log("Handling root path navigation");
-    if (currentRole === 'admin') {
-      return <Navigate to="/admin" replace />;
-    } else if (currentRole === 'homeowner') {
-      return <Navigate to="/client-dashboard" replace />;
-    } else if (currentRole === 'general_contractor' || currentRole === 'gc_admin') {
-      return <Navigate to="/dashboard" replace />;
-    }
+  // Check if user needs to select a subscription (for gc_admin users)
+  if (currentRole === 'gc_admin' && hasSubscription === false && 
+      location.pathname !== "/subscription-checkout" && 
+      location.pathname !== "/subscription-success" && 
+      location.pathname !== "/subscription-selection") {
+    console.log("GC admin without subscription, redirecting to subscription checkout");
+    return <Navigate 
+      to="/subscription-checkout" 
+      state={{ userId: user.id, isNewUser: false }} 
+      replace 
+    />;
   }
 
-  // Handle client route access
-  if ((currentRole === 'general_contractor' || currentRole === 'gc_admin') && 
-      location.pathname.startsWith('/client-')) {
-    console.log("GC attempting to access client pages");
-    return <Navigate to="/dashboard" replace />;
+  // For admin users, use AdminNav
+  if (isRoleAdmin(currentRole)) {
+    return (
+      <div className="flex h-screen">
+        <AdminNav />
+        <div className="flex-1 overflow-auto">
+          {children}
+        </div>
+      </div>
+    );
   }
 
-  // Use MainNav for gc_admin users on the reporting page, otherwise use AdminNav for admin roles
-  const Navigation = currentRole === 'gc_admin' && location.pathname === '/reporting' 
-    ? MainNav 
-    : isRoleAdmin(currentRole) 
-      ? AdminNav 
-      : MainNav;
-  
+  // For regular users, use MainNav
   return (
-    <>
-      <Navigation />
-      {children}
-    </>
+    <div className="flex flex-col h-screen">
+      <MainNav />
+      <div className="flex-1 overflow-auto">
+        {children}
+      </div>
+    </div>
   );
 };

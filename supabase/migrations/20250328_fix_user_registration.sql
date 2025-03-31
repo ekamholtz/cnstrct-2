@@ -14,10 +14,35 @@ CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 DECLARE
   gc_account_id uuid;
+  default_subscription_id uuid;
 BEGIN
+  -- Get a default subscription tier ID to use temporarily
+  -- This will be updated later when the user selects their subscription
+  SELECT id INTO default_subscription_id FROM subscription_tiers LIMIT 1;
+  
+  -- If no subscription tier exists, we need to create one
+  IF default_subscription_id IS NULL THEN
+    -- Create a default subscription tier if none exists
+    INSERT INTO subscription_tiers (
+      name, 
+      description, 
+      price, 
+      features, 
+      created_at, 
+      updated_at
+    ) VALUES (
+      'Professional', 
+      'Default subscription tier', 
+      79.99, 
+      ARRAY['Unlimited projects', 'Advanced reporting', 'Priority support'], 
+      NOW(), 
+      NOW()
+    ) RETURNING id INTO default_subscription_id;
+  END IF;
+
   -- Create a new GC account if the user is a gc_admin
   IF NEW.raw_user_meta_data->>'role' = 'gc_admin' THEN
-    INSERT INTO public.gc_accounts (name, owner_id, created_at, updated_at)
+    INSERT INTO public.gc_accounts (company_name, owner_id, created_at, updated_at)
     VALUES (
       (NEW.raw_user_meta_data->>'full_name') || '''s Company',
       NEW.id,
@@ -31,23 +56,28 @@ BEGIN
   INSERT INTO public.profiles (
     id,
     full_name,
-    email,
     role,
     gc_account_id,
     account_status,
     has_completed_profile,
     created_at,
-    updated_at
+    updated_at,
+    subscription_tier_id  -- Add subscription_tier_id to the insert
   ) VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', 'New User'),
-    NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'role', 'gc_admin')::public.UserRole,
+    COALESCE(NEW.raw_user_meta_data->>'role', 'gc_admin'),
     gc_account_id,
     'active',
     false,
     NOW(),
-    NOW()
+    NOW(),
+    CASE
+      -- For non-gc_admin users, we can set the subscription tier directly
+      WHEN NEW.raw_user_meta_data->>'role' != 'gc_admin' THEN default_subscription_id
+      -- For gc_admin users, we'll set it to NULL initially and let them choose later
+      ELSE NULL
+    END
   );
 
   RETURN NEW;
@@ -91,6 +121,16 @@ BEGIN
                 WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'account_status') THEN
     ALTER TABLE public.profiles ADD COLUMN account_status TEXT DEFAULT 'active';
   END IF;
+  
+  -- Temporarily make subscription_tier_id nullable to allow profile creation
+  -- This will be set during the subscription selection process
+  ALTER TABLE public.profiles ALTER COLUMN subscription_tier_id DROP NOT NULL;
+  
+  -- Drop email column from profiles table
+  IF EXISTS (SELECT 1 FROM information_schema.columns 
+            WHERE table_schema = 'public' AND table_name = 'profiles' AND column_name = 'email') THEN
+    ALTER TABLE public.profiles DROP COLUMN email;
+  END IF;
 END
 $$;
 
@@ -99,15 +139,25 @@ DO $$
 BEGIN
   -- Check if the UserRole type exists
   IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'userrole') THEN
-    -- Add any missing roles to the UserRole enum
-    -- Note: This is a safe operation as it will only add values that don't already exist
-    ALTER TYPE public.UserRole ADD VALUE IF NOT EXISTS 'gc_admin';
-    ALTER TYPE public.UserRole ADD VALUE IF NOT EXISTS 'homeowner';
-    ALTER TYPE public.UserRole ADD VALUE IF NOT EXISTS 'platform_admin';
-    ALTER TYPE public.UserRole ADD VALUE IF NOT EXISTS 'project_manager';
-    ALTER TYPE public.UserRole ADD VALUE IF NOT EXISTS 'client';
-    ALTER TYPE public.UserRole ADD VALUE IF NOT EXISTS 'contractor';
-    ALTER TYPE public.UserRole ADD VALUE IF NOT EXISTS 'employee';
+    -- Add values to the enum if they don't exist
+    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = 'userrole'::regtype AND enumlabel = 'gc_admin') THEN
+      ALTER TYPE public.UserRole ADD VALUE 'gc_admin';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = 'userrole'::regtype AND enumlabel = 'general_contractor') THEN
+      ALTER TYPE public.UserRole ADD VALUE 'general_contractor';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = 'userrole'::regtype AND enumlabel = 'homeowner') THEN
+      ALTER TYPE public.UserRole ADD VALUE 'homeowner';
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumtypid = 'userrole'::regtype AND enumlabel = 'platform_admin') THEN
+      ALTER TYPE public.UserRole ADD VALUE 'platform_admin';
+    END IF;
+  ELSE
+    -- Create the UserRole type if it doesn't exist
+    CREATE TYPE public.UserRole AS ENUM ('gc_admin', 'general_contractor', 'homeowner', 'platform_admin');
   END IF;
 END
 $$;

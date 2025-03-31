@@ -40,12 +40,18 @@ import ClientProjectsDebug from "@/pages/ClientProjectsDebug";
 import DirectSQLDebug from "@/pages/DirectSQLDebug";
 import RLSDebug from "@/pages/RLSDebug";
 import SubscriptionSelection from "@/pages/SubscriptionSelection";
+import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
+import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
+import CompanyDetailsPage from "@/pages/auth/CompanyDetailsPage";
 
 export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/auth/company-details" element={<CompanyDetailsPage />} />
       <Route path="/" element={<Index />} />
+      <Route path="/subscription-checkout" element={<SubscriptionCheckout />} />
+      <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route
         path="/dashboard"
         element={

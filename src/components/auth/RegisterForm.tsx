@@ -11,7 +11,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { registerSchema, type RegisterFormData } from "./authSchemas";
-import { User, Mail, Lock, ShieldCheck } from "lucide-react";
+import { User, Mail, Lock, ShieldCheck, Building } from "lucide-react";
 
 interface RegisterFormProps {
   onSubmit: (values: RegisterFormData) => Promise<void>;
@@ -23,7 +23,9 @@ export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormPr
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
-      fullName: "",
+      firstName: "",
+      lastName: "",
+      companyName: "",
       email: "",
       password: "",
       confirmPassword: "",
@@ -43,17 +45,61 @@ export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormPr
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-700 font-medium">First Name</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Input 
+                      placeholder="John" 
+                      {...field} 
+                      className="bg-white/70 border-gray-200 pl-10 py-6 rounded-xl focus:ring-cnstrct-orange focus:border-cnstrct-orange" 
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage className="text-red-500" />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-700 font-medium">Last Name</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                    <Input 
+                      placeholder="Doe" 
+                      {...field} 
+                      className="bg-white/70 border-gray-200 pl-10 py-6 rounded-xl focus:ring-cnstrct-orange focus:border-cnstrct-orange" 
+                    />
+                  </div>
+                </FormControl>
+                <FormMessage className="text-red-500" />
+              </FormItem>
+            )}
+          />
+        </div>
+
         <FormField
           control={form.control}
-          name="fullName"
+          name="companyName"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-gray-700 font-medium">Full Name</FormLabel>
+              <FormLabel className="text-gray-700 font-medium">Company Name</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
+                  <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
                   <Input 
-                    placeholder="John Doe" 
+                    placeholder="Your Construction Company" 
                     {...field} 
                     className="bg-white/70 border-gray-200 pl-10 py-6 rounded-xl focus:ring-cnstrct-orange focus:border-cnstrct-orange" 
                   />

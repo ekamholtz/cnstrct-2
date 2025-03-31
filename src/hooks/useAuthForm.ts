@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { RegisterFormData, LoginFormData } from "@/components/auth/authSchemas";
+import { RegisterFormData, LoginFormData, CompanyDetailsFormData } from "@/components/auth/authSchemas";
 
 export const useAuthForm = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -16,72 +16,119 @@ export const useAuthForm = () => {
       console.log("Handle register called with:", data);
       console.log("Registering with role:", data.role); // Debug log
       
-      // First create the user in Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: data.email,
-        password: data.password,
-        options: {
-          data: {
-            full_name: data.fullName,
-            role: data.role, // Explicitly pass the role from the form
+      try {
+        // First create the user in Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+          email: data.email,
+          password: data.password,
+          options: {
+            data: {
+              first_name: data.firstName,
+              last_name: data.lastName,
+              full_name: `${data.firstName} ${data.lastName}`,
+              company_name: data.companyName,
+              role: data.role, // Explicitly pass the role from the form
+            },
           },
-        },
-      });
-      
-      if (authError) {
-        console.error("Registration error:", authError);
-        throw authError;
-      }
+        });
+        
+        if (authError) {
+          console.error("Registration error:", authError);
+          throw authError;
+        }
 
-      if (!authData.user) {
-        throw new Error("No user data returned from signup");
-      }
+        if (!authData.user) {
+          throw new Error("No user data returned from signup");
+        }
 
-      // If this is a gc_admin, create a GC account first
-      if (data.role === 'gc_admin') {
-        try {
-          // Create a GC account
-          const { data: gcAccount, error: gcError } = await supabase
-            .from('gc_accounts')
-            .insert([
-              { 
-                name: data.fullName + "'s Company", 
-                owner_id: authData.user.id 
-              }
-            ])
-            .select('id')
-            .single();
-          
-          if (gcError) {
-            console.error("Error creating GC account:", gcError);
-            // Continue anyway, as the user is created
-          } else if (gcAccount) {
-            // Update the user's profile with the GC account ID
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .update({ gc_account_id: gcAccount.id })
-              .eq('id', authData.user.id);
+        // Create GC account for gc_admin users
+        let gcAccount = null;
+        
+        if (data.role === 'gc_admin') {
+          try {
+            // Create a GC account
+            const { data: gcAccountData, error: gcError } = await supabase
+              .from('gc_accounts')
+              .insert([
+                { 
+                  company_name: data.companyName, 
+                  owner_id: authData.user.id,
+                  created_at: new Date(),
+                  updated_at: new Date()
+                }
+              ])
+              .select('id, company_name')
+              .single();
             
-            if (profileError) {
-              console.error("Error updating profile with GC account:", profileError);
-            }
+            if (gcError) {
+              console.error("Error creating GC account:", gcError);
+              throw gcError;
+            } 
+            
+            gcAccount = gcAccountData;
+          } catch (error) {
+            console.error("Error in GC account creation process:", error);
+            throw error;
+          }
+        }
+        
+        // Create the profile record
+        try {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([
+              {
+                id: authData.user.id,
+                full_name: `${data.firstName} ${data.lastName}`,
+                role: data.role,
+                gc_account_id: gcAccount?.id || null,
+                account_status: 'active',
+                has_completed_profile: false,
+                created_at: new Date(),
+                updated_at: new Date()
+              }
+            ]);
+          
+          if (profileError) {
+            console.error("Error creating profile:", profileError);
+            throw profileError;
           }
         } catch (error) {
-          console.error("Error in GC account creation process:", error);
-          // Continue anyway, as the user is created
+          console.error("Error in profile creation:", error);
+          throw error;
         }
+        
+        return { 
+          user: authData.user,
+          role: data.role,
+          gcAccount
+        };
+      } catch (error) {
+        // Handle any overall errors
+        console.error("Registration error:", error);
+        throw error;
       }
-      
-      return authData;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       setIsLoading(false);
       toast({
         title: "Success",
-        description:
-          "Registration successful! Check your email to verify your account.",
+        description: "Account created successfully!",
       });
-      navigate("/auth");
+      
+      // For gc_admin, redirect to company details page
+      if (data.role === 'gc_admin' && data.gcAccount) {
+        navigate("/auth/company-details", { 
+          state: { 
+            gcAccountId: data.gcAccount.id,
+            companyName: data.gcAccount.company_name,
+            isNewUser: true
+          } 
+        });
+      } else {
+        // For other user types, redirect to login
+        navigate("/auth");
+      }
     },
     onError: (error: any) => {
       setIsLoading(false);
@@ -90,6 +137,56 @@ export const useAuthForm = () => {
         variant: "destructive",
         title: "Error",
         description: error.message || "Failed to register. Please try again.",
+      });
+    },
+  });
+
+  // New mutation for updating company details
+  const updateCompanyDetailsMutation = useMutation({
+    mutationFn: async ({ gcAccountId, data }: { gcAccountId: string, data: CompanyDetailsFormData }) => {
+      setIsLoading(true);
+      
+      try {
+        // Update the GC account with company details
+        const { error } = await supabase
+          .from('gc_accounts')
+          .update({
+            website: data.website,
+            license_number: data.licenseNumber,
+            address: data.address,
+            phone_number: data.phoneNumber,
+            updated_at: new Date()
+          })
+          .eq('id', gcAccountId);
+        
+        if (error) {
+          console.error("Error updating company details:", error);
+          throw error;
+        }
+        
+        return { gcAccountId };
+      } catch (error) {
+        console.error("Error in company details update:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      setIsLoading(false);
+      toast({
+        title: "Success",
+        description: "Company details saved successfully!",
+      });
+      
+      // Redirect to subscription checkout
+      navigate("/subscription-checkout");
+    },
+    onError: (error: any) => {
+      setIsLoading(false);
+      console.error("Company details update error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to update company details. Please try again.",
       });
     },
   });
@@ -115,10 +212,10 @@ export const useAuthForm = () => {
 
       console.log("Auth response:", authResponse);
 
-      // Query the profiles table to get the user's role and subscription tier
+      // Query the profiles table to get the user's role
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('role, subscription_tier_id, has_completed_profile')
+        .select('role, has_completed_profile, gc_account_id')
         .eq('id', authResponse.user.id)
         .maybeSingle();
 
@@ -130,7 +227,21 @@ export const useAuthForm = () => {
       // If no profile is found, use the role from auth metadata or default to gc_admin
       const role = profileData?.role || authResponse.user.user_metadata?.role || 'gc_admin';
       const hasCompletedProfile = profileData?.has_completed_profile || false;
-      const hasSubscription = !!profileData?.subscription_tier_id;
+      const gcAccountId = profileData?.gc_account_id;
+      
+      // Query the gc_accounts table to check for subscription
+      let hasSubscription = false;
+      if (gcAccountId) {
+        const { data: gcAccountData, error: gcAccountError } = await supabase
+          .from('gc_accounts')
+          .select('subscription_tier_id')
+          .eq('id', gcAccountId)
+          .maybeSingle();
+          
+        if (!gcAccountError && gcAccountData) {
+          hasSubscription = !!gcAccountData.subscription_tier_id;
+        }
+      }
       
       console.log("Determined role:", role);
       console.log("Profile completion status:", hasCompletedProfile);
@@ -140,47 +251,22 @@ export const useAuthForm = () => {
         role, 
         hasCompletedProfile, 
         hasSubscription,
-        userId: authResponse.user.id
+        userId: authResponse.user.id,
+        gcAccountId
       };
     },
     onSuccess: (data) => {
       setIsLoading(false);
-      toast({
-        title: "Success",
-        description: "Login successful!",
-      });
-
-      console.log("Navigating based on role:", data.role);
       
-      // First check if user needs to select a subscription (for gc_admin users)
-      if (data.role === 'gc_admin' && !data.hasSubscription) {
-        console.log("GC admin needs to select a subscription");
-        navigate('/subscription-selection', { 
-          state: { 
-            userId: data.userId,
-            isNewUser: true
-          } 
-        });
-        return;
-      }
-      
-      // Then check if profile is completed
-      if (!data.hasCompletedProfile) {
-        navigate('/profile-completion');
-        return;
-      }
-      
-      // If profile is completed and subscription is selected, route based on user role
-      if (data.role === 'platform_admin') {
-        navigate('/admin');
-      } else if (data.role === 'homeowner') {
-        navigate('/client-dashboard');
-      } else if (data.role === 'gc_admin' || data.role === 'general_contractor') {
-        navigate('/dashboard');
+      // Redirect based on user state
+      if (data.role === 'gc_admin') {
+        if (!data.hasSubscription) {
+          navigate("/subscription-checkout");
+        } else {
+          navigate("/dashboard");
+        }
       } else {
-        // Default fallback
-        console.log("No specific role match, defaulting to dashboard");
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     },
     onError: (error: any) => {
@@ -188,25 +274,26 @@ export const useAuthForm = () => {
       console.error("Login error details:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to login. Please try again.",
+        title: "Error", 
+        description: error.message || "Failed to sign in. Please check your credentials and try again.",
       });
     },
   });
 
-  const handleLogin = async (values: LoginFormData) => {
-    console.log("Handle login called with:", values);
-    await loginMutation.mutateAsync(values);
+  const handleRegister = async (data: RegisterFormData) => {
+    return registerMutation.mutateAsync(data);
   };
 
-  const handleRegister = async (values: RegisterFormData) => {
-    console.log("Handle register called with:", values);
-    await registerMutation.mutateAsync(values);
+  const handleLogin = async (data: LoginFormData) => {
+    return loginMutation.mutateAsync(data);
   };
 
   return {
     isLoading,
-    handleLogin,
     handleRegister,
+    handleLogin,
+    registerMutation,
+    loginMutation,
+    updateCompanyDetailsMutation
   };
 };
