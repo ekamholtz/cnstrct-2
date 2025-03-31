@@ -1,3 +1,4 @@
+
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -35,6 +36,16 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
     await handleRegister(values);
   };
 
+  const onLoginSubmit = async (values: LoginFormData) => {
+    try {
+      await handleLogin(values);
+      // The navigation will be handled in the useAuthForm hook
+    } catch (error) {
+      // Error will be handled in the useAuthForm hook
+      console.error("Login error in AuthForm:", error);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center">
@@ -69,7 +80,7 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
         
         {isLogin ? (
           <LoginForm
-            onSubmit={handleLogin}
+            onSubmit={onLoginSubmit}
             loading={isLoading}
             onForgotPassword={handleForgotPassword}
           />

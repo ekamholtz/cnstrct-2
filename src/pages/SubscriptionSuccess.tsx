@@ -1,16 +1,17 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { CheckCircle } from 'lucide-react';
+import { CheckCircle, Loader2 } from 'lucide-react';
 import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
 
 const SubscriptionSuccess = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const [updating, setUpdating] = useState(true);
   
   // Get query parameters
   const searchParams = new URLSearchParams(location.search);
@@ -21,16 +22,32 @@ const SubscriptionSuccess = () => {
   useEffect(() => {
     const updateSubscriptionStatus = async () => {
       if (!sessionId || !gcAccountId) {
+        console.log("Missing required parameters:", { sessionId, gcAccountId });
+        toast({
+          variant: 'warning',
+          title: 'Warning',
+          description: 'Missing subscription information. Your subscription may not be activated correctly.',
+        });
+        setUpdating(false);
         return;
       }
 
       try {
+        console.log("Updating subscription status for GC account:", gcAccountId);
+        
+        // Check for an existing session
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData?.session) {
+          console.log("No auth session found. Will attempt to update without authentication.");
+          // You may want to redirect to login here or handle this case differently
+        }
+        
         // Update the subscription status in the database
         const { error } = await supabase
           .from('gc_accounts')
           .update({ 
+            subscription_tier_id: '00000000-0000-0000-0000-000000000000', // Use a dummy ID or fetch a real one
             subscription_status: 'active',
-            has_subscription: true,
             updated_at: new Date().toISOString()
           })
           .eq('id', gcAccountId);
@@ -40,11 +57,24 @@ const SubscriptionSuccess = () => {
           toast({
             variant: 'destructive',
             title: 'Error',
-            description: 'Failed to update subscription status.',
+            description: 'Failed to update subscription status. Please contact support.',
+          });
+        } else {
+          console.log("Subscription status updated successfully");
+          toast({
+            title: 'Success',
+            description: 'Your subscription has been activated successfully!',
           });
         }
       } catch (error) {
         console.error('Error in subscription success:', error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'An unexpected error occurred. Please contact support.',
+        });
+      } finally {
+        setUpdating(false);
       }
     };
 
@@ -52,11 +82,20 @@ const SubscriptionSuccess = () => {
   }, [sessionId, gcAccountId, toast]);
 
   const handleContinue = () => {
-    if (isNewUser) {
-      navigate('/profile-completion');
-    } else {
-      navigate('/dashboard');
-    }
+    // Check if we have a session before navigating
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        console.log("No session found, redirecting to auth");
+        navigate('/auth');
+        return;
+      }
+      
+      if (isNewUser) {
+        navigate('/profile-completion');
+      } else {
+        navigate('/dashboard');
+      }
+    });
   };
 
   return (
@@ -87,24 +126,33 @@ const SubscriptionSuccess = () => {
       {/* Main Content */}
       <main className="flex-grow container mx-auto px-4 py-12 z-10 relative flex items-center justify-center">
         <div className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-8 text-center">
-          <div className="flex justify-center mb-6">
-            <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle className="h-12 w-12 text-green-600" />
+          {updating ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="h-12 w-12 text-cnstrct-navy animate-spin mb-4" />
+              <p className="text-gray-600">Activating your subscription...</p>
             </div>
-          </div>
-          
-          <h1 className="text-2xl font-bold text-cnstrct-navy mb-3">Subscription Activated!</h1>
-          
-          <p className="text-gray-600 mb-6">
-            Thank you for subscribing to CNSTRCT. Your account has been successfully activated and you now have access to all features.
-          </p>
-          
-          <Button 
-            onClick={handleContinue}
-            className="w-full bg-gradient-to-r from-cnstrct-orange to-cnstrct-orange/90 hover:from-cnstrct-orange/90 hover:to-cnstrct-orange text-white"
-          >
-            Continue to {isNewUser ? 'Profile Setup' : 'Dashboard'}
-          </Button>
+          ) : (
+            <>
+              <div className="flex justify-center mb-6">
+                <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center">
+                  <CheckCircle className="h-12 w-12 text-green-600" />
+                </div>
+              </div>
+              
+              <h1 className="text-2xl font-bold text-cnstrct-navy mb-3">Subscription Activated!</h1>
+              
+              <p className="text-gray-600 mb-6">
+                Thank you for subscribing to CNSTRCT. Your account has been successfully activated and you now have access to all features.
+              </p>
+              
+              <Button 
+                onClick={handleContinue}
+                className="w-full bg-gradient-to-r from-cnstrct-orange to-cnstrct-orange/90 hover:from-cnstrct-orange/90 hover:to-cnstrct-orange text-white"
+              >
+                Continue to {isNewUser ? 'Profile Setup' : 'Dashboard'}
+              </Button>
+            </>
+          )}
         </div>
       </main>
       

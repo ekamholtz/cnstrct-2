@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,7 @@ import { MainNav } from "@/components/navigation/MainNav";
 import { useAuth } from "@/hooks/useAuth";
 import { Database } from "@/integrations/supabase/database.types";
 import { isRoleAdmin } from "@/utils/role-utils";
+import { Loader2 } from "lucide-react";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -21,6 +23,49 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     const checkProfile = async () => {
       try {
         if (!user) {
+          console.log("No authenticated user in ProtectedRoute");
+          
+          // Check if we have an auth session that hasn't been loaded into context yet
+          const { data: sessionData } = await supabase.auth.getSession();
+          
+          if (!sessionData?.session?.user) {
+            console.log("No session found in ProtectedRoute");
+            setLoading(false);
+            return;
+          }
+          
+          console.log("Session found in ProtectedRoute but no user context:", 
+            sessionData.session.user.email);
+            
+          // Continue with the session user
+          const sessionUser = sessionData.session.user;
+          
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("has_completed_profile, role, gc_account_id")
+            .eq("id", sessionUser.id)
+            .maybeSingle();
+            
+          if (error) {
+            console.error("Error fetching profile:", error);
+          } else if (data) {
+            setHasCompletedProfile(data.has_completed_profile);
+            setUserRole(data.role);
+            
+            // Check for subscription if this is a gc_admin
+            if (data.role === 'gc_admin' && data.gc_account_id) {
+              const { data: gcAccount } = await supabase
+                .from("gc_accounts")
+                .select("subscription_tier_id")
+                .eq("id", data.gc_account_id)
+                .maybeSingle();
+                
+              setHasSubscription(!!gcAccount?.subscription_tier_id);
+            } else {
+              setHasSubscription(true); // Non-gc_admin users don't need a subscription
+            }
+          }
+          
           setLoading(false);
           return;
         }
@@ -97,7 +142,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Add debug logging
   useEffect(() => {
     console.log("ProtectedRoute state:", {
-      user,
+      user: user?.email,
       loading,
       authLoading,
       hasCompletedProfile,
@@ -112,6 +157,19 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     return <div className="w-full h-screen flex items-center justify-center">
       <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cnstrct-navy"></div>
     </div>;
+  }
+
+  // Special handling for subscription pages which should be accessible even when not fully authenticated
+  const isSubscriptionPage = [
+    '/subscription-checkout',
+    '/subscription-success',
+    '/subscription-selection',
+    '/auth/company-details'
+  ].includes(location.pathname);
+  
+  if (isSubscriptionPage && location.state) {
+    console.log("Allowing access to subscription page with state:", location.state);
+    return <>{children}</>;
   }
 
   if (!user) {
@@ -129,9 +187,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   // Check if user needs to select a subscription (for gc_admin users)
   if (currentRole === 'gc_admin' && hasSubscription === false && 
-      location.pathname !== "/subscription-checkout" && 
-      location.pathname !== "/subscription-success" && 
-      location.pathname !== "/subscription-selection") {
+      !isSubscriptionPage) {
     console.log("GC admin without subscription, redirecting to subscription checkout");
     return <Navigate 
       to="/subscription-checkout" 

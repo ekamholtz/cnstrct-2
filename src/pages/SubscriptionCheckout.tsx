@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LocationState {
   userId?: string;
@@ -30,10 +31,20 @@ const SubscriptionCheckout = () => {
     
     const checkUser = async () => {
       try {
-        // If we have no user and no state, redirect to login
-        if (!user && (!state || !state.userId)) {
-          navigate("/auth");
-          return;
+        // If no user is authenticated, attempt to get one from the supabase session
+        if (!user) {
+          console.log("No user in context, checking for session...");
+          const { data: sessionData } = await supabase.auth.getSession();
+          
+          if (!sessionData?.session?.user && (!state || !state.userId)) {
+            console.log("No session found and no state provided, redirecting to login");
+            navigate("/auth");
+            return;
+          } else if (sessionData?.session?.user) {
+            console.log("Session found:", sessionData.session.user.email);
+          }
+        } else {
+          console.log("User authenticated:", user.email);
         }
         
         setLoading(false);
@@ -60,6 +71,47 @@ const SubscriptionCheckout = () => {
   const handleGoBack = () => {
     navigate(-1);
   };
+
+  const handleSuccess = async (event: any) => {
+    // This handles the message from the Stripe pricing table when a subscription is created
+    if (event?.data?.type === 'checkout.success') {
+      const { sessionId } = event.data;
+      console.log("Subscription successful with session ID:", sessionId);
+      
+      // Get the current user and gc_account_id
+      let userId = user?.id || state?.userId;
+      let gcAccountId = state?.gcAccountId;
+      
+      if (!userId || !gcAccountId) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        userId = sessionData?.session?.user?.id;
+        
+        if (userId) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('gc_account_id')
+            .eq('id', userId)
+            .single();
+            
+          gcAccountId = profileData?.gc_account_id;
+        }
+      }
+      
+      if (userId && gcAccountId) {
+        navigate(`/subscription-success?session_id=${sessionId}&gc_account_id=${gcAccountId}&is_new_user=${state?.isNewUser ? 'true' : 'false'}`);
+      } else {
+        navigate('/dashboard');
+      }
+    }
+  };
+  
+  // Add event listener for Stripe checkout messages
+  useEffect(() => {
+    window.addEventListener('message', handleSuccess);
+    return () => {
+      window.removeEventListener('message', handleSuccess);
+    };
+  }, [user, state]);
 
   if (loading) {
     return (

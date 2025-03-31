@@ -18,7 +18,7 @@ import {
 } from "./authSchemas";
 
 interface CompanyDetailsFormProps {
-  onSubmit: (data: CompanyDetailsFormData) => void;
+  onSubmit: (data: CompanyDetailsFormData) => Promise<void>;
   loading: boolean;
   companyName: string;
 }
@@ -38,8 +38,13 @@ export const CompanyDetailsForm = ({
     },
   });
 
-  const handleSubmit = (data: CompanyDetailsFormData) => {
-    onSubmit(data);
+  const handleSubmit = async (data: CompanyDetailsFormData) => {
+    try {
+      await onSubmit(data);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      // The error handling is done in the parent component
+    }
   };
 
   return (

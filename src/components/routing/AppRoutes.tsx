@@ -33,6 +33,7 @@ import { CompanyDetailsPage } from "@/pages/auth/CompanyDetailsPage";
 import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
+import SubscriptionSelection from "@/pages/SubscriptionSelection";
 
 export const AppRoutes = () => {
   return (
@@ -41,6 +42,7 @@ export const AppRoutes = () => {
       <Route path="/auth/company-details" element={<CompanyDetailsPage />} />
       <Route path="/subscription-checkout" element={<SubscriptionCheckout />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+      <Route path="/subscription-selection" element={<SubscriptionSelection />} />
       <Route path="/" element={<Index />} />
       <Route
         path="/dashboard"

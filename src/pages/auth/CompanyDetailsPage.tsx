@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -5,8 +6,10 @@ import { CompanyDetailsForm } from "@/components/auth/CompanyDetailsForm";
 import { CompanyDetailsFormData } from "@/components/auth/authSchemas";
 import { useAuthForm } from "@/hooks/useAuthForm";
 import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
+import { useAuth } from "@/hooks/useAuth";
 
 export const CompanyDetailsPage = () => {
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -15,10 +18,15 @@ export const CompanyDetailsPage = () => {
   // Get state passed from register page
   const [companyName, setCompanyName] = useState<string>("");
   const [gcAccountId, setGcAccountId] = useState<string>("");
+  const [isNewUser, setIsNewUser] = useState<boolean>(false);
 
   useEffect(() => {
     // Check if we have the required state
-    const state = location.state as { gcAccountId: string; companyName: string } | undefined;
+    const state = location.state as { 
+      gcAccountId: string; 
+      companyName: string; 
+      isNewUser: boolean 
+    } | undefined;
     
     if (!state?.gcAccountId) {
       toast({
@@ -32,7 +40,13 @@ export const CompanyDetailsPage = () => {
 
     setGcAccountId(state.gcAccountId);
     setCompanyName(state.companyName || "Your Company");
-  }, [location, navigate, toast]);
+    setIsNewUser(!!state.isNewUser);
+    
+    // Double check we have a user
+    if (!user) {
+      console.log("No authenticated user found in CompanyDetailsPage");
+    }
+  }, [location, navigate, toast, user]);
 
   const handleSubmit = async (data: CompanyDetailsFormData) => {
     try {
@@ -40,6 +54,8 @@ export const CompanyDetailsPage = () => {
         gcAccountId,
         data
       });
+      
+      // Navigation happens in the mutation's onSuccess callback
     } catch (error) {
       console.error("Error updating company details:", error);
       toast({

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -170,15 +171,24 @@ export const useAuthForm = () => {
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       setIsLoading(false);
       toast({
         title: "Success",
         description: "Company details saved successfully!",
       });
       
-      // Redirect to subscription checkout
-      navigate("/subscription-checkout");
+      // Get the current authentication session before redirecting
+      const currentSession = supabase.auth.session;
+      console.log("Current session before subscription redirect:", currentSession ? "Valid" : "None");
+      
+      // Redirect to subscription checkout with state preserved
+      navigate("/subscription-checkout", { 
+        state: { 
+          gcAccountId: variables.gcAccountId,
+          isNewUser: true 
+        }
+      });
     },
     onError: (error: any) => {
       setIsLoading(false);
@@ -261,7 +271,13 @@ export const useAuthForm = () => {
       // Redirect based on user state
       if (data.role === 'gc_admin') {
         if (!data.hasSubscription) {
-          navigate("/subscription-checkout");
+          navigate("/subscription-checkout", { 
+            state: { 
+              userId: data.userId, 
+              gcAccountId: data.gcAccountId,
+              isNewUser: false 
+            } 
+          });
         } else {
           navigate("/dashboard");
         }
