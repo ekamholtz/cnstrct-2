@@ -40,20 +40,15 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Received webhook request')
-    
     // Get the signature from the headers
     const signature = req.headers.get('stripe-signature')
     
     if (!signature || !webhookSecret) {
-      console.error('Missing Stripe signature or webhook secret')
       throw new Error('Missing Stripe signature or webhook secret')
     }
     
     // Get the raw body
     const body = await req.text()
-    
-    console.log('Verifying webhook signature')
     
     // Verify the webhook
     let event
@@ -66,8 +61,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
-    
-    console.log(`Processing webhook event: ${event.type}`)
     
     // Process the event based on the type
     switch (event.type) {
@@ -82,13 +75,20 @@ serve(async (req) => {
       case 'payment_intent.payment_failed':
         await handlePaymentIntentFailed(event.data.object)
         break
-
+        
       case 'checkout.session.completed':
         await handleCheckoutSessionCompleted(event.data.object)
         break
         
-      default:
-        console.log(`Unhandled event type: ${event.type}`)
+      case 'customer.subscription.deleted':
+        await handleSubscriptionDeleted(event.data.object)
+        break
+        
+      case 'customer.subscription.updated':
+        await handleSubscriptionUpdated(event.data.object)
+        break
+        
+      // Add more event types as needed
     }
 
     return new Response(JSON.stringify({ received: true }), {
@@ -111,27 +111,40 @@ serve(async (req) => {
  * Handle account.updated webhook event
  */
 async function handleAccountUpdated(account) {
-  console.log('Processing account.updated event:', account.id)
-  
   try {
-    // Update the connected account details in the database
-    const { error } = await supabase
+    const accountId = account.id
+    console.log('Processing account.updated event for account:', accountId)
+    
+    // Find the account in our database
+    const { data, error } = await supabase
+      .from('stripe_connect_accounts')
+      .select('*')
+      .eq('account_id', accountId)
+      .maybeSingle()
+    
+    if (error) {
+      console.error('Error fetching account:', error)
+      return
+    }
+    
+    if (!data) {
+      console.log('No connected account found with ID:', accountId)
+      return
+    }
+    
+    // Update the account status
+    await supabase
       .from('stripe_connect_accounts')
       .update({
         charges_enabled: account.charges_enabled,
         payouts_enabled: account.payouts_enabled,
         details_submitted: account.details_submitted,
-        updated_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       })
-      .eq('stripe_account_id', account.id)
+      .eq('account_id', accountId)
       
-    if (error) {
-      console.error('Error updating account in database:', error)
-    } else {
-      console.log('Successfully updated account:', account.id)
-    }
-  } catch (err) {
-    console.error('Error handling account.updated webhook:', err)
+  } catch (error) {
+    console.error('Error handling account.updated:', error)
   }
 }
 
@@ -139,71 +152,32 @@ async function handleAccountUpdated(account) {
  * Handle payment_intent.succeeded webhook event
  */
 async function handlePaymentIntentSucceeded(paymentIntent) {
-  console.log('Processing payment_intent.succeeded event:', paymentIntent.id)
-  
   try {
-    // Extract invoice ID from metadata
-    const invoiceId = paymentIntent.metadata?.invoice_id
+    console.log('Processing payment_intent.succeeded event:', paymentIntent.id)
     
-    if (invoiceId) {
-      console.log(`Updating payment status for invoice: ${invoiceId}`)
-      
-      // Update payment link status in database if there's a matching record
-      const { error: linkError } = await supabase
-        .from('payment_links')
-        .update({ 
-          status: 'paid', 
-          payment_intent_id: paymentIntent.id,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('invoice_id', invoiceId)
-        
-      if (linkError) {
-        console.error('Error updating payment link status:', linkError)
-      } else {
-        console.log('Successfully updated payment link status')
-      }
-      
-      // Update invoice status in database
-      const { error: invoiceError } = await supabase
-        .from('invoices')
-        .update({ 
-          status: 'paid',
-          payment_method: 'card',
-          payment_date: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', invoiceId)
-        
-      if (invoiceError) {
-        console.error('Error updating invoice status:', invoiceError)
-      } else {
-        console.log('Successfully updated invoice status')
-      }
-    } else {
-      console.log('No invoice_id found in payment intent metadata')
+    // Check if we have metadata with a gcAccountId
+    const gcAccountId = paymentIntent.metadata?.gc_account_id
+    
+    if (!gcAccountId) {
+      console.log('No gc_account_id found in metadata, skipping')
+      return
     }
     
-    // Record the successful payment in the database
-    const { error } = await supabase
+    // Record the payment in your database
+    await supabase
       .from('payment_records')
       .insert({
+        gc_account_id: gcAccountId,
         payment_intent_id: paymentIntent.id,
-        amount: paymentIntent.amount / 100, // Convert from cents to dollars
+        amount: paymentIntent.amount,
         currency: paymentIntent.currency,
-        status: 'succeeded',
-        metadata: paymentIntent.metadata || {},
-        payment_method: paymentIntent.payment_method_types?.[0] || 'card',
-        created_at: new Date(paymentIntent.created * 1000).toISOString(),
+        status: paymentIntent.status,
+        customer_email: paymentIntent.receipt_email,
+        created_at: new Date().toISOString()
       })
       
-    if (error) {
-      console.error('Error recording payment in database:', error)
-    } else {
-      console.log('Successfully recorded payment')
-    }
-  } catch (err) {
-    console.error('Error handling payment_intent.succeeded webhook:', err)
+  } catch (error) {
+    console.error('Error recording payment in database:', error)
   }
 }
 
@@ -211,193 +185,340 @@ async function handlePaymentIntentSucceeded(paymentIntent) {
  * Handle payment_intent.payment_failed webhook event
  */
 async function handlePaymentIntentFailed(paymentIntent) {
-  console.log('Processing payment_intent.payment_failed event:', paymentIntent.id)
-  
   try {
-    // Extract invoice ID from metadata
-    const invoiceId = paymentIntent.metadata?.invoice_id
+    console.log('Processing payment_intent.payment_failed event:', paymentIntent.id)
     
-    if (invoiceId) {
-      // Update payment link status in database
-      const { error: linkError } = await supabase
-        .from('payment_links')
-        .update({ 
-          status: 'failed', 
-          payment_intent_id: paymentIntent.id,
-          updated_at: new Date().toISOString() 
-        })
-        .eq('invoice_id', invoiceId)
-        
-      if (linkError) {
-        console.error('Error updating payment link status:', linkError)
-      }
+    // Check if we have metadata with a gcAccountId
+    const gcAccountId = paymentIntent.metadata?.gc_account_id
+    
+    if (!gcAccountId) {
+      console.log('No gc_account_id found in metadata, skipping')
+      return
     }
     
-    // Record the failed payment in the database
-    const { error } = await supabase
+    // Record the failed payment in your database
+    await supabase
       .from('payment_records')
       .insert({
+        gc_account_id: gcAccountId,
         payment_intent_id: paymentIntent.id,
-        amount: paymentIntent.amount / 100, // Convert from cents to dollars
+        amount: paymentIntent.amount,
         currency: paymentIntent.currency,
         status: 'failed',
-        metadata: paymentIntent.metadata || {},
+        customer_email: paymentIntent.receipt_email,
         error_message: paymentIntent.last_payment_error?.message || 'Payment failed',
-        payment_method: paymentIntent.payment_method_types?.[0] || 'card',
-        created_at: new Date(paymentIntent.created * 1000).toISOString(),
+        created_at: new Date().toISOString()
       })
       
-    if (error) {
-      console.error('Error recording payment in database:', error)
-    }
-  } catch (err) {
-    console.error('Error handling payment_intent.payment_failed webhook:', err)
+  } catch (error) {
+    console.error('Error recording payment in database:', error)
   }
 }
 
 /**
- * Handle checkout.session.completed event
+ * Handle checkout.session.completed webhook event
  */
 async function handleCheckoutSessionCompleted(session) {
-  console.log('Processing checkout.session.completed event:', session.id)
+  console.log('Processing checkout.session.completed event:', session.id);
   
   try {
-    // Get the Stripe customer from the session
-    const customerId = session.customer
-    const customerEmail = session.customer_details?.email
-    
-    if (!customerId && !customerEmail) {
-      console.log('No customer information found in session')
-      return
+    // Check if we have a client_reference_id (should be the gc_account_id)
+    const gcAccountId = session.client_reference_id;
+    if (!gcAccountId) {
+      console.log('No gc_account_id found in client_reference_id, processing as generic checkout');
+      // For test events or generic checkouts without client_reference_id, we still log the event
+      // but don't try to update any specific records
+      return;
     }
     
-    // Find the user associated with this customer
-    let userId = null
-    
-    if (customerEmail) {
-      // Try to find user by email
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', customerEmail.toLowerCase())
-        .maybeSingle()
-        
-      if (userError) {
-        console.error('Error finding user by email:', userError)
-      } else if (userData) {
-        userId = userData.id
-      }
+    // Handle based on session mode
+    if (session.mode === 'subscription') {
+      await handleSubscriptionCheckout(session, gcAccountId);
+    } else if (session.mode === 'payment') {
+      await handlePaymentCheckout(session, gcAccountId);
+    } else {
+      console.log(`Unsupported checkout session mode: ${session.mode}`);
     }
     
-    if (!userId && session.metadata?.user_id) {
-      // Use user ID from metadata if available
-      userId = session.metadata.user_id
-    }
-    
-    if (!userId && session.client_reference_id) {
-      // Use client_reference_id as fallback
-      userId = session.client_reference_id
-    }
-    
-    if (!userId) {
-      console.log('Could not determine user ID from session')
-      return
-    }
-    
-    // Get the subscription info
-    let subscriptionId = null
-    if (session.subscription) {
-      subscriptionId = session.subscription
-      console.log(`Found subscription: ${subscriptionId}`)
-    }
-    
-    // Get the user's profile to determine their GC account
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('gc_account_id, role')
-      .eq('id', userId)
-      .maybeSingle()
+    console.log('Successfully processed checkout session for GC account:', gcAccountId);
+  } catch (error) {
+    console.error('Error handling checkout.session.completed:', error);
+  }
+}
+
+/**
+ * Handle subscription mode checkout
+ */
+async function handleSubscriptionCheckout(session, gcAccountId) {
+  console.log('Processing subscription checkout:', session.id);
+  
+  // Get the subscription ID from the session
+  const subscriptionId = session.subscription;
+  if (!subscriptionId) {
+    console.log('No subscription ID found in the session');
+    return;
+  }
+  
+  // Retrieve the subscription details from Stripe
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  
+  // Get customer ID
+  const customerId = session.customer;
+  
+  // Get subscription price info
+  let subscriptionTierId = '1'; // Default tier ID
+  
+  // Here you could map the price ID to your subscription tier IDs if needed
+  
+  await saveSubscriptionData(
+    gcAccountId,
+    customerId,
+    subscriptionId,
+    subscription,
+    subscriptionTierId
+  );
+}
+
+/**
+ * Handle payment mode checkout
+ */
+async function handlePaymentCheckout(session, gcAccountId) {
+  console.log('Processing payment checkout:', session.id);
+  
+  // Get payment intent ID
+  const paymentIntentId = session.payment_intent;
+  if (!paymentIntentId) {
+    console.log('No payment intent ID found in the session');
+    return;
+  }
+  
+  // Get customer details
+  const customerEmail = session.customer_details?.email || 'unknown@example.com';
+  const customerName = session.customer_details?.name || 'Unknown Customer';
+  
+  // Record the payment in your database
+  try {
+    // First check if there's an existing payment record
+    const { data: existingPayment, error: fetchError } = await supabase
+      .from('payment_records')
+      .select('*')
+      .eq('payment_intent_id', paymentIntentId)
+      .maybeSingle();
       
-    if (profileError) {
-      console.error('Error fetching user profile:', profileError)
-      return
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('Error fetching payment record:', fetchError);
+      return;
     }
     
-    if (!profile || !profile.gc_account_id) {
-      console.log('User has no GC account ID')
-      return
+    // If payment record already exists, we don't need to create it again
+    if (existingPayment) {
+      console.log('Payment record already exists:', existingPayment.id);
+      return;
     }
     
-    // Only process for gc_admin users
-    if (profile.role !== 'gc_admin') {
-      console.log(`User role is ${profile.role}, not gc_admin, skipping subscription update`)
-      return
+    // Create a new payment record
+    const { error: insertError } = await supabase
+      .from('payment_records')
+      .insert({
+        gc_account_id: gcAccountId,
+        payment_intent_id: paymentIntentId,
+        amount: session.amount_total,
+        currency: session.currency,
+        status: session.payment_status,
+        customer_email: customerEmail,
+        customer_name: customerName,
+        created_at: new Date().toISOString()
+      });
+      
+    if (insertError) {
+      console.error('Error recording payment:', insertError);
+      return;
     }
     
-    // Get the first price from line items
-    let priceId = null
-    if (session.line_items) {
-      const lineItems = await stripe.checkout.sessions.listLineItems(session.id)
-      if (lineItems.data.length > 0) {
-        const priceDetails = await stripe.prices.retrieve(lineItems.data[0].price.id)
-        priceId = priceDetails.id
-        console.log(`Found price ID: ${priceId}`)
-      }
+    console.log('Successfully recorded payment for GC account:', gcAccountId);
+  } catch (error) {
+    console.error('Error handling payment checkout:', error);
+  }
+}
+
+/**
+ * Save subscription data to the database
+ */
+async function saveSubscriptionData(gcAccountId, customerId, subscriptionId, subscription, subscriptionTierId) {
+  // Save the subscription data to your database
+  const { data: existingSubscription, error: fetchError } = await supabase
+    .from('account_subscriptions')
+    .select('*')
+    .eq('gc_account_id', gcAccountId)
+    .maybeSingle();
+    
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    console.error('Error fetching existing subscription:', fetchError);
+    return;
+  }
+  
+  // Create or update the subscription record
+  const { error: upsertError } = await supabase
+    .from('account_subscriptions')
+    .upsert({
+      id: existingSubscription?.id,
+      gc_account_id: gcAccountId,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: subscriptionId,
+      status: subscription.status,
+      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+      cancel_at_period_end: subscription.cancel_at_period_end,
+      created_at: existingSubscription?.created_at || new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+  
+  if (upsertError) {
+    console.error('Error upserting subscription record:', upsertError);
+    return;
+  }
+  
+  // Update the gc_account with the subscription tier ID
+  const { error: gcUpdateError } = await supabase
+    .from('gc_accounts')
+    .update({
+      subscription_tier_id: subscriptionTierId,
+      subscription_status: 'active',
+      updated_at: new Date().toISOString()
+    })
+    .eq('id', gcAccountId);
+  
+  if (gcUpdateError) {
+    console.error('Error updating GC account:', gcUpdateError);
+    return;
+  }
+}
+
+/**
+ * Handle customer.subscription.updated webhook event
+ */
+async function handleSubscriptionUpdated(subscription) {
+  console.log('Processing customer.subscription.updated event:', subscription.id);
+  
+  try {
+    // Find the subscription in our database
+    const { data: subscriptionData, error: fetchError } = await supabase
+      .from('account_subscriptions')
+      .select('*')
+      .eq('stripe_subscription_id', subscription.id)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.error('Error fetching subscription:', fetchError);
+      return;
     }
     
-    // Update the GC account with subscription info
+    if (!subscriptionData) {
+      console.log('No subscription found with ID:', subscription.id);
+      return;
+    }
+    
+    // Update the subscription record
     const { error: updateError } = await supabase
-      .from('gc_accounts')
+      .from('account_subscriptions')
       .update({
-        stripe_customer_id: customerId,
-        subscription_id: subscriptionId,
-        subscription_price_id: priceId,
-        subscription_status: 'active',
-        subscription_updated_at: new Date().toISOString(),
+        status: subscription.status,
+        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        cancel_at_period_end: subscription.cancel_at_period_end,
         updated_at: new Date().toISOString()
       })
-      .eq('id', profile.gc_account_id)
-      
+      .eq('stripe_subscription_id', subscription.id);
+    
     if (updateError) {
-      console.error('Error updating GC account:', updateError)
-    } else {
-      console.log(`Successfully updated subscription for GC account: ${profile.gc_account_id}`)
+      console.error('Error updating subscription:', updateError);
+      return;
     }
     
-    // Set a subscription tier ID based on the price ID
-    // This is a simplified example - you would map price IDs to tier IDs in a real app
-    let tierIdToSet = null
-    
-    // If free tier
-    if (priceId === 'price_free') {
-      tierIdToSet = '00000000-0000-0000-0000-000000000001' // Free tier ID
-    } 
-    // If standard tier
-    else if (priceId === 'price_standard') {
-      tierIdToSet = '00000000-0000-0000-0000-000000000002' // Standard tier ID
-    } 
-    // If premium tier
-    else if (priceId === 'price_premium') {
-      tierIdToSet = '00000000-0000-0000-0000-000000000003' // Premium tier ID
-    }
-    
-    if (tierIdToSet) {
-      const { error: tierError } = await supabase
+    // Update gc_account status based on subscription status
+    const gcAccountId = subscriptionData.gc_account_id;
+    if (gcAccountId) {
+      const subscriptionStatus = subscription.status === 'active' ? 'active' : 
+                               subscription.status === 'trialing' ? 'active' : 
+                               subscription.status === 'past_due' ? 'past_due' : 
+                               subscription.status === 'canceled' ? 'canceled' : 
+                               subscription.status === 'unpaid' ? 'unpaid' : 'inactive';
+      
+      const { error: gcUpdateError } = await supabase
         .from('gc_accounts')
         .update({
-          subscription_tier_id: tierIdToSet
+          subscription_status: subscriptionStatus,
+          updated_at: new Date().toISOString()
         })
-        .eq('id', profile.gc_account_id)
-        
-      if (tierError) {
-        console.error('Error updating subscription tier:', tierError)
-      } else {
-        console.log(`Successfully set subscription tier: ${tierIdToSet}`)
+        .eq('id', gcAccountId);
+      
+      if (gcUpdateError) {
+        console.error('Error updating GC account status:', gcUpdateError);
+        return;
       }
     }
     
-    console.log('Successfully processed checkout.session.completed')
-  } catch (err) {
-    console.error('Error handling checkout.session.completed webhook:', err)
+    console.log('Successfully updated subscription for GC account:', gcAccountId);
+  } catch (error) {
+    console.error('Error handling customer.subscription.updated:', error);
+  }
+}
+
+/**
+ * Handle customer.subscription.deleted webhook event
+ */
+async function handleSubscriptionDeleted(subscription) {
+  console.log('Processing customer.subscription.deleted event:', subscription.id);
+  
+  try {
+    // Find the subscription in our database
+    const { data: subscriptionData, error: fetchError } = await supabase
+      .from('account_subscriptions')
+      .select('*')
+      .eq('stripe_subscription_id', subscription.id)
+      .maybeSingle();
+    
+    if (fetchError) {
+      console.error('Error fetching subscription:', fetchError);
+      return;
+    }
+    
+    if (!subscriptionData) {
+      console.log('No subscription found with ID:', subscription.id);
+      return;
+    }
+    
+    // Update the subscription record
+    const { error: updateError } = await supabase
+      .from('account_subscriptions')
+      .update({
+        status: 'canceled',
+        updated_at: new Date().toISOString()
+      })
+      .eq('stripe_subscription_id', subscription.id);
+    
+    if (updateError) {
+      console.error('Error updating subscription:', updateError);
+      return;
+    }
+    
+    // Update gc_account status
+    const gcAccountId = subscriptionData.gc_account_id;
+    if (gcAccountId) {
+      const { error: gcUpdateError } = await supabase
+        .from('gc_accounts')
+        .update({
+          subscription_status: 'canceled',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', gcAccountId);
+      
+      if (gcUpdateError) {
+        console.error('Error updating GC account status:', gcUpdateError);
+        return;
+      }
+    }
+    
+    console.log('Successfully processed subscription cancellation for GC account:', gcAccountId);
+  } catch (error) {
+    console.error('Error handling customer.subscription.deleted:', error);
   }
 }
