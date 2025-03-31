@@ -70,7 +70,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        console.log("Current user:", user);
+        console.log("Current user:", user.email);
 
         const { data, error } = await supabase
           .from("profiles")
@@ -188,9 +188,9 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   // Check if user needs to select a subscription (for gc_admin users)
   if (currentRole === 'gc_admin' && hasSubscription === false && 
       !isSubscriptionPage) {
-    console.log("GC admin without subscription, redirecting to subscription checkout");
+    console.log("GC admin without subscription, redirecting to subscription selection");
     return <Navigate 
-      to="/subscription-checkout" 
+      to="/subscription-selection" 
       state={{ userId: user.id, isNewUser: false }} 
       replace 
     />;

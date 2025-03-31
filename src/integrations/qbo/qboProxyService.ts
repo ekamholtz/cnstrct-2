@@ -1,73 +1,84 @@
-import axios from "axios";
-import { QBOConnectionService } from "./connection/qboConnectionService";
 
-/**
- * Simplified QBO service that uses the CORS proxy for API calls
- * This is specifically for browser-based API calls that need to avoid CORS issues
- */
+import { supabase } from '../supabase/client';
+import { QBOConnectionService } from './qboConnectionService';
+import { QBOConnection } from './types';
+
+// This service acts as a proxy between the frontend and QBO services
 export class QBOProxyService {
-  private proxyUrl: string;
   private connectionService: QBOConnectionService;
   
   constructor() {
-    this.proxyUrl = "http://localhost:3030/proxy";
     this.connectionService = new QBOConnectionService();
-    console.log("QBOProxyService initialized with proxy URL:", this.proxyUrl);
   }
   
   /**
-   * Get user's QBO connection
+   * Gets the QBO connection for the current user
    */
-  async getUserConnection() {
-    return this.connectionService.getConnection();
-  }
-  
-  /**
-   * Test connection to QBO using the CORS proxy
-   */
-  async testConnection() {
+  async getConnection(): Promise<QBOConnection | null> {
     try {
-      // Get connection details
-      const connection = await this.getUserConnection();
-      
-      if (!connection) {
-        throw new Error("No QuickBooks connection found");
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
       }
       
-      // Use the CORS proxy to test the connection
-      const response = await axios.post(`${this.proxyUrl}/test-connection`, {
-        accessToken: connection.access_token,
-        refreshToken: connection.refresh_token,
-        realmId: connection.company_id
-      });
-      
-      // If we got a new access token from the proxy, update the connection
-      if (response.data.newAccessToken) {
-        console.log('Received new access token from proxy, updating connection');
-        
-        try {
-          // Update the connection in the database
-          await this.connectionService.updateConnection({
-            ...connection,
-            access_token: response.data.newAccessToken,
-            refresh_token: response.data.newRefreshToken || connection.refresh_token
-          });
-        } catch (updateError) {
-          console.error('Error updating connection with new tokens:', updateError);
-        }
-      }
-      
-      return {
-        success: true,
-        status: response.status,
-        data: response.data
-      };
+      return await this.connectionService.getConnection(user.id);
     } catch (error) {
-      console.error("Error testing QBO connection:", error);
-      return {
-        success: false,
-        error: error
-      };
+      console.error('Error getting QBO connection:', error);
+      return null;
+    }
+  }
+  
+  /**
+   * Checks if the user has a valid QBO connection
+   */
+  async isConnected(): Promise<boolean> {
+    const connection = await this.getConnection();
+    return !!connection;
+  }
+  
+  /**
+   * Refreshes the QBO token if possible
+   */
+  async refreshConnection(): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+      
+      const connection = await this.connectionService.getConnection(user.id);
+      if (!connection || !connection.refresh_token) {
+        return false;
+      }
+      
+      const refreshed = await this.connectionService.refreshToken(connection);
+      if (refreshed) {
+        await this.connectionService.saveConnection(refreshed);
+      }
+      return !!refreshed;
+    } catch (error) {
+      console.error('Error refreshing QBO connection:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Deletes the QBO connection
+   */
+  async disconnect(): Promise<boolean> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+      
+      await this.connectionService.deleteConnection(user.id);
+      return true;
+    } catch (error) {
+      console.error('Error disconnecting QBO:', error);
+      return false;
     }
   }
 }
+
+export const qboProxy = new QBOProxyService();

@@ -31,6 +31,23 @@ const SubscriptionSelection = () => {
   const state = location.state as LocationState;
 
   useEffect(() => {
+    console.log("SubscriptionSelection mounted with state:", state);
+    
+    // If we don't have location state but have a user session,
+    // get the user ID from the current session
+    if (!state?.userId) {
+      supabase.auth.getUser().then(({ data }) => {
+        if (data?.user) {
+          console.log("Setting user ID from session:", data.user.id);
+          state.userId = data.user.id;
+          state.isNewUser = false;
+        } else {
+          console.log("No user session found, redirecting to auth");
+          navigate('/auth', { replace: true });
+        }
+      });
+    }
+
     const fetchSubscriptionTiers = async () => {
       try {
         const { data, error } = await supabase
@@ -96,10 +113,10 @@ const SubscriptionSelection = () => {
     };
 
     fetchSubscriptionTiers();
-  }, [toast]);
+  }, [navigate, toast]);
 
   const handleContinue = async () => {
-    if (!selectedTier || !state?.userId) {
+    if (!selectedTier) {
       toast({
         variant: 'destructive',
         title: 'Error',
@@ -108,43 +125,78 @@ const SubscriptionSelection = () => {
       return;
     }
 
+    // Ensure we have user ID either from state or current session
+    let userId = state?.userId;
+    
+    if (!userId) {
+      const { data } = await supabase.auth.getUser();
+      if (!data?.user?.id) {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'User session not found. Please login again.'
+        });
+        navigate('/auth');
+        return;
+      }
+      userId = data.user.id;
+    }
+
     setSubmitting(true);
 
     try {
+      console.log("Updating subscription for user:", userId, "Tier:", selectedTier);
+      
       // Update the user's profile with the selected subscription tier
       const { error } = await supabase
         .from('profiles')
         .update({ 
           subscription_tier_id: selectedTier,
-          has_completed_profile: state.isNewUser ? false : true // If new user, they still need to complete profile
+          has_completed_profile: true,  // Ensure profile is marked as completed
+          updated_at: new Date().toISOString()
         })
-        .eq('id', state.userId);
+        .eq('id', userId);
 
       if (error) {
         throw error;
       }
 
-      // Create a subscription record
-      const now = new Date();
-      const endDate = new Date();
-      endDate.setFullYear(now.getFullYear() + 1); // Default to 1 year subscription
-
-      const { data: gcAccountData, error: gcAccountError } = await supabase
+      // Get the user's GC account ID
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('gc_account_id')
-        .eq('id', state.userId)
+        .select('gc_account_id, role')
+        .eq('id', userId)
         .single();
 
-      if (gcAccountError) {
-        throw gcAccountError;
+      if (profileError) {
+        throw profileError;
       }
 
-      if (gcAccountData?.gc_account_id) {
+      // If user has a GC account, update it too
+      if (profileData?.gc_account_id) {
+        const { error: gcAccountError } = await supabase
+          .from('gc_accounts')
+          .update({ 
+            subscription_tier_id: selectedTier,
+            subscription_status: 'active',
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', profileData.gc_account_id);
+
+        if (gcAccountError) {
+          throw gcAccountError;
+        }
+
+        // Create a subscription record
+        const now = new Date();
+        const endDate = new Date();
+        endDate.setFullYear(now.getFullYear() + 1); // Default to 1 year subscription
+
         const { error: subscriptionError } = await supabase
           .from('account_subscriptions')
           .insert([
             {
-              gc_account_id: gcAccountData.gc_account_id,
+              gc_account_id: profileData.gc_account_id,
               tier_id: selectedTier,
               start_date: now.toISOString(),
               end_date: endDate.toISOString(),
@@ -162,11 +214,14 @@ const SubscriptionSelection = () => {
         description: 'Subscription selected successfully!'
       });
 
-      // Navigate to the appropriate next step
-      if (state.isNewUser) {
-        navigate('/profile-completion');
+      // Determine where to navigate based on user role
+      if (profileData?.role === 'homeowner') {
+        navigate('/client-dashboard', { replace: true });
+      } else if (profileData?.role === 'admin') {
+        navigate('/admin', { replace: true });
       } else {
-        navigate('/dashboard');
+        // Default to contractor dashboard
+        navigate('/dashboard', { replace: true });
       }
     } catch (error: any) {
       console.error('Error selecting subscription:', error);

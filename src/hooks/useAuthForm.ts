@@ -2,314 +2,261 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
-import { useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { RegisterFormData, LoginFormData, CompanyDetailsFormData } from "@/components/auth/authSchemas";
+import type { LoginFormData, RegisterFormData } from "@/components/auth/authSchemas";
+import { v4 as uuidv4 } from "uuid";
 
 export const useAuthForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const registerMutation = useMutation({
-    mutationFn: async (data: RegisterFormData) => {
-      setIsLoading(true);
-      console.log("Handle register called with:", data);
-      console.log("Registering with role:", data.role); // Debug log
-      
-      try {
-        // First create the user in Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-          options: {
-            data: {
-              first_name: data.firstName,
-              last_name: data.lastName,
-              full_name: `${data.firstName} ${data.lastName}`,
-              company_name: data.companyName,
-              role: data.role, // Explicitly pass the role from the form
-            },
-          },
-        });
-        
-        if (authError) {
-          console.error("Registration error:", authError);
-          throw authError;
-        }
+  const handleLogin = async (values: LoginFormData) => {
+    setIsLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
 
-        if (!authData.user) {
-          throw new Error("No user data returned from signup");
-        }
-
-        // Create GC account for gc_admin users
-        let gcAccount = null;
-        
-        if (data.role === 'gc_admin') {
-          try {
-            // Create a GC account
-            const { data: gcAccountData, error: gcError } = await supabase
-              .from('gc_accounts')
-              .insert([
-                { 
-                  company_name: data.companyName, 
-                  owner_id: authData.user.id,
-                  created_at: new Date(),
-                  updated_at: new Date()
-                }
-              ])
-              .select('id, company_name')
-              .single();
-            
-            if (gcError) {
-              console.error("Error creating GC account:", gcError);
-              throw gcError;
-            } 
-            
-            gcAccount = gcAccountData;
-          } catch (error) {
-            console.error("Error in GC account creation process:", error);
-            throw error;
-          }
-        }
-        
-        // Create the profile record
-        try {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([
-              {
-                id: authData.user.id,
-                full_name: `${data.firstName} ${data.lastName}`,
-                role: data.role,
-                gc_account_id: gcAccount?.id || null,
-                account_status: 'active',
-                has_completed_profile: false,
-                created_at: new Date(),
-                updated_at: new Date()
-              }
-            ]);
-          
-          if (profileError) {
-            console.error("Error creating profile:", profileError);
-            throw profileError;
-          }
-        } catch (error) {
-          console.error("Error in profile creation:", error);
-          throw error;
-        }
-        
-        return { 
-          user: authData.user,
-          role: data.role,
-          gcAccount
-        };
-      } catch (error) {
-        // Handle any overall errors
-        console.error("Registration error:", error);
+      if (error) {
         throw error;
       }
-    },
-    onSuccess: (data) => {
-      setIsLoading(false);
+
+      // Get the user's role to determine where to navigate
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User not found after login");
+      }
+      
+      // Check if the user has a profile
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role, gc_account_id, has_completed_profile")
+        .eq("id", user.id)
+        .single();
+      
+      if (profileError) {
+        console.error("Error fetching profile:", profileError);
+      }
+      
+      // Determine where to navigate based on role
+      const role = profile?.role || "contractor";
+      
+      if (profile?.has_completed_profile === false) {
+        navigate("/profile-completion");
+        return;
+      }
+      
+      if (role === "homeowner") {
+        navigate("/client-dashboard");
+      } else if (role === "gc_admin" || role === "general_contractor") {
+        navigate("/dashboard");
+      } else if (role === "admin") {
+        navigate("/admin");
+      } else {
+        navigate("/dashboard");
+      }
+
       toast({
-        title: "Success",
-        description: "Account created successfully!",
+        title: "Login Successful",
+        description: "Welcome back!",
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: error.message || "Please check your credentials and try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRegister = async (values: RegisterFormData) => {
+    setIsLoading(true);
+    try {
+      // Check if email already exists
+      const { data: existingUsers } = await supabase
+        .from("profiles")
+        .select("email")
+        .eq("email", values.email);
+
+      if (existingUsers && existingUsers.length > 0) {
+        toast({
+          variant: "destructive",
+          title: "Registration Failed",
+          description: "An account with this email already exists.",
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Register the user
+      const { data, error } = await supabase.auth.signUp({
+        email: values.email,
+        password: values.password,
+        options: {
+          data: {
+            full_name: values.fullName,
+            role: values.role,
+          },
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data.user) {
+        throw new Error("User not created");
+      }
+
+      // Create user record in profiles table
+      let gcAccountId = null;
+      
+      // If user is a GC, create a GC account record
+      if (values.role === "gc_admin") {
+        const newGcAccountId = uuidv4();
+        
+        const { error: gcAccountError } = await supabase
+          .from("gc_accounts")
+          .insert({
+            id: newGcAccountId,
+            name: values.companyName || "New Company",
+            owner_id: data.user.id,
+            created_by: data.user.id,
+          });
+
+        if (gcAccountError) {
+          console.error("Error creating GC account:", gcAccountError);
+          throw new Error(`Failed to create GC account: ${gcAccountError.message}`);
+        }
+        
+        gcAccountId = newGcAccountId;
+      }
+      
+      // Create profile record
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .insert({
+          id: data.user.id,
+          email: values.email,
+          full_name: values.fullName,
+          role: values.role,
+          gc_account_id: gcAccountId,
+          has_completed_profile: values.role !== "gc_admin", // GC admins need to complete company details
+        });
+
+      if (profileError) {
+        throw profileError;
+      }
+
+      toast({
+        title: "Registration Successful",
+        description: "Your account has been created!",
       });
       
-      // For gc_admin, redirect to company details page
-      if (data.role === 'gc_admin' && data.gcAccount) {
+      // For GC admins, navigate to company details
+      if (values.role === "gc_admin") {
         navigate("/auth/company-details", { 
           state: { 
-            gcAccountId: data.gcAccount.id,
-            companyName: data.gcAccount.company_name,
+            gcAccountId, 
+            companyName: values.companyName,
             isNewUser: true
           } 
         });
       } else {
-        // For other user types, redirect to login
-        navigate("/auth");
-      }
-    },
-    onError: (error: any) => {
-      setIsLoading(false);
-      console.error("Registration error details:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to register. Please try again.",
-      });
-    },
-  });
-
-  // New mutation for updating company details
-  const updateCompanyDetailsMutation = useMutation({
-    mutationFn: async ({ gcAccountId, data }: { gcAccountId: string, data: CompanyDetailsFormData }) => {
-      setIsLoading(true);
-      
-      try {
-        // Update the GC account with company details
-        const { error } = await supabase
-          .from('gc_accounts')
-          .update({
-            website: data.website,
-            license_number: data.licenseNumber,
-            address: data.address,
-            phone_number: data.phoneNumber,
-            updated_at: new Date()
-          })
-          .eq('id', gcAccountId);
-        
-        if (error) {
-          console.error("Error updating company details:", error);
-          throw error;
-        }
-        
-        return { gcAccountId };
-      } catch (error) {
-        console.error("Error in company details update:", error);
-        throw error;
-      }
-    },
-    onSuccess: (_, variables) => {
-      setIsLoading(false);
-      toast({
-        title: "Success",
-        description: "Company details saved successfully!",
-      });
-      
-      // Get the current authentication session before redirecting
-      const currentSession = supabase.auth.session;
-      console.log("Current session before subscription redirect:", currentSession ? "Valid" : "None");
-      
-      // Redirect to subscription checkout with state preserved
-      navigate("/subscription-checkout", { 
-        state: { 
-          gcAccountId: variables.gcAccountId,
-          isNewUser: true 
-        }
-      });
-    },
-    onError: (error: any) => {
-      setIsLoading(false);
-      console.error("Company details update error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error.message || "Failed to update company details. Please try again.",
-      });
-    },
-  });
-
-  const loginMutation = useMutation({
-    mutationFn: async (data: LoginFormData) => {
-      console.log("Attempting login for:", data.email);
-      setIsLoading(true);
-      const { data: authResponse, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-
-      if (error) {
-        console.error("Login error:", error);
-        throw error;
-      }
-
-      if (!authResponse?.user) {
-        console.error("No user data returned");
-        throw new Error("Could not authenticate user");
-      }
-
-      console.log("Auth response:", authResponse);
-
-      // Query the profiles table to get the user's role
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('role, has_completed_profile, gc_account_id')
-        .eq('id', authResponse.user.id)
-        .maybeSingle();
-
-      if (profileError) {
-        console.error("Profile fetch error:", profileError);
-        throw profileError;
-      }
-
-      // If no profile is found, use the role from auth metadata or default to gc_admin
-      const role = profileData?.role || authResponse.user.user_metadata?.role || 'gc_admin';
-      const hasCompletedProfile = profileData?.has_completed_profile || false;
-      const gcAccountId = profileData?.gc_account_id;
-      
-      // Query the gc_accounts table to check for subscription
-      let hasSubscription = false;
-      if (gcAccountId) {
-        const { data: gcAccountData, error: gcAccountError } = await supabase
-          .from('gc_accounts')
-          .select('subscription_tier_id')
-          .eq('id', gcAccountId)
-          .maybeSingle();
-          
-        if (!gcAccountError && gcAccountData) {
-          hasSubscription = !!gcAccountData.subscription_tier_id;
-        }
-      }
-      
-      console.log("Determined role:", role);
-      console.log("Profile completion status:", hasCompletedProfile);
-      console.log("Has subscription:", hasSubscription);
-
-      return { 
-        role, 
-        hasCompletedProfile, 
-        hasSubscription,
-        userId: authResponse.user.id,
-        gcAccountId
-      };
-    },
-    onSuccess: (data) => {
-      setIsLoading(false);
-      
-      // Redirect based on user state
-      if (data.role === 'gc_admin') {
-        if (!data.hasSubscription) {
-          navigate("/subscription-checkout", { 
-            state: { 
-              userId: data.userId, 
-              gcAccountId: data.gcAccountId,
-              isNewUser: false 
-            } 
-          });
+        // For other users, navigate to dashboard
+        if (values.role === "homeowner") {
+          navigate("/client-dashboard");
         } else {
           navigate("/dashboard");
         }
-      } else {
-        navigate("/dashboard");
       }
-    },
-    onError: (error: any) => {
-      setIsLoading(false);
-      console.error("Login error details:", error);
+    } catch (error) {
+      console.error("Registration error:", error);
       toast({
         variant: "destructive",
-        title: "Error", 
-        description: error.message || "Failed to sign in. Please check your credentials and try again.",
+        title: "Registration Failed",
+        description: error.message || "Please check your information and try again.",
       });
-    },
-  });
-
-  const handleRegister = async (data: RegisterFormData) => {
-    return registerMutation.mutateAsync(data);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleLogin = async (data: LoginFormData) => {
-    return loginMutation.mutateAsync(data);
+  const updateCompanyDetailsMutation = {
+    mutateAsync: async ({ 
+      gcAccountId, 
+      data: { website, licenseNumber, address, phoneNumber } 
+    }) => {
+      setIsLoading(true);
+      try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          throw new Error("User not authenticated");
+        }
+        
+        // Update gc_account with company details
+        const { error: updateError } = await supabase
+          .from("gc_accounts")
+          .update({
+            website,
+            license_number: licenseNumber,
+            address,
+            phone_number: phoneNumber,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", gcAccountId);
+          
+        if (updateError) {
+          throw updateError;
+        }
+        
+        // Update profile to mark as completed
+        const { error: profileError } = await supabase
+          .from("profiles")
+          .update({ has_completed_profile: true })
+          .eq("id", user.id);
+          
+        if (profileError) {
+          throw profileError;
+        }
+        
+        toast({
+          title: "Company Details Updated",
+          description: "Your company details have been saved successfully.",
+        });
+        
+        // Navigate to the subscription selection page
+        navigate("/subscription-selection", {
+          state: { userId: user.id, isNewUser: true }
+        });
+        
+      } catch (error) {
+        console.error("Error updating company details:", error);
+        toast({
+          variant: "destructive",
+          title: "Update Failed",
+          description: error.message || "Failed to update company details. Please try again.",
+        });
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    isPending: isLoading
   };
 
   return {
     isLoading,
-    handleRegister,
     handleLogin,
-    registerMutation,
-    loginMutation,
-    updateCompanyDetailsMutation
+    handleRegister,
+    updateCompanyDetailsMutation,
   };
 };
