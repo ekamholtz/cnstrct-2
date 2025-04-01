@@ -59,16 +59,18 @@ Deno.serve(async (req) => {
     // Get the raw body
     const body = await req.text()
     
-    console.log('Attempting to verify webhook with:', { 
-      signatureLength: signature.length,
-      bodyPreview: body.substring(0, 50) + '...',
-      webhookSecretLength: webhookSecret.length,
-      webhookSecretStartsWith: webhookSecret.substring(0, 3) + '...',
-    })
-    
     // Verify the webhook using the async method and crypto provider
     let event
     try {
+      console.log('Attempting webhook verification with:', {
+        secretExists: !!webhookSecret,
+        secretLength: webhookSecret?.length,
+        signatureExists: !!signature,
+        signatureStart: signature?.substring(0, 20),
+        bodyLength: body.length,
+        bodyPreview: body.substring(0, 30) + '...'
+      });
+      
       event = await stripe.webhooks.constructEventAsync(
         body,
         signature,
@@ -80,8 +82,7 @@ Deno.serve(async (req) => {
     } catch (err) {
       console.error(`Webhook signature verification failed: ${err.message}`, {
         error: err.toString(),
-        signature: signature.substring(0, 20) + '...',
-        webhookSecretPreview: webhookSecret.substring(0, 3) + '...'
+        secretStartsWith: webhookSecret?.substring(0, 10) + '...',
       })
       return new Response(JSON.stringify({ error: 'Invalid signature' }), {
         status: 400,
