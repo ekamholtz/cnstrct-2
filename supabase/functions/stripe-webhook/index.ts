@@ -40,62 +40,137 @@ serve(async (req) => {
   }
 
   try {
-    // Get the signature from the headers
-    const signature = req.headers.get('stripe-signature')
+    // Check if this is a webhook request from Stripe
+    const isStripeWebhook = req.headers.get('stripe-signature') !== null;
     
-    if (!signature || !webhookSecret) {
-      throw new Error('Missing Stripe signature or webhook secret')
+    // Only check auth header for non-webhook requests
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader && !isStripeWebhook) {
+      console.error('Missing authorization header for non-webhook request');
+      return new Response(JSON.stringify({ error: 'No authorization header' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
     
-    // Get the raw body
-    const body = await req.text()
+    // For non-webhook requests, verify the user token
+    let userId = null;
+    if (!isStripeWebhook && authHeader) {
+      const token = authHeader.split(' ')[1];
+      
+      // Verify the user's token
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      
+      if (authError || !user) {
+        console.error('Auth error:', authError);
+        return new Response(JSON.stringify({ error: 'Invalid token', details: authError }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      userId = user.id;
+    }
     
-    // Verify the webhook
-    let event
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
-    } catch (err) {
-      console.error(`Webhook signature verification failed: ${err.message}`)
-      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
-        status: 400,
+    // For webhook requests, verify the Stripe signature
+    if (isStripeWebhook) {
+      // Get the signature from the headers
+      const signature = req.headers.get('stripe-signature')
+      
+      if (!signature || !webhookSecret) {
+        console.error('Missing signature or webhook secret:', { 
+          hasSignature: !!signature,
+          hasWebhookSecret: !!webhookSecret,
+          webhookSecretLength: webhookSecret?.length
+        })
+        return new Response(JSON.stringify({ error: 'Missing Stripe signature or webhook secret' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      // Get the raw body
+      const body = await req.text()
+      
+      console.log('Attempting to verify webhook with:', { 
+        signatureLength: signature.length,
+        bodyPreview: body.substring(0, 50) + '...',
+        webhookSecretLength: webhookSecret.length,
+        webhookSecretStartsWith: webhookSecret.substring(0, 10),
+        envVars: {
+          hasSupabaseUrl: !!Deno.env.get('SUPABASE_URL'),
+          hasSupabaseKey: !!Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+          hasStripeKey: !!Deno.env.get('STRIPE_SECRET_KEY'),
+        }
+      })
+      
+      // Verify the webhook
+      let event
+      try {
+        event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+        console.log('Webhook verification successful for event:', event.type)
+      } catch (err) {
+        console.error(`Webhook signature verification failed: ${err.message}`, {
+          error: err.toString(),
+          signature: signature.substring(0, 20) + '...',
+          webhookSecretPreview: webhookSecret.substring(0, 5) + '...'
+        })
+        return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      
+      // Process the event based on the type
+      switch (event.type) {
+        case 'account.updated':
+          await handleAccountUpdated(event.data.object)
+          break
+          
+        case 'payment_intent.succeeded':
+          await handlePaymentIntentSucceeded(event.data.object)
+          break
+          
+        case 'payment_intent.payment_failed':
+          await handlePaymentIntentFailed(event.data.object)
+          break
+          
+        case 'checkout.session.completed':
+          await handleCheckoutSessionCompleted(event.data.object)
+          break
+          
+        case 'customer.subscription.deleted':
+          await handleSubscriptionDeleted(event.data.object)
+          break
+          
+        case 'customer.subscription.updated':
+          await handleSubscriptionUpdated(event.data.object)
+          break
+          
+        // Add more event types as needed
+      }
+
+      return new Response(JSON.stringify({ received: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
     
-    // Process the event based on the type
-    switch (event.type) {
-      case 'account.updated':
-        await handleAccountUpdated(event.data.object)
-        break
-        
-      case 'payment_intent.succeeded':
-        await handlePaymentIntentSucceeded(event.data.object)
-        break
-        
-      case 'payment_intent.payment_failed':
-        await handlePaymentIntentFailed(event.data.object)
-        break
-        
-      case 'checkout.session.completed':
-        await handleCheckoutSessionCompleted(event.data.object)
-        break
-        
-      case 'customer.subscription.deleted':
-        await handleSubscriptionDeleted(event.data.object)
-        break
-        
-      case 'customer.subscription.updated':
-        await handleSubscriptionUpdated(event.data.object)
-        break
-        
-      // Add more event types as needed
+    // If we get here, it's a regular authenticated API request
+    const url = new URL(req.url);
+    const path = url.pathname.split('/').pop();
+    
+    // Route based on the path (for non-webhook requests)
+    switch (path) {
+      // Add your regular API routes here
+      
+      default:
+        return new Response(JSON.stringify({ error: 'Route not found' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
     }
-
-    return new Response(JSON.stringify({ received: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
   } catch (error) {
-    console.error('Error processing webhook:', error)
+    console.error('Error processing request:', error)
     
     return new Response(JSON.stringify({ 
       error: error.message || 'Internal server error',
