@@ -1,21 +1,21 @@
 
 // Supabase Edge Function for handling Stripe Webhooks
-
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
-import Stripe from 'https://esm.sh/stripe@12.4.0'
+import Stripe from 'https://esm.sh/stripe@13.4.0?target=deno'
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-// Initialize Stripe client
+// Initialize Stripe client with the new approach
 const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY') || ''
 const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: '2023-10-16',
-  httpClient: Stripe.createFetchHttpClient(),
+  apiVersion: '2023-10-16', // Use the API version compatible with Stripe 13.4.0
 })
+
+// Create the crypto provider for async operations
+const cryptoProvider = Stripe.createSubtleCryptoProvider()
 
 // Stripe webhook secret
 const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') || ''
@@ -26,7 +26,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-serve(async (req) => {
+// Use the modern Deno.serve API
+Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -62,19 +63,25 @@ serve(async (req) => {
       signatureLength: signature.length,
       bodyPreview: body.substring(0, 50) + '...',
       webhookSecretLength: webhookSecret.length,
-      webhookSecretStartsWith: webhookSecret.substring(0, 10),
+      webhookSecretStartsWith: webhookSecret.substring(0, 3) + '...',
     })
     
-    // Verify the webhook
+    // Verify the webhook using the async method and crypto provider
     let event
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret)
+      event = await stripe.webhooks.constructEventAsync(
+        body,
+        signature,
+        webhookSecret,
+        undefined,
+        cryptoProvider
+      )
       console.log('Webhook verification successful for event:', event.type)
     } catch (err) {
       console.error(`Webhook signature verification failed: ${err.message}`, {
         error: err.toString(),
         signature: signature.substring(0, 20) + '...',
-        webhookSecretPreview: webhookSecret.substring(0, 5) + '...'
+        webhookSecretPreview: webhookSecret.substring(0, 3) + '...'
       })
       return new Response(JSON.stringify({ error: 'Invalid signature' }), {
         status: 400,
