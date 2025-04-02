@@ -145,6 +145,39 @@ export function useStripeConnect() {
     }
   };
 
+  // Function to create an account link for onboarding or updating
+  const createAccountLink = async (accountId: string): Promise<string> => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Call the Supabase function to create account link
+      const { data, error: fnError } = await supabase.functions.invoke('stripe-connect', {
+        body: {
+          action: 'create-account-link',
+          account_id: accountId
+        }
+      });
+
+      if (fnError) {
+        throw new Error(fnError.message);
+      }
+
+      if (!data?.url) {
+        throw new Error('No account link URL returned');
+      }
+
+      return data.url;
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to create account link';
+      setError(errorMessage);
+      console.error('Error creating Stripe account link:', err);
+      return '';
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Function to skip connection checks (e.g., force onboarding completion)
   const skipConnectionCheck = async (accountId: string): Promise<boolean> => {
     try {
@@ -182,6 +215,7 @@ export function useStripeConnect() {
     connectStripeAccount,
     handleOAuthCallback,
     getLoginLink,
+    createAccountLink, // Added the missing method here
     skipConnectionCheck
   };
 }

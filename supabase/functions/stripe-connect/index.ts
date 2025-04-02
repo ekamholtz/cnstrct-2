@@ -1,4 +1,3 @@
-
 // Supabase Edge Function for Stripe Connect
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
@@ -75,22 +74,33 @@ serve(async (req) => {
     // Route to appropriate handler based on action
     switch (action) {
       case 'initiate-oauth':
+      case 'create_oauth_link':
         result = await initiateOAuth(userId, requestData)
         break
       case 'handle-oauth-callback':
+      case 'handle_oauth_callback':
         result = await handleOAuthCallback(userId, requestData)
         break
       case 'create-account-link':
-        if (!requestData.accountId) {
+        if (!requestData.account_id) {
           throw new Error('accountId is required for create-account-link action')
         }
-        result = await createAccountLink(requestData.accountId)
+        result = await createAccountLink(requestData.account_id)
         break
       case 'get-account':
+      case 'get_account_status':
         result = await getAccount(userId, requestData)
         break
       case 'list-accounts':
         result = await listAccounts(userId)
+        break
+      case 'create_login_link':
+        if (!requestData.account_id) {
+          throw new Error('accountId is required for create_login_link action')
+        }
+        // Reuse the existing function but extract just the URL
+        const loginLink = await createLoginLink(requestData.account_id)
+        result = { url: loginLink.url }
         break
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {
@@ -246,6 +256,18 @@ async function createAccountLink(accountId: string) {
   })
 
   return accountLink
+}
+
+/**
+ * Creates a login link for Express dashboard access
+ */
+async function createLoginLink(accountId: string) {
+  if (!accountId) {
+    throw new Error('accountId is required')
+  }
+
+  const loginLink = await stripe.accounts.createLoginLink(accountId);
+  return loginLink;
 }
 
 /**
