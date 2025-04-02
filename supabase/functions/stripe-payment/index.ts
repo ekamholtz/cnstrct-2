@@ -1,4 +1,3 @@
-
 // Supabase Edge Function for Stripe Payments
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -264,6 +263,64 @@ async function createPaymentLink(params: RequestParams) {
 }
 
 /**
+ * Lists payment links for a connected account
+ */
+async function listPaymentLinks({ accountId }: RequestParams) {
+  if (!accountId) {
+    throw new Error('accountId is required')
+  }
+
+  // Get payment links from the database
+  const { data, error } = await supabase
+    .from('payment_links')
+    .select('*')
+    .eq('account_id', accountId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw new Error(`Failed to retrieve payment links: ${error.message}`)
+  }
+
+  return { paymentLinks: data || [] }
+}
+
+/**
+ * Gets a payment link details
+ */
+async function getPaymentLink({ paymentLinkId }: RequestParams) {
+  if (!paymentLinkId) {
+    throw new Error('paymentLinkId is required')
+  }
+
+  // Get the payment link from the database
+  const { data, error } = await supabase
+    .from('payment_links')
+    .select('*')
+    .eq('payment_link_id', paymentLinkId)
+    .single()
+
+  if (error) {
+    throw new Error(`Failed to retrieve payment link: ${error.message}`)
+  }
+
+  // If available, get the payment link details from Stripe
+  try {
+    const paymentLink = await stripe.paymentLinks.retrieve(paymentLinkId, {
+      stripeAccount: data.account_id,
+    })
+
+    return {
+      ...data,
+      stripeDetails: paymentLink,
+    }
+  } catch (stripeError) {
+    console.error('Error fetching payment link from Stripe:', stripeError)
+    // Return the database record even if Stripe API call fails
+    return data
+  }
+}
+
+/**
  * Creates a checkout session for a subscription or one-time payment
  */
 async function createCheckoutSession(params: RequestParams) {
@@ -409,64 +466,6 @@ async function createCheckoutSession(params: RequestParams) {
   return {
     sessionUrl: session.url,
     sessionId: session.id,
-  }
-}
-
-/**
- * Lists payment links for a connected account
- */
-async function listPaymentLinks({ accountId }: RequestParams) {
-  if (!accountId) {
-    throw new Error('accountId is required')
-  }
-
-  // Get payment links from the database
-  const { data, error } = await supabase
-    .from('payment_links')
-    .select('*')
-    .eq('account_id', accountId)
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    throw new Error(`Failed to retrieve payment links: ${error.message}`)
-  }
-
-  return { paymentLinks: data || [] }
-}
-
-/**
- * Gets a payment link details
- */
-async function getPaymentLink({ paymentLinkId }: RequestParams) {
-  if (!paymentLinkId) {
-    throw new Error('paymentLinkId is required')
-  }
-
-  // Get the payment link from the database
-  const { data, error } = await supabase
-    .from('payment_links')
-    .select('*')
-    .eq('payment_link_id', paymentLinkId)
-    .single()
-
-  if (error) {
-    throw new Error(`Failed to retrieve payment link: ${error.message}`)
-  }
-
-  // If available, get the payment link details from Stripe
-  try {
-    const paymentLink = await stripe.paymentLinks.retrieve(paymentLinkId, {
-      stripeAccount: data.account_id,
-    })
-
-    return {
-      ...data,
-      stripeDetails: paymentLink,
-    }
-  } catch (stripeError) {
-    console.error('Error fetching payment link from Stripe:', stripeError)
-    // Return the database record even if Stripe API call fails
-    return data
   }
 }
 
