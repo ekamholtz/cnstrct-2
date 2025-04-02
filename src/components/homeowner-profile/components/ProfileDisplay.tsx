@@ -19,7 +19,7 @@ export function ProfileDisplay({ profile, userRole }: ProfileDisplayProps) {
     <div className="bg-white shadow rounded-lg p-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {renderField("Full Name", profile.full_name)}
-        {renderField("Email", profile.email)}
+        {renderField("Email", profile.email || 'Email not available')}
         {renderField("Phone Number", profile.phone_number)}
         {renderField("Address", profile.address)}
         {userRole === "gc_admin" && (

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getClientProjects } from "@/mocks/clientApi";
 import { supabase } from "@/integrations/supabase/client";
+import { RoutingDebug } from "@/debug/RoutingDebug";
 
 export default function DebugPage() {
   const [connectionResults, setConnectionResults] = useState<any>(null);
@@ -93,6 +94,7 @@ export default function DebugPage() {
           <TabsTrigger value="connection">Connection Test</TabsTrigger>
           <TabsTrigger value="clientProjects">Client Projects</TabsTrigger>
           <TabsTrigger value="directQuery">Direct Query</TabsTrigger>
+          <TabsTrigger value="routing">Routing Debug</TabsTrigger>
         </TabsList>
         
         <TabsContent value="connection">
@@ -162,6 +164,18 @@ export default function DebugPage() {
                   </pre>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="routing">
+          <Card>
+            <CardHeader>
+              <CardTitle>Routing Debug</CardTitle>
+              <CardDescription>Test and debug routing issues in the application</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RoutingDebug />
             </CardContent>
           </Card>
         </TabsContent>

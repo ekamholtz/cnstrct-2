@@ -295,7 +295,7 @@ export function ProjectCard({ project }: ProjectCardProps) {
   );
 
   const handleCardClick = () => {
-    navigate(`/project/${project.id}`);
+    navigate(`/projects/${project.id}`);
   };
 
   return (

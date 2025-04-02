@@ -54,13 +54,8 @@ export default function CompanyDetailsPage() {
         .from('gc_accounts')
         .insert([
           {
-            name: formData.companyName,
-            address: formData.address,
-            city: formData.city,
-            state: formData.state,
-            zip_code: formData.zipCode,
-            phone_number: formData.phoneNumber,
-            created_by: user.id,
+            company_name: formData.companyName,
+            owner_id: user.id
           }
         ])
         .select()
@@ -70,12 +65,14 @@ export default function CompanyDetailsPage() {
         throw new Error(gcError.message);
       }
       
-      // Update the user's profile with the GC account ID
+      // Update the user's profile with the GC account ID and address information
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
           gc_account_id: gcAccount.id,
-          company_name: formData.companyName
+          company_name: formData.companyName,
+          address: formData.address,
+          phone_number: formData.phoneNumber
         })
         .eq('id', user.id);
       

@@ -31,7 +31,7 @@ export function ClientProjectCard({ project }: ClientProjectCardProps) {
   };
 
   return (
-    <Link to={`/project/${project.id}`}>
+    <Link to={`/projects/${project.id}`}>
       <Card className="h-full cursor-pointer hover:shadow-md transition-shadow">
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">

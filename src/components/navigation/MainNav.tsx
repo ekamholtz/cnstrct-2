@@ -102,12 +102,25 @@ export function MainNav({
   };
 
   const handleNavigation = (path: string) => {
-    console.log("MainNav - Navigating to:", path);
-    if (path === '/invoice' || path === '/invoices' || path === '/client-invoices') {
-      console.log("MainNav - Invoice navigation triggered");
+    try {
+      console.log("MainNav - Navigating to:", path);
+      console.log("MainNav - Current location:", location.pathname);
+      console.log("MainNav - User role:", profile?.role);
+      
+      if (path === '/invoice' || path === '/invoices' || path === '/client-invoices') {
+        console.log("MainNav - Invoice navigation triggered");
+      }
+      
+      // Add a small delay to ensure state updates have completed
+      setTimeout(() => {
+        navigate(path);
+        console.log("MainNav - Navigation completed to:", path);
+      }, 0);
+      
+      setIsMenuOpen(false);
+    } catch (error) {
+      console.error("MainNav - Navigation error:", error);
     }
-    navigate(path);
-    setIsMenuOpen(false);
   };
 
   const homeRoute = profile?.role === 'platform_admin' ? '/admin' : 

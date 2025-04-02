@@ -131,7 +131,7 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="bg-white shadow rounded-lg p-6 space-y-6">
-        <BasicProfileFields form={form} email={profile.email} />
+        <BasicProfileFields form={form} email={profile.email || 'Email not available'} />
         {shouldShowGCFields && <GCProfileFields form={form} />}
         
         <div className="flex justify-end space-x-4 pt-4">

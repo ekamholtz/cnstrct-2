@@ -54,8 +54,11 @@ export const useAuthForm = () => {
       } else {
         toast({
           title: 'Success',
-          description: 'Check your email for a verification link.',
+          description: 'Account created successfully.',
         });
+        
+        // Redirect to company details page for new users
+        navigate('/auth/company-details');
       }
     } catch (error: any) {
       errors.email = error.message || 'An unexpected error occurred';

@@ -62,7 +62,8 @@ export function TeamMembersSection() {
         id: profile.id,
         gc_account_id: profile.gc_account_id,
         full_name: profile.full_name,
-        email: profile.email,
+        // Email is not stored in the profiles table
+        email: 'Email not available', // Placeholder
         role: profile.role,
         company_name: profile.company_name,
         phone_number: profile.phone_number,

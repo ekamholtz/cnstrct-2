@@ -14,6 +14,7 @@ import { TeamMembersDebug } from "@/debug/TeamMembersDebug";
 import { TargetGCAccountDebug } from "@/debug/TargetGCAccountDebug";
 import { AllProfilesDebug } from "@/debug/AllProfilesDebug";
 import { ProjectRelationshipsDebug } from "@/debug/ProjectRelationshipsDebug";
+import { RoutingDebug } from "@/debug/RoutingDebug";
 
 export default function Dashboard() {
   const { data: projects = [], isLoading, error, refetch } = useContractorProjects();
@@ -167,6 +168,11 @@ export default function Dashboard() {
               <div className="bg-white rounded-lg shadow-sm p-6 border border-yellow-100">
                 <h3 className="text-md font-semibold text-yellow-700 mb-4">Project Relationships Debug</h3>
                 <ProjectRelationshipsDebug />
+              </div>
+              
+              <div className="bg-white rounded-lg shadow-sm p-6 border border-yellow-100">
+                <h3 className="text-md font-semibold text-yellow-700 mb-4">Routing Debug</h3>
+                <RoutingDebug />
               </div>
             </div>
           )}

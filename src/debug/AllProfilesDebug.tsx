@@ -209,7 +209,7 @@ export const AllProfilesDebug = () => {
                       <ul className="text-xs list-disc pl-5">
                         {profilesByGcAccount[currentUser.gc_account_id].map((profile) => (
                           <li key={profile.id} className={profile.id === currentUser.id ? "font-bold" : ""}>
-                            {profile.full_name || 'Unnamed'} ({profile.role || 'No role'}) - {profile.email || 'No email'} 
+                            {profile.full_name || 'Unnamed'} ({profile.role || 'No role'}) - {'Email not available'} 
                             {profile.id === currentUser.id ? " (Current User)" : ""}
                           </li>
                         ))}
@@ -233,7 +233,7 @@ export const AllProfilesDebug = () => {
                         <ul className="text-xs list-disc pl-5">
                           {profiles.map((profile) => (
                             <li key={profile.id}>
-                              {profile.full_name || 'Unnamed'} ({profile.role || 'No role'}) - {profile.email || 'No email'}
+                              {profile.full_name || 'Unnamed'} ({profile.role || 'No role'}) - {'Email not available'}
                             </li>
                           ))}
                         </ul>
