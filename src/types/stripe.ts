@@ -1,4 +1,5 @@
 
+
 // Types for Stripe integration
 
 export type StripeAccountStatus = 
@@ -45,4 +46,20 @@ export interface StripePaymentLink {
   expires_at: string;
   created_at: string;
   updated_at: string;
+}
+
+// Custom elements for Stripe integrations
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      'stripe-pricing-table': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
+        'pricing-table-id': string;
+        'publishable-key': string;
+        'client-reference-id'?: string;
+        'customer-email'?: string;
+        'success-url'?: string;
+        'cancel-url'?: string;
+      }, HTMLElement>;
+    }
+  }
 }

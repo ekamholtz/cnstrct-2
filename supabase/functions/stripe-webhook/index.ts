@@ -1,4 +1,3 @@
-
 // Supabase Edge Function for handling Stripe Webhooks
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 import Stripe from 'https://esm.sh/stripe@13.4.0?target=deno'
@@ -250,6 +249,7 @@ async function handlePaymentIntentFailed(paymentIntent) {
 
 /**
  * Handle checkout.session.completed webhook event
+ * @param {Object} session The checkout session object
  */
 async function handleCheckoutSessionCompleted(session) {
   console.log('Processing checkout.session.completed event:', session.id);
@@ -292,85 +292,62 @@ async function handleSubscriptionCheckout(session, gcAccountId) {
     return;
   }
   
-  // Retrieve the subscription details from Stripe
-  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-  
-  // Get customer ID
-  const customerId = session.customer;
-  
-  // Get subscription price info
-  let subscriptionTierId = '1'; // Default tier ID
-  
-  // Here you could map the price ID to your subscription tier IDs if needed
-  
-  await saveSubscriptionData(
-    gcAccountId,
-    customerId,
-    subscriptionId,
-    subscription,
-    subscriptionTierId
-  );
-}
-
-/**
- * Handle payment mode checkout
- */
-async function handlePaymentCheckout(session, gcAccountId) {
-  console.log('Processing payment checkout:', session.id);
-  
-  // Get payment intent ID
-  const paymentIntentId = session.payment_intent;
-  if (!paymentIntentId) {
-    console.log('No payment intent ID found in the session');
-    return;
-  }
-  
-  // Get customer details
-  const customerEmail = session.customer_details?.email || 'unknown@example.com';
-  const customerName = session.customer_details?.name || 'Unknown Customer';
-  
-  // Record the payment in your database
   try {
-    // First check if there's an existing payment record
-    const { data: existingPayment, error: fetchError } = await supabase
-      .from('payment_records')
-      .select('*')
-      .eq('payment_intent_id', paymentIntentId)
-      .maybeSingle();
+    // Retrieve the subscription details from Stripe
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    
+    // Get customer ID
+    const customerId = session.customer;
+    
+    // Determine subscription tier based on price
+    // You may want to map price IDs to your subscription tier IDs
+    let subscriptionTierId = null;
+    
+    // Get the price ID from the first line item
+    if (subscription.items?.data?.length > 0) {
+      const priceId = subscription.items.data[0].price.id;
       
-    if (fetchError && fetchError.code !== 'PGRST116') {
-      console.error('Error fetching payment record:', fetchError);
-      return;
+      // Map price IDs to your subscription tiers
+      // This is a simple example - you might want to store this mapping in your database
+      if (priceId === 'price_1R9UBQApu80f9E3HCze1U9g6') { // Basic plan
+        subscriptionTierId = '00000000-0000-0000-0000-000000000001';
+      } else if (priceId === 'price_1R9UBQApu80f9E3HGYBZ1uEk') { // Pro plan
+        subscriptionTierId = '00000000-0000-0000-0000-000000000002';
+      } else if (priceId === 'price_1R9UBQApu80f9E3HVGjb2LKp') { // Enterprise plan
+        subscriptionTierId = '00000000-0000-0000-0000-000000000003';
+      }
     }
     
-    // If payment record already exists, we don't need to create it again
-    if (existingPayment) {
-      console.log('Payment record already exists:', existingPayment.id);
-      return;
+    // Use a default tier ID if we couldn't determine the tier
+    if (!subscriptionTierId) {
+      subscriptionTierId = '00000000-0000-0000-0000-000000000001'; // Default to basic tier
     }
     
-    // Create a new payment record
-    const { error: insertError } = await supabase
-      .from('payment_records')
-      .insert({
-        gc_account_id: gcAccountId,
-        payment_intent_id: paymentIntentId,
-        amount: session.amount_total,
-        currency: session.currency,
-        status: session.payment_status,
-        customer_email: customerEmail,
-        customer_name: customerName,
-        created_at: new Date().toISOString()
-      });
-      
-    if (insertError) {
-      console.error('Error recording payment:', insertError);
-      return;
-    }
+    await saveSubscriptionData(
+      gcAccountId,
+      customerId,
+      subscriptionId,
+      subscription,
+      subscriptionTierId
+    );
     
-    console.log('Successfully recorded payment for GC account:', gcAccountId);
+    // Update the GC account's subscription status
+    const { error: gcUpdateError } = await supabase
+      .from('gc_accounts')
+      .update({
+        subscription_tier_id: subscriptionTierId,
+        subscription_status: 'active',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', gcAccountId);
+    
+    if (gcUpdateError) {
+      console.error('Error updating GC account subscription status:', gcUpdateError);
+    } else {
+      console.log('Successfully updated GC account subscription status');
+    }
   } catch (error) {
-    console.error('Error handling payment checkout:', error);
+    console.error('Error retrieving subscription details:', error);
   }
 }
 
@@ -398,6 +375,7 @@ async function saveSubscriptionData(gcAccountId, customerId, subscriptionId, sub
       gc_account_id: gcAccountId,
       stripe_customer_id: customerId,
       stripe_subscription_id: subscriptionId,
+      tier_id: subscriptionTierId,
       status: subscription.status,
       current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
       cancel_at_period_end: subscription.cancel_at_period_end,
@@ -410,20 +388,7 @@ async function saveSubscriptionData(gcAccountId, customerId, subscriptionId, sub
     return;
   }
   
-  // Update the gc_account with the subscription tier ID
-  const { error: gcUpdateError } = await supabase
-    .from('gc_accounts')
-    .update({
-      subscription_tier_id: subscriptionTierId,
-      subscription_status: 'active',
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', gcAccountId);
-  
-  if (gcUpdateError) {
-    console.error('Error updating GC account:', gcUpdateError);
-    return;
-  }
+  console.log('Successfully saved subscription data for GC account:', gcAccountId);
 }
 
 /**

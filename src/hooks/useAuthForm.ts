@@ -295,6 +295,38 @@ export const useAuthForm = () => {
     },
   });
 
+  const handleLoginWithSocialProvider = async (provider: string) => {
+    setIsLoading(true);
+    setErrors({});
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: provider as any,
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+      
+      if (error) {
+        console.error("Social login error:", error);
+        setErrors({
+          general: error.message
+        });
+      }
+      
+      // Important: Do not try to access session immediately here
+      // OAuth will redirect the user away from the current page
+      
+    } catch (error: any) {
+      console.error("Social login exception:", error);
+      setErrors({
+        general: error.message || "An unexpected error occurred during social login."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return {
     isLoading,
     handleRegister: async (data: RegisterFormData) => {
@@ -305,6 +337,7 @@ export const useAuthForm = () => {
     },
     registerMutation,
     loginMutation,
-    updateCompanyDetailsMutation
+    updateCompanyDetailsMutation,
+    handleLoginWithSocialProvider
   };
 };

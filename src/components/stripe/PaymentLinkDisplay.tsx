@@ -1,201 +1,133 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/use-toast';
+import { Copy, ExternalLink } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Copy, ExternalLink } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
-
-// Initialize Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 interface PaymentLinkDisplayProps {
-  invoiceId: string;
-  refreshTrigger?: number; // Optional prop to trigger a refresh
+  paymentLink: {
+    id: string;
+    url: string;
+    status: string;
+    created_at: string;
+    expires_at?: string;
+  };
+  onClose?: () => void;
 }
 
-interface PaymentLink {
-  id: string;
-  invoice_id: string;
-  payment_link_id: string;
-  payment_link_url: string;
-  payment_intent_id?: string;
-  status: 'pending' | 'paid' | 'failed' | 'expired';
-  created_at: string;
-  updated_at: string;
-}
-
-const PaymentLinkDisplay: React.FC<PaymentLinkDisplayProps> = ({ 
-  invoiceId,
-  refreshTrigger = 0
-}) => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [paymentLink, setPaymentLink] = useState<PaymentLink | null>(null);
+export function PaymentLinkDisplay({ paymentLink, onClose }: PaymentLinkDisplayProps) {
+  const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  
-  useEffect(() => {
-    const fetchPaymentLink = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const { data, error } = await supabase
-          .from('payment_links')
-          .select('*')
-          .eq('invoice_id', invoiceId)
-          .single();
-        
-        if (error) {
-          if (error.code === 'PGRST116') {
-            // No payment link found
-            setPaymentLink(null);
-          } else {
-            throw error;
-          }
-        } else {
-          setPaymentLink(data as PaymentLink);
-        }
-      } catch (err: any) {
-        console.error('Error fetching payment link:', err);
-        setError(err.message || 'Failed to fetch payment link');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchPaymentLink();
-  }, [invoiceId, refreshTrigger]);
-  
+
   const copyToClipboard = () => {
-    if (paymentLink?.payment_link_url) {
-      navigator.clipboard.writeText(paymentLink.payment_link_url)
-        .then(() => {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        })
-        .catch(err => {
-          console.error('Error copying to clipboard:', err);
-        });
-    }
+    navigator.clipboard.writeText(paymentLink.url);
+    setCopied(true);
+    
+    toast({
+      title: "Link copied to clipboard",
+      description: "You can now share this payment link with your client",
+      // Make sure to use a valid variant
+      variant: "default",
+      duration: 3000,
+    });
+    
+    setTimeout(() => setCopied(false), 3000);
   };
-  
-  const getStatusVariant = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return "success";
-      case 'pending':
-        return "warning";
-      case 'failed':
-        return "destructive";
+
+  const openLink = () => {
+    window.open(paymentLink.url, '_blank');
+  };
+
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusBadge = () => {
+    switch (paymentLink.status) {
+      case 'active':
+        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
       case 'expired':
-        return "outline";
+        return <Badge className="bg-amber-100 text-amber-800">Expired</Badge>;
+      case 'paid':
+        return <Badge className="bg-blue-100 text-blue-800">Paid</Badge>;
       default:
-        return "secondary";
+        return <Badge className="bg-gray-100 text-gray-800">{paymentLink.status}</Badge>;
     }
   };
-  
-  if (loading) {
-    return (
-      <div className="flex justify-center p-2">
-        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-  
-  if (error) {
-    return (
-      <Alert variant="destructive" className="mb-2">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
-  
-  if (!paymentLink) {
-    return (
-      <div className="p-2">
-        <p className="text-sm text-muted-foreground">
-          No payment link has been created for this invoice yet.
-        </p>
-      </div>
-    );
-  }
-  
+
   return (
-    <Card className="mb-4">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg">
-          Payment Link
-        </CardTitle>
-        <Badge 
-          variant={getStatusVariant(paymentLink.status) as "default" | "secondary" | "destructive" | "outline"}
-        >
-          {paymentLink.status.charAt(0).toUpperCase() + paymentLink.status.slice(1)}
-        </Badge>
+    <Card className="w-full border-green-200 shadow-md">
+      <CardHeader className="bg-green-50 border-b border-green-100">
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-green-800">Payment Link Created</CardTitle>
+          {getStatusBadge()}
+        </div>
+        <CardDescription>
+          Share this payment link with your client to collect payment
+        </CardDescription>
       </CardHeader>
-      
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Input
-            value={paymentLink.payment_link_url}
-            readOnly
-            className="flex-1"
-          />
-          <Button 
-            variant="outline" 
-            onClick={copyToClipboard}
-            size="sm"
-            className="flex items-center"
-          >
-            <Copy className="h-4 w-4 mr-1" />
-            {copied ? 'Copied!' : 'Copy'}
-          </Button>
-        </div>
-        
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-muted-foreground">
-            Created: {new Date(paymentLink.created_at).toLocaleString()}
-          </span>
-          
-          <Button
-            variant="link"
-            size="sm"
-            asChild
-            className="p-0 h-auto"
-          >
-            <a 
-              href={paymentLink.payment_link_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center text-primary"
+      <CardContent className="space-y-6 pt-6">
+        <div className="space-y-2">
+          <Label htmlFor="payment-link">Payment Link</Label>
+          <div className="flex gap-2">
+            <Input 
+              id="payment-link" 
+              value={paymentLink.url} 
+              readOnly 
+              className="flex-grow font-medium"
+            />
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={copyToClipboard}
+              className={copied ? "bg-green-50 text-green-600 border-green-200" : ""}
             >
-              Open link <ExternalLink className="ml-1 h-3 w-3" />
-            </a>
-          </Button>
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={openLink}
+            >
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
-        {paymentLink.status === 'paid' && (
-          <Alert variant="success" className="mt-2 bg-green-50 border-green-200">
-            <AlertDescription className="text-green-800">
-              Payment has been completed for this invoice.
-            </AlertDescription>
-          </Alert>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Created</p>
+            <p className="font-medium">{formatDate(paymentLink.created_at)}</p>
+          </div>
+          {paymentLink.expires_at && (
+            <div>
+              <p className="text-sm text-muted-foreground">Expires</p>
+              <p className="font-medium">{formatDate(paymentLink.expires_at)}</p>
+            </div>
+          )}
+        </div>
         
-        {paymentLink.status === 'failed' && (
-          <Alert variant="destructive" className="mt-2">
-            <AlertDescription>
-              Payment failed. You may need to create a new payment link.
-            </AlertDescription>
-          </Alert>
-        )}
+        <div className="pt-4 flex justify-end">
+          {onClose && (
+            <Button 
+              variant="outline" 
+              onClick={onClose}
+            >
+              Close
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
-};
-
-export default PaymentLinkDisplay;
+}

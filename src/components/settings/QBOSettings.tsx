@@ -14,6 +14,8 @@ interface SafeQBOConnection {
   id?: string;
   company_id?: string;
   company_name?: string;
+  created_at?: string;
+  updated_at?: string;
   // We intentionally don't require access_token and refresh_token here
   // as they may not be needed for the UI display
 }

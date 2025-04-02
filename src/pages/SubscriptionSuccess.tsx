@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -16,12 +17,13 @@ const SubscriptionSuccess = () => {
   const searchParams = new URLSearchParams(location.search);
   const sessionId = searchParams.get('session_id');
   const gcAccountId = searchParams.get('gc_account_id');
+  const tierId = searchParams.get('tier_id');
   const isNewUser = searchParams.get('is_new_user') === 'true';
 
   useEffect(() => {
     const updateSubscriptionStatus = async () => {
-      if (!sessionId || !gcAccountId) {
-        console.log("Missing required parameters:", { sessionId, gcAccountId });
+      if (!sessionId) {
+        console.log("Missing session_id parameter");
         toast({
           variant: 'destructive',
           title: 'Warning',
@@ -32,27 +34,59 @@ const SubscriptionSuccess = () => {
       }
 
       try {
-        console.log("Updating subscription status for GC account:", gcAccountId);
+        console.log("Processing subscription completion with session ID:", sessionId);
         
         // Check for an existing session
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData?.session) {
           console.log("No auth session found. Will attempt to update without authentication.");
-          // You may want to redirect to login here or handle this case differently
+          // Redirect to auth after brief delay
+          setTimeout(() => {
+            navigate('/auth');
+          }, 5000);
+          return;
         }
         
-        // Update the subscription status in the database
-        const { error } = await supabase
+        // Determine which account to update
+        let accountToUpdate = gcAccountId;
+        
+        // If no gc_account_id provided, try to get it from user profile
+        if (!accountToUpdate) {
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('gc_account_id')
+            .eq('id', sessionData.session.user.id)
+            .single();
+            
+          if (profileData?.gc_account_id) {
+            accountToUpdate = profileData.gc_account_id;
+            console.log("Using gc_account_id from user profile:", accountToUpdate);
+          } else {
+            toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: 'Could not determine which account to update.',
+            });
+            setUpdating(false);
+            return;
+          }
+        }
+        
+        // Get the subscription tier ID to use
+        const subscriptionTierId = tierId || '00000000-0000-0000-0000-000000000000'; // Default tier if none provided
+
+        // Update the gc_account with the subscription information
+        const { error: gcUpdateError } = await supabase
           .from('gc_accounts')
           .update({ 
-            subscription_tier_id: '00000000-0000-0000-0000-000000000000',
+            subscription_tier_id: subscriptionTierId,
             subscription_status: 'active',
             updated_at: new Date().toISOString()
           })
-          .eq('id', gcAccountId);
+          .eq('id', accountToUpdate);
 
-        if (error) {
-          console.error('Error updating subscription status:', error);
+        if (gcUpdateError) {
+          console.error('Error updating subscription status:', gcUpdateError);
           toast({
             variant: 'destructive',
             title: 'Error',
@@ -60,10 +94,34 @@ const SubscriptionSuccess = () => {
           });
         } else {
           console.log("Subscription status updated successfully");
+          
+          // Create or update account_subscriptions record
+          const { error: subscriptionError } = await supabase
+            .from('account_subscriptions')
+            .upsert({
+              gc_account_id: accountToUpdate,
+              tier_id: subscriptionTierId,
+              status: 'active',
+              start_date: new Date().toISOString(),
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }, {
+              onConflict: 'gc_account_id'
+            });
+            
+          if (subscriptionError) {
+            console.error('Error updating account_subscriptions:', subscriptionError);
+          }
+          
           toast({
             title: 'Success',
             description: 'Your subscription has been activated successfully!',
           });
+          
+          // Auto-redirect to dashboard after a short delay
+          setTimeout(() => {
+            handleContinue();
+          }, 3000);
         }
       } catch (error) {
         console.error('Error in subscription success:', error);
@@ -78,7 +136,7 @@ const SubscriptionSuccess = () => {
     };
 
     updateSubscriptionStatus();
-  }, [sessionId, gcAccountId, toast]);
+  }, [sessionId, gcAccountId, tierId, toast, navigate]);
 
   const handleContinue = () => {
     // Check if we have a session before navigating

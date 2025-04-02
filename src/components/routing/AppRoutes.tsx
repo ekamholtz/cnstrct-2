@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -40,6 +39,7 @@ export const AppRoutes = () => {
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/company-details" element={<CompanyDetailsPage />} />
+      {/* Subscription routes */}
       <Route path="/subscription-checkout" element={<SubscriptionCheckout />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/subscription-selection" element={<SubscriptionSelection />} />

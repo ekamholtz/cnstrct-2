@@ -1,132 +1,98 @@
 
 import { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
-import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
-import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-
-interface LocationState {
-  userId?: string;
-  gcAccountId?: string;
-  isNewUser?: boolean;
-}
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
+import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
+import { useToast } from '@/components/ui/use-toast';
 
 const SubscriptionCheckout = () => {
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
-  const location = useLocation();
+  const [gcAccountId, setGcAccountId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  const state = location.state as LocationState;
 
+  // Load Stripe script
   useEffect(() => {
-    // Load the Stripe Pricing Table script
-    const script = document.createElement('script');
-    script.src = 'https://js.stripe.com/v3/pricing-table.js';
-    script.async = true;
-    document.body.appendChild(script);
+    const loadStripeScript = () => {
+      const script = document.createElement('script');
+      script.src = 'https://js.stripe.com/v3/pricing-table.js';
+      script.async = true;
+      document.body.appendChild(script);
+      
+      return () => {
+        if (document.body.contains(script)) {
+          document.body.removeChild(script);
+        }
+      };
+    };
     
-    const checkUser = async () => {
+    loadStripeScript();
+  }, []);
+
+  // Get user and account information
+  useEffect(() => {
+    const fetchUserDetails = async () => {
       try {
-        // If no user is authenticated, attempt to get one from the supabase session
-        if (!user) {
-          console.log("No user in context, checking for session...");
-          const { data: sessionData } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          // Not logged in, redirect to auth
+          toast({
+            variant: 'destructive',
+            title: 'Authentication required',
+            description: 'Please log in to access subscription options',
+          });
+          navigate('/auth');
+          return;
+        }
+        
+        // Get user profile and gc_account_id
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('gc_account_id, role')
+          .eq('id', session.user.id)
+          .single();
           
-          if (!sessionData?.session?.user && (!state || !state.userId)) {
-            console.log("No session found and no state provided, redirecting to login");
-            navigate("/auth");
-            return;
-          } else if (sessionData?.session?.user) {
-            console.log("Session found:", sessionData.session.user.email);
-          }
-        } else {
-          console.log("User authenticated:", user.email);
+        if (profile?.gc_account_id) {
+          setGcAccountId(profile.gc_account_id);
+        } else if (profile?.role === 'gc_admin') {
+          // GC admin without account - might need to create one
+          toast({
+            variant: 'destructive',
+            title: 'Account setup required',
+            description: 'Please complete your profile before subscribing',
+          });
+          navigate('/profile-completion');
+          return;
         }
         
         setLoading(false);
       } catch (error) {
-        console.error('Error in subscription checkout:', error);
+        console.error('Error fetching user details:', error);
         toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load subscription options.",
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to load account information',
         });
         setLoading(false);
       }
     };
     
-    checkUser();
-    
-    return () => {
-      if (document.body.contains(script)) {
-        document.body.removeChild(script);
-      }
-    };
-  }, [user, navigate, toast, state]);
-  
-  const handleGoBack = () => {
-    navigate(-1);
+    fetchUserDetails();
+  }, [navigate, toast]);
+
+  const handleCancel = () => {
+    navigate('/dashboard');
   };
 
-  const handleSuccess = async (event: any) => {
-    // This handles the message from the Stripe pricing table when a subscription is created
-    if (event?.data?.type === 'checkout.success') {
-      const { sessionId } = event.data;
-      console.log("Subscription successful with session ID:", sessionId);
-      
-      // Get the current user and gc_account_id
-      let userId = user?.id || state?.userId;
-      let gcAccountId = state?.gcAccountId;
-      
-      if (!userId || !gcAccountId) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        userId = sessionData?.session?.user?.id;
-        
-        if (userId) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('gc_account_id')
-            .eq('id', userId)
-            .single();
-            
-          gcAccountId = profileData?.gc_account_id;
-        }
-      }
-      
-      if (userId && gcAccountId) {
-        navigate(`/subscription-success?session_id=${sessionId}&gc_account_id=${gcAccountId}&is_new_user=${state?.isNewUser ? 'true' : 'false'}`);
-      } else {
-        navigate('/dashboard');
-      }
-    }
-  };
-  
-  // Add event listener for Stripe checkout messages
-  useEffect(() => {
-    window.addEventListener('message', handleSuccess);
-    return () => {
-      window.removeEventListener('message', handleSuccess);
-    };
-  }, [user, state]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-cnstrct-orange mx-auto mb-4" />
-          <p className="text-gray-600">Loading subscription options...</p>
-        </div>
-      </div>
-    );
-  }
+  // Configure stripe pricing table with success URL that includes gc_account_id
+  const successUrl = gcAccountId 
+    ? `${window.location.origin}/subscription-success?gc_account_id=${gcAccountId}`
+    : `${window.location.origin}/subscription-success`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden">
-      {/* Animated background */}
       <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-cnstrct-navy/5 to-cnstrct-navy/10 z-0"></div>
       <AnimatedGridPattern 
         className="z-0" 
@@ -138,63 +104,60 @@ const SubscriptionCheckout = () => {
         size={35}
       />
 
-      {/* Header */}
       <header className="p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm z-10 relative">
         <div className="container mx-auto">
           <img
             src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
             alt="CNSTRCT Logo"
-            className="h-10 cursor-pointer"
-            onClick={() => navigate("/")}
+            className="h-10"
           />
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-grow container mx-auto px-4 py-12 z-10 relative">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h1 className="text-3xl font-bold text-cnstrct-navy mb-3">Select Your Subscription Plan</h1>
-            <p className="text-gray-600 max-w-2xl mx-auto">
-              Choose the subscription tier that best fits your business needs. You can upgrade or downgrade your plan at any time.
-            </p>
-          </div>
-
-          {/* Stripe Pricing Table */}
-          <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-4 mb-8">
-            {/* Updated Stripe pricing table with the provided IDs */}
-            <stripe-pricing-table 
-              pricing-table-id="prctbl_1R9UC0Apu80f9E3HqRPNRBtK"
-              publishable-key="pk_test_51QzjhnApu80f9E3HjlgkmHwM1a4krzjoz0sJlsz41wIhMYIr1sst6sx2mCZ037PiY2UE6xfNA5zzkxCQwOAJ4yoD00gm7TIByL"
-              client-reference-id="subscription"
-              data-mode="subscription">
-            </stripe-pricing-table>
-          </div>
-
-          <div className="text-center">
-            <Button
-              variant="outline"
-              onClick={handleGoBack}
-              className="mt-4"
-            >
-              Go Back
-            </Button>
-          </div>
+        <div className="max-w-4xl mx-auto bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-8">
+          <h1 className="text-2xl font-bold text-cnstrct-navy mb-3 text-center">
+            Select Your Subscription Plan
+          </h1>
+          
+          <p className="text-gray-600 mb-8 text-center">
+            Choose the plan that best fits your business needs
+          </p>
+          
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cnstrct-navy"></div>
+            </div>
+          ) : (
+            <>
+              {/* Stripe Pricing Table */}
+              <stripe-pricing-table 
+                pricing-table-id="prctbl_1R9UC0Apu80f9E3HqRPNRBtK"
+                publishable-key="pk_test_51QzjhnApu80f9E3HjlgkmHwM1a4krzjoz0sJlsz41wIhMYIr1sst6sx2mCZ037PiY2UE6xfNA5zzkxCQwOAJ4yoD00gm7TIByL"
+                client-reference-id={gcAccountId || undefined}
+                customer-email=""
+                success-url={successUrl}
+                cancel-url={`${window.location.origin}/settings`}>
+              </stripe-pricing-table>
+              
+              <div className="mt-6 flex justify-center">
+                <Button 
+                  variant="outline"
+                  onClick={handleCancel}
+                  className="px-8"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </>
+          )}
         </div>
       </main>
-
-      {/* Footer */}
+      
       <footer className="py-6 border-t border-gray-200 bg-white/80 backdrop-blur-sm z-10 relative">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-gray-500">
-            By continuing, you agree to CNSTRCT's{" "}
-            <a href="#" className="text-cnstrct-orange hover:underline font-medium">
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a href="#" className="text-cnstrct-orange hover:underline font-medium">
-              Privacy Policy
-            </a>
+            © {new Date().getFullYear()} CNSTRCT. All rights reserved.
           </p>
         </div>
       </footer>
