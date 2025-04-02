@@ -1,10 +1,9 @@
-
 /**
  * Stripe Connect Service
  * Provides functionality for Stripe Connect account management
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { StripeConnectAccount, StripeAccountStatus } from '@/types/stripe';
 import { stripeConnectConfig } from './stripeConnectConfig';
 

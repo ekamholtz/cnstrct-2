@@ -1,10 +1,9 @@
-
 /**
  * Stripe Invoice Service
  * Provides functionality for syncing invoices with Stripe and generating payment links
  */
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { StripeInvoice, StripePaymentLink } from '@/types/stripe';
 import { calculatePlatformFee } from './stripeConnectConfig';
 

@@ -1,5 +1,7 @@
+
 import axios from "axios";
 import { QBOConnectionService } from "./connection/qboConnectionService";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * Simplified QBO service that uses the CORS proxy for API calls
@@ -46,12 +48,19 @@ export class QBOProxyService {
         console.log('Received new access token from proxy, updating connection');
         
         try {
-          // Update the connection in the database
-          await this.connectionService.updateConnection({
-            ...connection,
-            access_token: response.data.newAccessToken,
-            refresh_token: response.data.newRefreshToken || connection.refresh_token
-          });
+          // Update the connection directly in Supabase instead of using a non-existent method
+          const { error } = await supabase
+            .from('qbo_connections')
+            .update({
+              access_token: response.data.newAccessToken,
+              refresh_token: response.data.newRefreshToken || connection.refresh_token,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', connection.id);
+            
+          if (error) {
+            console.error('Error updating connection with new tokens:', error);
+          }
         } catch (updateError) {
           console.error('Error updating connection with new tokens:', updateError);
         }

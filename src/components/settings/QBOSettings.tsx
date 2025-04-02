@@ -9,12 +9,24 @@ import { QBOSyncInformation } from "./qbo/QBOSyncInformation";
 import { QBONoConnectionInfo } from "./qbo/QBONoConnectionInfo";
 import { QBODebugInfo } from "./qbo/QBODebugInfo";
 
+// Define a safer type that doesn't require specific properties
+interface SafeQBOConnection {
+  id?: string;
+  company_id?: string;
+  company_name?: string;
+  // We intentionally don't require access_token and refresh_token here
+  // as they may not be needed for the UI display
+}
+
 export function QBOSettings() {
   const { connection, isLoading, error, connectToQBO, disconnectFromQBO } = useQBOConnection();
   
   // Check if we're in development/sandbox mode
   const isSandboxMode = window.location.hostname === 'localhost' || 
                          window.location.hostname.includes('127.0.0.1');
+  
+  // Cast connection to the safer type that doesn't require all fields
+  const safeConnection = connection as SafeQBOConnection | null;
   
   return (
     <Card className="w-full">
@@ -38,10 +50,10 @@ export function QBOSettings() {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : connection ? (
+        ) : safeConnection ? (
           <>
             <QBOConnectionDetails 
-              connection={connection} 
+              connection={safeConnection} 
               isSandboxMode={isSandboxMode} 
             />
             <QBOSyncInformation />
@@ -54,7 +66,7 @@ export function QBOSettings() {
       <CardFooter className="flex justify-end">
         {!isLoading && (
           <QBOConnectionActions 
-            connection={connection}
+            connection={safeConnection}
             connectToQBO={connectToQBO}
             disconnectFromQBO={disconnectFromQBO}
             isSandboxMode={isSandboxMode}

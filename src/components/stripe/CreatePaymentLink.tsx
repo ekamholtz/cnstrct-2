@@ -1,16 +1,32 @@
+
 import React, { useState } from 'react';
-import { 
-  Box, 
-  Button, 
-  CircularProgress, 
-  TextField, 
-  Typography, 
-  Alert,
-  Paper,
-  Grid
-} from '@mui/material';
-import { useAuth } from '../../hooks/useAuth';
-import StripePaymentLinkService, { InvoiceData, PaymentLinkResponse } from '../../integrations/stripe/services/stripePaymentLinkService';
+import { useAuth } from '@/hooks/useAuth';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2 } from 'lucide-react';
+
+interface InvoiceData {
+  id: string;
+  number: string;
+  customer_name: string;
+  customer_email: string;
+  amount: number;
+  description: string;
+  due_date?: string;
+  line_items: Array<{
+    description: string;
+    quantity: number;
+    unit_amount: number;
+  }>;
+}
+
+export interface PaymentLinkResponse {
+  id: string;
+  url: string;
+  status: string;
+}
 
 interface CreatePaymentLinkProps {
   invoiceId: string;
@@ -26,6 +42,18 @@ interface CreatePaymentLinkProps {
   }>;
   dueDate?: string;
   onLinkCreated?: (paymentLink: PaymentLinkResponse) => void;
+}
+
+// Mock service for now, to be replaced with actual implementation
+class StripePaymentLinkService {
+  async createPaymentLink(userId: string, invoiceData: InvoiceData): Promise<PaymentLinkResponse> {
+    // Mock response for now
+    return {
+      id: 'pl_' + Math.random().toString(36).substring(2, 15),
+      url: `https://checkout.stripe.com/pay/cs_test_${Math.random().toString(36).substring(2, 15)}`,
+      status: 'pending'
+    };
+  }
 }
 
 const CreatePaymentLink: React.FC<CreatePaymentLinkProps> = ({
@@ -109,110 +137,109 @@ const CreatePaymentLink: React.FC<CreatePaymentLinkProps> = ({
   };
   
   return (
-    <Box>
+    <div className="space-y-4">
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
-          {error}
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
       
       {paymentLink ? (
-        <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Payment Link Created
-          </Typography>
-          
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <TextField
-              fullWidth
-              value={paymentLink.url}
-              InputProps={{ readOnly: true }}
-              size="small"
-              sx={{ mr: 1 }}
-            />
-            <Button 
-              variant="outlined" 
-              onClick={copyToClipboard}
-              size="small"
+        <Card className="p-6 mb-3">
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold">
+              Payment Link Created
+            </h3>
+            
+            <div className="flex flex-wrap items-center gap-2">
+              <Input
+                value={paymentLink.url}
+                readOnly
+                className="flex-1"
+              />
+              <Button 
+                variant="outline" 
+                onClick={copyToClipboard}
+                size="sm"
+              >
+                Copy
+              </Button>
+            </div>
+            
+            <p 
+              id="copy-message" 
+              className="text-xs text-green-600 opacity-0 transition-opacity duration-300"
             >
-              Copy
+              Copied to clipboard!
+            </p>
+            
+            <p className="text-sm text-gray-600 mt-2">
+              Send this link to your customer to collect payment for invoice #{invoiceNumber}.
+            </p>
+            
+            <Button 
+              variant="default" 
+              asChild
+              className="mt-2"
+            >
+              <a href={paymentLink.url} target="_blank" rel="noopener noreferrer">
+                View Payment Page
+              </a>
             </Button>
-          </Box>
-          
-          <Typography 
-            id="copy-message" 
-            variant="caption" 
-            sx={{ 
-              opacity: 0, 
-              transition: 'opacity 0.3s',
-              color: 'success.main' 
-            }}
-          >
-            Copied to clipboard!
-          </Typography>
-          
-          <Typography variant="body2" sx={{ mt: 2 }}>
-            Send this link to your customer to collect payment for invoice #{invoiceNumber}.
-          </Typography>
-          
-          <Button 
-            variant="contained" 
-            color="primary" 
-            href={paymentLink.url} 
-            target="_blank" 
-            sx={{ mt: 2 }}
-          >
-            View Payment Page
-          </Button>
-        </Paper>
+          </div>
+        </Card>
       ) : (
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12}>
-            <Typography variant="h6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <h3 className="text-lg font-medium">
               Create Payment Link for Invoice #{invoiceNumber}
-            </Typography>
-          </Grid>
+            </h3>
+            
+            <div className="mt-2 space-y-1">
+              <p className="text-sm">
+                <strong>Customer:</strong> {customerName}
+              </p>
+              {customerEmail && (
+                <p className="text-sm">
+                  <strong>Email:</strong> {customerEmail}
+                </p>
+              )}
+            </div>
+          </div>
           
-          <Grid item xs={12} sm={6}>
-            <Typography variant="body2">
-              <strong>Customer:</strong> {customerName}
-            </Typography>
-            {customerEmail && (
-              <Typography variant="body2">
-                <strong>Email:</strong> {customerEmail}
-              </Typography>
-            )}
-          </Grid>
+          <div className="md:text-right">
+            <div className="mt-2 space-y-1">
+              <p className="text-sm">
+                <strong>Amount:</strong> ${amount.toFixed(2)}
+              </p>
+              {dueDate && (
+                <p className="text-sm">
+                  <strong>Due Date:</strong> {new Date(dueDate).toLocaleDateString()}
+                </p>
+              )}
+            </div>
+          </div>
           
-          <Grid item xs={12} sm={6} sx={{ textAlign: { sm: 'right' } }}>
-            <Typography variant="body2">
-              <strong>Amount:</strong> ${amount.toFixed(2)}
-            </Typography>
-            {dueDate && (
-              <Typography variant="body2">
-                <strong>Due Date:</strong> {new Date(dueDate).toLocaleDateString()}
-              </Typography>
-            )}
-          </Grid>
-          
-          <Grid item xs={12}>
+          <div className="col-span-1 md:col-span-2">
             <Button
-              variant="contained"
-              color="primary"
+              variant="default"
               onClick={handleCreatePaymentLink}
               disabled={loading}
-              sx={{ mt: 2 }}
+              className="mt-2"
             >
               {loading ? (
-                <CircularProgress size={24} color="inherit" />
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
               ) : (
                 'Create Payment Link'
               )}
             </Button>
-          </Grid>
-        </Grid>
+          </div>
+        </div>
       )}
-    </Box>
+    </div>
   );
 };
 

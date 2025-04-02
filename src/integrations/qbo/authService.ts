@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { QBOConfig } from "./config/qboConfig";
 import { QBOUtils } from "./utils/qboUtils";
@@ -136,8 +137,33 @@ export class QBOAuthService {
   
   /**
    * Disconnect from QBO
+   * Fix: Implement the disconnect method locally since it doesn't exist on the service
    */
   async disconnect(): Promise<boolean> {
-    return this.connectionService.disconnect();
+    try {
+      // Get the connection first
+      const connection = await this.connectionService.getConnection();
+      
+      if (!connection) {
+        console.log("No connection to disconnect");
+        return true;
+      }
+      
+      // Delete the connection using the connection ID
+      const { error } = await supabase
+        .from('qbo_connections')
+        .delete()
+        .eq('id', connection.id);
+        
+      if (error) {
+        console.error("Error disconnecting from QBO:", error);
+        throw error;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Failed to disconnect from QBO:", error);
+      return false;
+    }
   }
 }

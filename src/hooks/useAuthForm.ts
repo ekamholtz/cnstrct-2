@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -142,7 +141,6 @@ export const useAuthForm = () => {
     },
   });
 
-  // New mutation for updating company details
   const updateCompanyDetailsMutation = useMutation({
     mutationFn: async ({ gcAccountId, data }: { gcAccountId: string, data: CompanyDetailsFormData }) => {
       setIsLoading(true);
@@ -179,15 +177,16 @@ export const useAuthForm = () => {
       });
       
       // Get the current authentication session before redirecting
-      const currentSession = supabase.auth.session;
-      console.log("Current session before subscription redirect:", currentSession ? "Valid" : "None");
-      
-      // Redirect to subscription checkout with state preserved
-      navigate("/subscription-checkout", { 
-        state: { 
-          gcAccountId: variables.gcAccountId,
-          isNewUser: true 
-        }
+      supabase.auth.getSession().then(({ data }) => {
+        console.log("Current session before subscription redirect:", data.session ? "Valid" : "None");
+        
+        // Redirect to subscription checkout with state preserved
+        navigate("/subscription-checkout", { 
+          state: { 
+            gcAccountId: variables.gcAccountId,
+            isNewUser: true 
+          }
+        });
       });
     },
     onError: (error: any) => {
@@ -296,18 +295,14 @@ export const useAuthForm = () => {
     },
   });
 
-  const handleRegister = async (data: RegisterFormData) => {
-    return registerMutation.mutateAsync(data);
-  };
-
-  const handleLogin = async (data: LoginFormData) => {
-    return loginMutation.mutateAsync(data);
-  };
-
   return {
     isLoading,
-    handleRegister,
-    handleLogin,
+    handleRegister: async (data: RegisterFormData) => {
+      return registerMutation.mutateAsync(data);
+    },
+    handleLogin: async (data: LoginFormData) => {
+      return loginMutation.mutateAsync(data);
+    },
     registerMutation,
     loginMutation,
     updateCompanyDetailsMutation

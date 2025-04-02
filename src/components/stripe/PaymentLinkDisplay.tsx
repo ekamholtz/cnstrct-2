@@ -1,17 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
-import { 
-  Box, 
-  Button, 
-  Chip, 
-  CircularProgress, 
-  Paper, 
-  TextField, 
-  Typography, 
-  Alert,
-  Link
-} from '@mui/material';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import OpenInNewIcon from '@mui/icons-material/OpenInNew';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Copy, ExternalLink } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client
@@ -90,116 +84,117 @@ const PaymentLinkDisplay: React.FC<PaymentLinkDisplayProps> = ({
     }
   };
   
-  const getStatusColor = (status: string) => {
+  const getStatusVariant = (status: string) => {
     switch (status) {
       case 'paid':
-        return 'success';
+        return "success";
       case 'pending':
-        return 'warning';
+        return "warning";
       case 'failed':
-        return 'error';
+        return "destructive";
       case 'expired':
-        return 'default';
+        return "outline";
       default:
-        return 'default';
+        return "secondary";
     }
   };
   
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-        <CircularProgress size={24} />
-      </Box>
+      <div className="flex justify-center p-2">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
     );
   }
   
   if (error) {
     return (
-      <Alert severity="error" sx={{ mb: 2 }}>
-        {error}
+      <Alert variant="destructive" className="mb-2">
+        <AlertDescription>{error}</AlertDescription>
       </Alert>
     );
   }
   
   if (!paymentLink) {
     return (
-      <Box sx={{ p: 2 }}>
-        <Typography variant="body2" color="text.secondary">
+      <div className="p-2">
+        <p className="text-sm text-muted-foreground">
           No payment link has been created for this invoice yet.
-        </Typography>
-      </Box>
+        </p>
+      </div>
     );
   }
   
   return (
-    <Paper elevation={1} sx={{ p: 2, mb: 2 }}>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="subtitle1">
+    <Card className="mb-4">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-lg">
           Payment Link
-        </Typography>
-        <Chip 
-          label={paymentLink.status.charAt(0).toUpperCase() + paymentLink.status.slice(1)} 
-          color={getStatusColor(paymentLink.status) as any}
-          size="small"
-        />
-      </Box>
-      
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <TextField
-          fullWidth
-          value={paymentLink.payment_link_url}
-          InputProps={{ readOnly: true }}
-          size="small"
-          sx={{ mr: 1 }}
-        />
-        <Button 
-          variant="outlined" 
-          onClick={copyToClipboard}
-          size="small"
-          startIcon={<ContentCopyIcon />}
-          color={copied ? "success" : "primary"}
+        </CardTitle>
+        <Badge 
+          variant={getStatusVariant(paymentLink.status) as "default" | "secondary" | "destructive" | "outline"}
         >
-          {copied ? 'Copied!' : 'Copy'}
-        </Button>
-      </Box>
+          {paymentLink.status.charAt(0).toUpperCase() + paymentLink.status.slice(1)}
+        </Badge>
+      </CardHeader>
       
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="caption" color="text.secondary">
-          Created: {new Date(paymentLink.created_at).toLocaleString()}
-        </Typography>
-        
-        <Link
-          href={paymentLink.payment_link_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          sx={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}
-        >
+      <CardContent className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Input
+            value={paymentLink.payment_link_url}
+            readOnly
+            className="flex-1"
+          />
           <Button 
-            variant="text" 
-            size="small"
-            endIcon={<OpenInNewIcon fontSize="small" />}
+            variant="outline" 
+            onClick={copyToClipboard}
+            size="sm"
+            className="flex items-center"
           >
-            Open link
+            <Copy className="h-4 w-4 mr-1" />
+            {copied ? 'Copied!' : 'Copy'}
           </Button>
-        </Link>
-      </Box>
-      
-      {paymentLink.status === 'paid' && (
-        <Box sx={{ mt: 2 }}>
-          <Alert severity="success">
-            Payment has been completed for this invoice.
+        </div>
+        
+        <div className="flex justify-between items-center text-sm">
+          <span className="text-muted-foreground">
+            Created: {new Date(paymentLink.created_at).toLocaleString()}
+          </span>
+          
+          <Button
+            variant="link"
+            size="sm"
+            asChild
+            className="p-0 h-auto"
+          >
+            <a 
+              href={paymentLink.payment_link_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center text-primary"
+            >
+              Open link <ExternalLink className="ml-1 h-3 w-3" />
+            </a>
+          </Button>
+        </div>
+        
+        {paymentLink.status === 'paid' && (
+          <Alert variant="success" className="mt-2 bg-green-50 border-green-200">
+            <AlertDescription className="text-green-800">
+              Payment has been completed for this invoice.
+            </AlertDescription>
           </Alert>
-        </Box>
-      )}
-      
-      {paymentLink.status === 'failed' && (
-        <Box sx={{ mt: 2 }}>
-          <Alert severity="error">
-            Payment failed. You may need to create a new payment link.
+        )}
+        
+        {paymentLink.status === 'failed' && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertDescription>
+              Payment failed. You may need to create a new payment link.
+            </AlertDescription>
           </Alert>
-        </Box>
-      )}
-    </Paper>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 

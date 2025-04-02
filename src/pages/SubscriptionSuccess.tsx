@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,7 +23,7 @@ const SubscriptionSuccess = () => {
       if (!sessionId || !gcAccountId) {
         console.log("Missing required parameters:", { sessionId, gcAccountId });
         toast({
-          variant: 'warning',
+          variant: 'destructive',
           title: 'Warning',
           description: 'Missing subscription information. Your subscription may not be activated correctly.',
         });
@@ -46,7 +45,7 @@ const SubscriptionSuccess = () => {
         const { error } = await supabase
           .from('gc_accounts')
           .update({ 
-            subscription_tier_id: '00000000-0000-0000-0000-000000000000', // Use a dummy ID or fetch a real one
+            subscription_tier_id: '00000000-0000-0000-0000-000000000000',
             subscription_status: 'active',
             updated_at: new Date().toISOString()
           })
@@ -100,7 +99,6 @@ const SubscriptionSuccess = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden">
-      {/* Animated background */}
       <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-cnstrct-navy/5 to-cnstrct-navy/10 z-0"></div>
       <AnimatedGridPattern 
         className="z-0" 
@@ -112,7 +110,6 @@ const SubscriptionSuccess = () => {
         size={35}
       />
 
-      {/* Header */}
       <header className="p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm z-10 relative">
         <div className="container mx-auto">
           <img
@@ -123,7 +120,6 @@ const SubscriptionSuccess = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-grow container mx-auto px-4 py-12 z-10 relative flex items-center justify-center">
         <div className="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-8 text-center">
           {updating ? (
@@ -156,7 +152,6 @@ const SubscriptionSuccess = () => {
         </div>
       </main>
       
-      {/* Footer */}
       <footer className="py-6 border-t border-gray-200 bg-white/80 backdrop-blur-sm z-10 relative">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-gray-500">
