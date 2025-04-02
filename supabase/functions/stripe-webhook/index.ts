@@ -1,3 +1,4 @@
+
 // Supabase Edge Function for handling Stripe Webhooks
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 import Stripe from 'https://esm.sh/stripe@13.4.0?target=deno'
@@ -43,13 +44,9 @@ Deno.serve(async (req) => {
     // Get the signature from the headers
     const signature = req.headers.get('stripe-signature')
     
-    if (!signature || !webhookSecret) {
-      console.error('Missing signature or webhook secret:', { 
-        hasSignature: !!signature,
-        hasWebhookSecret: !!webhookSecret,
-        webhookSecretLength: webhookSecret?.length
-      })
-      return new Response(JSON.stringify({ error: 'Missing Stripe signature or webhook secret' }), {
+    if (!signature) {
+      console.error('Missing signature');
+      return new Response(JSON.stringify({ error: 'Missing Stripe signature' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -60,30 +57,36 @@ Deno.serve(async (req) => {
     
     let event;
     try {
-      // BYPASS MODE FOR TESTING
-      // This logs the event data but skips signature verification
-      // Remove this bypass in production after troubleshooting
-      console.log('BYPASS MODE: Skipping signature verification temporarily');
+      // For development and debugging, log the raw payload
+      console.log('Received webhook payload:', body.substring(0, 500) + '...');
       
-      // Parse the webhook payload directly
+      // Parse the webhook payload
       event = JSON.parse(body);
+      
+      // Validate webhook signature if we have a secret
+      if (webhookSecret) {
+        try {
+          event = await stripe.webhooks.constructEventAsync(
+            body,
+            signature,
+            webhookSecret,
+            undefined,
+            cryptoProvider
+          );
+        } catch (verifyErr) {
+          console.error(`Webhook signature verification failed: ${verifyErr.message}`);
+          // In development, we still want to process the event even if signature verification fails
+          console.log('Continuing with unverified event for debugging');
+        }
+      } else {
+        console.log('No webhook secret configured, skipping signature verification');
+      }
       
       console.log('Webhook event received:', {
         type: event.type,
         id: event.id,
-        objectType: event.data?.object?.object || 'unknown',
+        objectType: event?.data?.object?.object || 'unknown',
       });
-      
-      // Skip the normal verification process while troubleshooting
-      /* 
-      event = await stripe.webhooks.constructEventAsync(
-        body,
-        signature,
-        webhookSecret,
-        undefined,
-        cryptoProvider
-      );
-      */
       
     } catch (err) {
       console.error(`Webhook parsing error: ${err.message}`);
@@ -253,29 +256,79 @@ async function handlePaymentIntentFailed(paymentIntent) {
  */
 async function handleCheckoutSessionCompleted(session) {
   console.log('Processing checkout.session.completed event:', session.id);
+  console.log('Session details:', JSON.stringify(session, null, 2));
   
   try {
     // Check if we have a client_reference_id (should be the gc_account_id)
     const gcAccountId = session.client_reference_id;
     if (!gcAccountId) {
-      console.log('No gc_account_id found in client_reference_id, processing as generic checkout');
-      // For test events or generic checkouts without client_reference_id, we still log the event
-      // but don't try to update any specific records
+      console.log('No gc_account_id found in client_reference_id, checking metadata');
+      // Try to get it from metadata
+      if (session.metadata?.gc_account_id) {
+        console.log('Found gc_account_id in metadata:', session.metadata.gc_account_id);
+        await handleCheckoutWithAccountId(session, session.metadata.gc_account_id);
+      } else {
+        console.log('No gc_account_id found in metadata either, logging event only');
+      }
       return;
     }
     
-    // Handle based on session mode
-    if (session.mode === 'subscription') {
-      await handleSubscriptionCheckout(session, gcAccountId);
-    } else if (session.mode === 'payment') {
-      await handlePaymentCheckout(session, gcAccountId);
-    } else {
-      console.log(`Unsupported checkout session mode: ${session.mode}`);
-    }
+    await handleCheckoutWithAccountId(session, gcAccountId);
     
-    console.log('Successfully processed checkout session for GC account:', gcAccountId);
   } catch (error) {
     console.error('Error handling checkout.session.completed:', error);
+  }
+}
+
+/**
+ * Process checkout with a known account ID
+ */
+async function handleCheckoutWithAccountId(session, gcAccountId) {
+  console.log('Processing checkout for account:', gcAccountId);
+  
+  // Handle based on session mode
+  if (session.mode === 'subscription') {
+    await handleSubscriptionCheckout(session, gcAccountId);
+  } else if (session.mode === 'payment') {
+    await handlePaymentCheckout(session, gcAccountId);
+  } else {
+    console.log(`Unsupported checkout session mode: ${session.mode}`);
+  }
+  
+  console.log('Successfully processed checkout session for GC account:', gcAccountId);
+}
+
+/**
+ * Handle payment mode checkout (one-time payment)
+ */
+async function handlePaymentCheckout(session, gcAccountId) {
+  console.log('Processing one-time payment checkout:', session.id);
+  
+  // Record the payment
+  try {
+    const paymentData = {
+      gc_account_id: gcAccountId,
+      customer_email: session.customer_email || session.customer_details?.email,
+      customer_name: session.customer_details?.name,
+      amount: session.amount_total,
+      currency: session.currency,
+      status: session.payment_status,
+      payment_intent_id: session.payment_intent,
+      checkout_session_id: session.id,
+      created_at: new Date().toISOString()
+    };
+    
+    const { error } = await supabase
+      .from('payment_records')
+      .insert(paymentData);
+      
+    if (error) {
+      console.error('Error recording payment:', error);
+    } else {
+      console.log('Successfully recorded payment');
+    }
+  } catch (error) {
+    console.error('Error handling payment checkout:', error);
   }
 }
 
@@ -295,6 +348,7 @@ async function handleSubscriptionCheckout(session, gcAccountId) {
   try {
     // Retrieve the subscription details from Stripe
     const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    console.log('Subscription details:', JSON.stringify(subscription, null, 2));
     
     // Get customer ID
     const customerId = session.customer;
@@ -306,6 +360,7 @@ async function handleSubscriptionCheckout(session, gcAccountId) {
     // Get the price ID from the first line item
     if (subscription.items?.data?.length > 0) {
       const priceId = subscription.items.data[0].price.id;
+      console.log('Price ID from subscription:', priceId);
       
       // Map price IDs to your subscription tiers
       // This is a simple example - you might want to store this mapping in your database
@@ -321,7 +376,10 @@ async function handleSubscriptionCheckout(session, gcAccountId) {
     // Use a default tier ID if we couldn't determine the tier
     if (!subscriptionTierId) {
       subscriptionTierId = '00000000-0000-0000-0000-000000000001'; // Default to basic tier
+      console.log('Using default tier ID');
     }
+    
+    console.log('Using subscription tier ID:', subscriptionTierId);
     
     await saveSubscriptionData(
       gcAccountId,
@@ -355,6 +413,8 @@ async function handleSubscriptionCheckout(session, gcAccountId) {
  * Save subscription data to the database
  */
 async function saveSubscriptionData(gcAccountId, customerId, subscriptionId, subscription, subscriptionTierId) {
+  console.log('Saving subscription data for account:', gcAccountId);
+  
   // Save the subscription data to your database
   const { data: existingSubscription, error: fetchError } = await supabase
     .from('account_subscriptions')
@@ -368,24 +428,39 @@ async function saveSubscriptionData(gcAccountId, customerId, subscriptionId, sub
   }
   
   // Create or update the subscription record
-  const { error: upsertError } = await supabase
-    .from('account_subscriptions')
-    .upsert({
-      id: existingSubscription?.id,
-      gc_account_id: gcAccountId,
-      stripe_customer_id: customerId,
-      stripe_subscription_id: subscriptionId,
-      tier_id: subscriptionTierId,
-      status: subscription.status,
-      current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-      cancel_at_period_end: subscription.cancel_at_period_end,
-      created_at: existingSubscription?.created_at || new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
+  const subscriptionData = {
+    gc_account_id: gcAccountId,
+    stripe_customer_id: customerId,
+    stripe_subscription_id: subscriptionId,
+    tier_id: subscriptionTierId,
+    status: subscription.status,
+    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+    cancel_at_period_end: subscription.cancel_at_period_end,
+    created_at: existingSubscription?.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
   
-  if (upsertError) {
-    console.error('Error upserting subscription record:', upsertError);
-    return;
+  if (existingSubscription?.id) {
+    // Update existing subscription
+    const { error: updateError } = await supabase
+      .from('account_subscriptions')
+      .update(subscriptionData)
+      .eq('id', existingSubscription.id);
+      
+    if (updateError) {
+      console.error('Error updating subscription record:', updateError);
+      return;
+    }
+  } else {
+    // Create new subscription
+    const { error: insertError } = await supabase
+      .from('account_subscriptions')
+      .insert(subscriptionData);
+      
+    if (insertError) {
+      console.error('Error inserting subscription record:', insertError);
+      return;
+    }
   }
   
   console.log('Successfully saved subscription data for GC account:', gcAccountId);

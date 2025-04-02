@@ -1,5 +1,4 @@
 
-
 // Types for Stripe integration
 
 export type StripeAccountStatus = 
@@ -59,6 +58,7 @@ declare global {
         'customer-email'?: string;
         'success-url'?: string;
         'cancel-url'?: string;
+        'data-mode'?: string;
       }, HTMLElement>;
     }
   }

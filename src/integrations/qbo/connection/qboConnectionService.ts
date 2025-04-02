@@ -92,4 +92,37 @@ export class QBOConnectionService {
   async disconnect(): Promise<boolean> {
     return this.deleteConnection();
   }
+  
+  /**
+   * Update the QBO connection for the current user
+   * @param connectionData Updated connection data
+   * @returns true if successful, false otherwise
+   */
+  async updateConnection(connectionData: Partial<QBOConnection>): Promise<boolean> {
+    try {
+      // Get the current user
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        console.log('No user found, cannot update QBO connection');
+        return false;
+      }
+      
+      // Update the connection for this user
+      const { error } = await supabase
+        .from('qbo_connections')
+        .update(connectionData)
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error('Error updating QBO connection:', error);
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error in updateConnection:', error);
+      return false;
+    }
+  }
 }

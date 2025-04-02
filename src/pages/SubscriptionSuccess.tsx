@@ -75,6 +75,9 @@ const SubscriptionSuccess = () => {
         // Get the subscription tier ID to use
         const subscriptionTierId = tierId || '00000000-0000-0000-0000-000000000000'; // Default tier if none provided
 
+        // We'll update via the webhook, but also do a direct update here in case the webhook hasn't arrived yet
+        console.log("Updating subscription status in database...");
+        
         // Update the gc_account with the subscription information
         const { error: gcUpdateError } = await supabase
           .from('gc_accounts')

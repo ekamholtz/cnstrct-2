@@ -5,16 +5,19 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
 import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 const SubscriptionCheckout = () => {
   const [loading, setLoading] = useState(true);
   const [gcAccountId, setGcAccountId] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Load Stripe script
   useEffect(() => {
     const loadStripeScript = () => {
+      console.log("Loading Stripe script...");
       const script = document.createElement('script');
       script.src = 'https://js.stripe.com/v3/pricing-table.js';
       script.async = true;
@@ -34,27 +37,29 @@ const SubscriptionCheckout = () => {
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          // Not logged in, redirect to auth
-          toast({
-            variant: 'destructive',
-            title: 'Authentication required',
-            description: 'Please log in to access subscription options',
-          });
-          navigate('/auth');
+        if (!user) {
+          console.log("No authenticated user found");
+          setLoading(false);
           return;
         }
         
+        console.log("Authenticated user found:", user.id);
+        
         // Get user profile and gc_account_id
-        const { data: profile } = await supabase
+        const { data: profile, error } = await supabase
           .from('profiles')
           .select('gc_account_id, role')
-          .eq('id', session.user.id)
+          .eq('id', user.id)
           .single();
           
+        if (error) {
+          console.error("Error fetching profile:", error);
+          setLoading(false);
+          return;
+        }
+          
         if (profile?.gc_account_id) {
+          console.log("Found gc_account_id:", profile.gc_account_id);
           setGcAccountId(profile.gc_account_id);
         } else if (profile?.role === 'gc_admin') {
           // GC admin without account - might need to create one
@@ -80,7 +85,7 @@ const SubscriptionCheckout = () => {
     };
     
     fetchUserDetails();
-  }, [navigate, toast]);
+  }, [navigate, toast, user]);
 
   const handleCancel = () => {
     navigate('/dashboard');
@@ -88,8 +93,10 @@ const SubscriptionCheckout = () => {
 
   // Configure stripe pricing table with success URL that includes gc_account_id
   const successUrl = gcAccountId 
-    ? `${window.location.origin}/subscription-success?gc_account_id=${gcAccountId}`
-    : `${window.location.origin}/subscription-success`;
+    ? `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}&gc_account_id=${gcAccountId}`
+    : `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}`;
+
+  console.log("Success URL:", successUrl);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden">
@@ -142,7 +149,7 @@ const SubscriptionCheckout = () => {
               
               <div className="mt-6 flex justify-center">
                 <Button 
-                  variant="outline"
+                  variant="outline" 
                   onClick={handleCancel}
                   className="px-8"
                 >

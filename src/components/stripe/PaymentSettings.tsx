@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -10,14 +10,47 @@ import {
 import { Button } from "@/components/ui/button";
 import { useStripeConnect } from '@/hooks/useStripeConnect';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 
 export function PaymentSettings() {
+  const { user } = useAuth();
   const {
-    account,
-    isLoading,
-    connectToStripe,
-    disconnectFromStripe,
+    loading: isLoading, 
+    error, 
+    accountStatus,
+    connectStripeAccount,
+    getAccountStatus
   } = useStripeConnect();
+  
+  const [account, setAccount] = useState<{
+    accountId?: string;
+    chargesEnabled?: boolean;
+    payoutsEnabled?: boolean;
+    detailsSubmitted?: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (user?.id) {
+      const fetchStatus = async () => {
+        const status = await getAccountStatus(user.id);
+        setAccount(status);
+      };
+      fetchStatus();
+    }
+  }, [user?.id, getAccountStatus]);
+
+  const connectToStripe = async () => {
+    if (!user?.id) return;
+    const url = await connectStripeAccount(user.id);
+    if (url) {
+      window.location.href = url;
+    }
+  };
+
+  const disconnectFromStripe = async () => {
+    // This would need to be implemented in the useStripeConnect hook
+    console.log("Disconnect from Stripe - Not yet implemented");
+  };
 
   return (
     <Card>
@@ -67,11 +100,11 @@ export function PaymentSettings() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Charges Enabled</p>
-                  <p className="text-lg">{account.charges_enabled ? 'Yes' : 'No'}</p>
+                  <p className="text-lg">{account.chargesEnabled ? 'Yes' : 'No'}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Payouts Enabled</p>
-                  <p className="text-lg">{account.payouts_enabled ? 'Yes' : 'No'}</p>
+                  <p className="text-lg">{account.payoutsEnabled ? 'Yes' : 'No'}</p>
                 </div>
               </div>
             </div>

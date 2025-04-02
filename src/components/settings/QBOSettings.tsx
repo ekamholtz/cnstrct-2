@@ -9,15 +9,14 @@ import { QBOSyncInformation } from "./qbo/QBOSyncInformation";
 import { QBONoConnectionInfo } from "./qbo/QBONoConnectionInfo";
 import { QBODebugInfo } from "./qbo/QBODebugInfo";
 
-// Define a safer type that doesn't require specific properties
-interface SafeQBOConnection {
-  id?: string;
-  company_id?: string;
-  company_name?: string;
-  created_at?: string;
-  updated_at?: string;
-  // We intentionally don't require access_token and refresh_token here
-  // as they may not be needed for the UI display
+// Define a type that has the properties we use from QBOConnection
+interface DisplayQBOConnection {
+  id: string;
+  company_id: string;
+  company_name: string;
+  created_at: string;
+  updated_at: string;
+  // We intentionally omit access_token and refresh_token as they are not needed for display
 }
 
 export function QBOSettings() {
@@ -27,8 +26,14 @@ export function QBOSettings() {
   const isSandboxMode = window.location.hostname === 'localhost' || 
                          window.location.hostname.includes('127.0.0.1');
   
-  // Cast connection to the safer type that doesn't require all fields
-  const safeConnection = connection as SafeQBOConnection | null;
+  // Create a display-safe connection object without sensitive fields
+  const displayConnection: DisplayQBOConnection | null = connection ? {
+    id: connection.id,
+    company_id: connection.company_id,
+    company_name: connection.company_name,
+    created_at: connection.created_at,
+    updated_at: connection.updated_at
+  } : null;
   
   return (
     <Card className="w-full">
@@ -52,10 +57,10 @@ export function QBOSettings() {
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-        ) : safeConnection ? (
+        ) : displayConnection ? (
           <>
             <QBOConnectionDetails 
-              connection={safeConnection} 
+              connection={displayConnection} 
               isSandboxMode={isSandboxMode} 
             />
             <QBOSyncInformation />
@@ -68,7 +73,7 @@ export function QBOSettings() {
       <CardFooter className="flex justify-end">
         {!isLoading && (
           <QBOConnectionActions 
-            connection={safeConnection}
+            connection={displayConnection}
             connectToQBO={connectToQBO}
             disconnectFromQBO={disconnectFromQBO}
             isSandboxMode={isSandboxMode}
