@@ -3,7 +3,7 @@ import React from "react";
 import { CheckCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
-interface QBOConnection {
+interface DisplayQBOConnection {
   id: string;
   company_id: string;
   company_name: string;
@@ -12,7 +12,7 @@ interface QBOConnection {
 }
 
 interface QBOConnectionDetailsProps {
-  connection: QBOConnection;
+  connection: DisplayQBOConnection;
   isSandboxMode: boolean;
 }
 

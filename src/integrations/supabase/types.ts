@@ -912,6 +912,30 @@ export type Database = {
           },
         ]
       }
+      qbo_auth_states: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          state: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          state: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          state?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       qbo_connections: {
         Row: {
           access_token: string

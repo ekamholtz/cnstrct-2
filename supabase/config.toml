@@ -40,19 +40,15 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
 
-# Define individual functions with their own configurations
-[[functions]]
-name = "stripe-connect"
+# Define functions with the correct format
+[functions.stripe-connect]
 verify_jwt = false
 
-[[functions]]
-name = "stripe-payment"
+[functions.stripe-payment]
 verify_jwt = false
 
-[[functions]]
-name = "stripe-webhook"
+[functions.stripe-webhook]
 verify_jwt = false
 
-[[functions]]
-name = "stripe-subscriptions"
+[functions.stripe-subscriptions]
 verify_jwt = false

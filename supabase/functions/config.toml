@@ -1,18 +1,15 @@
 
 project_id = "wkspjzbybjhvscqdmpwi"
 
-[[edge_functions]]
-path = "stripe-connect"
+[functions]
+[functions.stripe-connect]
 verify_jwt = false
 
-[[edge_functions]]
-path = "stripe-payment"
+[functions.stripe-payment]
 verify_jwt = false
 
-[[edge_functions]]
-path = "stripe-webhook"
+[functions.stripe-webhook]
 verify_jwt = false
 
-[[edge_functions]]
-path = "stripe-subscriptions"
+[functions.stripe-subscriptions]
 verify_jwt = false
