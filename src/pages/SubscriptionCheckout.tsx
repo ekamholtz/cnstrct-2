@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { Loader2 } from 'lucide-react';
 
 const SubscriptionCheckout = () => {
   const [loading, setLoading] = useState(true);
@@ -92,11 +93,11 @@ const SubscriptionCheckout = () => {
   };
 
   // Configure stripe pricing table with success URL that includes gc_account_id
-  const successUrl = gcAccountId 
-    ? `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}&gc_account_id=${gcAccountId}`
-    : `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}`;
+  const successUrl = `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}${gcAccountId ? `&gc_account_id=${gcAccountId}` : ''}`;
+  const cancelUrl = `${window.location.origin}/settings?checkout_canceled=true`;
 
   console.log("Success URL:", successUrl);
+  console.log("Cancel URL:", cancelUrl);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden">
@@ -133,7 +134,7 @@ const SubscriptionCheckout = () => {
           
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cnstrct-navy"></div>
+              <Loader2 className="h-12 w-12 animate-spin rounded-full border-b-2 border-cnstrct-navy" />
             </div>
           ) : (
             <>
@@ -144,7 +145,7 @@ const SubscriptionCheckout = () => {
                 client-reference-id={gcAccountId || undefined}
                 customer-email=""
                 success-url={successUrl}
-                cancel-url={`${window.location.origin}/settings`}>
+                cancel-url={cancelUrl}>
               </stripe-pricing-table>
               
               <div className="mt-6 flex justify-center">

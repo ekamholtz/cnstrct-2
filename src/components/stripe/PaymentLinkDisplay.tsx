@@ -1,133 +1,162 @@
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { LoaderCircle } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
-import { Copy, ExternalLink } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 interface PaymentLinkDisplayProps {
-  paymentLink: {
-    id: string;
-    url: string;
-    status: string;
-    created_at: string;
-    expires_at?: string;
-  };
-  onClose?: () => void;
+  paymentLinkId?: string;
+  paymentLinkUrl?: string;
+  checkoutSessionId?: string;
+  onComplete?: () => void;
+  onCancel?: () => void;
+  autoRedirect?: boolean;
+  successUrl?: string;
+  cancelUrl?: string;
 }
 
-export function PaymentLinkDisplay({ paymentLink, onClose }: PaymentLinkDisplayProps) {
+export function PaymentLinkDisplay({
+  paymentLinkId,
+  paymentLinkUrl,
+  checkoutSessionId,
+  onComplete,
+  onCancel,
+  autoRedirect = true,
+  successUrl = '/dashboard',
+  cancelUrl = '/dashboard'
+}: PaymentLinkDisplayProps) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [url, setUrl] = useState<string | null>(paymentLinkUrl || null);
+  const navigate = useNavigate();
   const { toast } = useToast();
-  const [copied, setCopied] = useState(false);
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(paymentLink.url);
-    setCopied(true);
+  // When component mounts, check for checkout session query params
+  useEffect(() => {
+    // Parse query parameters for checkout status
+    const queryParams = new URLSearchParams(window.location.search);
+    const sessionId = queryParams.get('session_id');
+    const success = queryParams.get('success') === 'true';
+    const canceled = queryParams.get('canceled') === 'true';
+
+    // Log checkout parameters for debugging
+    if (sessionId || success || canceled) {
+      console.log('Detected Stripe redirect with params:', { 
+        sessionId, 
+        success, 
+        canceled,
+        referrer: document.referrer
+      });
+    }
+
+    // Handle success case
+    if (sessionId && success) {
+      toast({
+        title: "Payment successful!",
+        description: "Thank you for your payment. Your transaction was successful.",
+      });
+      
+      // Clear the URL parameters to prevent duplicate handling
+      const clearedUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, clearedUrl);
+      
+      // Call the completion callback if provided
+      if (onComplete) {
+        onComplete();
+      }
+      
+      return;
+    }
     
-    toast({
-      title: "Link copied to clipboard",
-      description: "You can now share this payment link with your client",
-      // Make sure to use a valid variant
-      variant: "default",
-      duration: 3000,
-    });
-    
-    setTimeout(() => setCopied(false), 3000);
-  };
+    // Handle canceled case
+    if (canceled) {
+      toast({
+        variant: "destructive",
+        title: "Payment canceled",
+        description: "Your payment was canceled. No charges were made.",
+      });
+      
+      // Clear the URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      // Call the cancellation callback if provided
+      if (onCancel) {
+        onCancel();
+      }
+      
+      return;
+    }
 
-  const openLink = () => {
-    window.open(paymentLink.url, '_blank');
-  };
+    // Auto-redirect to Stripe if URL is already provided and autoRedirect is enabled
+    if (paymentLinkUrl && autoRedirect) {
+      window.location.href = paymentLinkUrl;
+    }
+  }, [paymentLinkUrl, onComplete, onCancel, autoRedirect, toast]);
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('en-US', {
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const getStatusBadge = () => {
-    switch (paymentLink.status) {
-      case 'active':
-        return <Badge className="bg-green-100 text-green-800">Active</Badge>;
-      case 'expired':
-        return <Badge className="bg-amber-100 text-amber-800">Expired</Badge>;
-      case 'paid':
-        return <Badge className="bg-blue-100 text-blue-800">Paid</Badge>;
-      default:
-        return <Badge className="bg-gray-100 text-gray-800">{paymentLink.status}</Badge>;
+  // Function to navigate to Stripe Checkout
+  const handleCheckout = () => {
+    if (url) {
+      setIsLoading(true);
+      // Append success/cancel URLs if not already in the URL
+      let checkoutUrl = url;
+      if (!checkoutUrl.includes('success_url')) {
+        const separator = checkoutUrl.includes('?') ? '&' : '?';
+        checkoutUrl += `${separator}success_url=${encodeURIComponent(window.location.origin + successUrl)}`;
+      }
+      if (!checkoutUrl.includes('cancel_url')) {
+        const separator = checkoutUrl.includes('?') ? '&' : '?';
+        checkoutUrl += `${separator}cancel_url=${encodeURIComponent(window.location.origin + cancelUrl)}`;
+      }
+      
+      console.log('Redirecting to Stripe checkout:', checkoutUrl);
+      window.location.href = checkoutUrl;
+    } else {
+      console.error('No payment link URL provided');
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not initialize payment. Please try again later.",
+      });
     }
   };
 
+  // If no URL is provided, render nothing
+  if (!url && !isLoading) {
+    return null;
+  }
+
   return (
-    <Card className="w-full border-green-200 shadow-md">
-      <CardHeader className="bg-green-50 border-b border-green-100">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-green-800">Payment Link Created</CardTitle>
-          {getStatusBadge()}
-        </div>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>Complete Your Payment</CardTitle>
         <CardDescription>
-          Share this payment link with your client to collect payment
+          You'll be redirected to Stripe to securely complete your payment.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6 pt-6">
-        <div className="space-y-2">
-          <Label htmlFor="payment-link">Payment Link</Label>
-          <div className="flex gap-2">
-            <Input 
-              id="payment-link" 
-              value={paymentLink.url} 
-              readOnly 
-              className="flex-grow font-medium"
-            />
-            <Button 
-              variant="outline" 
-              size="icon"
-              onClick={copyToClipboard}
-              className={copied ? "bg-green-50 text-green-600 border-green-200" : ""}
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button 
-              variant="outline" 
-              size="icon" 
-              onClick={openLink}
-            >
-              <ExternalLink className="h-4 w-4" />
-            </Button>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-6">
+            <LoaderCircle className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Redirecting to payment gateway...</span>
           </div>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Created</p>
-            <p className="font-medium">{formatDate(paymentLink.created_at)}</p>
-          </div>
-          {paymentLink.expires_at && (
-            <div>
-              <p className="text-sm text-muted-foreground">Expires</p>
-              <p className="font-medium">{formatDate(paymentLink.expires_at)}</p>
-            </div>
-          )}
-        </div>
-        
-        <div className="pt-4 flex justify-end">
-          {onClose && (
-            <Button 
-              variant="outline" 
-              onClick={onClose}
-            >
-              Close
-            </Button>
-          )}
-        </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Click the button below to proceed to our secure payment processor.
+          </p>
+        )}
       </CardContent>
+      <CardFooter>
+        {!isLoading && (
+          <Button 
+            onClick={handleCheckout} 
+            className="w-full"
+            disabled={isLoading}
+          >
+            Proceed to Payment
+          </Button>
+        )}
+      </CardFooter>
     </Card>
   );
 }

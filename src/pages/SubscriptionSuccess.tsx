@@ -12,6 +12,7 @@ const SubscriptionSuccess = () => {
   const location = useLocation();
   const { toast } = useToast();
   const [updating, setUpdating] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Get query parameters
   const searchParams = new URLSearchParams(location.search);
@@ -24,6 +25,7 @@ const SubscriptionSuccess = () => {
     const updateSubscriptionStatus = async () => {
       if (!sessionId) {
         console.log("Missing session_id parameter");
+        setError("Missing subscription information. Your subscription may not be activated correctly.");
         toast({
           variant: 'destructive',
           title: 'Warning',
@@ -40,6 +42,7 @@ const SubscriptionSuccess = () => {
         const { data: sessionData } = await supabase.auth.getSession();
         if (!sessionData?.session) {
           console.log("No auth session found. Will attempt to update without authentication.");
+          setError("You need to be logged in. Redirecting to login page...");
           // Redirect to auth after brief delay
           setTimeout(() => {
             navigate('/auth');
@@ -62,6 +65,7 @@ const SubscriptionSuccess = () => {
             accountToUpdate = profileData.gc_account_id;
             console.log("Using gc_account_id from user profile:", accountToUpdate);
           } else {
+            setError("Could not determine which account to update.");
             toast({
               variant: 'destructive',
               title: 'Error',
@@ -75,8 +79,33 @@ const SubscriptionSuccess = () => {
         // Get the subscription tier ID to use
         const subscriptionTierId = tierId || '00000000-0000-0000-0000-000000000000'; // Default tier if none provided
 
-        // We'll update via the webhook, but also do a direct update here in case the webhook hasn't arrived yet
-        console.log("Updating subscription status in database...");
+        // Check if we can find information about the session in our database
+        const { data: checkoutData } = await supabase
+          .from('checkout_sessions')
+          .select('*')
+          .eq('stripe_session_id', sessionId)
+          .maybeSingle();
+          
+        console.log("Checkout session data in database:", checkoutData);
+
+        // If we have session data, use it to update the subscription
+        if (checkoutData) {
+          console.log("Found checkout session in database, using it for updates");
+          // Already processed by webhook, just show success
+          setUpdating(false);
+          toast({
+            title: 'Success',
+            description: 'Your subscription has been activated successfully!',
+          });
+          
+          // Auto-redirect to dashboard after a short delay
+          setTimeout(() => {
+            handleContinue();
+          }, 3000);
+          return;
+        }
+
+        console.log("Updating subscription status in database directly (webhook might not have arrived yet)...");
         
         // Update the gc_account with the subscription information
         const { error: gcUpdateError } = await supabase
@@ -90,6 +119,7 @@ const SubscriptionSuccess = () => {
 
         if (gcUpdateError) {
           console.error('Error updating subscription status:', gcUpdateError);
+          setError('Failed to update subscription status. Please contact support.');
           toast({
             variant: 'destructive',
             title: 'Error',
@@ -128,6 +158,7 @@ const SubscriptionSuccess = () => {
         }
       } catch (error) {
         console.error('Error in subscription success:', error);
+        setError('An unexpected error occurred. Please contact support.');
         toast({
           variant: 'destructive',
           title: 'Error',
@@ -187,6 +218,24 @@ const SubscriptionSuccess = () => {
             <div className="flex flex-col items-center justify-center py-8">
               <Loader2 className="h-12 w-12 text-cnstrct-navy animate-spin mb-4" />
               <p className="text-gray-600">Activating your subscription...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="h-20 w-20 rounded-full bg-red-100 flex items-center justify-center mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              
+              <h1 className="text-2xl font-bold text-red-700 mb-3">Subscription Error</h1>
+              <p className="text-gray-600 mb-6">{error}</p>
+              
+              <Button 
+                onClick={handleContinue}
+                className="w-full"
+              >
+                Continue to Dashboard
+              </Button>
             </div>
           ) : (
             <>
