@@ -9,47 +9,59 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useStripeConnect } from '@/hooks/useStripeConnect';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ArrowRight, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 export function PaymentSettings() {
   const { user } = useAuth();
   const {
-    loading: isLoading, 
+    loading, 
     error, 
     accountStatus,
     connectStripeAccount,
-    getAccountStatus
+    getAccountStatus,
+    createAccountLink
   } = useStripeConnect();
   
-  const [account, setAccount] = useState<{
-    accountId?: string;
-    chargesEnabled?: boolean;
-    payoutsEnabled?: boolean;
-    detailsSubmitted?: boolean;
-  } | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
-      const fetchStatus = async () => {
-        const status = await getAccountStatus(user.id);
-        setAccount(status);
-      };
-      fetchStatus();
+      getAccountStatus(user.id);
     }
   }, [user?.id, getAccountStatus]);
 
-  const connectToStripe = async () => {
+  const handleConnectStripe = async () => {
     if (!user?.id) return;
-    const url = await connectStripeAccount(user.id);
-    if (url) {
-      window.location.href = url;
+    setIsProcessing(true);
+    
+    try {
+      const url = await connectStripeAccount(user.id, window.location.href);
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error("Error connecting to Stripe:", error);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
-  const disconnectFromStripe = async () => {
-    // This would need to be implemented in the useStripeConnect hook
-    console.log("Disconnect from Stripe - Not yet implemented");
+  const handleCompleteOnboarding = async () => {
+    if (!accountStatus.accountId) return;
+    
+    setIsProcessing(true);
+    try {
+      const url = await createAccountLink(accountStatus.accountId);
+      if (url) {
+        window.location.href = url;
+      }
+    } catch (error) {
+      console.error("Error creating account link:", error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -61,67 +73,123 @@ export function PaymentSettings() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
-        ) : account ? (
+        ) : accountStatus.accountId ? (
           <div className="space-y-4">
-            <div className="rounded-md bg-green-50 p-4 border border-green-200">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-lg font-medium text-green-800">Account Connected</h3>
-                  <div className="mt-2 text-sm text-green-700">
-                    <p>
-                      Your Stripe account is connected and ready to accept payments.
-                    </p>
-                  </div>
-                  <div className="mt-4">
-                    <Button 
-                      variant="destructive"
-                      onClick={disconnectFromStripe}
-                      size="sm"
-                    >
-                      Disconnect Account
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {accountStatus.chargesEnabled && accountStatus.payoutsEnabled ? (
+              <Alert className="bg-green-50 border-green-200">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                <AlertTitle>Account Connected</AlertTitle>
+                <AlertDescription>
+                  Your Stripe account is connected and ready to accept payments.
+                </AlertDescription>
+              </Alert>
+            ) : accountStatus.detailsSubmitted ? (
+              <Alert className="bg-amber-50 border-amber-200">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTitle>Onboarding in Progress</AlertTitle>
+                <AlertDescription>
+                  Your account is connected but Stripe is still verifying your information.
+                  This may take 24-48 hours.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <Alert className="bg-amber-50 border-amber-200">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertTitle>Onboarding Required</AlertTitle>
+                <AlertDescription>
+                  Your account is connected, but you need to complete the onboarding process.
+                </AlertDescription>
+              </Alert>
+            )}
             
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Charges Enabled</p>
-                  <p className="text-lg">{account.chargesEnabled ? 'Yes' : 'No'}</p>
+                  <p className="text-lg flex items-center gap-2">
+                    {accountStatus.chargesEnabled ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        Yes
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-4 w-4 text-red-600" />
+                        No
+                      </>
+                    )}
+                  </p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Payouts Enabled</p>
-                  <p className="text-lg">{account.payoutsEnabled ? 'Yes' : 'No'}</p>
+                  <p className="text-lg flex items-center gap-2">
+                    {accountStatus.payoutsEnabled ? (
+                      <>
+                        <CheckCircle className="h-4 w-4 text-green-600" />
+                        Yes
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-4 w-4 text-red-600" />
+                        No
+                      </>
+                    )}
+                  </p>
                 </div>
               </div>
+
+              {!accountStatus.chargesEnabled && (
+                <Button 
+                  onClick={handleCompleteOnboarding} 
+                  disabled={isProcessing}
+                  className="mt-4"
+                >
+                  {isProcessing ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : null}
+                  Complete Stripe Onboarding
+                </Button>
+              )}
             </div>
+          </div>
+        ) : error ? (
+          <div className="space-y-4">
+            <Alert variant="destructive">
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                {error}
+              </AlertDescription>
+            </Alert>
+            <Button onClick={handleConnectStripe} disabled={isProcessing}>
+              {isProcessing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Try Again
+            </Button>
           </div>
         ) : (
           <div className="space-y-6">
             <div className="text-center p-6 bg-muted/50 rounded-md">
               <h3 className="text-lg font-semibold">No Stripe Account Connected</h3>
               <p className="text-muted-foreground mt-2">
-                Connect your Stripe account to start accepting payments from clients.
+                Connect your Stripe account to start accepting payments from clients through our platform.
               </p>
-              <Button
-                onClick={connectToStripe}
-                className="mt-4 bg-gradient-to-r from-violet-500 to-purple-600"
-              >
-                Connect with Stripe
-              </Button>
+              <div className="mt-4 flex items-center justify-center space-x-2">
+                <Button
+                  onClick={handleConnectStripe}
+                  disabled={isProcessing}
+                  className="bg-gradient-to-r from-violet-500 to-purple-600 flex items-center gap-2"
+                >
+                  {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  Connect with Stripe
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4">
+                Don't have a Stripe account? We'll help you create one.
+              </p>
             </div>
           </div>
         )}

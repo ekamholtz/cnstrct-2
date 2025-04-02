@@ -23,11 +23,10 @@ const platformFeePercentage = Number(Deno.env.get('STRIPE_PLATFORM_FEE_PERCENTAG
 
 interface RequestParams {
   action: string
-  gcAccountId?: string
+  userId?: string
   accountId?: string
   code?: string
   state?: string
-  userId?: string
   [key: string]: any
 }
 
@@ -44,16 +43,6 @@ serve(async (req) => {
   }
 
   try {
-    // Check if the request is authorized
-    // This would be a good place to add JWT validation
-    
-    if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     // Parse request body
     const requestData: RequestParams = await req.json()
     const { action } = requestData
@@ -86,24 +75,22 @@ serve(async (req) => {
     // Route to appropriate handler based on action
     switch (action) {
       case 'initiate-oauth':
-        result = await initiateOAuth(requestData)
+        result = await initiateOAuth(userId, requestData)
         break
       case 'handle-oauth-callback':
-        // Pass userId to the handler
-        result = await handleOAuthCallback({ ...requestData, userId })
+        result = await handleOAuthCallback(userId, requestData)
         break
       case 'create-account-link':
-        // Ensure accountId is provided in the requestData for this action
         if (!requestData.accountId) {
           throw new Error('accountId is required for create-account-link action')
         }
         result = await createAccountLink(requestData.accountId)
         break
       case 'get-account':
-        result = await getAccount(requestData)
+        result = await getAccount(userId, requestData)
         break
       case 'list-accounts':
-        result = await listAccounts(requestData)
+        result = await listAccounts(userId)
         break
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {
@@ -131,14 +118,13 @@ serve(async (req) => {
 /**
  * Initiates the OAuth flow by generating the authorization URL
  */
-async function initiateOAuth({ gcAccountId }: RequestParams) {
-  if (!gcAccountId) {
-    throw new Error('gcAccountId is required')
-  }
-
+async function initiateOAuth(userId: string, { returnUrl }: RequestParams) {
   if (!stripeClientId) {
     throw new Error('STRIPE_CLIENT_ID environment variable is not set')
   }
+
+  // Generate state parameter to prevent CSRF
+  const state = `${userId}_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`
 
   // Generate OAuth URL for Stripe Connect
   const baseUrl = Deno.env.get('FRONTEND_URL') || 'http://localhost:8080'
@@ -149,7 +135,15 @@ async function initiateOAuth({ gcAccountId }: RequestParams) {
     client_id: stripeClientId,
     scope: 'read_write',
     redirect_uri: redirectUri,
-    state: gcAccountId,
+    state: state,
+  })
+
+  // Store the state parameter in the database
+  await supabase.from('stripe_auth_states').insert({
+    state,
+    user_id: userId,
+    return_url: returnUrl,
+    expires_at: new Date(Date.now() + 3600000).toISOString() // 1 hour expiration
   })
 
   return {
@@ -161,7 +155,7 @@ async function initiateOAuth({ gcAccountId }: RequestParams) {
  * Handles the OAuth callback from Stripe, saves account details, 
  * and generates an onboarding link.
  */
-async function handleOAuthCallback({ code, state, userId }: RequestParams) { 
+async function handleOAuthCallback(userId: string, { code, state }: RequestParams) { 
   if (!code) {
     throw new Error('Authorization code is required')
   }
@@ -170,9 +164,15 @@ async function handleOAuthCallback({ code, state, userId }: RequestParams) {
     throw new Error('State parameter is required')
   }
 
-  if (!userId) {
-    // This should ideally not happen if auth check passed before calling this
-    throw new Error('User ID is required but was not provided')
+  // Verify the state parameter to prevent CSRF
+  const { data: stateData, error: stateError } = await supabase
+    .from('stripe_auth_states')
+    .select('*')
+    .eq('state', state)
+    .single()
+  
+  if (stateError || !stateData || stateData.user_id !== userId) {
+    throw new Error('Invalid state parameter')
   }
 
   // Exchange the authorization code for an access token
@@ -182,55 +182,56 @@ async function handleOAuthCallback({ code, state, userId }: RequestParams) {
   })
 
   // Store the connected account data in the database
-  const gcAccountId = state
   const { stripe_user_id, access_token, refresh_token, scope } = response
 
   // Save to Supabase
   const { data, error } = await supabase
     .from('stripe_connect_accounts')
     .upsert({
-      gc_account_id: gcAccountId,
+      user_id: userId,
       account_id: stripe_user_id,
-      user_id: userId, 
       access_token,
       refresh_token,
       scope,
-      details: response,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }, {
-      onConflict: 'gc_account_id',
+      onConflict: 'user_id',
     })
 
   if (error) {
     throw new Error(`Failed to save connected account: ${error.message}`)
   }
 
-  // Immediately create an onboarding link for the newly connected account
-  try {
-    // Call createAccountLink directly with the account ID
-    const accountLink = await createAccountLink(stripe_user_id)
-    return {
-      success: true,
-      accountId: stripe_user_id,
-      onboardingUrl: accountLink.url, // Return the onboarding URL
-    }
-  } catch (linkError) {
-    console.error(`Failed to create account link after callback for ${stripe_user_id}:`, linkError)
-    // Proceed even if link creation fails, but indicate it
-    return { 
-      success: true, 
-      accountId: stripe_user_id, 
-      onboardingUrl: null, 
-      warning: 'Account connected, but failed to generate onboarding link.' 
-    }
+  // Get account details
+  const account = await stripe.accounts.retrieve(stripe_user_id)
+  
+  // Update account status fields
+  await supabase
+    .from('stripe_connect_accounts')
+    .update({
+      charges_enabled: account.charges_enabled,
+      payouts_enabled: account.payouts_enabled,
+      details_submitted: account.details_submitted,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('account_id', stripe_user_id)
+
+  // Create an onboarding link for the newly connected account
+  const accountLink = await createAccountLink(stripe_user_id)
+
+  return {
+    success: true,
+    accountId: stripe_user_id,
+    onboardingUrl: accountLink.url,
+    returnUrl: stateData.return_url,
   }
 }
 
 /**
  * Creates an account link for onboarding or updating a connected account
  */
-async function createAccountLink(accountId: string) { // Accept accountId directly
+async function createAccountLink(accountId: string) {
   if (!accountId) {
     throw new Error('accountId is required')
   }
@@ -250,33 +251,67 @@ async function createAccountLink(accountId: string) { // Accept accountId direct
 /**
  * Gets a connected account details
  */
-async function getAccount({ accountId }: RequestParams) {
+async function getAccount(userId: string, { accountId }: RequestParams) {
+  // If accountId is not provided, get the account for the user
   if (!accountId) {
-    throw new Error('accountId is required')
+    const { data, error } = await supabase
+      .from('stripe_connect_accounts')
+      .select('account_id')
+      .eq('user_id', userId)
+      .single()
+
+    if (error || !data) {
+      return { success: false, error: 'No account found for this user' }
+    }
+
+    accountId = data.account_id
   }
 
-  const account = await stripe.accounts.retrieve(accountId)
-  
-  return account
+  // Get account from Stripe
+  try {
+    const account = await stripe.accounts.retrieve(accountId)
+    
+    // Update account details in our database
+    await supabase
+      .from('stripe_connect_accounts')
+      .update({
+        charges_enabled: account.charges_enabled,
+        payouts_enabled: account.payouts_enabled,
+        details_submitted: account.details_submitted,
+        updated_at: new Date().toISOString()
+      })
+      .eq('account_id', accountId)
+
+    return {
+      success: true,
+      account: {
+        accountId: account.id,
+        chargesEnabled: account.charges_enabled,
+        payoutsEnabled: account.payouts_enabled,
+        detailsSubmitted: account.details_submitted,
+        email: account.email,
+        business_type: account.business_type,
+        capabilities: account.capabilities,
+      }
+    }
+  } catch (error) {
+    console.error('Error retrieving account:', error)
+    return { success: false, error: `Error retrieving account: ${error.message}` }
+  }
 }
 
 /**
- * Lists connected accounts for a GC account
+ * Lists connected accounts for a user
  */
-async function listAccounts({ gcAccountId }: RequestParams) {
-  if (!gcAccountId) {
-    throw new Error('gcAccountId is required')
-  }
-
-  // Get accounts from Supabase
+async function listAccounts(userId: string) {
   const { data, error } = await supabase
     .from('stripe_connect_accounts')
     .select('*')
-    .eq('gc_account_id', gcAccountId)
+    .eq('user_id', userId)
 
   if (error) {
     throw new Error(`Failed to retrieve connected accounts: ${error.message}`)
   }
 
-  return { accounts: data || [] }
+  return { success: true, accounts: data || [] }
 }
