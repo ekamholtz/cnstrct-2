@@ -162,13 +162,10 @@ const SubscriptionCheckout = () => {
 
           {/* Stripe Pricing Table */}
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-4 mb-8">
-            {/* 
-              Fix for the stripe-pricing-table element.
-              Handle the mode parameter via data attributes instead of as a prop 
-            */}
+            {/* Updated Stripe pricing table with the provided IDs */}
             <stripe-pricing-table 
-              pricing-table-id="prctbl_1R2HRTApu80f9E3HqCXBahYx"
-              publishable-key="pk_live_51QzjhnApu80f9E3HQcOCt84dyoMh2k9e4QlmNR7a11j9ddZcjrPOqIfi1S1J47tgRTKFaDD3cL3odKRaNya6PIny00BA5N7LnX"
+              pricing-table-id="prctbl_1R9UC0Apu80f9E3HqRPNRBtK"
+              publishable-key="pk_test_51QzjhnApu80f9E3HjlgkmHwM1a4krzjoz0sJlsz41wIhMYIr1sst6sx2mCZ037PiY2UE6xfNA5zzkxCQwOAJ4yoD00gm7TIByL"
               client-reference-id="subscription"
               data-mode="subscription">
             </stripe-pricing-table>
