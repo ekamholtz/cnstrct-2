@@ -27,6 +27,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+// Default subscription tier UUID if nothing specific is found
+const DEFAULT_TIER_ID = '00000000-0000-0000-0000-000000000001'
+
 // Use the modern Deno.serve API
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -332,8 +335,8 @@ async function handleSubscriptionCheckout(session, gcAccountId) {
     
     // Use a default tier ID if we couldn't determine the tier
     if (!subscriptionTierId) {
-      subscriptionTierId = '00000000-0000-0000-0000-000000000001'; // Default to basic tier
-      console.log('⚠️ Using default tier ID');
+      subscriptionTierId = DEFAULT_TIER_ID;
+      console.log('⚠️ Using default tier ID:', DEFAULT_TIER_ID);
     }
     
     console.log('Using subscription tier ID:', subscriptionTierId);
@@ -372,55 +375,72 @@ async function handleSubscriptionCheckout(session, gcAccountId) {
 async function saveSubscriptionData(gcAccountId, customerId, subscriptionId, subscription, subscriptionTierId) {
   console.log('💾 Saving subscription data for account:', gcAccountId);
   
-  // Save the subscription data to your database
-  const { data: existingSubscription, error: fetchError } = await supabase
-    .from('account_subscriptions')
-    .select('*')
-    .eq('gc_account_id', gcAccountId)
-    .maybeSingle();
+  try {
+    // Use current_period_end as a numeric timestamp and convert to ISO date
+    const currentPeriodEnd = subscription.current_period_end 
+      ? new Date(subscription.current_period_end * 1000).toISOString() 
+      : null;
     
-  if (fetchError && fetchError.code !== 'PGRST116') {
-    console.error('❌ Error fetching existing subscription:', fetchError);
-    return;
-  }
-  
-  // Create or update the subscription record
-  const subscriptionData = {
-    gc_account_id: gcAccountId,
-    stripe_customer_id: customerId,
-    stripe_subscription_id: subscriptionId,
-    tier_id: subscriptionTierId,
-    status: subscription.status,
-    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-    cancel_at_period_end: subscription.cancel_at_period_end,
-    created_at: existingSubscription?.created_at || new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  
-  if (existingSubscription?.id) {
-    // Update existing subscription
-    const { error: updateError } = await supabase
+    // Format the subscription data
+    const subscriptionData = {
+      gc_account_id: gcAccountId,
+      stripe_customer_id: customerId,
+      stripe_subscription_id: subscriptionId,
+      tier_id: subscriptionTierId,
+      status: subscription.status,
+      current_period_end: currentPeriodEnd,
+      cancel_at_period_end: subscription.cancel_at_period_end,
+      start_date: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    
+    // Check if subscription already exists
+    const { data: existingSubscription, error: fetchError } = await supabase
       .from('account_subscriptions')
-      .update(subscriptionData)
-      .eq('id', existingSubscription.id);
-      
-    if (updateError) {
-      console.error('❌ Error updating subscription record:', updateError);
+      .select('*')
+      .eq('gc_account_id', gcAccountId)
+      .maybeSingle();
+    
+    if (fetchError && fetchError.code !== 'PGRST116') {
+      console.error('❌ Error fetching existing subscription:', fetchError);
       return;
     }
-  } else {
-    // Create new subscription
-    const { error: insertError } = await supabase
-      .from('account_subscriptions')
-      .insert(subscriptionData);
+    
+    // Create or update the subscription record
+    if (existingSubscription?.id) {
+      // Update existing subscription
+      const { error: updateError } = await supabase
+        .from('account_subscriptions')
+        .update(subscriptionData)
+        .eq('id', existingSubscription.id);
+        
+      if (updateError) {
+        console.error('❌ Error updating subscription record:', updateError);
+        return;
+      } else {
+        console.log('✅ Updated existing subscription record');
+      }
+    } else {
+      // Create new subscription with created_at field
+      subscriptionData.created_at = new Date().toISOString();
       
-    if (insertError) {
-      console.error('❌ Error inserting subscription record:', insertError);
-      return;
+      // Create new subscription
+      const { error: insertError } = await supabase
+        .from('account_subscriptions')
+        .insert(subscriptionData);
+        
+      if (insertError) {
+        console.error('❌ Error inserting subscription record:', insertError);
+        return;
+      } else {
+        console.log('✅ Created new subscription record');
+      }
     }
+    
+    console.log('✅ Successfully saved subscription data for GC account:', gcAccountId);
+  } catch (error) {
+    console.error('❌ Error in saveSubscriptionData:', error);
   }
-  
-  console.log('✅ Successfully saved subscription data for GC account:', gcAccountId);
 }
 
 /**
@@ -447,12 +467,16 @@ async function handleSubscriptionUpdated(subscription) {
       return;
     }
     
+    const currentPeriodEnd = subscription.current_period_end 
+      ? new Date(subscription.current_period_end * 1000).toISOString() 
+      : null;
+    
     // Update the subscription record
     const { error: updateError } = await supabase
       .from('account_subscriptions')
       .update({
         status: subscription.status,
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_end: currentPeriodEnd,
         cancel_at_period_end: subscription.cancel_at_period_end,
         updated_at: new Date().toISOString()
       })
@@ -482,7 +506,8 @@ async function handleSubscriptionUpdated(subscription) {
       
       if (gcUpdateError) {
         console.error('❌ Error updating GC account status:', gcUpdateError);
-        return;
+      } else {
+        console.log('✅ Successfully updated GC account status');
       }
     }
     
