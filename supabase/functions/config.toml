@@ -1,6 +1,4 @@
 
-project_id = "wkspjzbybjhvscqdmpwi"
-
 [functions]
 [functions.stripe-connect]
 verify_jwt = false

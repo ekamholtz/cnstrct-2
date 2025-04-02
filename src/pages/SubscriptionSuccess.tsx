@@ -19,7 +19,6 @@ const SubscriptionSuccess = () => {
   const sessionId = searchParams.get('session_id');
   const gcAccountId = searchParams.get('gc_account_id');
   const tierId = searchParams.get('tier_id');
-  const isNewUser = searchParams.get('is_new_user') === 'true';
 
   useEffect(() => {
     const updateSubscriptionStatus = async () => {
@@ -77,7 +76,7 @@ const SubscriptionSuccess = () => {
         }
         
         // Get the subscription tier ID to use
-        const subscriptionTierId = tierId || '00000000-0000-0000-0000-000000000000'; // Default tier if none provided
+        const subscriptionTierId = tierId || '00000000-0000-0000-0000-000000000001'; // Default tier if none provided
 
         // Check if we can find information about the session in our database
         const { data: checkoutData } = await supabase
@@ -136,6 +135,7 @@ const SubscriptionSuccess = () => {
               tier_id: subscriptionTierId,
               status: 'active',
               start_date: new Date().toISOString(),
+              end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days trial
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }, {
@@ -181,11 +181,8 @@ const SubscriptionSuccess = () => {
         return;
       }
       
-      if (isNewUser) {
-        navigate('/profile-completion');
-      } else {
-        navigate('/dashboard');
-      }
+      // Always redirect to dashboard now, not profile-completion
+      navigate('/dashboard');
     });
   };
 
@@ -255,7 +252,7 @@ const SubscriptionSuccess = () => {
                 onClick={handleContinue}
                 className="w-full bg-gradient-to-r from-cnstrct-orange to-cnstrct-orange/90 hover:from-cnstrct-orange/90 hover:to-cnstrct-orange text-white"
               >
-                Continue to {isNewUser ? 'Profile Setup' : 'Dashboard'}
+                Continue to Dashboard
               </Button>
             </>
           )}

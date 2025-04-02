@@ -169,9 +169,9 @@ async function handleCheckoutSessionCompleted(session) {
     if (!gcAccountId) {
       console.log('⚠️ No gc_account_id found in client_reference_id, checking metadata');
       // Try to get it from metadata
-      if (session.metadata?.gc_account_id) {
-        console.log('✅ Found gc_account_id in metadata:', session.metadata.gc_account_id);
-        await handleCheckoutWithAccountId(session, session.metadata.gc_account_id);
+      if (session.metadata?.gcAccountId) {
+        console.log('✅ Found gc_account_id in metadata:', session.metadata.gcAccountId);
+        await handleCheckoutWithAccountId(session, session.metadata.gcAccountId);
       } else {
         console.log('⚠️ No gc_account_id found in metadata either');
       }
@@ -404,6 +404,7 @@ async function handleSubscriptionCheckout(session, gcAccountId) {
       console.error('❌ Error updating GC account:', error);
     }
     
+    // Save subscription to account_subscriptions
     await saveSubscriptionData(
       gcAccountId,
       customerId,
@@ -439,6 +440,7 @@ async function saveSubscriptionData(gcAccountId, customerId, subscriptionId, sub
       current_period_end: currentPeriodEnd,
       cancel_at_period_end: subscription.cancel_at_period_end,
       start_date: new Date().toISOString(),
+      end_date: currentPeriodEnd, // Set end_date to the same as current_period_end
       updated_at: new Date().toISOString(),
     };
     
@@ -479,6 +481,7 @@ async function saveSubscriptionData(gcAccountId, customerId, subscriptionId, sub
         
       if (insertError) {
         console.error('❌ Error inserting subscription record:', insertError);
+        console.log('Subscription data attempted:', subscriptionData);
         return;
       } else {
         console.log('✅ Created new subscription record');
@@ -515,13 +518,19 @@ async function handleSubscriptionUpdated(subscription) {
       return;
     }
     
+    // Current period end as ISO date
+    const currentPeriodEnd = subscription.current_period_end 
+      ? new Date(subscription.current_period_end * 1000).toISOString() 
+      : null;
+    
     // Update the account subscription
     const { error: updateError } = await supabase
       .from('account_subscriptions')
       .update({
         status: subscription.status,
         cancel_at_period_end: subscription.cancel_at_period_end,
-        current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+        current_period_end: currentPeriodEnd,
+        end_date: currentPeriodEnd, // Set end_date to match current_period_end
         updated_at: new Date().toISOString()
       })
       .eq('id', accountSubscription.id);
@@ -529,23 +538,23 @@ async function handleSubscriptionUpdated(subscription) {
     if (updateError) {
       console.error('❌ Error updating account subscription:', updateError);
     } else {
-      console.log('✅ Successfully updated account subscription');
-      
-      // Also update the gc_account if status changed
-      if (subscription.status === 'active' || subscription.status === 'canceled') {
-        const { error: gcUpdateError } = await supabase
-          .from('gc_accounts')
-          .update({
-            subscription_status: subscription.status,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', accountSubscription.gc_account_id);
-          
-        if (gcUpdateError) {
-          console.error('❌ Error updating GC account subscription status:', gcUpdateError);
-        } else {
-          console.log('✅ Successfully updated GC account subscription status');
-        }
+      console.log('✅ Updated account subscription status');
+    }
+    
+    // Also update the gc_account subscription_status if needed
+    if (accountSubscription.gc_account_id) {
+      const { error: gcUpdateError } = await supabase
+        .from('gc_accounts')
+        .update({
+          subscription_status: subscription.status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', accountSubscription.gc_account_id);
+        
+      if (gcUpdateError) {
+        console.error('❌ Error updating GC account subscription status:', gcUpdateError);
+      } else {
+        console.log('✅ Updated GC account subscription status');
       }
     }
   } catch (error) {
@@ -557,7 +566,7 @@ async function handleSubscriptionUpdated(subscription) {
  * Handle customer.subscription.deleted webhook event
  */
 async function handleSubscriptionDeleted(subscription) {
-  console.log('🗑️ Processing customer.subscription.deleted');
+  console.log('🔄 Processing customer.subscription.deleted');
   
   try {
     // Find the account subscription with this Stripe subscription ID
@@ -589,9 +598,11 @@ async function handleSubscriptionDeleted(subscription) {
     if (updateError) {
       console.error('❌ Error updating account subscription:', updateError);
     } else {
-      console.log('✅ Successfully updated account subscription to canceled');
-      
-      // Also update the gc_account
+      console.log('✅ Marked account subscription as canceled');
+    }
+    
+    // Also update the gc_account subscription_status
+    if (accountSubscription.gc_account_id) {
       const { error: gcUpdateError } = await supabase
         .from('gc_accounts')
         .update({
@@ -603,7 +614,7 @@ async function handleSubscriptionDeleted(subscription) {
       if (gcUpdateError) {
         console.error('❌ Error updating GC account subscription status:', gcUpdateError);
       } else {
-        console.log('✅ Successfully updated GC account subscription status to inactive');
+        console.log('✅ Updated GC account subscription status to inactive');
       }
     }
   } catch (error) {
@@ -617,47 +628,14 @@ async function handleSubscriptionDeleted(subscription) {
 async function handleInvoicePaymentSucceeded(invoice) {
   console.log('💰 Processing invoice.payment_succeeded');
   
-  // If this invoice is for a subscription, update the subscription status
+  // If this is a subscription invoice, update the subscription
   if (invoice.subscription) {
+    console.log('📝 This is a subscription invoice, updating subscription');
     try {
-      const { data: accountSubscription, error: findError } = await supabase
-        .from('account_subscriptions')
-        .select('id, gc_account_id')
-        .eq('stripe_subscription_id', invoice.subscription)
-        .maybeSingle();
-        
-      if (findError) {
-        console.error('❌ Error finding account subscription:', findError);
-        return;
-      }
-      
-      if (!accountSubscription) {
-        console.log('⚠️ No account subscription found for this invoice');
-        return;
-      }
-      
-      // Update the account subscription current period end
-      if (invoice.lines?.data?.length > 0) {
-        const periodEnd = invoice.lines.data[0].period?.end;
-        
-        if (periodEnd) {
-          const { error: updateError } = await supabase
-            .from('account_subscriptions')
-            .update({
-              current_period_end: new Date(periodEnd * 1000).toISOString(),
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', accountSubscription.id);
-            
-          if (updateError) {
-            console.error('❌ Error updating account subscription period:', updateError);
-          } else {
-            console.log('✅ Successfully updated account subscription period end');
-          }
-        }
-      }
+      const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+      await handleSubscriptionUpdated(subscription);
     } catch (error) {
-      console.error('❌ Error handling invoice payment success:', error);
+      console.error('❌ Error retrieving subscription for invoice:', error);
     }
   }
 }
@@ -668,26 +646,25 @@ async function handleInvoicePaymentSucceeded(invoice) {
 async function handleInvoicePaymentFailed(invoice) {
   console.log('❌ Processing invoice.payment_failed');
   
-  // If this invoice is for a subscription, update the subscription status
+  // If this is a subscription invoice, update the subscription status
   if (invoice.subscription) {
+    console.log('📝 This is a subscription invoice, updating subscription status');
     try {
+      const subscription = await stripe.subscriptions.retrieve(invoice.subscription);
+      
+      // Find the account subscription
       const { data: accountSubscription, error: findError } = await supabase
         .from('account_subscriptions')
         .select('id, gc_account_id')
         .eq('stripe_subscription_id', invoice.subscription)
         .maybeSingle();
         
-      if (findError) {
+      if (findError || !accountSubscription) {
         console.error('❌ Error finding account subscription:', findError);
         return;
       }
       
-      if (!accountSubscription) {
-        console.log('⚠️ No account subscription found for this invoice');
-        return;
-      }
-      
-      // Update the account subscription status
+      // Update subscription status
       const { error: updateError } = await supabase
         .from('account_subscriptions')
         .update({
@@ -699,9 +676,11 @@ async function handleInvoicePaymentFailed(invoice) {
       if (updateError) {
         console.error('❌ Error updating account subscription status:', updateError);
       } else {
-        console.log('✅ Successfully updated account subscription status to past_due');
-        
-        // Also update the gc_account
+        console.log('✅ Updated account subscription status to past_due');
+      }
+      
+      // Also update the gc_account subscription_status
+      if (accountSubscription.gc_account_id) {
         const { error: gcUpdateError } = await supabase
           .from('gc_accounts')
           .update({
@@ -713,11 +692,11 @@ async function handleInvoicePaymentFailed(invoice) {
         if (gcUpdateError) {
           console.error('❌ Error updating GC account subscription status:', gcUpdateError);
         } else {
-          console.log('✅ Successfully updated GC account subscription status to past_due');
+          console.log('✅ Updated GC account subscription status to past_due');
         }
       }
     } catch (error) {
-      console.error('❌ Error handling invoice payment failure:', error);
+      console.error('❌ Error retrieving subscription for failed invoice:', error);
     }
   }
 }
