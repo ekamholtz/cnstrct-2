@@ -138,6 +138,10 @@ serve(async (req) => {
       case 'verify_subscription_session':
         result = await verifySubscriptionSession(requestData)
         break
+      case 'ping':
+        // Simple ping response for testing
+        result = { message: 'Pong! Edge Function is working' }
+        break
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {
           status: 400,
@@ -252,6 +256,21 @@ async function createPaymentLink(params: RequestParams) {
  * Creates a checkout session for a subscription or one-time payment
  */
 async function createCheckoutSession(params: RequestParams) {
+  console.log('CreateCheckoutSession called with params:', JSON.stringify({
+    ...params,
+    // Don't log sensitive info
+    clientReferenceId: params.clientReferenceId ? '[PRESENT]' : '[MISSING]',
+    successUrl: params.successUrl ? '[PRESENT]' : '[MISSING]',
+    priceId: params.priceId ? '[PRESENT]' : '[MISSING]'
+  }));
+
+  // Log Stripe configuration
+  console.log('Stripe configuration:', {
+    hasSecretKey: !!stripeSecretKey,
+    secretKeyLength: stripeSecretKey.length,
+    apiVersion: '2023-10-16'
+  });
+
   const { 
     accountId, 
     amount, 
