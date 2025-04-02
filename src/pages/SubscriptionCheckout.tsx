@@ -63,14 +63,28 @@ const SubscriptionCheckout = () => {
           console.log("Found gc_account_id:", profile.gc_account_id);
           setGcAccountId(profile.gc_account_id);
         } else if (profile?.role === 'gc_admin') {
-          // GC admin without account - might need to create one
-          toast({
-            variant: 'destructive',
-            title: 'Account setup required',
-            description: 'Please complete your profile before subscribing',
-          });
-          navigate('/profile-completion');
-          return;
+          // Try to find GC account owned by this user
+          const { data: gcAccount, error: gcError } = await supabase
+            .from('gc_accounts')
+            .select('id')
+            .eq('owner_id', user.id)
+            .single();
+            
+          if (gcError) {
+            console.error("Error fetching gc account:", gcError);
+          } else if (gcAccount?.id) {
+            console.log("Found gc_account_id from accounts table:", gcAccount.id);
+            setGcAccountId(gcAccount.id);
+          } else {
+            // GC admin without account - might need to create one
+            toast({
+              variant: 'destructive',
+              title: 'Account setup required',
+              description: 'Please complete your profile before subscribing',
+            });
+            navigate('/profile-completion');
+            return;
+          }
         }
         
         setLoading(false);

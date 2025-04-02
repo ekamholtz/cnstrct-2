@@ -36,6 +36,7 @@ const SubscriptionSuccess = () => {
 
       try {
         console.log("Processing subscription completion with session ID:", sessionId);
+        console.log("GC Account ID from params:", gcAccountId);
         
         // Check for an existing session
         const { data: sessionData } = await supabase.auth.getSession();
@@ -54,36 +55,62 @@ const SubscriptionSuccess = () => {
         
         // If no gc_account_id provided, try to get it from user profile
         if (!accountToUpdate) {
-          const { data: profileData } = await supabase
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('gc_account_id')
             .eq('id', sessionData.session.user.id)
             .single();
             
+          if (profileError) {
+            console.error("Error fetching profile data:", profileError);
+          }
+            
           if (profileData?.gc_account_id) {
             accountToUpdate = profileData.gc_account_id;
             console.log("Using gc_account_id from user profile:", accountToUpdate);
           } else {
-            setError("Could not determine which account to update.");
-            toast({
-              variant: 'destructive',
-              title: 'Error',
-              description: 'Could not determine which account to update.',
-            });
-            setUpdating(false);
-            return;
+            console.error("No gc_account_id found in user profile");
+            // Make one more attempt - try to find a GC account where this user is the owner
+            const { data: gcAccountData, error: gcError } = await supabase
+              .from('gc_accounts')
+              .select('id')
+              .eq('owner_id', sessionData.session.user.id)
+              .single();
+              
+            if (gcError) {
+              console.error("Error fetching gc_account data:", gcError);
+            }
+              
+            if (gcAccountData?.id) {
+              accountToUpdate = gcAccountData.id;
+              console.log("Found gc_account_id from gc_accounts table:", accountToUpdate);
+            } else {
+              setError("Could not determine which account to update. Please contact support.");
+              toast({
+                variant: 'destructive',
+                title: 'Error',
+                description: 'Could not determine which account to update. Please contact support.',
+              });
+              setUpdating(false);
+              return;
+            }
           }
         }
         
         // Get the subscription tier ID to use
         const subscriptionTierId = tierId || '00000000-0000-0000-0000-000000000001'; // Default tier if none provided
+        console.log("Using subscription tier ID:", subscriptionTierId);
 
         // Check if we can find information about the session in our database
-        const { data: checkoutData } = await supabase
+        const { data: checkoutData, error: checkoutError } = await supabase
           .from('checkout_sessions')
           .select('*')
           .eq('stripe_session_id', sessionId)
           .maybeSingle();
+          
+        if (checkoutError) {
+          console.error("Error checking for existing checkout session:", checkoutError);
+        }
           
         console.log("Checkout session data in database:", checkoutData);
 
@@ -104,7 +131,23 @@ const SubscriptionSuccess = () => {
           return;
         }
 
-        console.log("Updating subscription status in database directly (webhook might not have arrived yet)...");
+        console.log("Webhook hasn't processed this session yet, updating subscription status in database directly...");
+        
+        // First, create a record of this checkout session
+        const { error: sessionInsertError } = await supabase
+          .from('checkout_sessions')
+          .insert({
+            stripe_session_id: sessionId,
+            gc_account_id: accountToUpdate,
+            status: 'completed',
+            tier_id: subscriptionTierId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (sessionInsertError) {
+          console.error("Error creating checkout session record:", sessionInsertError);
+        }
         
         // Update the gc_account with the subscription information
         const { error: gcUpdateError } = await supabase
@@ -125,7 +168,7 @@ const SubscriptionSuccess = () => {
             description: 'Failed to update subscription status. Please contact support.',
           });
         } else {
-          console.log("Subscription status updated successfully");
+          console.log("GC account subscription status updated successfully");
           
           // Create or update account_subscriptions record
           const { error: subscriptionError } = await supabase
@@ -144,6 +187,8 @@ const SubscriptionSuccess = () => {
             
           if (subscriptionError) {
             console.error('Error updating account_subscriptions:', subscriptionError);
+          } else {
+            console.log("Account subscription record created/updated successfully");
           }
           
           toast({
@@ -157,7 +202,7 @@ const SubscriptionSuccess = () => {
           }, 3000);
         }
       } catch (error) {
-        console.error('Error in subscription success:', error);
+        console.error('Error in subscription success handler:', error);
         setError('An unexpected error occurred. Please contact support.');
         toast({
           variant: 'destructive',
