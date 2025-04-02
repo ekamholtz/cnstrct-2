@@ -46,3 +46,10 @@ export interface StripePaymentLink {
   created_at: string;
   updated_at: string;
 }
+
+// We need to add a SQL migration to make sure this field exists
+// in the subscription_tiers table
+let sql = `
+ALTER TABLE subscription_tiers 
+ADD COLUMN IF NOT EXISTS stripe_price_id TEXT;
+`;
