@@ -1,4 +1,3 @@
-
 // Supabase Edge Function for Stripe Payments
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -28,16 +27,12 @@ interface RequestParams {
   description?: string
   metadata?: Record<string, string>
   returnUrl?: string
+  successUrl?: string
+  cancelUrl?: string
+  priceId?: string
+  clientReferenceId?: string
+  mode?: 'payment' | 'subscription'
   [key: string]: any
-}
-
-interface SubscriptionPlan {
-  id: string
-  name: string
-  price_id: string
-  description: string
-  features: string[]
-  price: number
 }
 
 // Default subscription plans if none are defined in the database
@@ -254,13 +249,61 @@ async function createPaymentLink(params: RequestParams) {
 }
 
 /**
- * Creates a checkout session for a connected account
+ * Creates a checkout session for a subscription or one-time payment
  */
 async function createCheckoutSession(params: RequestParams) {
-  const { accountId, amount, currency = 'usd', description, metadata = {}, returnUrl } = params
+  const { 
+    accountId, 
+    amount, 
+    currency = 'usd', 
+    description, 
+    metadata = {}, 
+    returnUrl,
+    successUrl,
+    cancelUrl,
+    priceId,
+    clientReferenceId,
+    mode = 'payment'
+  } = params
 
+  // For direct subscription checkout (no connected account)
+  if (priceId && (successUrl || returnUrl) && mode === 'subscription') {
+    console.log('Creating subscription checkout session with:', { 
+      priceId, 
+      clientReferenceId,
+      successUrl: successUrl || returnUrl
+    });
+
+    try {
+      // Create a checkout session for subscription
+      const session = await stripe.checkout.sessions.create({
+        mode: 'subscription',
+        success_url: successUrl || returnUrl,
+        cancel_url: cancelUrl || returnUrl,
+        client_reference_id: clientReferenceId,
+        line_items: [
+          {
+            price: priceId,
+            quantity: 1,
+          },
+        ],
+      });
+
+      console.log('Created subscription checkout session:', session.id);
+
+      return {
+        url: session.url,
+        sessionId: session.id,
+      };
+    } catch (error) {
+      console.error('Error creating subscription checkout session:', error);
+      throw error;
+    }
+  }
+
+  // Original connected account checkout logic
   if (!accountId) {
-    throw new Error('accountId is required')
+    throw new Error('accountId is required for connected account checkout')
   }
 
   if (!amount || amount <= 0) {

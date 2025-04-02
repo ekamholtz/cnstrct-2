@@ -164,7 +164,8 @@ const SubscriptionCheckout = () => {
           <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-4 mb-8">
             <stripe-pricing-table 
               pricing-table-id="prctbl_1R2HRTApu80f9E3HqCXBahYx"
-              publishable-key="pk_live_51QzjhnApu80f9E3HQcOCt84dyoMh2k9e4QlmNR7a11j9ddZcjrPOqIfi1S1J47tgRTKFaDD3cL3odKRaNya6PIny00BA5N7LnX">
+              publishable-key="pk_live_51QzjhnApu80f9E3HQcOCt84dyoMh2k9e4QlmNR7a11j9ddZcjrPOqIfi1S1J47tgRTKFaDD3cL3odKRaNya6PIny00BA5N7LnX"
+              mode="subscription">
             </stripe-pricing-table>
           </div>
 

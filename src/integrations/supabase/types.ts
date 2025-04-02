@@ -11,32 +11,44 @@ export type Database = {
     Tables: {
       account_subscriptions: {
         Row: {
+          cancel_at_period_end: boolean | null
           created_at: string | null
+          current_period_end: string | null
           end_date: string | null
           gc_account_id: string | null
           id: string
           start_date: string | null
           status: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_customer_id: string | null
+          stripe_subscription_id: string | null
           tier_id: string | null
           updated_at: string | null
         }
         Insert: {
+          cancel_at_period_end?: boolean | null
           created_at?: string | null
+          current_period_end?: string | null
           end_date?: string | null
           gc_account_id?: string | null
           id?: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           tier_id?: string | null
           updated_at?: string | null
         }
         Update: {
+          cancel_at_period_end?: boolean | null
           created_at?: string | null
+          current_period_end?: string | null
           end_date?: string | null
           gc_account_id?: string | null
           id?: string
           start_date?: string | null
           status?: Database["public"]["Enums"]["subscription_status"] | null
+          stripe_customer_id?: string | null
+          stripe_subscription_id?: string | null
           tier_id?: string | null
           updated_at?: string | null
         }
@@ -262,6 +274,7 @@ export type Database = {
           license_number: string | null
           owner_id: string | null
           phone_number: string | null
+          subscription_status: string | null
           subscription_tier_id: string | null
           updated_at: string | null
           website: string | null
@@ -274,6 +287,7 @@ export type Database = {
           license_number?: string | null
           owner_id?: string | null
           phone_number?: string | null
+          subscription_status?: string | null
           subscription_tier_id?: string | null
           updated_at?: string | null
           website?: string | null
@@ -286,6 +300,7 @@ export type Database = {
           license_number?: string | null
           owner_id?: string | null
           phone_number?: string | null
+          subscription_status?: string | null
           subscription_tier_id?: string | null
           updated_at?: string | null
           website?: string | null
