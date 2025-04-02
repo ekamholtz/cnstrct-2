@@ -1,20 +1,17 @@
 
-import axios from "axios";
 import { QBOConnectionService } from "./connection/qboConnectionService";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
- * Simplified QBO service that uses the CORS proxy for API calls
- * This is specifically for browser-based API calls that need to avoid CORS issues
+ * Simplified QBO service that uses Supabase Edge Functions for API calls
+ * This replaces the previous CORS proxy implementation
  */
 export class QBOProxyService {
-  private proxyUrl: string;
   private connectionService: QBOConnectionService;
   
   constructor() {
-    this.proxyUrl = "http://localhost:3030/proxy";
     this.connectionService = new QBOConnectionService();
-    console.log("QBOProxyService initialized with proxy URL:", this.proxyUrl);
+    console.log("QBOProxyService initialized with Edge Function support");
   }
   
   /**
@@ -25,7 +22,7 @@ export class QBOProxyService {
   }
   
   /**
-   * Test connection to QBO using the CORS proxy
+   * Test connection to QBO using Edge Function
    */
   async testConnection() {
     try {
@@ -36,24 +33,29 @@ export class QBOProxyService {
         throw new Error("No QuickBooks connection found");
       }
       
-      // Use the CORS proxy to test the connection
-      const response = await axios.post(`${this.proxyUrl}/test-connection`, {
-        accessToken: connection.access_token,
-        refreshToken: connection.refresh_token,
-        realmId: connection.company_id
+      // Use Edge Function to test the connection
+      const { data, error } = await supabase.functions.invoke('qbo-test-connection', {
+        body: {
+          accessToken: connection.access_token,
+          realmId: connection.company_id
+        }
       });
       
-      // If we got a new access token from the proxy, update the connection
-      if (response.data.newAccessToken) {
-        console.log('Received new access token from proxy, updating connection');
+      if (error) {
+        throw new Error(`Edge function error: ${error.message}`);
+      }
+      
+      // If we got a new access token, update the connection
+      if (data.newAccessToken) {
+        console.log('Received new access token from Edge Function, updating connection');
         
         try {
-          // Update the connection directly in Supabase instead of using a non-existent method
+          // Update the connection in Supabase
           const { error } = await supabase
             .from('qbo_connections')
             .update({
-              access_token: response.data.newAccessToken,
-              refresh_token: response.data.newRefreshToken || connection.refresh_token,
+              access_token: data.newAccessToken,
+              refresh_token: data.newRefreshToken || connection.refresh_token,
               updated_at: new Date().toISOString()
             })
             .eq('id', connection.id);
@@ -68,8 +70,8 @@ export class QBOProxyService {
       
       return {
         success: true,
-        status: response.status,
-        data: response.data
+        status: 200,
+        data: data
       };
     } catch (error) {
       console.error("Error testing QBO connection:", error);

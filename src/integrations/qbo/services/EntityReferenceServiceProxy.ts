@@ -1,14 +1,12 @@
-import { BaseQBOServiceProxy } from "./BaseQBOServiceProxy";
-import axios from "axios";
+
+import { BaseQBOEdgeFunction } from "./BaseQBOEdgeFunction";
 
 export class EntityReferenceServiceProxy {
-  private baseService: BaseQBOServiceProxy;
-  private proxyUrl: string;
+  private baseService: BaseQBOEdgeFunction;
   
-  constructor(baseService: BaseQBOServiceProxy) {
+  constructor(baseService: BaseQBOEdgeFunction) {
     this.baseService = baseService;
-    this.proxyUrl = "http://localhost:3030/proxy";
-    console.log("EntityReferenceServiceProxy initialized with proxy URL:", this.proxyUrl);
+    console.log("EntityReferenceServiceProxy initialized with Edge Function support");
   }
 
   /**
@@ -16,23 +14,24 @@ export class EntityReferenceServiceProxy {
    */
   async getEntityReference(entityType: string, entityId: string) {
     try {
-      console.log(`Getting ${entityType} reference from QBO using proxy...`);
+      console.log(`Getting ${entityType} reference from QBO using Edge Function...`);
       const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
       }
       
-      // Use the proxy for the query operation
-      const response = await axios.post(`${this.proxyUrl}/company-info`, {
+      // Use the Edge Function for the query operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "query",
-        params: {
+        method: "get",
+        data: {
           query: `SELECT * FROM ${entityType} WHERE Id = '${entityId}'`
         }
       });
       
-      const entities = response.data.QueryResponse?.[entityType] || [];
+      const entities = response.QueryResponse?.[entityType] || [];
       
       if (entities.length > 0) {
         return {

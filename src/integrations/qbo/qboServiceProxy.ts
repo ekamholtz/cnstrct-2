@@ -1,16 +1,16 @@
-import { BaseQBOServiceProxy } from "./services/BaseQBOServiceProxy";
+
+import { BaseQBOEdgeFunction } from "./services/BaseQBOEdgeFunction";
 import { AccountServiceProxy } from "./services/AccountServiceProxy";
 import { CustomerVendorServiceProxy } from "./services/CustomerVendorServiceProxy";
 import { BillServiceProxy } from "./services/BillServiceProxy";
 import { InvoiceServiceProxy } from "./services/InvoiceServiceProxy";
 import { EntityReferenceServiceProxy } from "./services/EntityReferenceServiceProxy";
-import axios from "axios";
 import { supabase } from "../supabase/client";
 
 /**
  * QBOService coordinates all QuickBooks Online API interactions
  * by utilizing specialized service classes for different entity types
- * This version uses a CORS proxy for browser-based API calls
+ * This version uses Supabase Edge Functions instead of a CORS proxy
  */
 export class QBOService {
   private accountService: AccountServiceProxy;
@@ -18,22 +18,20 @@ export class QBOService {
   private billService: BillServiceProxy;
   private invoiceService: InvoiceServiceProxy;
   private entityRefService: EntityReferenceServiceProxy;
-  private baseService: BaseQBOServiceProxy;
-  private proxyUrl: string;
+  private baseService: BaseQBOEdgeFunction;
   
   constructor() {
-    console.warn("QBOService is being properly instantiated with proxy-aware services - v3");
-    this.baseService = new BaseQBOServiceProxy();
-    this.proxyUrl = "http://localhost:3030/proxy";
+    console.warn("QBOService is being instantiated using Supabase Edge Functions");
+    this.baseService = new BaseQBOEdgeFunction();
     
-    // Create proxy-aware service instances with the base service
+    // Create service instances with the base service
     this.customerVendorService = new CustomerVendorServiceProxy(this.baseService);
     this.accountService = new AccountServiceProxy(this.baseService);
     this.billService = new BillServiceProxy(this.baseService);
     this.invoiceService = new InvoiceServiceProxy(this.baseService);
     this.entityRefService = new EntityReferenceServiceProxy(this.baseService);
     
-    console.log("QBOService initialized with proxy-aware services");
+    console.log("QBOService initialized with Edge Function-backed services");
   }
 
   /**
@@ -45,79 +43,75 @@ export class QBOService {
 
   // Account related methods
   async getAccounts(accountType: string) {
-    console.log("QBOServiceProxy: Getting accounts of type:", accountType);
+    console.log("QBOService: Getting accounts of type:", accountType);
     return this.accountService.getAccounts(accountType);
   }
 
   // Entity reference methods
   async getEntityReference(entityType: string, entityId: string) {
-    console.log("QBOServiceProxy: Getting entity reference for:", entityType, entityId);
+    console.log("QBOService: Getting entity reference for:", entityType, entityId);
     return this.entityRefService.getEntityReference(entityType, entityId);
   }
 
   async storeEntityReference(entityType: string, entityId: string, qboId: string): Promise<boolean> {
-    console.log("QBOServiceProxy: Storing entity reference:", entityType, entityId, qboId);
+    console.log("QBOService: Storing entity reference:", entityType, entityId, qboId);
     const result = await this.entityRefService.storeEntityReference(entityType, entityId, qboId);
     return result.success;
   }
 
   // Vendor/Customer methods
   async getVendorIdForExpense(vendorName: string) {
-    console.log("QBOServiceProxy: Getting vendor ID for expense:", vendorName);
+    console.log("QBOService: Getting vendor ID for expense:", vendorName);
     return this.customerVendorService.getVendorIdForExpense(vendorName);
   }
 
   async findVendor(vendorName: string) {
-    console.log("QBOServiceProxy: Finding vendor:", vendorName);
+    console.log("QBOService: Finding vendor:", vendorName);
     return this.customerVendorService.findVendor(vendorName);
   }
 
   async createVendor(vendorData: any) {
-    console.log("QBOServiceProxy: Creating vendor using proxy:", vendorData);
+    console.log("QBOService: Creating vendor:", vendorData);
     return this.customerVendorService.createVendor(vendorData);
   }
   
   async findCustomer(customerName: string) {
-    console.log("QBOServiceProxy: Finding customer by name:", customerName);
+    console.log("QBOService: Finding customer by name:", customerName);
     return this.customerVendorService.findCustomer(customerName);
   }
   
   async findCustomerByEmail(email: string) {
-    console.log("QBOServiceProxy: Finding customer by email:", email);
+    console.log("QBOService: Finding customer by email:", email);
     return this.customerVendorService.findCustomerByEmail(email);
   }
   
   /**
-   * Create a customer in QBO - CRITICAL METHOD
-   * MUST use the proxy for the create operation to avoid CORS issues
+   * Create a customer in QBO
    */
   async createCustomer(customerData: any) {
-    console.log("QBOServiceProxy: Creating customer in QBO via proxy...", JSON.stringify(customerData));
-    
-    // IMPORTANT: Always use the proxy-aware service to create customers
-    // This ensures all API calls go through the CORS proxy
+    console.log("QBOService: Creating customer in QBO via Edge Function...", JSON.stringify(customerData));
     return this.customerVendorService.createCustomer(customerData);
   }
   
   // Bill methods
   async createBill(billData: any) {
-    console.log("QBOServiceProxy: Creating bill:", billData);
+    console.log("QBOService: Creating bill:", billData);
     return this.billService.createBill(billData);
   }
   
   async createBillPayment(paymentData: any) {
-    console.log("QBOServiceProxy: Creating bill payment:", paymentData);
+    console.log("QBOService: Creating bill payment:", paymentData);
     return this.billService.createBillPayment(paymentData);
   }
   
   // Invoice methods
   async createInvoice(invoiceData: any) {
-    console.log("QBOServiceProxy: Creating invoice using proxy:", invoiceData);
+    console.log("QBOService: Creating invoice using Edge Function:", invoiceData);
     return this.invoiceService.createInvoice(invoiceData);
   }
   
   async recordPayment(paymentData: any) {
-    console.log("QBOServiceProxy: Recording payment:", paymentData);
+    console.log("QBOService: Recording payment:", paymentData);
     return this.invoiceService.recordPayment(paymentData);
   }
   
@@ -125,7 +119,7 @@ export class QBOService {
    * Get a list of QBO transactions
    */
   async getTransactions(type = 'ALL', startDate?: string, endDate?: string) {
-    console.log("QBOServiceProxy: Getting transactions:", type, startDate, endDate);
+    console.log("QBOService: Getting transactions:", type, startDate, endDate);
     
     try {
       const connection = await this.baseService.getUserConnection();
@@ -150,21 +144,20 @@ export class QBOService {
         query += `TxnDate <= '${endDate}'`;
       }
       
-      // Use the proxy for the query operation
-      const response = await axios.post(`${this.proxyUrl}/company-info`, {
+      // Use the Edge Function for the query operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "query",
-        params: {
-          query
-        }
+        method: "get",
+        data: { query }
       });
       
       // Check for QueryResponse in the data
-      if (response.data.QueryResponse) {
+      if (response.QueryResponse) {
         return {
           success: true,
-          data: response.data.QueryResponse
+          data: response.QueryResponse
         };
       }
       

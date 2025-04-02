@@ -1,14 +1,12 @@
-import { BaseQBOServiceProxy } from "./BaseQBOServiceProxy";
-import axios from "axios";
+
+import { BaseQBOEdgeFunction } from "./BaseQBOEdgeFunction";
 
 export class CustomerVendorServiceProxy {
-  private baseService: BaseQBOServiceProxy;
-  private proxyUrl: string;
+  private baseService: BaseQBOEdgeFunction;
   
-  constructor(baseService: BaseQBOServiceProxy) {
+  constructor(baseService: BaseQBOEdgeFunction) {
     this.baseService = baseService;
-    this.proxyUrl = "http://localhost:3030/proxy";
-    console.log("CustomerVendorServiceProxy initialized with proxy URL:", this.proxyUrl);
+    console.log("CustomerVendorServiceProxy initialized with Edge Function support");
   }
 
   /**
@@ -33,17 +31,18 @@ export class CustomerVendorServiceProxy {
         };
       }
       
-      // Use the proxy for the query operation
-      const queryResponse = await axios.post(`${this.proxyUrl}/company-info`, {
+      // Use the Edge Function for the query operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "query",
-        params: {
+        method: "get",
+        data: {
           query: `SELECT * FROM Vendor WHERE DisplayName = '${vendorName}'`
         }
       });
       
-      const vendors = queryResponse.data.QueryResponse?.Vendor || [];
+      const vendors = response.QueryResponse?.Vendor || [];
       
       if (vendors.length > 0) {
         console.log("Found existing vendor in QBO:", vendors[0].Id);
@@ -67,8 +66,8 @@ export class CustomerVendorServiceProxy {
         Active: true
       };
       
-      // Use the proxy for the create operation
-      const createResponse = await axios.post(`${this.proxyUrl}/data-operation`, {
+      // Use the Edge Function for the create operation
+      const createResponse = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "vendor",
@@ -76,14 +75,14 @@ export class CustomerVendorServiceProxy {
         data: vendorData
       });
       
-      console.log("Vendor created successfully:", createResponse.data);
+      console.log("Vendor created successfully:", createResponse.Vendor);
       
       // Store the reference for future use
-      await this.baseService.storeEntityReference('vendor', vendorName, createResponse.data.Vendor.Id);
+      await this.baseService.storeEntityReference('vendor', vendorName, createResponse.Vendor.Id);
       
       return {
         success: true,
-        data: createResponse.data.Vendor
+        data: createResponse.Vendor
       };
     } catch (error) {
       console.error("Error getting/creating QBO vendor:", error);
@@ -112,7 +111,7 @@ export class CustomerVendorServiceProxy {
         console.log("Found existing vendor reference:", vendorRef.qbo_id);
         
         // Get the vendor details from QBO
-        const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+        const response = await this.baseService.makeDataOperation({
           accessToken: connection.access_token,
           realmId: connection.company_id,
           endpoint: `vendor/${vendorRef.qbo_id}`,
@@ -121,21 +120,22 @@ export class CustomerVendorServiceProxy {
         
         return {
           success: true,
-          data: response.data.Vendor
+          data: response.Vendor
         };
       }
       
-      // Use the proxy for the query operation
-      const response = await axios.post(`${this.proxyUrl}/company-info`, {
+      // Use the Edge Function for the query operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "query",
-        params: {
+        method: "get",
+        data: {
           query: `SELECT * FROM Vendor WHERE DisplayName = '${vendorName}'`
         }
       });
       
-      const vendors = response.data.QueryResponse?.Vendor || [];
+      const vendors = response.QueryResponse?.Vendor || [];
       
       if (vendors.length > 0) {
         console.log("Found existing vendor in QBO:", vendors[0].Id);
@@ -167,7 +167,7 @@ export class CustomerVendorServiceProxy {
    */
   async createVendor(vendorData: any) {
     try {
-      console.log("Creating vendor in QBO using proxy...");
+      console.log("Creating vendor in QBO using Edge Function...");
       const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
@@ -175,8 +175,8 @@ export class CustomerVendorServiceProxy {
       
       console.log("Using connection:", connection.id, "company:", connection.company_id);
       
-      // Use the proxy for the create operation
-      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+      // Use the Edge Function for the create operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "vendor",
@@ -184,11 +184,11 @@ export class CustomerVendorServiceProxy {
         data: vendorData
       });
       
-      console.log("Vendor created successfully:", response.data);
+      console.log("Vendor created successfully:", response.Vendor);
       
       return {
         success: true,
-        data: response.data.Vendor
+        data: response.Vendor
       };
     } catch (error) {
       console.error("Error creating QBO vendor:", error);
@@ -217,7 +217,7 @@ export class CustomerVendorServiceProxy {
         console.log("Found existing customer reference:", customerRef.qbo_id);
         
         // Get the customer details from QBO
-        const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+        const response = await this.baseService.makeDataOperation({
           accessToken: connection.access_token,
           realmId: connection.company_id,
           endpoint: `customer/${customerRef.qbo_id}`,
@@ -226,21 +226,22 @@ export class CustomerVendorServiceProxy {
         
         return {
           success: true,
-          data: response.data.Customer
+          data: response.Customer
         };
       }
       
-      // Use the proxy for the query operation
-      const response = await axios.post(`${this.proxyUrl}/company-info`, {
+      // Use the Edge Function for the query operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "query",
-        params: {
+        method: "get",
+        data: {
           query: `SELECT * FROM Customer WHERE DisplayName = '${customerName}'`
         }
       });
       
-      const customers = response.data.QueryResponse?.Customer || [];
+      const customers = response.QueryResponse?.Customer || [];
       
       if (customers.length > 0) {
         console.log("Found existing customer in QBO:", customers[0].Id);
@@ -279,17 +280,18 @@ export class CustomerVendorServiceProxy {
         throw new Error("No QBO connection found");
       }
       
-      // Use the proxy for the query operation
-      const response = await axios.post(`${this.proxyUrl}/company-info`, {
+      // Use the Edge Function for the query operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "query",
-        params: {
+        method: "get",
+        data: {
           query: `SELECT * FROM Customer WHERE PrimaryEmailAddr = '${email}'`
         }
       });
       
-      const customers = response.data.QueryResponse?.Customer || [];
+      const customers = response.QueryResponse?.Customer || [];
       
       if (customers.length > 0) {
         console.log("Found existing customer in QBO:", customers[0].Id);
@@ -317,7 +319,7 @@ export class CustomerVendorServiceProxy {
    */
   async createCustomer(customerData: any) {
     try {
-      console.log("Creating customer in QBO using proxy...");
+      console.log("Creating customer in QBO using Edge Function...");
       const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
@@ -325,8 +327,8 @@ export class CustomerVendorServiceProxy {
       
       console.log("Using connection:", connection.id, "company:", connection.company_id);
       
-      // Use the proxy for the create operation
-      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+      // Use the Edge Function for the create operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "customer",
@@ -334,11 +336,11 @@ export class CustomerVendorServiceProxy {
         data: customerData
       });
       
-      console.log("Customer created successfully:", response.data);
+      console.log("Customer created successfully:", response.Customer);
       
       return {
         success: true,
-        data: response.data.Customer
+        data: response.Customer
       };
     } catch (error) {
       console.error("Error creating QBO customer:", error);

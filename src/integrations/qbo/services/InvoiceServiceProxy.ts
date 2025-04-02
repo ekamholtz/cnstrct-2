@@ -1,14 +1,12 @@
-import { BaseQBOServiceProxy } from "./BaseQBOServiceProxy";
-import axios from "axios";
+
+import { BaseQBOEdgeFunction } from "./BaseQBOEdgeFunction";
 
 export class InvoiceServiceProxy {
-  private baseService: BaseQBOServiceProxy;
-  private proxyUrl: string;
+  private baseService: BaseQBOEdgeFunction;
   
-  constructor(baseService: BaseQBOServiceProxy) {
+  constructor(baseService: BaseQBOEdgeFunction) {
     this.baseService = baseService;
-    this.proxyUrl = "http://localhost:3030/proxy";
-    console.log("InvoiceServiceProxy initialized with proxy URL:", this.proxyUrl);
+    console.log("InvoiceServiceProxy initialized with Edge Function support");
   }
 
   /**
@@ -16,7 +14,7 @@ export class InvoiceServiceProxy {
    */
   async createInvoice(invoiceData: any) {
     try {
-      console.log("Creating invoice in QBO using proxy...");
+      console.log("Creating invoice in QBO using Edge Function...");
       const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
@@ -24,8 +22,8 @@ export class InvoiceServiceProxy {
       
       console.log("Using connection:", connection.id, "company:", connection.company_id);
       
-      // Use the proxy for the create operation
-      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+      // Use the Edge Function for the create operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "invoice",
@@ -33,11 +31,11 @@ export class InvoiceServiceProxy {
         data: invoiceData
       });
       
-      console.log("Invoice created successfully:", response.data);
+      console.log("Invoice created successfully:", response);
       
       return {
         success: true,
-        data: response.data.Invoice
+        data: response.Invoice
       };
     } catch (error) {
       console.error("Error creating QBO invoice:", error);
@@ -58,7 +56,7 @@ export class InvoiceServiceProxy {
     paymentMethod: string;
   }) {
     try {
-      console.log("Recording payment in QBO using proxy...");
+      console.log("Recording payment in QBO using Edge Function...");
       const connection = await this.baseService.getUserConnection();
       if (!connection) {
         throw new Error("No QBO connection found");
@@ -82,8 +80,8 @@ export class InvoiceServiceProxy {
         ]
       };
       
-      // Use the proxy for the create operation
-      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+      // Use the Edge Function for the create operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "payment",
@@ -91,11 +89,11 @@ export class InvoiceServiceProxy {
         data: qboPaymentData
       });
       
-      console.log("Payment recorded successfully:", response.data);
+      console.log("Payment recorded successfully:", response);
       
       return {
         success: true,
-        data: response.data.Payment
+        data: response.Payment
       };
     } catch (error) {
       console.error("Error recording payment in QBO:", error);

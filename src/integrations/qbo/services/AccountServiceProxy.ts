@@ -1,14 +1,12 @@
-import { BaseQBOServiceProxy } from "./BaseQBOServiceProxy";
-import axios from "axios";
+
+import { BaseQBOEdgeFunction } from "./BaseQBOEdgeFunction";
 
 export class AccountServiceProxy {
-  private baseService: BaseQBOServiceProxy;
-  private proxyUrl: string;
+  private baseService: BaseQBOEdgeFunction;
   
-  constructor(baseService: BaseQBOServiceProxy) {
+  constructor(baseService: BaseQBOEdgeFunction) {
     this.baseService = baseService;
-    this.proxyUrl = "http://localhost:3030/proxy";
-    console.log("AccountServiceProxy initialized with proxy URL:", this.proxyUrl);
+    console.log("AccountServiceProxy initialized with Edge Function support");
   }
 
   /**
@@ -23,19 +21,20 @@ export class AccountServiceProxy {
       
       console.log("Getting accounts of type:", accountType);
       
-      // Use the proxy for the query operation
-      const response = await axios.post(`${this.proxyUrl}/company-info`, {
+      // Use Edge Function for the query operation
+      const response = await this.baseService.makeDataOperation({
         accessToken: connection.access_token,
         realmId: connection.company_id,
         endpoint: "query",
-        params: {
+        method: "get",
+        data: {
           query: `SELECT * FROM Account WHERE AccountType = '${accountType}'`
         }
       });
       
       return {
         success: true,
-        data: response.data.QueryResponse?.Account || []
+        data: response.QueryResponse?.Account || []
       };
     } catch (error) {
       console.error("Error getting QBO accounts:", error);

@@ -1,7 +1,8 @@
+
 /**
  * This file is DEPRECATED and should not be used directly.
  * It now re-exports everything from qboServiceProxy.ts to ensure
- * legacy imports don't cause CORS issues.
+ * legacy imports don't cause issues.
  * 
  * IMPORTANT: All new code should import from qboServiceProxy.ts
  */
@@ -15,4 +16,5 @@ console.warn(
 // Re-export everything from the proxy version
 export * from './qboServiceProxy';
 
-// Legacy code that directly imports this file will now use the proxy version
+// Legacy code that directly imports this file will now use the new Edge Function implementation
+

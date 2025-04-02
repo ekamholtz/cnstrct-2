@@ -88,9 +88,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     isInvoicePath: ['/invoice', '/invoices'].includes(location.pathname)
   });
 
-  // Remove profile completion check - profile completion page is no longer part of the workflow
-  // This ensures users don't get stuck on the profile-completion page
-
   // Root path handling
   if (location.pathname === '/') {
     console.log("Handling root path navigation");
@@ -99,16 +96,6 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     } else if (currentRole === 'homeowner') {
       return <Navigate to="/client-dashboard" replace />;
     } else if (currentRole === 'general_contractor' || currentRole === 'gc_admin') {
-      return <Navigate to="/dashboard" replace />;
-    }
-  }
-
-  // Special handling for profile-completion page - redirect to dashboard
-  if (location.pathname === '/profile-completion') {
-    console.log("Redirecting from profile-completion to appropriate dashboard");
-    if (currentRole === 'homeowner') {
-      return <Navigate to="/client-dashboard" replace />;
-    } else {
       return <Navigate to="/dashboard" replace />;
     }
   }
