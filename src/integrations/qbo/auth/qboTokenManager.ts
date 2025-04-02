@@ -1,28 +1,26 @@
 import axios from "axios";
 import { supabase } from "@/integrations/supabase/client";
 import { QBOConfig } from "../config/qboConfig";
+import { QBOEdgeFunctionService } from "@/lib/qbo/qboEdgeFunctionService";
 
 /**
- * Handles token-related operations for QBO integration using a CORS proxy
+ * Handles token-related operations for QBO integration using Supabase Edge Functions
+ * This replaces the previous CORS proxy implementation
  */
 export class QBOTokenManager {
   private config: QBOConfig;
-  private proxyUrl: string;
+  private edgeFunctionService: QBOEdgeFunctionService;
   
   constructor() {
     // Use singleton instance instead of creating a new one
     this.config = QBOConfig.getInstance();
+    this.edgeFunctionService = new QBOEdgeFunctionService();
     
-    // Get proxy URL dynamically based on environment
-    this.proxyUrl = this.config.getProxyUrl();
-    
-    console.log("QBOTokenManager initialized with client ID:", this.config.clientId);
-    console.log("QBOTokenManager environment:", this.config.isProduction ? "Production" : "Sandbox");
-    console.log("QBOTokenManager using proxy URL:", this.proxyUrl);
+    console.log("QBOTokenManager initialized with Edge Function");
   }
   
   /**
-   * Exchange authorization code for tokens using CORS proxy
+   * Exchange authorization code for tokens using Edge Function
    */
   async exchangeCodeForTokens(code: string): Promise<{
     access_token: string;
@@ -31,47 +29,58 @@ export class QBOTokenManager {
     x_refresh_token_expires_in: number;
     realmId?: string;
   }> {
-    console.log("Exchanging authorization code for tokens via CORS proxy...");
-    console.log("Using proxy URL:", this.proxyUrl);
-    console.log("Using client ID:", this.config.clientId);
+    console.log("Exchanging authorization code for tokens via Edge Function...");
     
     try {
-      // Use the appropriate CORS proxy to avoid CORS issues
-      const proxyResponse = await axios.post(`${this.proxyUrl}/token`, {
-        code,
-        redirectUri: this.config.redirectUri,
-        clientId: this.config.clientId
-      });
+      // Extract realmId from URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const realmId = urlParams.get('realmId');
       
-      if (!proxyResponse.data || proxyResponse.data.error) {
-        console.error("Token exchange failed:", proxyResponse.data);
-        throw new Error(proxyResponse.data?.error_description || 
-                       proxyResponse.data?.error || 
-                       "Token exchange failed with unknown error");
+      if (!realmId) {
+        throw new Error("Missing realmId parameter");
       }
       
-      console.log("Token exchange successful");
+      // Get the state from localStorage
+      const state = localStorage.getItem('qbo_auth_state');
       
-      // Extract token data from response
-      // Note: realmId might be missing in the token response, will be extracted from URL in the callback
-      const tokenData = {
-        access_token: proxyResponse.data.access_token,
-        refresh_token: proxyResponse.data.refresh_token,
-        expires_in: proxyResponse.data.expires_in || 3600, // Default to 1 hour if missing
-        x_refresh_token_expires_in: proxyResponse.data.x_refresh_token_expires_in || 8726400, // Default to 101 days if missing
-        realmId: proxyResponse.data.realmId // This might be undefined
+      if (!state) {
+        throw new Error("Missing state parameter");
+      }
+      
+      // Use the Edge Function to exchange the code for tokens
+      const result = await this.edgeFunctionService.handleCallback(code, state, realmId);
+      
+      if (!result.success) {
+        throw new Error(result.error || "Token exchange failed");
+      }
+      
+      // Get the connection from the database to return token data
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("No authenticated user found");
+      }
+      
+      const { data: connection, error } = await supabase
+        .from('qbo_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error || !connection) {
+        throw new Error("Failed to retrieve connection data");
+      }
+      
+      // Return token data in the expected format
+      return {
+        access_token: connection.access_token,
+        refresh_token: connection.refresh_token,
+        expires_in: 3600, // Default to 1 hour
+        x_refresh_token_expires_in: 8726400, // Default to 101 days
+        realmId: connection.company_id
       };
-      
-      return tokenData;
     } catch (error: any) {
       console.error("Error exchanging code for tokens:", error);
-      
-      // Enhanced error logging for better debugging
-      if (error.response) {
-        console.error("Error response status:", error.response.status);
-        console.error("Error response data:", error.response.data);
-      }
-      
       throw new Error(`Failed to exchange authorization code for tokens: ${error.message}`);
     }
   }
@@ -83,194 +92,26 @@ export class QBOTokenManager {
     try {
       console.log("Refreshing QBO access token for connection:", connectionId);
       
-      // Get the connection from the database
-      const { data: connection, error } = await supabase
-        .from('qbo_connections')
-        .select('*')
-        .eq('id', connectionId)
-        .single();
-        
-      if (error || !connection) {
-        console.error("Connection not found:", error);
-        throw new Error(`Connection not found: ${error?.message || "Unknown error"}`);
+      // Use the Edge Function to refresh the token
+      const response = await this.edgeFunctionService.callEdgeFunction('refresh');
+      
+      if (!response.access_token) {
+        throw new Error("Failed to refresh token");
       }
       
-      // Check if the token is already expired
-      const now = new Date();
-      const expiresAt = new Date(connection.expires_at);
-      
-      // If the token is not expired, return it
-      if (expiresAt > now) {
-        console.log("Access token still valid, returning existing token");
-        return connection.access_token;
-      }
-      
-      console.log("Access token expired, refreshing...");
-      
-      // Check if the refresh token is expired
-      const refreshTokenExpiresAt = new Date(connection.refresh_token_expires_at);
-      if (refreshTokenExpiresAt <= now) {
-        console.error("Refresh token expired, need to re-authenticate");
-        throw new Error("Refresh token expired, user needs to re-authenticate");
-      }
-      
-      // Use the proxy for token refresh
-      const proxyResponse = await axios.post(`${this.proxyUrl}/refresh`, {
-        refreshToken: connection.refresh_token,
-        clientId: this.config.clientId
-      });
-      
-      if (!proxyResponse.data || proxyResponse.data.error) {
-        console.error("Token refresh failed:", proxyResponse.data);
-        throw new Error(proxyResponse.data?.error_description || 
-                       proxyResponse.data?.error || 
-                       "Token refresh failed with unknown error");
-      }
-      
-      console.log("Token refresh successful");
-      
-      // Prepare data for update
-      const updateData = {
-        access_token: proxyResponse.data.access_token,
-        refresh_token: proxyResponse.data.refresh_token,
-        expires_at: new Date(Date.now() + (proxyResponse.data.expires_in * 1000)).toISOString()
-      };
-      
-      const { data: updatedConnection, error: updateError } = await supabase
-        .from('qbo_connections')
-        .update(updateData)
-        .eq('id', connectionId)
-        .select()
-        .single();
-        
-      if (updateError) {
-        console.error("Error updating connection:", updateError);
-        throw new Error(`Failed to update connection: ${updateError.message}`);
-      }
-      
-      console.log("Connection updated with refreshed tokens");
-      return proxyResponse.data.access_token;
+      return response.access_token;
     } catch (error: any) {
       console.error("Error refreshing token:", error);
-      
-      // Enhanced error logging for better debugging
-      if (error.response) {
-        console.error("Error response status:", error.response.status);
-        console.error("Error response data:", error.response.data);
-      }
-      
       throw new Error(`Failed to refresh access token: ${error.message}`);
     }
   }
   
   /**
    * Store QBO connection information in the database
+   * Note: This is now handled by the Edge Function directly
    */
   async storeConnection(userId: string, tokenData: any, companyInfo: any): Promise<any> {
-    try {
-      console.log("Storing QBO connection for user:", userId);
-      console.log("Token data received:", JSON.stringify({
-        access_token: "[REDACTED]",
-        realmId: tokenData.realmId,
-        expires_in: tokenData.expires_in
-      }));
-      
-      // Extract realmId from URL if not present in token data
-      let realmId = tokenData.realmId;
-      
-      // If realmId is missing, try to extract it from URL parameters
-      if (!realmId && typeof window !== 'undefined') {
-        const urlParams = new URLSearchParams(window.location.search);
-        realmId = urlParams.get('realmId');
-        console.log("Extracted realmId from URL:", realmId);
-      }
-      
-      // Validate that we have a realmId
-      if (!realmId) {
-        console.error("No realmId found in token data or URL parameters");
-        throw new Error("Missing realmId, unable to store connection");
-      }
-      
-      // Make sure we have valid numeric values for expiration times
-      const expiresIn = parseInt(String(tokenData.expires_in || '3600'), 10);
-      const refreshTokenExpiresIn = parseInt(String(tokenData.x_refresh_token_expires_in || '8726400'), 10);
-      
-      // Safely create expiration dates with validation
-      let expiresAt, refreshTokenExpiresAt, lastRefreshedAt;
-      try {
-        expiresAt = new Date(Date.now() + (expiresIn * 1000)).toISOString();
-        refreshTokenExpiresAt = new Date(Date.now() + (refreshTokenExpiresIn * 1000)).toISOString();
-        lastRefreshedAt = new Date().toISOString();
-      } catch (error) {
-        console.error("Error creating date values:", error);
-        // Use fallback dates if conversion fails
-        const now = new Date();
-        expiresAt = now.toISOString();
-        now.setDate(now.getDate() + 90); // 90 days for refresh token
-        refreshTokenExpiresAt = now.toISOString();
-        lastRefreshedAt = new Date().toISOString();
-      }
-      
-      // Check for existing connection
-      const { data: existingConnection, error: findError } = await supabase
-        .from('qbo_connections')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('company_id', realmId)
-        .single();
-      
-      const connectionData = {
-        user_id: userId,
-        company_id: realmId,
-        company_name: companyInfo?.CompanyName || 'Unknown Company',
-        access_token: tokenData.access_token,
-        refresh_token: tokenData.refresh_token,
-        expires_at: expiresAt
-        // Removed token_type field as it doesn't exist in the database schema
-      };
-      
-      let result;
-      
-      if (existingConnection) {
-        console.log("Updating existing QBO connection:", existingConnection.id);
-        
-        // Update existing connection
-        const { data, error } = await supabase
-          .from('qbo_connections')
-          .update(connectionData)
-          .eq('id', existingConnection.id)
-          .select()
-          .single();
-          
-        if (error) {
-          console.error("Error updating QBO connection:", error);
-          throw error;
-        }
-        
-        result = data;
-      } else {
-        console.log("Creating new QBO connection");
-        
-        // Create new connection
-        const { data, error } = await supabase
-          .from('qbo_connections')
-          .insert(connectionData)
-          .select()
-          .single();
-          
-        if (error) {
-          console.error("Error creating QBO connection:", error);
-          throw error;
-        }
-        
-        result = data;
-      }
-      
-      console.log("QBO connection stored successfully:", result.id);
-      return result;
-    } catch (err) {
-      console.error("Error storing QBO connection:", err);
-      throw err;
-    }
+    console.log("Connection storage is now handled by the Edge Function");
+    return { success: true };
   }
 }

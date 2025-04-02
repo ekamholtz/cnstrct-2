@@ -1,46 +1,39 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { QBOConfig } from "./config/qboConfig";
 import { QBOUtils } from "./utils/qboUtils";
 import { QBOTokenManager } from "./auth/qboTokenManager";
 import { QBOCompanyService } from "./company/qboCompanyService";
 import { QBOConnectionService } from "./connection/qboConnectionService";
+import { QBOEdgeFunctionService } from "@/lib/qbo/qboEdgeFunctionService";
 
 export class QBOAuthService {
   private config: QBOConfig;
   private tokenManager: QBOTokenManager;
   private companyService: QBOCompanyService;
   private connectionService: QBOConnectionService;
+  private edgeFunctionService: QBOEdgeFunctionService;
   
   constructor() {
     this.config = QBOConfig.getInstance();
     this.tokenManager = new QBOTokenManager();
     this.companyService = new QBOCompanyService();
     this.connectionService = new QBOConnectionService();
+    this.edgeFunctionService = new QBOEdgeFunctionService();
   }
   
   /**
    * Generate the authorization URL for QBO OAuth2 flow
    */
-  getAuthorizationUrl(userId: string): string {
-    const state = QBOUtils.generateRandomState();
-    
-    // Store state in localStorage for validation when the user returns
-    QBOUtils.storeOAuthState(state, userId);
-    
-    // Build the authorization URL with correct parameters
-    // Important: Join scopes with '+' instead of space to match Intuit's requirements
-    const params = new URLSearchParams({
-      client_id: this.config.clientId,
-      response_type: 'code',
-      scope: this.config.scopes.join(' '), // Using space as it's automatically encoded to '+' in URL
-      redirect_uri: this.config.redirectUri,
-      state: state
-    });
-    
-    const authUrl = `${this.config.authEndpoint}?${params.toString()}`;
-    console.log("Generated QBO Auth URL:", authUrl);
-    return authUrl;
+  async getAuthorizationUrl(userId: string): Promise<string> {
+    try {
+      // Use the Edge Function to get the authorization URL
+      const authUrl = await this.edgeFunctionService.getAuthorizationUrl();
+      console.log("Generated QBO Auth URL:", authUrl);
+      return authUrl;
+    } catch (error) {
+      console.error("Error generating QBO auth URL:", error);
+      throw error;
+    }
   }
   
   /**
@@ -52,50 +45,35 @@ export class QBOAuthService {
     companyName?: string;
     error?: string;
   }> {
-    // Validate state to prevent CSRF attacks
-    if (!QBOUtils.validateState(state)) {
-      console.error("State mismatch in QBO callback", { provided: state, stored: localStorage.getItem('qbo_auth_state') });
-      return { success: false, error: 'Invalid state parameter' };
-    }
-    
     try {
-      console.log("Exchanging authorization code for tokens...");
+      console.log("Handling QBO callback with code and state");
       
-      // Exchange authorization code for tokens
-      const tokenData = await this.tokenManager.exchangeCodeForTokens(code);
+      // Extract realmId from URL parameters
+      const urlParams = new URLSearchParams(window.location.search);
+      const realmId = urlParams.get('realmId');
       
-      if (!tokenData.access_token || !tokenData.refresh_token || !tokenData.realmId) {
-        console.error("Missing required token information", tokenData);
-        return { success: false, error: 'Missing required token information' };
+      if (!realmId) {
+        console.error("Missing realmId in callback URL");
+        return { success: false, error: 'Missing realmId parameter' };
       }
       
-      // Get company info
-      const companyInfo = await this.companyService.getCompanyInfo(tokenData.access_token, tokenData.realmId);
+      // Use the Edge Function to exchange the code for tokens
+      const result = await this.edgeFunctionService.handleCallback(code, state, realmId);
       
-      // Store tokens in database
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error("No authenticated user found when storing QBO tokens");
-        return { success: false, error: 'User authentication required' };
+      if (!result.success) {
+        console.error("Error in QBO callback:", result.error);
+        return { success: false, error: result.error };
       }
-      
-      await this.tokenManager.storeConnection(user.id, tokenData, companyInfo);
-      
-      // Clear the state from localStorage
-      QBOUtils.clearOAuthState();
       
       return { 
         success: true, 
-        companyId: tokenData.realmId,
-        companyName: companyInfo.companyName
+        companyId: result.companyId,
+        companyName: result.companyName
       };
       
     } catch (error: any) {
       console.error("Error in QBO authorization:", error);
-      const errorMessage = error.response?.data?.error_description || 
-                          error.response?.data?.error ||
-                          error.message ||
-                          'Authorization failed';
+      const errorMessage = error.message || 'Authorization failed';
       return { success: false, error: errorMessage };
     }
   }
@@ -108,59 +86,31 @@ export class QBOAuthService {
   }
   
   /**
-   * Exchange authorization code for tokens
+   * Test connection to QBO
    */
-  async getTokens(code: string) {
-    return this.tokenManager.exchangeCodeForTokens(code);
-  }
-  
-  /**
-   * Get company info from QBO
-   */
-  async getCompanyInfo(accessToken: string, realmId: string) {
-    return this.companyService.getCompanyInfo(accessToken, realmId);
-  }
-  
-  /**
-   * Store connection in database
-   */
-  async storeConnection(userId: string, tokenData: any, companyInfo: any) {
-    return this.tokenManager.storeConnection(userId, tokenData, companyInfo);
-  }
-  
-  /**
-   * Refresh the QBO access token
-   */
-  async refreshToken(connectionId: string): Promise<string> {
-    return this.tokenManager.refreshToken(connectionId);
+  async testConnection() {
+    try {
+      const result = await this.edgeFunctionService.testConnection();
+      return {
+        success: true,
+        companyName: result.companyName,
+        companyId: result.companyId
+      };
+    } catch (error) {
+      console.error("Error testing QBO connection:", error);
+      return {
+        success: false,
+        error: error.message || "Connection test failed"
+      };
+    }
   }
   
   /**
    * Disconnect from QBO
-   * Fix: Implement the disconnect method locally since it doesn't exist on the service
    */
   async disconnect(): Promise<boolean> {
     try {
-      // Get the connection first
-      const connection = await this.connectionService.getConnection();
-      
-      if (!connection) {
-        console.log("No connection to disconnect");
-        return true;
-      }
-      
-      // Delete the connection using the connection ID
-      const { error } = await supabase
-        .from('qbo_connections')
-        .delete()
-        .eq('id', connection.id);
-        
-      if (error) {
-        console.error("Error disconnecting from QBO:", error);
-        throw error;
-      }
-      
-      return true;
+      return await this.edgeFunctionService.disconnect();
     } catch (error) {
       console.error("Failed to disconnect from QBO:", error);
       return false;

@@ -1,5 +1,5 @@
-
 import { supabase } from '@/integrations/supabase/client';
+import { QBOEdgeFunctionService } from '@/lib/qbo/qboEdgeFunctionService';
 
 export interface QBOConnection {
   id: string;
@@ -14,6 +14,12 @@ export interface QBOConnection {
 }
 
 export class QBOConnectionService {
+  private edgeFunctionService: QBOEdgeFunctionService;
+  
+  constructor() {
+    this.edgeFunctionService = new QBOEdgeFunctionService();
+  }
+  
   /**
    * Gets the QBO connection for the current user
    * @returns QBOConnection object or null if not connected
@@ -59,26 +65,7 @@ export class QBOConnectionService {
    */
   async deleteConnection(): Promise<boolean> {
     try {
-      // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No user found, cannot delete QBO connection');
-        return false;
-      }
-      
-      // Delete the connection for this user
-      const { error } = await supabase
-        .from('qbo_connections')
-        .delete()
-        .eq('user_id', user.id);
-      
-      if (error) {
-        console.error('Error deleting QBO connection:', error);
-        return false;
-      }
-      
-      return true;
+      return await this.edgeFunctionService.disconnect();
     } catch (error) {
       console.error('Error in deleteConnection:', error);
       return false;
@@ -91,38 +78,5 @@ export class QBOConnectionService {
    */
   async disconnect(): Promise<boolean> {
     return this.deleteConnection();
-  }
-  
-  /**
-   * Update the QBO connection for the current user
-   * @param connectionData Updated connection data
-   * @returns true if successful, false otherwise
-   */
-  async updateConnection(connectionData: Partial<QBOConnection>): Promise<boolean> {
-    try {
-      // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No user found, cannot update QBO connection');
-        return false;
-      }
-      
-      // Update the connection for this user
-      const { error } = await supabase
-        .from('qbo_connections')
-        .update(connectionData)
-        .eq('user_id', user.id);
-      
-      if (error) {
-        console.error('Error updating QBO connection:', error);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error in updateConnection:', error);
-      return false;
-    }
   }
 }
