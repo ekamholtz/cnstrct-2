@@ -1,3 +1,4 @@
+
 // Supabase Edge Function for Stripe Payments
 
 import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
@@ -141,6 +142,16 @@ serve(async (req) => {
       case 'ping':
         // Simple ping response for testing
         result = { message: 'Pong! Edge Function is working' }
+        break
+      case 'test-checkout-no-stripe':
+        // This test case doesn't call Stripe API at all
+        console.log('Running test checkout without Stripe API calls');
+        result = {
+          url: 'https://example.com/fake-checkout',
+          sessionId: 'test_session_' + Date.now(),
+          success: true,
+          params: requestData
+        }
         break
       default:
         return new Response(JSON.stringify({ error: 'Invalid action' }), {
