@@ -1,179 +1,179 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { useToast } from '@/components/ui/use-toast';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
 
-export const useStripeConnect = () => {
+interface AccountStatus {
+  accountId?: string;
+  chargesEnabled?: boolean;
+  payoutsEnabled?: boolean;
+  detailsSubmitted?: boolean;
+}
+
+export function useStripeConnect() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [accountStatus, setAccountStatus] = useState<{
-    accountId?: string;
-    chargesEnabled?: boolean;
-    payoutsEnabled?: boolean;
-    detailsSubmitted?: boolean;
-  }>({});
-  
-  const { user } = useAuth();
-  const { toast } = useToast();
-  
-  const getAccountStatus = useCallback(async (userId: string) => {
+  const [error, setError] = useState('');
+  const [accountStatus, setAccountStatus] = useState<AccountStatus>({});
+
+  // Function to get the current Stripe account status for a user
+  const getAccountStatus = async (userId: string): Promise<AccountStatus> => {
     try {
       setLoading(true);
-      setError(null);
-      
-      const { data, error } = await supabase.functions.invoke('stripe-connect', {
-        body: { action: 'get-account', userId }
-      });
-      
-      if (error) {
-        console.error('Error fetching Stripe account status:', error);
-        setError(error.message);
-        return null;
-      }
-      
-      if (!data.success) {
-        // No account found, which is okay - user hasn't connected yet
-        console.log('No Stripe account found for this user');
-        return null;
-      }
-      
-      const accountData = {
-        accountId: data.account?.accountId,
-        chargesEnabled: data.account?.chargesEnabled,
-        payoutsEnabled: data.account?.payoutsEnabled,
-        detailsSubmitted: data.account?.detailsSubmitted
-      };
-      
-      setAccountStatus(accountData);
-      return accountData;
-    } catch (err: any) {
-      console.error('Error in getAccountStatus:', err);
-      setError(err.message || 'Error fetching account status');
-      return null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-  
-  const connectStripeAccount = useCallback(async (userId: string, returnUrl?: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const { data, error } = await supabase.functions.invoke('stripe-connect', {
-        body: { 
-          action: 'initiate-oauth',
-          userId,
-          returnUrl: returnUrl || window.location.href
+      setError('');
+
+      // Call the Supabase function to get account status
+      const { data, error: fnError } = await supabase.functions.invoke('stripe-connect', {
+        body: {
+          action: 'get_account_status',
+          user_id: userId
         }
       });
-      
-      if (error) {
-        toast({
-          title: 'Connection Error',
-          description: `Failed to start Stripe connection: ${error.message}`,
-          variant: 'destructive'
-        });
-        setError(error.message);
-        return null;
+
+      if (fnError) {
+        throw new Error(fnError.message);
       }
-      
-      return data.url;
+
+      setAccountStatus(data || {});
+      return data || {};
     } catch (err: any) {
-      console.error('Error connecting to Stripe:', err);
-      setError(err.message || 'Error connecting to Stripe');
-      toast({
-        title: 'Connection Error',
-        description: err.message || 'Error connecting to Stripe',
-        variant: 'destructive'
-      });
-      return null;
+      const errorMessage = err.message || 'Failed to fetch account status';
+      setError(errorMessage);
+      console.error('Error fetching Stripe account status:', err);
+      return {};
     } finally {
       setLoading(false);
     }
-  }, [toast]);
-  
-  const handleOAuthCallback = useCallback(async (code: string, state: string) => {
-    if (!user?.id) {
-      setError('User not authenticated');
-      return { success: false, error: 'User not authenticated' };
-    }
-    
+  };
+
+  // Function to connect a Stripe account
+  const connectStripeAccount = async (userId: string, returnUrl?: string): Promise<string> => {
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase.functions.invoke('stripe-connect', {
-        body: { 
-          action: 'handle-oauth-callback',
+      setError('');
+
+      // Call the Supabase function to start OAuth flow
+      const { data, error: fnError } = await supabase.functions.invoke('stripe-connect', {
+        body: {
+          action: 'create_oauth_link',
+          user_id: userId,
+          return_url: returnUrl || window.location.origin + '/settings/payments/callback'
+        }
+      });
+
+      if (fnError) {
+        throw new Error(fnError.message);
+      }
+
+      if (!data?.url) {
+        throw new Error('No authorization URL returned');
+      }
+
+      return data.url;
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to connect Stripe account';
+      setError(errorMessage);
+      console.error('Error creating Stripe connect link:', err);
+      return '';
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to handle the OAuth callback from Stripe
+  const handleOAuthCallback = async (code: string, state: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Call the Supabase function to handle OAuth callback
+      const { data, error: fnError } = await supabase.functions.invoke('stripe-connect', {
+        body: {
+          action: 'handle_oauth_callback',
           code,
-          state,
-          userId: user.id
+          state
         }
       });
-      
-      if (error) {
-        console.error('Error handling OAuth callback:', error);
-        setError(error.message);
-        return { success: false, error: error.message };
+
+      if (fnError) {
+        throw new Error(fnError.message);
       }
-      
-      // Refresh the account status
-      await getAccountStatus(user.id);
-      
-      toast({
-        title: 'Connection Successful',
-        description: 'Your Stripe account has been connected successfully.',
-      });
-      
-      return {
-        success: true,
-        onboardingUrl: data.onboardingUrl,
-        returnUrl: data.returnUrl
-      };
+
+      if (data?.success) {
+        return true;
+      } else {
+        throw new Error(data?.message || 'Failed to complete Stripe connection');
+      }
     } catch (err: any) {
-      console.error('Error in handleOAuthCallback:', err);
-      setError(err.message || 'Error handling callback');
-      return { success: false, error: err.message };
+      const errorMessage = err.message || 'Failed to process Stripe callback';
+      setError(errorMessage);
+      console.error('Error handling Stripe OAuth callback:', err);
+      return false;
     } finally {
       setLoading(false);
     }
-  }, [user, getAccountStatus, toast]);
-  
-  const createAccountLink = useCallback(async (accountId: string) => {
+  };
+
+  // Function to get Stripe account login link
+  const getLoginLink = async (accountId: string): Promise<string> => {
     try {
       setLoading(true);
-      
-      const { data, error } = await supabase.functions.invoke('stripe-connect', {
-        body: { 
-          action: 'create-account-link',
-          accountId
+      setError('');
+
+      // Call the Supabase function to get login link
+      const { data, error: fnError } = await supabase.functions.invoke('stripe-connect', {
+        body: {
+          action: 'create_login_link',
+          account_id: accountId
         }
       });
-      
-      if (error) {
-        console.error('Error creating account link:', error);
-        setError(error.message);
-        return null;
+
+      if (fnError) {
+        throw new Error(fnError.message);
       }
-      
+
+      if (!data?.url) {
+        throw new Error('No login URL returned');
+      }
+
       return data.url;
     } catch (err: any) {
-      console.error('Error in createAccountLink:', err);
-      setError(err.message || 'Error creating account link');
-      return null;
+      const errorMessage = err.message || 'Failed to create login link';
+      setError(errorMessage);
+      console.error('Error creating Stripe login link:', err);
+      return '';
     } finally {
       setLoading(false);
     }
-  }, []);
-  
-  // Load account status on component mount
-  useEffect(() => {
-    if (user?.id) {
-      getAccountStatus(user.id);
+  };
+
+  // Function to skip connection checks (e.g., force onboarding completion)
+  const skipConnectionCheck = async (accountId: string): Promise<boolean> => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Call the Supabase function to skip connection check
+      const { data, error: fnError } = await supabase.functions.invoke('stripe-connect', {
+        body: {
+          action: 'skip_connection_check',
+          account_id: accountId
+        }
+      });
+
+      if (fnError) {
+        throw new Error(fnError.message);
+      }
+
+      return data?.success || false;
+    } catch (err: any) {
+      const errorMessage = err.message || 'Failed to update connection status';
+      setError(errorMessage);
+      console.error('Error updating Stripe connection status:', err);
+      return false;
+    } finally {
+      setLoading(false);
     }
-  }, [user, getAccountStatus]);
-  
+  };
+
   return {
     loading,
     error,
@@ -181,8 +181,7 @@ export const useStripeConnect = () => {
     getAccountStatus,
     connectStripeAccount,
     handleOAuthCallback,
-    createAccountLink
+    getLoginLink,
+    skipConnectionCheck
   };
-};
-
-export default useStripeConnect;
+}
