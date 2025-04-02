@@ -9,7 +9,7 @@ import { QBOSyncInformation } from "./qbo/QBOSyncInformation";
 import { QBONoConnectionInfo } from "./qbo/QBONoConnectionInfo";
 import { QBODebugInfo } from "./qbo/QBODebugInfo";
 
-// Define a type for QBO Connection
+// Define a type for QBO Connection that includes all required fields
 interface QBOConnection {
   id: string;
   company_id: string;
@@ -20,7 +20,7 @@ interface QBOConnection {
   refresh_token: string;
 }
 
-// Define a type that has the properties we use from QBOConnection
+// Define a safe version for display/props without sensitive data
 interface DisplayQBOConnection {
   id: string;
   company_id: string;

@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -28,7 +29,7 @@ import ReportingDashboard from "@/pages/ReportingDashboard";
 import QBOCallback from "@/pages/qbo/QBOCallback";
 import Settings from "@/pages/Settings";
 import QBOTest from "@/pages/QBOTest";
-import { CompanyDetailsPage } from "@/pages/auth/CompanyDetailsPage";
+import CompanyDetailsPage from "@/pages/auth/CompanyDetailsPage";
 import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";

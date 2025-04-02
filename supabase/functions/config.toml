@@ -1,5 +1,4 @@
 
-[global]
 project_id = "wkspjzbybjhvscqdmpwi"
 
 [[edge_functions]]
@@ -12,4 +11,8 @@ verify_jwt = false
 
 [[edge_functions]]
 path = "stripe-webhook"
+verify_jwt = false
+
+[[edge_functions]]
+path = "stripe-subscriptions"
 verify_jwt = false
