@@ -33,7 +33,7 @@ export class QBOAuthService {
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       response_type: 'code',
-      scope: this.config.scopes.join(' '), // Using space as it's automatically encoded to '+' in URL
+      scope: this.config.scopes.join(' '), // Using scopes instead of scope
       redirect_uri: this.config.redirectUri,
       state: state
     });

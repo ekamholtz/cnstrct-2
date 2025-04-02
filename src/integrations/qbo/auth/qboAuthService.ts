@@ -21,7 +21,7 @@ export class QBOAuthService {
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       response_type: "code",
-      scope: this.config.scope,
+      scope: this.config.scopes.join(' '), // Fixed: Using scopes instead of scope
       redirect_uri: redirectUri,
       state: state || Math.random().toString(36).substring(2, 15)
     });
