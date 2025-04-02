@@ -9,6 +9,17 @@ import { QBOSyncInformation } from "./qbo/QBOSyncInformation";
 import { QBONoConnectionInfo } from "./qbo/QBONoConnectionInfo";
 import { QBODebugInfo } from "./qbo/QBODebugInfo";
 
+// Define a type for QBO Connection
+interface QBOConnection {
+  id: string;
+  company_id: string;
+  company_name: string;
+  created_at: string;
+  updated_at: string;
+  access_token: string;
+  refresh_token: string;
+}
+
 // Define a type that has the properties we use from QBOConnection
 interface DisplayQBOConnection {
   id: string;
@@ -16,7 +27,6 @@ interface DisplayQBOConnection {
   company_name: string;
   created_at: string;
   updated_at: string;
-  // We intentionally omit access_token and refresh_token as they are not needed for display
 }
 
 export function QBOSettings() {

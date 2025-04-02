@@ -14,7 +14,7 @@ interface AuthFormProps {
 }
 
 export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
-  const { isLoading, handleLogin, handleRegister } = useAuthForm();
+  const { isLoading, signIn, signUp } = useAuthForm();
   const { toast } = useToast();
 
   const handleForgotPassword = () => {
@@ -33,12 +33,12 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       });
       return;
     }
-    await handleRegister(values);
+    await signUp(values.email, values.password);
   };
 
   const onLoginSubmit = async (values: LoginFormData) => {
     try {
-      await handleLogin(values);
+      await signIn(values.email, values.password);
       // The navigation will be handled in the useAuthForm hook
     } catch (error) {
       // Error will be handled in the useAuthForm hook

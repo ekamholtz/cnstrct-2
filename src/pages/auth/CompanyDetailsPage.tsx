@@ -1,115 +1,221 @@
-
-import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import React, { useState } from 'react';
 import { useToast } from "@/components/ui/use-toast";
-import { CompanyDetailsForm } from "@/components/auth/CompanyDetailsForm";
-import { CompanyDetailsFormData } from "@/components/auth/authSchemas";
-import { useAuthForm } from "@/hooks/useAuthForm";
-import { AnimatedGridPattern } from "@/components/ui/animated-grid-pattern";
-import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from 'react-router-dom';
+import { useAuthForm } from '@/hooks/useAuthForm';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Loader2 } from 'lucide-react';
 
-export const CompanyDetailsPage = () => {
-  const { user } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
+export default function CompanyDetailsPage() {
+  const { isLoading } = useAuthForm();
   const { toast } = useToast();
-  const { updateCompanyDetailsMutation } = useAuthForm();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [formData, setFormData] = useState({
+    companyName: '',
+    address: '',
+    city: '',
+    state: '',
+    zipCode: '',
+    phoneNumber: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
 
-  // Get state passed from register page
-  const [companyName, setCompanyName] = useState<string>("");
-  const [gcAccountId, setGcAccountId] = useState<string>("");
-  const [isNewUser, setIsNewUser] = useState<boolean>(false);
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
-  useEffect(() => {
-    // Check if we have the required state
-    const state = location.state as { 
-      gcAccountId: string; 
-      companyName: string; 
-      isNewUser: boolean 
-    } | undefined;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     
-    if (!state?.gcAccountId) {
+    if (!user) {
       toast({
-        title: "Error",
-        description: "Missing account information. Please start registration again.",
         variant: "destructive",
+        title: "Authentication Error",
+        description: "You must be logged in to update company details.",
       });
-      navigate("/auth/register");
+      navigate('/auth');
       return;
     }
-
-    setGcAccountId(state.gcAccountId);
-    setCompanyName(state.companyName || "Your Company");
-    setIsNewUser(!!state.isNewUser);
     
-    // Double check we have a user
-    if (!user) {
-      console.log("No authenticated user found in CompanyDetailsPage");
-    }
-  }, [location, navigate, toast, user]);
-
-  const handleSubmit = async (data: CompanyDetailsFormData) => {
+    setSubmitting(true);
+    
     try {
-      await updateCompanyDetailsMutation.mutateAsync({
-        gcAccountId,
-        data
+      // Create a new GC account
+      const { data: gcAccount, error: gcError } = await supabase
+        .from('gc_accounts')
+        .insert([
+          {
+            name: formData.companyName,
+            address: formData.address,
+            city: formData.city,
+            state: formData.state,
+            zip_code: formData.zipCode,
+            phone_number: formData.phoneNumber,
+            created_by: user.id,
+          }
+        ])
+        .select()
+        .single();
+      
+      if (gcError) {
+        throw new Error(gcError.message);
+      }
+      
+      // Update the user's profile with the GC account ID
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          gc_account_id: gcAccount.id,
+          company_name: formData.companyName
+        })
+        .eq('id', user.id);
+      
+      if (profileError) {
+        throw new Error(profileError.message);
+      }
+      
+      toast({
+        title: "Success",
+        description: "Company details have been saved successfully.",
       });
       
-      // Navigation happens in the mutation's onSuccess callback
-    } catch (error) {
-      console.error("Error updating company details:", error);
+      // Redirect to subscription page or dashboard
+      navigate('/subscription-checkout');
+    } catch (error: any) {
       toast({
-        title: "Error",
-        description: "Failed to update company details. Please try again.",
         variant: "destructive",
+        title: "Error",
+        description: error.message || "Failed to save company details.",
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-cnstrct-navy/5 to-cnstrct-navy/10 z-0"></div>
-      <AnimatedGridPattern 
-        className="z-0" 
-        lineColor="rgba(16, 24, 64, 0.07)" 
-        dotColor="rgba(16, 24, 64, 0.15)"
-        lineOpacity={0.3}
-        dotOpacity={0.5}
-        speed={0.2}
-        size={35}
-      />
-
-      {/* Header */}
-      <header className="p-4 border-b border-gray-200 bg-white/80 backdrop-blur-sm z-10 relative">
-        <div className="container mx-auto">
-          <img
-            src="/lovable-uploads/9f95e618-31d8-475b-b1f6-978f1ffaadce.png"
-            alt="CNSTRCT Logo"
-            className="h-10 cursor-pointer"
-            onClick={() => navigate("/")}
-          />
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-grow container mx-auto px-4 py-12 flex items-center justify-center z-10 relative">
-        <div className="w-full max-w-md">
-          <div className="space-y-8 p-8 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200">
-            <div className="text-center">
-              <h1 className="text-2xl font-bold text-cnstrct-navy mb-2">Company Details</h1>
-              <p className="text-gray-600">Tell us more about {companyName}</p>
+    <div className="container max-w-lg mx-auto py-10 px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold text-cnstrct-navy">Company Details</CardTitle>
+          <CardDescription>
+            Please provide your company information to complete your account setup.
+          </CardDescription>
+        </CardHeader>
+        
+        <form onSubmit={handleSubmit}>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Company Name</Label>
+              <Input
+                id="companyName"
+                name="companyName"
+                value={formData.companyName}
+                onChange={handleChange}
+                required
+                placeholder="Your company name"
+              />
             </div>
-            <CompanyDetailsForm
-              onSubmit={handleSubmit}
-              loading={updateCompanyDetailsMutation.isPending}
-              companyName={companyName}
-            />
-          </div>
-        </div>
-      </main>
+            
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                required
+                placeholder="Street address"
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  required
+                  placeholder="City"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  required
+                  placeholder="State"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="zipCode">ZIP Code</Label>
+                <Input
+                  id="zipCode"
+                  name="zipCode"
+                  value={formData.zipCode}
+                  onChange={handleChange}
+                  required
+                  placeholder="ZIP Code"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  required
+                  placeholder="Phone number"
+                />
+              </div>
+            </div>
+          </CardContent>
+          
+          <CardFooter className="flex justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate('/dashboard')}
+              disabled={submitting}
+            >
+              Skip for Now
+            </Button>
+            
+            <Button 
+              type="submit"
+              disabled={submitting || isLoading}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                'Continue'
+              )}
+            </Button>
+          </CardFooter>
+        </form>
+      </Card>
     </div>
   );
-};
-
-export default CompanyDetailsPage;
+}
