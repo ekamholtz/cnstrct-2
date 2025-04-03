@@ -38,20 +38,20 @@ export const useSyncInvoiceToQBO = () => {
       // Check if the invoice has already been synced
       const { data: existingRef } = await supabase
         .from('qbo_references')
-        .select('qbo_id')
-        .eq('entity_type', 'invoice')
-        .eq('entity_id', invoiceId)
+        .select('qbo_entity_id')
+        .eq('local_entity_type', 'invoice')
+        .eq('local_entity_id', invoiceId)
         .single();
       
-      if (existingRef?.qbo_id) {
-        console.log('Invoice already synced to QBO with ID:', existingRef.qbo_id);
+      if (existingRef?.qbo_entity_id) {
+        console.log('Invoice already synced to QBO with ID:', existingRef.qbo_entity_id);
         toast({
           title: 'Invoice Already Synced',
-          description: `This invoice has already been synced to QuickBooks with ID: ${existingRef.qbo_id}`,
+          description: `This invoice has already been synced to QuickBooks with ID: ${existingRef.qbo_entity_id}`,
         });
         return {
           success: true,
-          data: { id: existingRef.qbo_id }
+          data: { id: existingRef.qbo_entity_id }
         };
       }
       
@@ -62,9 +62,9 @@ export const useSyncInvoiceToQBO = () => {
       
       // Store the reference to the newly created invoice
       await supabase.from('qbo_references').insert({
-        entity_type: 'invoice',
-        entity_id: invoiceId,
-        qbo_id: mockQboInvoiceId
+        local_entity_type: 'invoice',
+        local_entity_id: invoiceId,
+        qbo_entity_id: mockQboInvoiceId
       });
       
       console.log('Successfully synced invoice to QBO with ID:', mockQboInvoiceId);

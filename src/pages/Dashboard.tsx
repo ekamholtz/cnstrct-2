@@ -15,6 +15,7 @@ import { TargetGCAccountDebug } from "@/debug/TargetGCAccountDebug";
 import { AllProfilesDebug } from "@/debug/AllProfilesDebug";
 import { ProjectRelationshipsDebug } from "@/debug/ProjectRelationshipsDebug";
 import { RoutingDebug } from "@/debug/RoutingDebug";
+import { IntegrationAccessButton } from "@/components/common/IntegrationAccessButton";
 
 export default function Dashboard() {
   const { data: projects = [], isLoading, error, refetch } = useContractorProjects();
@@ -69,6 +70,7 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen flex-col bg-cnstrct-gray">
       <MainNav />
+      <IntegrationAccessButton />
       <div className="flex-1 pt-16">
         <div className="container mx-auto px-4 py-8 space-y-6">
           {/* Dashboard Header */}

@@ -14,8 +14,8 @@ export function useStripeConnect() {
   const [error, setError] = useState('');
   const [accountStatus, setAccountStatus] = useState<AccountStatus>({});
 
-  // Function to get the current Stripe account status for a user
-  const getAccountStatus = async (userId: string): Promise<AccountStatus> => {
+  // Function to get the current Stripe account status for a company (gc_account)
+  const getAccountStatus = async (gcAccountId: string): Promise<AccountStatus> => {
     try {
       setLoading(true);
       setError('');
@@ -24,7 +24,7 @@ export function useStripeConnect() {
       const { data, error: fnError } = await supabase.functions.invoke('stripe-connect', {
         body: {
           action: 'get_account_status',
-          user_id: userId
+          gc_account_id: gcAccountId
         }
       });
 
@@ -44,8 +44,8 @@ export function useStripeConnect() {
     }
   };
 
-  // Function to connect a Stripe account
-  const connectStripeAccount = async (userId: string, returnUrl?: string): Promise<string> => {
+  // Function to connect a Stripe account to a company (gc_account)
+  const connectStripeAccount = async (gcAccountId: string, returnUrl?: string): Promise<string> => {
     try {
       setLoading(true);
       setError('');
@@ -54,7 +54,7 @@ export function useStripeConnect() {
       const { data, error: fnError } = await supabase.functions.invoke('stripe-connect', {
         body: {
           action: 'create_oauth_link',
-          user_id: userId,
+          gc_account_id: gcAccountId,
           return_url: returnUrl || window.location.origin + '/settings/payments/callback'
         }
       });

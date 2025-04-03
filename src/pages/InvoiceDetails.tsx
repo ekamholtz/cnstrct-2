@@ -43,12 +43,12 @@ export default function InvoiceDetails() {
       const checkSyncStatus = async () => {
         const { data } = await supabase
           .from('qbo_references')
-          .select('qbo_id')
+          .select('qbo_entity_id')
           .eq('entity_type', 'invoice')
           .eq('entity_id', invoiceId)
           .maybeSingle();
         
-        setIsSynced(!!data?.qbo_id);
+        setIsSynced(!!data?.qbo_entity_id);
       };
       
       checkSyncStatus();

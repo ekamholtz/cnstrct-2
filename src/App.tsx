@@ -34,6 +34,7 @@ import ProjectDashboard from "@/pages/ProjectDashboard";
 import InvoiceDetails from "@/pages/InvoiceDetails";
 import ExpenseDetails from "@/pages/ExpenseDetails";
 import PaymentDetails from "@/pages/PaymentDetails";
+import IntegrationSettings from "@/pages/IntegrationSettings";
 
 function App() {
   return (
@@ -102,6 +103,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <PaymentsSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/integrations"
+              element={
+                <ProtectedRoute>
+                  <IntegrationSettings />
                 </ProtectedRoute>
               }
             />

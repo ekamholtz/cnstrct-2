@@ -171,15 +171,15 @@ export class BaseQBOEdgeFunction {
   /**
    * Get entity reference from the database
    */
-  async getEntityReference(entityType: string, entityId: string): Promise<{ qbo_id: any; } | null> {
+  async getEntityReference(entityType: string, entityId: string): Promise<{ qbo_entity_id: any; } | null> {
     try {
       console.log(`Getting QBO reference for ${entityType} with ID ${entityId}`);
       
       const { data, error } = await supabase
         .from('qbo_references')
-        .select('qbo_id')
-        .eq('entity_type', entityType)
-        .eq('entity_id', entityId)
+        .select('qbo_entity_id')
+        .eq('local_entity_type', entityType)
+        .eq('local_entity_id', entityId)
         .single();
       
       if (error) {
@@ -187,7 +187,7 @@ export class BaseQBOEdgeFunction {
         return null;
       }
       
-      return data as { qbo_id: any; } || null;
+      return data as { qbo_entity_id: any; } || null;
     } catch (error) {
       console.error("Error getting QBO reference:", error);
       return null;
@@ -205,15 +205,15 @@ export class BaseQBOEdgeFunction {
       const { data: existingRef } = await supabase
         .from('qbo_references')
         .select('id')
-        .eq('entity_type', entityType)
-        .eq('entity_id', entityId)
+        .eq('local_entity_type', entityType)
+        .eq('local_entity_id', entityId)
         .single();
       
       if (existingRef) {
         // Update existing reference
         const { error } = await supabase
           .from('qbo_references')
-          .update({ qbo_id: qboId })
+          .update({ qbo_entity_id: qboId })
           .eq('id', existingRef.id);
         
         if (error) {
@@ -224,9 +224,9 @@ export class BaseQBOEdgeFunction {
         const { error } = await supabase
           .from('qbo_references')
           .insert({
-            entity_type: entityType,
-            entity_id: entityId,
-            qbo_id: qboId
+            local_entity_type: entityType,
+            local_entity_id: entityId,
+            qbo_entity_id: qboId
           });
         
         if (error) {

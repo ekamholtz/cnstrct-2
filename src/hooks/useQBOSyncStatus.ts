@@ -22,7 +22,7 @@ export const useQBOSyncStatus = (entityType: string, entityId: string | null) =>
         
         const { data, error } = await supabase
           .from('qbo_references')
-          .select('qbo_id')
+          .select('qbo_entity_id')
           .eq('entity_type', entityType)
           .eq('entity_id', entityId)
           .single();
@@ -36,8 +36,8 @@ export const useQBOSyncStatus = (entityType: string, entityId: string | null) =>
             throw error;
           }
         } else {
-          setIsSynced(!!data?.qbo_id);
-          setQboId(data?.qbo_id || null);
+          setIsSynced(!!data?.qbo_entity_id);
+          setQboId(data?.qbo_entity_id || null);
         }
       } catch (err) {
         console.error('Error checking QBO sync status:', err);

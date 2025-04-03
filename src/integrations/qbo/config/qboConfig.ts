@@ -67,13 +67,17 @@ export class QBOConfig {
     } else if (hostname === 'cnstrct-2.lovable.app') {
       this.redirectUri = "https://cnstrct-2.lovable.app/qbo/callback";
     } else if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
-      // For local development, use the correct port (8081) and protocol (http)
-      this.redirectUri = "http://localhost:8081/qbo/callback";
+      // For local development, use the current port (8080 or 8081)
+      const port = typeof window !== 'undefined' ? window.location.port : '8081';
+      this.redirectUri = `http://localhost:${port}/qbo/callback`;
     } else {
       // Fallback to the production URI for any other hostname
       // This ensures we always use a registered URI with Intuit
-      this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
+      this.redirectUri = "https://cnstrct-2.lovable.app/qbo/callback";
     }
+    
+    // Log the redirect URI being used
+    console.log("Using QBO redirect URI:", this.redirectUri);
     
     // Use the simplest scope format for QuickBooks API
     this.scopes = ['com.intuit.quickbooks.accounting'];

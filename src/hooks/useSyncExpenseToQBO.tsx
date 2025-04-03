@@ -67,21 +67,21 @@ export const useSyncExpenseToQBO = () => {
       // Check if the expense has already been synced
       const { data: existingRef } = await supabase
         .from('qbo_references')
-        .select('qbo_id')
-        .eq('entity_type', 'expense')
-        .eq('entity_id', expenseId)
+        .select('qbo_entity_id')
+        .eq('local_entity_type', 'expense')
+        .eq('local_entity_id', expenseId)
         .single();
       
-      if (existingRef?.qbo_id) {
-        console.log('Expense already synced to QBO with ID:', existingRef.qbo_id);
+      if (existingRef?.qbo_entity_id) {
+        console.log('Expense already synced to QBO with ID:', existingRef.qbo_entity_id);
         toast({
           title: 'Expense Already Synced',
-          description: `This expense has already been synced to QuickBooks with ID: ${existingRef.qbo_id}`,
+          description: `This expense has already been synced to QuickBooks with ID: ${existingRef.qbo_entity_id}`,
         });
         return {
           ...expense,
           qbo_sync_status: 'already_synced',
-          qbo_entity_id: existingRef.qbo_id
+          qbo_entity_id: existingRef.qbo_entity_id
         };
       }
       
@@ -91,12 +91,12 @@ export const useSyncExpenseToQBO = () => {
       if (expense.vendor_id) {
         const { data: vendorRef } = await supabase
           .from('qbo_references')
-          .select('qbo_id')
-          .eq('entity_type', 'vendor')
-          .eq('entity_id', expense.vendor_id)
+          .select('qbo_entity_id')
+          .eq('local_entity_type', 'vendor')
+          .eq('local_entity_id', expense.vendor_id)
           .single();
         
-        if (!vendorRef?.qbo_id) {
+        if (!vendorRef?.qbo_entity_id) {
           // If the vendor isn't synced yet, we need to sync them first
           const vendorData = {
             DisplayName: expense.vendor.name,
@@ -124,7 +124,7 @@ export const useSyncExpenseToQBO = () => {
           
           vendorQBOId = vendorResult.data.Id;
         } else {
-          vendorQBOId = vendorRef.qbo_id;
+          vendorQBOId = vendorRef.qbo_entity_id;
         }
       } else {
         // If no vendor is specified, use a default vendor or account
