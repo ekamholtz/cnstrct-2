@@ -1,25 +1,14 @@
 
+project_id = "wkspjzbybjhvscqdmpwi"
+
+[api]
+enabled = true
+url = "https://wkspjzbybjhvscqdmpwi.supabase.co"
+service_role_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indrc3BqemJ5YmpodnNjcWRtcHdpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzg2MTcwODYsImV4cCI6MjA1NDE5MzA4Nn0.q4hsuWLxoB81E7UzgFiCMesq4aPhIFTYWZMJMjjDmU0"
+
 [functions]
-[functions.qbo-token]
-verify_jwt = false
-
-[functions.qbo-refresh]
-verify_jwt = false
-
-[functions.qbo-test-connection]
-verify_jwt = false
-
-[functions.qbo-data-operation]
-verify_jwt = false
-
-[functions.stripe-connect]
-verify_jwt = false
-
-[functions.stripe-payment]
-verify_jwt = false
-
 [functions.stripe-webhook]
 verify_jwt = false
 
-[functions.stripe-subscriptions]
+[functions.stripe-webhook-simple]
 verify_jwt = false
