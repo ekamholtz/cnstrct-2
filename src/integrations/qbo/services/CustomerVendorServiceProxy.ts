@@ -1,4 +1,3 @@
-
 import { BaseQBOEdgeFunction } from "./BaseQBOEdgeFunction";
 
 export class CustomerVendorServiceProxy {
@@ -23,11 +22,11 @@ export class CustomerVendorServiceProxy {
       
       // First, check if we already have a reference to this vendor
       const vendorRef = await this.baseService.getEntityReference('vendor', vendorName);
-      if (vendorRef && vendorRef.qbo_id) {
-        console.log("Found existing vendor reference:", vendorRef.qbo_id);
+      if (vendorRef && vendorRef.qbo_entity_id) {
+        console.log("Found existing vendor reference:", vendorRef.qbo_entity_id);
         return {
           success: true,
-          data: { Id: vendorRef.qbo_id, DisplayName: vendorName }
+          data: { Id: vendorRef.qbo_entity_id, DisplayName: vendorName }
         };
       }
       
@@ -107,14 +106,14 @@ export class CustomerVendorServiceProxy {
       
       // First, check if we already have a reference to this vendor
       const vendorRef = await this.baseService.getEntityReference('vendor', vendorName);
-      if (vendorRef && vendorRef.qbo_id) {
-        console.log("Found existing vendor reference:", vendorRef.qbo_id);
+      if (vendorRef && vendorRef.qbo_entity_id) {
+        console.log("Found existing vendor reference:", vendorRef.qbo_entity_id);
         
         // Get the vendor details from QBO
         const response = await this.baseService.makeDataOperation({
           accessToken: connection.access_token,
           realmId: connection.company_id,
-          endpoint: `vendor/${vendorRef.qbo_id}`,
+          endpoint: `vendor/${vendorRef.qbo_entity_id}`,
           method: "get"
         });
         
@@ -161,7 +160,7 @@ export class CustomerVendorServiceProxy {
       };
     }
   }
-  
+
   /**
    * Create a vendor in QBO
    */
@@ -213,14 +212,14 @@ export class CustomerVendorServiceProxy {
       
       // First, check if we already have a reference to this customer
       const customerRef = await this.baseService.getEntityReference('customer', customerName);
-      if (customerRef && customerRef.qbo_id) {
-        console.log("Found existing customer reference:", customerRef.qbo_id);
+      if (customerRef && customerRef.qbo_entity_id) {
+        console.log("Found existing customer reference:", customerRef.qbo_entity_id);
         
         // Get the customer details from QBO
         const response = await this.baseService.makeDataOperation({
           accessToken: connection.access_token,
           realmId: connection.company_id,
-          endpoint: `customer/${customerRef.qbo_id}`,
+          endpoint: `customer/${customerRef.qbo_entity_id}`,
           method: "get"
         });
         
