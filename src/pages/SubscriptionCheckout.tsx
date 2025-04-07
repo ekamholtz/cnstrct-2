@@ -75,16 +75,61 @@ const SubscriptionCheckout = () => {
           } else if (gcAccount?.id) {
             console.log("Found gc_account_id from accounts table:", gcAccount.id);
             setGcAccountId(gcAccount.id);
+            
+            // Update the user's profile with the gc_account_id
+            const { error: updateError } = await supabase
+              .from('profiles')
+              .update({ gc_account_id: gcAccount.id })
+              .eq('id', user.id);
+              
+            if (updateError) {
+              console.error("Error updating profile with gc_account_id:", updateError);
+            }
           } else {
-            // GC admin without account - might need to create one
-            toast({
-              variant: 'destructive',
-              title: 'Account setup required',
-              description: 'Please complete your profile before subscribing',
-            });
-            navigate('/profile-completion');
-            return;
+            // GC admin without account - create one now
+            const companyName = user.user_metadata?.company_name || `${profile.email || 'New User'}'s Company`;
+            const { data: newAccount, error: createError } = await supabase
+              .from('gc_accounts')
+              .insert({
+                owner_id: user.id,
+                company_name: companyName,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .select('id')
+              .single();
+              
+            if (createError) {
+              console.error("Error creating gc account:", createError);
+              toast({
+                variant: 'destructive',
+                title: 'Account setup error',
+                description: 'Failed to create company account. Please contact support.',
+              });
+            } else {
+              console.log("Created new gc_account_id:", newAccount.id);
+              setGcAccountId(newAccount.id);
+              
+              // Update the user's profile with the gc_account_id
+              const { error: updateError } = await supabase
+                .from('profiles')
+                .update({ gc_account_id: newAccount.id })
+                .eq('id', user.id);
+                
+              if (updateError) {
+                console.error("Error updating profile with gc_account_id:", updateError);
+              }
+            }
           }
+        } else {
+          // Not a GC admin - might need to create one
+          toast({
+            variant: 'destructive',
+            title: 'Account setup required',
+            description: 'Please complete your profile before subscribing',
+          });
+          navigate('/profile-completion');
+          return;
         }
         
         setLoading(false);
@@ -108,7 +153,7 @@ const SubscriptionCheckout = () => {
 
   // Configure stripe pricing table with success URL, client_reference_id, and full metadata
   // Ensure both gcAccountId and user.id are passed to Stripe
-  const successUrl = `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}${gcAccountId ? `&gc_account_id=${gcAccountId}` : ''}`;
+  const successUrl = `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}${gcAccountId ? `&gc_account_id=${gcAccountId}` : ''}${user?.id ? `&user_id=${user.id}` : ''}`;
   const cancelUrl = `${window.location.origin}/settings?checkout_canceled=true`;
 
   console.log("Success URL:", successUrl);

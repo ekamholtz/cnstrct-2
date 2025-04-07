@@ -1,3 +1,4 @@
+
 // Supabase Edge Function for Stripe Webhook Handler
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
@@ -72,7 +73,7 @@ serve(async (req) => {
         event = JSON.parse(body)
         console.log('Using event data directly from request body')
       } catch (err) {
-        console.error(`⚠️  Webhook signature verification failed:`, err.message)
+        console.error(`⚠️ Webhook signature verification failed:`, err.message)
         return new Response(JSON.stringify({ error: `Webhook signature verification failed: ${err.message}` }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -213,25 +214,97 @@ async function handleCheckoutSessionCompleted(session) {
     if (!gcAccountId && userId) {
       console.log('Attempting to find gc_account for user_id:', userId)
       
-      // Try to find a GC account where this user is the owner
-      const { data: gcData, error: gcError } = await supabase
-        .from('gc_accounts')
-        .select('id')
-        .eq('owner_id', userId)
+      // Try to find the user's gc_account_id in profiles
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('gc_account_id')
+        .eq('id', userId)
         .maybeSingle()
         
-      if (gcError) {
-        console.error('Error finding gc account by owner_id:', gcError)
-      } else if (gcData?.id) {
-        console.log('Found gc_account_id via gc_accounts table:', gcData.id)
-        gcAccountId = gcData.id
+      if (profileError) {
+        console.error('Error finding profile by user_id:', profileError)
+      } else if (profileData?.gc_account_id) {
+        console.log('Found gc_account_id via profiles table:', profileData.gc_account_id)
+        gcAccountId = profileData.gc_account_id
+      } else {
+        // Try to find a GC account where this user is the owner
+        const { data: gcData, error: gcError } = await supabase
+          .from('gc_accounts')
+          .select('id')
+          .eq('owner_id', userId)
+          .maybeSingle()
+          
+        if (gcError) {
+          console.error('Error finding gc account by owner_id:', gcError)
+        } else if (gcData?.id) {
+          console.log('Found gc_account_id via gc_accounts table:', gcData.id)
+          gcAccountId = gcData.id
+        }
       }
     }
 
-    // If we still don't have a gc_account_id, we can't proceed with updating subscription
+    // If we still don't have a gc_account_id, we need a fallback plan
     if (!gcAccountId) {
-      console.error('❌ Failed to identify a gc_account_id. Cannot update subscription.')
-      return
+      console.warn('❌ No gc_account_id found, attempting to create a new account')
+      
+      // If we have a userId, try to create a gc_account for this user
+      if (userId) {
+        try {
+          // Check if this user is already a gc_admin
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('role, full_name')
+            .eq('id', userId)
+            .single()
+            
+          if (profileError) {
+            console.error('Error fetching user profile:', profileError)
+            return // Can't proceed without user profile
+          }
+          
+          // If the user is not a gc_admin, we can't create an account for them
+          if (profile.role !== 'gc_admin') {
+            console.error('User is not a gc_admin, cannot create account')
+            return
+          }
+          
+          // Create a new GC account with this user as owner
+          const { data: newGcAccount, error: createError } = await supabase
+            .from('gc_accounts')
+            .insert({
+              owner_id: userId,
+              company_name: `${profile.full_name || 'New'}'s Company`,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .select('id')
+            .single()
+            
+          if (createError) {
+            console.error('Error creating gc account:', createError)
+            return
+          }
+          
+          console.log('Created new gc_account with id:', newGcAccount.id)
+          gcAccountId = newGcAccount.id
+          
+          // Update the user's profile with this gc_account_id
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ gc_account_id: gcAccountId })
+            .eq('id', userId)
+            
+          if (updateError) {
+            console.error('Error updating user profile with gc_account_id:', updateError)
+          }
+        } catch (error) {
+          console.error('Error in gc_account creation fallback:', error)
+          return
+        }
+      } else {
+        console.error('❌ Failed to identify a gc_account_id and no userId available. Cannot update subscription.')
+        return
+      }
     }
 
     // Determine tier_id - ensure we have a valid one
@@ -242,33 +315,56 @@ async function handleCheckoutSessionCompleted(session) {
       tierId = session.metadata.tier_id
       console.log('Using tier_id from metadata:', tierId)
     } else {
-      // Use the default tier ID - first try to get it from the database
-      const { data: defaultTier, error: tierError } = await supabase
+      // Use the default tier ID
+      tierId = '00000000-0000-0000-0000-000000000001' // Default free tier ID
+      console.log('Using default tier_id:', tierId)
+      
+      // Verify this tier exists
+      const { data: tierExists, error: tierError } = await supabase
         .from('subscription_tiers')
         .select('id')
-        .eq('id', '00000000-0000-0000-0000-000000000001')
+        .eq('id', tierId)
         .maybeSingle()
         
-      if (tierError || !defaultTier) {
-        console.warn('Default tier not found, fetching any valid tier')
+      if (tierError || !tierExists) {
+        console.warn('Default tier not found, attempting to create it')
         
-        // Try to get any tier as a fallback
-        const { data: anyTier, error: anyTierError } = await supabase
-          .from('subscription_tiers')
-          .select('id')
-          .limit(1)
-          .single()
-          
-        if (anyTierError || !anyTier) {
-          console.error('No valid tiers found in subscription_tiers table:', anyTierError)
-          return // Cannot proceed without a valid tier
+        try {
+          // Create the default tier
+          const { error: createTierError } = await supabase
+            .from('subscription_tiers')
+            .insert({
+              id: tierId,
+              name: 'Free',
+              description: 'Free tier with basic features',
+              price: 0,
+              fee_percentage: 0,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            
+          if (createTierError) {
+            console.error('Error creating default tier:', createTierError)
+            
+            // If creation fails, try to fetch any valid tier as a fallback
+            const { data: anyTier, error: anyTierError } = await supabase
+              .from('subscription_tiers')
+              .select('id')
+              .limit(1)
+              .maybeSingle()
+              
+            if (anyTierError || !anyTier) {
+              console.error('No valid tiers found in subscription_tiers table')
+              return // Cannot proceed without a valid tier
+            }
+            
+            tierId = anyTier.id
+            console.log('Using fallback tier_id:', tierId)
+          }
+        } catch (error) {
+          console.error('Error handling tier validation:', error)
+          return
         }
-        
-        tierId = anyTier.id
-        console.log('Using fallback tier_id from database:', tierId)
-      } else {
-        tierId = defaultTier.id
-        console.log('Using default tier_id from database:', tierId)
       }
     }
 
@@ -276,11 +372,14 @@ async function handleCheckoutSessionCompleted(session) {
     try {
       console.log('Recording checkout session in database')
       
+      // Use a dummy UUID for user_id if not provided
+      const dummyUserId = '00000000-0000-0000-0000-000000000000'
+      
       const sessionData = {
         stripe_session_id: session.id,
         gc_account_id: gcAccountId,
         tier_id: tierId,
-        user_id: userId || '00000000-0000-0000-0000-000000000000', // Use a dummy UUID if not provided
+        user_id: userId || dummyUserId,
         status: 'completed',
         stripe_account_id: session.account || 'platform',
         amount: session.amount_total ? session.amount_total / 100 : 0,
@@ -290,14 +389,25 @@ async function handleCheckoutSessionCompleted(session) {
         updated_at: new Date().toISOString()
       }
       
-      const { error: insertError } = await supabase
+      // Check if this session already exists to avoid duplicates
+      const { data: existingSession } = await supabase
         .from('checkout_sessions')
-        .insert(sessionData)
+        .select('id')
+        .eq('stripe_session_id', session.id)
+        .maybeSingle()
         
-      if (insertError) {
-        console.error('Error creating checkout session record:', insertError)
+      if (existingSession) {
+        console.log('Session already recorded, skipping insert')
       } else {
-        console.log('Successfully created checkout session record')
+        const { error: insertError } = await supabase
+          .from('checkout_sessions')
+          .insert(sessionData)
+          
+        if (insertError) {
+          console.error('Error creating checkout session record:', insertError)
+        } else {
+          console.log('Successfully created checkout session record')
+        }
       }
     } catch (error) {
       console.error('Error storing checkout session:', error)
@@ -331,7 +441,7 @@ async function handleCheckoutSessionCompleted(session) {
       .eq('gc_account_id', gcAccountId)
       .maybeSingle()
       
-    if (subCheckError) {
+    if (subCheckError && subCheckError.code !== 'PGRST116') {
       console.error(`Error checking existing subscription: ${subCheckError.message}`)
     }
     
@@ -369,14 +479,30 @@ async function handleCheckoutSessionCompleted(session) {
         created_at: new Date().toISOString()
       }
       
-      const { error: subInsertError } = await supabase
-        .from('account_subscriptions')
-        .insert(newSubscriptionData)
-        
-      if (subInsertError) {
-        console.error(`Error creating account_subscriptions record: ${subInsertError.message}`)
-      } else {
-        console.log('Successfully created account_subscriptions record')
+      // Make sure the required fields are not null
+      for (const [key, value] of Object.entries(newSubscriptionData)) {
+        if (value === undefined) {
+          if (key === 'stripe_subscription_id' || key === 'stripe_customer_id') {
+            newSubscriptionData[key] = null
+          } else {
+            newSubscriptionData[key] = ''
+          }
+        }
+      }
+      
+      try {
+        const { error: subInsertError } = await supabase
+          .from('account_subscriptions')
+          .insert(newSubscriptionData)
+          
+        if (subInsertError) {
+          console.error(`Error creating account_subscriptions record: ${subInsertError.message}`)
+          console.log('Failed data:', JSON.stringify(newSubscriptionData))
+        } else {
+          console.log('Successfully created account_subscriptions record')
+        }
+      } catch (insertError) {
+        console.error('Exception in account_subscriptions insert:', insertError)
       }
     }
 
@@ -384,26 +510,27 @@ async function handleCheckoutSessionCompleted(session) {
     try {
       console.log('Creating payment record')
       
-      // Ensure we have a valid user_id
-      if (!userId || !isValidUuid(userId)) {
+      // Ensure we have a valid user_id for the payment record
+      let paymentUserId = userId
+      if (!paymentUserId || !isValidUuid(paymentUserId)) {
         // Try to find the owner of the GC account
-        const { data: gcAccount, error: gcError } = await supabase
+        const { data: gcAccount } = await supabase
           .from('gc_accounts')
           .select('owner_id')
           .eq('id', gcAccountId)
           .maybeSingle()
           
-        if (!gcError && gcAccount?.owner_id) {
-          userId = gcAccount.owner_id
+        if (gcAccount?.owner_id) {
+          paymentUserId = gcAccount.owner_id
         } else {
           // Use a dummy UUID as last resort
-          userId = '00000000-0000-0000-0000-000000000000'
+          paymentUserId = '00000000-0000-0000-0000-000000000000'
         }
       }
       
       const paymentData = {
         payment_intent_id: session.payment_intent || `session_${session.id}`,
-        user_id: userId,
+        user_id: paymentUserId,
         gc_account_id: gcAccountId,
         stripe_account_id: session.account || 'platform',
         amount: session.amount_total ? session.amount_total / 100 : 0,
@@ -420,14 +547,25 @@ async function handleCheckoutSessionCompleted(session) {
         paymentData.platform_fee = session.application_fee_amount / 100
       }
 
-      const { error: paymentError } = await supabase
+      // Check if a payment record already exists with this ID
+      const { data: existingPayment } = await supabase
         .from('payment_records')
-        .insert(paymentData)
-
-      if (paymentError) {
-        console.error(`Error creating payment record: ${paymentError.message}`)
+        .select('id')
+        .eq('payment_intent_id', paymentData.payment_intent_id)
+        .maybeSingle()
+        
+      if (existingPayment) {
+        console.log('Payment record already exists, skipping insert')
       } else {
-        console.log('Successfully created payment record')
+        const { error: paymentError } = await supabase
+          .from('payment_records')
+          .insert(paymentData)
+
+        if (paymentError) {
+          console.error(`Error creating payment record: ${paymentError.message}`)
+        } else {
+          console.log('Successfully created payment record')
+        }
       }
     } catch (error) {
       console.error('Error creating payment record:', error)
