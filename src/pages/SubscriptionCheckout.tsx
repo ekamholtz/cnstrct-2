@@ -152,7 +152,7 @@ const SubscriptionCheckout = () => {
   };
 
   // Configure stripe pricing table with success URL, client_reference_id, and full metadata
-  // Ensure both gcAccountId and user.id are passed to Stripe
+  // IMPORTANT: Pass both gcAccountId and user.id to Stripe
   const successUrl = `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}${gcAccountId ? `&gc_account_id=${gcAccountId}` : ''}${user?.id ? `&user_id=${user.id}` : ''}`;
   const cancelUrl = `${window.location.origin}/settings?checkout_canceled=true`;
 
