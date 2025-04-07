@@ -49,7 +49,7 @@ const SubscriptionCheckout = () => {
         // Get user profile and gc_account_id
         const { data: profile, error } = await supabase
           .from('profiles')
-          .select('gc_account_id, role')
+          .select('gc_account_id, role, email')
           .eq('id', user.id)
           .single();
           
@@ -107,11 +107,13 @@ const SubscriptionCheckout = () => {
   };
 
   // Configure stripe pricing table with success URL that includes gc_account_id
+  // Also pass gc_account_id as client_reference_id AND in metadata for backup
   const successUrl = `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}${gcAccountId ? `&gc_account_id=${gcAccountId}` : ''}`;
   const cancelUrl = `${window.location.origin}/settings?checkout_canceled=true`;
 
   console.log("Success URL:", successUrl);
   console.log("Cancel URL:", cancelUrl);
+  console.log("GC Account ID to be used:", gcAccountId);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden">
@@ -159,7 +161,9 @@ const SubscriptionCheckout = () => {
                 client-reference-id={gcAccountId || undefined}
                 customer-email=""
                 success-url={successUrl}
-                cancel-url={cancelUrl}>
+                cancel-url={cancelUrl}
+                metadata-gc_account_id={gcAccountId || undefined}
+                metadata-tier_id="00000000-0000-0000-0000-000000000001">
               </stripe-pricing-table>
               
               <div className="mt-6 flex justify-center">

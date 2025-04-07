@@ -143,7 +143,7 @@ async function handleCheckoutSessionCompleted(session) {
       console.log('Found gc_account_id in metadata:', session.metadata.gc_account_id)
       gcAccountId = session.metadata.gc_account_id
     } else {
-      console.log('⚠️ No gc_account_id found in client_reference_id, checking metadata')
+      console.log('⚠️ No gc_account_id found in client_reference_id or metadata')
       console.log('Session metadata:', JSON.stringify(session.metadata || {}))
     }
     
@@ -189,64 +189,85 @@ async function handleCheckoutSessionCompleted(session) {
         }
       }
     }
-    
-    // Update checkout session status
-    if (session.id) {
-      console.log('Updating checkout session record with ID:', session.id)
+
+    // Determine tier_id
+    let tierId = '00000000-0000-0000-0000-000000000001' // Default to a valid UUID
+    if (session.metadata?.tier_id) {
+      tierId = session.metadata.tier_id
+    }
+
+    // First, check if the session exists in our database
+    try {
+      console.log('Checking for existing checkout session with ID:', session.id)
       
-      // First check if the session already exists
-      const { data: existingSession } = await supabase
+      const { data: existingSession, error: sessionQueryError } = await supabase
         .from('checkout_sessions')
         .select('*')
         .eq('stripe_session_id', session.id)
         .maybeSingle()
         
+      if (sessionQueryError) {
+        console.error('Error querying checkout_sessions:', sessionQueryError)
+      }
+      
+      // Create or update the checkout session record
       if (existingSession) {
-        console.log('Session already exists, updating status')
-        const { error } = await supabase
+        console.log('Updating existing checkout session record')
+        
+        const { error: updateError } = await supabase
           .from('checkout_sessions')
           .update({
             status: 'completed',
             updated_at: new Date().toISOString()
           })
           .eq('stripe_session_id', session.id)
-
-        if (error) {
-          console.error(`Error updating checkout session: ${error.message}`)
+          
+        if (updateError) {
+          console.error('Error updating checkout session:', updateError)
         }
       } else {
-        console.log('Session does not exist, creating new record')
-        // Get subscription tier
-        let tierId = '00000000-0000-0000-0000-000000000001' // Default tier
+        console.log('Creating new checkout session record')
         
-        if (session.metadata?.tier_id) {
-          tierId = session.metadata.tier_id
+        // Prepare session data
+        const sessionData = {
+          stripe_session_id: session.id,
+          status: 'completed',
+          stripe_account_id: session.account || 'platform',
+          user_id: userId,
+          description: session.metadata?.description || 'Subscription payment',
+          amount: session.amount_total / 100,
+          currency: session.currency || 'usd',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         }
         
-        // Create new checkout session record
-        const { error } = await supabase
+        // Only add these if they're valid
+        if (gcAccountId) {
+          sessionData.gc_account_id = gcAccountId
+        }
+        
+        if (tierId) {
+          sessionData.tier_id = tierId
+        }
+        
+        const { error: insertError } = await supabase
           .from('checkout_sessions')
-          .insert({
-            stripe_session_id: session.id,
-            gc_account_id: gcAccountId,
-            user_id: userId,
-            status: 'completed',
-            tier_id: tierId,
-            amount: session.amount_total / 100,
-            payment_status: 'paid',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
+          .insert(sessionData)
           
-        if (error) {
-          console.error(`Error creating checkout session: ${error.message}`)
+        if (insertError) {
+          console.error('Error creating checkout session record:', insertError)
+        } else {
+          console.log('Successfully created checkout session record')
         }
       }
+    } catch (error) {
+      console.error('Error managing checkout session:', error)
     }
 
-    // Update invoice status if invoice_id is present
+    // Update invoice if invoice_id is present
     if (invoiceId) {
       console.log('Updating invoice status for invoice:', invoiceId)
+      
       const { error } = await supabase
         .from('invoices')
         .update({
@@ -261,19 +282,14 @@ async function handleCheckoutSessionCompleted(session) {
 
       if (error) {
         console.error(`Error updating invoice: ${error.message}`)
+      } else {
+        console.log('Successfully updated invoice')
       }
     }
     
     // Update GC account subscription tier if we have gc_account_id
     if (gcAccountId) {
       console.log('Updating gc_account subscription tier for account:', gcAccountId)
-      
-      // Get subscription tier
-      let tierId = '00000000-0000-0000-0000-000000000001' // Default tier
-      
-      if (session.metadata?.tier_id) {
-        tierId = session.metadata.tier_id
-      }
       
       // Update the GC account
       const { error: gcUpdateError } = await supabase
@@ -292,57 +308,78 @@ async function handleCheckoutSessionCompleted(session) {
       }
       
       // Create or update subscription record
-      const { error: subError } = await supabase
-        .from('account_subscriptions')
-        .upsert({
-          gc_account_id: gcAccountId,
-          tier_id: tierId,
-          status: 'active',
-          start_date: new Date().toISOString(),
-          end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }, {
-          onConflict: 'gc_account_id'
-        })
-        
-      if (subError) {
-        console.error(`Error updating account_subscriptions: ${subError.message}`)
-      } else {
-        console.log('Successfully created/updated account_subscriptions record')
+      try {
+        const { error: subError } = await supabase
+          .from('account_subscriptions')
+          .upsert({
+            gc_account_id: gcAccountId,
+            tier_id: tierId,
+            status: 'active',
+            stripe_subscription_id: session.subscription || null,
+            stripe_customer_id: session.customer || null,
+            start_date: new Date().toISOString(),
+            end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }, {
+            onConflict: 'gc_account_id'
+          })
+          
+        if (subError) {
+          console.error(`Error updating account_subscriptions: ${subError.message}`)
+        } else {
+          console.log('Successfully created/updated account_subscriptions record')
+        }
+      } catch (error) {
+        console.error('Error updating account subscription:', error)
       }
     } else {
       console.warn('⚠️ No gc_account_id found, skipping gc_account update')
     }
 
     // Create payment record
-    console.log('Creating payment record')
-    const paymentData = {
-      payment_intent_id: session.payment_intent,
-      checkout_session_id: session.id,
-      user_id: userId,
-      stripe_account_id: session.account || 'platform',
-      amount: session.amount_total / 100,
-      currency: session.currency,
-      status: 'succeeded',
-      customer_email: session.customer_details?.email,
-      customer_name: session.customer_details?.name,
-      project_id: session.metadata?.project_id,
-      gc_account_id: gcAccountId,
-      description: session.metadata?.description || 'Subscription payment',
-      platform_fee: session.application_fee_amount ? session.application_fee_amount / 100 : null,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    }
+    try {
+      console.log('Creating payment record')
+      
+      const paymentData = {
+        payment_intent_id: session.payment_intent,
+        checkout_session_id: session.id,
+        stripe_account_id: session.account || 'platform',
+        amount: session.amount_total / 100,
+        currency: session.currency,
+        status: 'succeeded',
+        customer_email: session.customer_details?.email,
+        customer_name: session.customer_details?.name,
+        project_id: session.metadata?.project_id,
+        description: session.metadata?.description || 'Subscription payment',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+      
+      // Only add these if they're valid
+      if (userId) {
+        paymentData.user_id = userId
+      }
+      
+      if (gcAccountId) {
+        paymentData.gc_account_id = gcAccountId
+      }
+      
+      if (session.application_fee_amount) {
+        paymentData.platform_fee = session.application_fee_amount / 100
+      }
 
-    const { error } = await supabase
-      .from('payment_records')
-      .insert(paymentData)
+      const { error } = await supabase
+        .from('payment_records')
+        .insert(paymentData)
 
-    if (error) {
-      console.error(`Error creating payment record: ${error.message}`)
-    } else {
-      console.log('Successfully created payment record')
+      if (error) {
+        console.error(`Error creating payment record: ${error.message}`)
+      } else {
+        console.log('Successfully created payment record')
+      }
+    } catch (error) {
+      console.error('Error creating payment record:', error)
     }
     
     console.log('✅ Successfully completed checkout.session.completed processing')
