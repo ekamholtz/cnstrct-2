@@ -115,6 +115,7 @@ export type Database = {
       }
       checkout_sessions: {
         Row: {
+          account_status: string | null
           amount: number
           created_at: string | null
           currency: string
@@ -125,10 +126,12 @@ export type Database = {
           status: string
           stripe_account_id: string
           stripe_session_id: string
+          tier_id: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          account_status?: string | null
           amount: number
           created_at?: string | null
           currency?: string
@@ -139,10 +142,12 @@ export type Database = {
           status?: string
           stripe_account_id: string
           stripe_session_id: string
+          tier_id?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          account_status?: string | null
           amount?: number
           created_at?: string | null
           currency?: string
@@ -153,6 +158,7 @@ export type Database = {
           status?: string
           stripe_account_id?: string
           stripe_session_id?: string
+          tier_id?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -162,6 +168,13 @@ export type Database = {
             columns: ["gc_account_id"]
             isOneToOne: false
             referencedRelation: "gc_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "checkout_sessions_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "subscription_tiers"
             referencedColumns: ["id"]
           },
         ]
@@ -599,6 +612,7 @@ export type Database = {
           customer_name: string | null
           description: string | null
           error_message: string | null
+          gc_account_id: string | null
           id: string
           payment_intent_id: string
           platform_fee: number | null
@@ -617,6 +631,7 @@ export type Database = {
           customer_name?: string | null
           description?: string | null
           error_message?: string | null
+          gc_account_id?: string | null
           id?: string
           payment_intent_id: string
           platform_fee?: number | null
@@ -635,6 +650,7 @@ export type Database = {
           customer_name?: string | null
           description?: string | null
           error_message?: string | null
+          gc_account_id?: string | null
           id?: string
           payment_intent_id?: string
           platform_fee?: number | null
@@ -650,6 +666,13 @@ export type Database = {
             columns: ["checkout_session_id"]
             isOneToOne: false
             referencedRelation: "checkout_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_records_gc_account_id_fkey"
+            columns: ["gc_account_id"]
+            isOneToOne: false
+            referencedRelation: "gc_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -804,6 +827,41 @@ export type Database = {
             columns: ["subscription_tier_id"]
             isOneToOne: false
             referencedRelation: "subscription_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_commission_settings: {
+        Row: {
+          created_at: string
+          id: string
+          office_overhead_percentage: number
+          pm_profit_split_percentage: number
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          office_overhead_percentage?: number
+          pm_profit_split_percentage?: number
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          office_overhead_percentage?: number
+          pm_profit_split_percentage?: number
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_commission_settings_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: true
+            referencedRelation: "projects"
             referencedColumns: ["id"]
           },
         ]
@@ -1161,6 +1219,7 @@ export type Database = {
           id: string
           name: string
           price: number
+          stripe_price_id: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1170,6 +1229,7 @@ export type Database = {
           id?: string
           name: string
           price: number
+          stripe_price_id?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1179,6 +1239,7 @@ export type Database = {
           id?: string
           name?: string
           price?: number
+          stripe_price_id?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -1251,21 +1312,15 @@ export type Database = {
     }
     Functions: {
       can_access_invoice: {
-        Args: {
-          invoice_id: string
-        }
+        Args: { invoice_id: string }
         Returns: boolean
       }
       can_manage_profile: {
-        Args: {
-          profile_id: string
-        }
+        Args: { profile_id: string }
         Returns: boolean
       }
       check_is_admin: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: boolean
       }
       check_is_admin_no_recursion: {
@@ -1281,36 +1336,23 @@ export type Database = {
         Returns: boolean
       }
       check_project_access: {
-        Args: {
-          project_id: string
-        }
+        Args: { project_id: string }
         Returns: boolean
       }
       check_same_gc_account: {
-        Args: {
-          target_profile_id: string
-        }
+        Args: { target_profile_id: string }
         Returns: boolean
       }
       create_get_client_invoices_function: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      generate_invoice_number:
-        | {
-            Args: Record<PropertyKey, never>
-            Returns: string
-          }
-        | {
-            Args: {
-              milestone_id: string
-            }
-            Returns: string
-          }
+      generate_invoice_number: {
+        Args: Record<PropertyKey, never> | { milestone_id: string }
+        Returns: string
+      }
       get_client_invoices: {
-        Args: {
-          project_ids: string
-        }
+        Args: { project_ids: string }
         Returns: {
           id: string
           milestone_id: string
@@ -1334,83 +1376,53 @@ export type Database = {
         Returns: string
       }
       get_user_permissions: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: {
           feature_key: string
         }[]
       }
       get_user_role: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: string
       }
       has_feature_access: {
-        Args: {
-          feature_key: string
-        }
+        Args: { feature_key: string }
         Returns: boolean
       }
       has_permission: {
-        Args: {
-          user_id: string
-          feature_key: string
-        }
+        Args: { user_id: string; feature_key: string }
         Returns: boolean
       }
       has_project_access: {
-        Args: {
-          project_id: string
-        }
+        Args: { project_id: string }
         Returns: boolean
       }
       insert_milestones: {
-        Args: {
-          milestones_data: Json
-        }
+        Args: { milestones_data: Json }
         Returns: undefined
       }
       is_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
-      is_gc_account_owner:
-        | {
-            Args: {
-              user_id: string
-            }
-            Returns: boolean
-          }
-        | {
-            Args: {
-              user_id: string
-              gc_account_id: string
-            }
-            Returns: boolean
-          }
+      is_gc_account_owner: {
+        Args: { user_id: string; gc_account_id: string } | { user_id: string }
+        Returns: boolean
+      }
       is_gc_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
       is_gc_admin_of: {
-        Args: {
-          profile_id: string
-        }
+        Args: { profile_id: string }
         Returns: boolean
       }
       is_pm_for_project: {
-        Args: {
-          project_id: string
-        }
+        Args: { project_id: string }
         Returns: boolean
       }
       simulate_invoice_payment: {
-        Args: {
-          invoice_id: string
-          simulation_details: Json
-        }
+        Args: { invoice_id: string; simulation_details: Json }
         Returns: undefined
       }
       transfer_gc_ownership: {
@@ -1422,9 +1434,7 @@ export type Database = {
         Returns: boolean
       }
       undo_milestone_completion: {
-        Args: {
-          milestone_id_param: string
-        }
+        Args: { milestone_id_param: string }
         Returns: boolean
       }
       update_active_projects_stat: {
@@ -1468,27 +1478,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -1496,20 +1508,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -1517,20 +1531,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -1538,21 +1554,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -1561,6 +1579,34 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      expense_payment_method: ["cc", "check", "transfer", "cash"],
+      expense_type: ["labor", "materials", "subcontractor", "other"],
+      homeowner_expense_type: ["labor", "materials", "subcontractor", "other"],
+      homeowner_payment_status: ["due", "partially_paid", "paid"],
+      invoice_status: ["pending_payment", "paid", "cancelled"],
+      milestone_status: ["pending", "completed"],
+      payment_direction: ["incoming", "outgoing"],
+      payment_method: ["cc", "check", "transfer", "cash"],
+      payment_method_type: ["cc", "check", "transfer", "cash", "simulated"],
+      payment_processing_status: [
+        "pending",
+        "processing",
+        "completed",
+        "failed",
+        "refunded",
+      ],
+      payment_status: ["due", "partially_paid", "paid"],
+      project_status: ["draft", "active", "completed", "cancelled"],
+      subscription_status: ["active", "cancelled", "past_due", "trialing"],
+      user_role: ["platform_admin", "gc_admin", "project_manager", "homeowner"],
+      userrole: ["gc_admin", "subcontractor", "client"],
+    },
+  },
+} as const
