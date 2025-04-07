@@ -115,6 +115,9 @@ const SubscriptionCheckout = () => {
   console.log("Cancel URL:", cancelUrl);
   console.log("GC Account ID to be used:", gcAccountId);
 
+  // Ensure we're passing the tier ID for the backend to use
+  const defaultTierId = '00000000-0000-0000-0000-000000000001';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden">
       <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-cnstrct-navy/5 to-cnstrct-navy/10 z-0"></div>
@@ -163,7 +166,8 @@ const SubscriptionCheckout = () => {
                 success-url={successUrl}
                 cancel-url={cancelUrl}
                 metadata-gc_account_id={gcAccountId || undefined}
-                metadata-tier_id="00000000-0000-0000-0000-000000000001">
+                metadata-tier_id={defaultTierId}
+                metadata-user_id={user?.id}>
               </stripe-pricing-table>
               
               <div className="mt-6 flex justify-center">
