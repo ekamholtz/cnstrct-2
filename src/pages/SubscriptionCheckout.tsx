@@ -106,14 +106,15 @@ const SubscriptionCheckout = () => {
     navigate('/dashboard');
   };
 
-  // Configure stripe pricing table with success URL that includes gc_account_id
-  // Also pass gc_account_id as client_reference_id AND in metadata for backup
+  // Configure stripe pricing table with success URL, client_reference_id, and full metadata
+  // Ensure both gcAccountId and user.id are passed to Stripe
   const successUrl = `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}${gcAccountId ? `&gc_account_id=${gcAccountId}` : ''}`;
   const cancelUrl = `${window.location.origin}/settings?checkout_canceled=true`;
 
   console.log("Success URL:", successUrl);
   console.log("Cancel URL:", cancelUrl);
   console.log("GC Account ID to be used:", gcAccountId);
+  console.log("User ID to be used:", user?.id);
 
   // Ensure we're passing the tier ID for the backend to use
   const defaultTierId = '00000000-0000-0000-0000-000000000001';
@@ -157,7 +158,7 @@ const SubscriptionCheckout = () => {
             </div>
           ) : (
             <>
-              {/* Stripe Pricing Table */}
+              {/* Stripe Pricing Table with enhanced reference passing */}
               <stripe-pricing-table 
                 pricing-table-id="prctbl_1R9UC0Apu80f9E3HqRPNRBtK"
                 publishable-key="pk_test_51QzjhnApu80f9E3HjlgkmHwM1a4krzjoz0sJlsz41wIhMYIr1sst6sx2mCZ037PiY2UE6xfNA5zzkxCQwOAJ4yoD00gm7TIByL"
@@ -166,8 +167,8 @@ const SubscriptionCheckout = () => {
                 success-url={successUrl}
                 cancel-url={cancelUrl}
                 metadata-gc_account_id={gcAccountId || undefined}
-                metadata-tier_id={defaultTierId}
-                metadata-user_id={user?.id}>
+                metadata-user_id={user?.id || undefined}
+                metadata-tier_id={defaultTierId}>
               </stripe-pricing-table>
               
               <div className="mt-6 flex justify-center">

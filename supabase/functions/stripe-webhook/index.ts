@@ -25,8 +25,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-// Validates if a string is a valid UUID
+// Improved UUID validation with proper regex pattern
 function isValidUuid(uuid: string): boolean {
+  if (!uuid) return false;
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   return uuidRegex.test(uuid);
 }
@@ -142,22 +143,28 @@ async function handleCheckoutSessionCompleted(session) {
     
     // Extract gc_account_id from either client_reference_id or metadata
     let gcAccountId = null
+    let userId = null
+    
+    // First check client_reference_id (which should contain the gc_account_id)
     if (session.client_reference_id && isValidUuid(session.client_reference_id)) {
-      console.log('Found client_reference_id:', session.client_reference_id)
+      console.log('Found valid client_reference_id:', session.client_reference_id)
       gcAccountId = session.client_reference_id
-    } else if (session.metadata && session.metadata.gc_account_id && isValidUuid(session.metadata.gc_account_id)) {
-      console.log('Found gc_account_id in metadata:', session.metadata.gc_account_id)
+    } 
+    // Then check metadata.gc_account_id
+    else if (session.metadata && session.metadata.gc_account_id && isValidUuid(session.metadata.gc_account_id)) {
+      console.log('Found valid gc_account_id in metadata:', session.metadata.gc_account_id)
       gcAccountId = session.metadata.gc_account_id
-    } else {
-      console.log('⚠️ No valid gc_account_id found in client_reference_id or metadata')
+    } 
+    // No gc_account_id found in the expected places
+    else {
+      console.warn('⚠️ No valid gc_account_id found in client_reference_id or metadata')
       console.log('Session metadata:', JSON.stringify(session.metadata || {}))
     }
     
-    // Extract invoice_id from metadata if present
-    const invoiceId = session.metadata?.invoice_id
-    let userId = null
+    // Extract user_id from metadata if available
     if (session.metadata?.user_id && isValidUuid(session.metadata.user_id)) {
       userId = session.metadata.user_id
+      console.log('Found user_id in metadata:', userId)
     }
     
     // If we have a customer email but no gc_account_id, try to find the account by customer email
@@ -202,20 +209,50 @@ async function handleCheckoutSessionCompleted(session) {
       }
     }
 
-    // Determine tier_id - make sure it's a valid UUID or fetch a valid one
-    let tierId = '00000000-0000-0000-0000-000000000001' // Default to a valid UUID
-    if (session.metadata?.tier_id && isValidUuid(session.metadata.tier_id)) {
-      tierId = session.metadata.tier_id
-    } else {
-      // Check if the default tier exists in the database
-      const { data: tierData, error: tierError } = await supabase
-        .from('subscription_tiers')
+    // Final fallback: check for a valid user_id in auth and find their gc_account
+    if (!gcAccountId && userId) {
+      console.log('Attempting to find gc_account for user_id:', userId)
+      
+      // Try to find a GC account where this user is the owner
+      const { data: gcData, error: gcError } = await supabase
+        .from('gc_accounts')
         .select('id')
-        .eq('id', tierId)
+        .eq('owner_id', userId)
         .maybeSingle()
         
-      if (tierError || !tierData) {
-        console.error('Default tier not found, fetching any valid tier')
+      if (gcError) {
+        console.error('Error finding gc account by owner_id:', gcError)
+      } else if (gcData?.id) {
+        console.log('Found gc_account_id via gc_accounts table:', gcData.id)
+        gcAccountId = gcData.id
+      }
+    }
+
+    // If we still don't have a gc_account_id, we can't proceed with updating subscription
+    if (!gcAccountId) {
+      console.error('❌ Failed to identify a gc_account_id. Cannot update subscription.')
+      return
+    }
+
+    // Determine tier_id - ensure we have a valid one
+    let tierId = null
+    
+    // Check if there's a tier_id in metadata
+    if (session.metadata?.tier_id && isValidUuid(session.metadata.tier_id)) {
+      tierId = session.metadata.tier_id
+      console.log('Using tier_id from metadata:', tierId)
+    } else {
+      // Use the default tier ID - first try to get it from the database
+      const { data: defaultTier, error: tierError } = await supabase
+        .from('subscription_tiers')
+        .select('id')
+        .eq('id', '00000000-0000-0000-0000-000000000001')
+        .maybeSingle()
+        
+      if (tierError || !defaultTier) {
+        console.warn('Default tier not found, fetching any valid tier')
+        
+        // Try to get any tier as a fallback
         const { data: anyTier, error: anyTierError } = await supabase
           .from('subscription_tiers')
           .select('id')
@@ -224,214 +261,152 @@ async function handleCheckoutSessionCompleted(session) {
           
         if (anyTierError || !anyTier) {
           console.error('No valid tiers found in subscription_tiers table:', anyTierError)
-        } else {
-          tierId = anyTier.id
-          console.log('Using tier_id from database:', tierId)
+          return // Cannot proceed without a valid tier
         }
+        
+        tierId = anyTier.id
+        console.log('Using fallback tier_id from database:', tierId)
+      } else {
+        tierId = defaultTier.id
+        console.log('Using default tier_id from database:', tierId)
       }
     }
 
-    // First, check if the session exists in our database
+    // Store the checkout session
     try {
-      console.log('Checking for existing checkout session with ID:', session.id)
+      console.log('Recording checkout session in database')
       
-      const { data: existingSession, error: sessionQueryError } = await supabase
-        .from('checkout_sessions')
-        .select('*')
-        .eq('stripe_session_id', session.id)
-        .maybeSingle()
-        
-      if (sessionQueryError) {
-        console.error('Error querying checkout_sessions:', sessionQueryError)
+      const sessionData = {
+        stripe_session_id: session.id,
+        gc_account_id: gcAccountId,
+        tier_id: tierId,
+        user_id: userId || '00000000-0000-0000-0000-000000000000', // Use a dummy UUID if not provided
+        status: 'completed',
+        stripe_account_id: session.account || 'platform',
+        amount: session.amount_total ? session.amount_total / 100 : 0,
+        currency: session.currency || 'usd',
+        description: session.metadata?.description || 'Subscription payment',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       }
       
-      // Create or update the checkout session record
-      if (existingSession) {
-        console.log('Updating existing checkout session record')
+      const { error: insertError } = await supabase
+        .from('checkout_sessions')
+        .insert(sessionData)
         
-        const { error: updateError } = await supabase
-          .from('checkout_sessions')
-          .update({
-            status: 'completed',
-            updated_at: new Date().toISOString()
-          })
-          .eq('stripe_session_id', session.id)
-          
-        if (updateError) {
-          console.error('Error updating checkout session:', updateError)
-        }
+      if (insertError) {
+        console.error('Error creating checkout session record:', insertError)
       } else {
-        console.log('Creating new checkout session record')
-        
-        // Prepare session data
-        const sessionData = {
-          stripe_session_id: session.id,
-          status: 'completed',
-          stripe_account_id: session.account || 'platform',
-          user_id: userId || '00000000-0000-0000-0000-000000000000', // Use a dummy UUID if not provided
-          description: session.metadata?.description || 'Subscription payment',
-          amount: session.amount_total / 100,
-          currency: session.currency || 'usd',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }
-        
-        // Only add these if they're valid
-        if (gcAccountId && isValidUuid(gcAccountId)) {
-          sessionData.gc_account_id = gcAccountId
-        }
-        
-        if (tierId && isValidUuid(tierId)) {
-          sessionData.tier_id = tierId
-        }
-        
-        const { error: insertError } = await supabase
-          .from('checkout_sessions')
-          .insert(sessionData)
-          
-        if (insertError) {
-          console.error('Error creating checkout session record:', insertError)
-        } else {
-          console.log('Successfully created checkout session record')
-        }
+        console.log('Successfully created checkout session record')
       }
     } catch (error) {
-      console.error('Error managing checkout session:', error)
+      console.error('Error storing checkout session:', error)
     }
 
-    // Update invoice if invoice_id is present
-    if (invoiceId && isValidUuid(invoiceId)) {
-      console.log('Updating invoice status for invoice:', invoiceId)
+    // Update the GC account subscription status
+    console.log('Updating gc_account subscription info for account:', gcAccountId)
+    
+    // Update the GC account
+    const { error: gcUpdateError } = await supabase
+      .from('gc_accounts')
+      .update({
+        subscription_tier_id: tierId,
+        subscription_status: 'active',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', gcAccountId)
       
-      const { error } = await supabase
-        .from('invoices')
-        .update({
-          status: 'paid',
-          payment_method: 'cc',
-          payment_date: new Date().toISOString(),
-          payment_gateway: 'stripe',
-          payment_reference: session.payment_intent,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', invoiceId)
-
-      if (error) {
-        console.error(`Error updating invoice: ${error.message}`)
-      } else {
-        console.log('Successfully updated invoice')
-      }
+    if (gcUpdateError) {
+      console.error(`Error updating gc_account: ${gcUpdateError.message}`)
+    } else {
+      console.log('Successfully updated gc_account subscription status')
     }
     
-    // Update GC account subscription tier if we have gc_account_id
-    if (gcAccountId && isValidUuid(gcAccountId)) {
-      console.log('Updating gc_account subscription tier for account:', gcAccountId)
+    // Check if account_subscription record exists
+    console.log('Checking for existing subscription record')
+    
+    const { data: existingSub, error: subCheckError } = await supabase
+      .from('account_subscriptions')
+      .select('*')
+      .eq('gc_account_id', gcAccountId)
+      .maybeSingle()
       
-      // Update the GC account
-      const { error: gcUpdateError } = await supabase
-        .from('gc_accounts')
-        .update({
-          subscription_tier_id: tierId,
-          subscription_status: 'active',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', gcAccountId)
-        
-      if (gcUpdateError) {
-        console.error(`Error updating gc_account: ${gcUpdateError.message}`)
-      } else {
-        console.log('Successfully updated gc_account subscription status')
-      }
-      
-      // Check if subscription record already exists
-      const { data: existingSub, error: subCheckError } = await supabase
-        .from('account_subscriptions')
-        .select('*')
-        .eq('gc_account_id', gcAccountId)
-        .maybeSingle()
-        
-      if (subCheckError) {
-        console.error(`Error checking existing subscription: ${subCheckError.message}`)
-      }
-      
-      // Create or update subscription record based on whether it exists
-      if (existingSub) {
-        console.log('Updating existing subscription record')
-        
-        const { error: subUpdateError } = await supabase
-          .from('account_subscriptions')
-          .update({
-            tier_id: tierId,
-            status: 'active',
-            stripe_subscription_id: session.subscription || null,
-            stripe_customer_id: session.customer || null,
-            updated_at: new Date().toISOString(),
-            end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
-          })
-          .eq('gc_account_id', gcAccountId)
-          
-        if (subUpdateError) {
-          console.error(`Error updating account_subscriptions: ${subUpdateError.message}`)
-        } else {
-          console.log('Successfully updated account_subscriptions record')
-        }
-      } else {
-        console.log('Creating new subscription record')
-        
-        const { error: subInsertError } = await supabase
-          .from('account_subscriptions')
-          .insert({
-            gc_account_id: gcAccountId,
-            tier_id: tierId,
-            status: 'active',
-            stripe_subscription_id: session.subscription || null,
-            stripe_customer_id: session.customer || null,
-            start_date: new Date().toISOString(),
-            end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          })
-          
-        if (subInsertError) {
-          console.error(`Error inserting account_subscriptions record: ${subInsertError.message}`)
-        } else {
-          console.log('Successfully created account_subscriptions record')
-        }
-      }
-    } else {
-      console.warn('⚠️ No valid gc_account_id found, skipping gc_account update')
+    if (subCheckError) {
+      console.error(`Error checking existing subscription: ${subCheckError.message}`)
+    }
+    
+    // Create or update account_subscriptions record
+    const subscriptionData = {
+      tier_id: tierId,
+      status: 'active',
+      stripe_subscription_id: session.subscription || null,
+      stripe_customer_id: session.customer || null,
+      updated_at: new Date().toISOString(),
+      end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
     }
 
-    // Create payment record
+    if (existingSub) {
+      console.log('Updating existing subscription record')
+      
+      const { error: subUpdateError } = await supabase
+        .from('account_subscriptions')
+        .update(subscriptionData)
+        .eq('gc_account_id', gcAccountId)
+        
+      if (subUpdateError) {
+        console.error(`Error updating account_subscriptions: ${subUpdateError.message}`)
+      } else {
+        console.log('Successfully updated account_subscriptions record')
+      }
+    } else {
+      console.log('Creating new subscription record')
+      
+      // For new records we need these additional fields
+      const newSubscriptionData = {
+        ...subscriptionData,
+        gc_account_id: gcAccountId,
+        start_date: new Date().toISOString(),
+        created_at: new Date().toISOString()
+      }
+      
+      const { error: subInsertError } = await supabase
+        .from('account_subscriptions')
+        .insert(newSubscriptionData)
+        
+      if (subInsertError) {
+        console.error(`Error creating account_subscriptions record: ${subInsertError.message}`)
+      } else {
+        console.log('Successfully created account_subscriptions record')
+      }
+    }
+
+    // Create payment record for tracking
     try {
       console.log('Creating payment record')
       
-      // Ensure we have a valid user_id before creating the payment record
+      // Ensure we have a valid user_id
       if (!userId || !isValidUuid(userId)) {
-        console.log('No valid user_id found for payment record, using a default')
-        // Try to find a user associated with the GC account if we have one
-        if (gcAccountId && isValidUuid(gcAccountId)) {
-          const { data: gcAccount, error: gcError } = await supabase
-            .from('gc_accounts')
-            .select('owner_id')
-            .eq('id', gcAccountId)
-            .maybeSingle()
-            
-          if (!gcError && gcAccount?.owner_id) {
-            userId = gcAccount.owner_id
-          }
-        }
-        
-        // If still no valid userId, use a dummy UUID
-        if (!userId || !isValidUuid(userId)) {
+        // Try to find the owner of the GC account
+        const { data: gcAccount, error: gcError } = await supabase
+          .from('gc_accounts')
+          .select('owner_id')
+          .eq('id', gcAccountId)
+          .maybeSingle()
+          
+        if (!gcError && gcAccount?.owner_id) {
+          userId = gcAccount.owner_id
+        } else {
+          // Use a dummy UUID as last resort
           userId = '00000000-0000-0000-0000-000000000000'
         }
       }
       
       const paymentData = {
-        payment_intent_id: session.payment_intent || 'no-payment-intent',
+        payment_intent_id: session.payment_intent || `session_${session.id}`,
         user_id: userId,
+        gc_account_id: gcAccountId,
         stripe_account_id: session.account || 'platform',
-        amount: session.amount_total / 100,
+        amount: session.amount_total ? session.amount_total / 100 : 0,
         currency: session.currency || 'usd',
         status: 'succeeded',
         customer_email: session.customer_details?.email || 'unknown@example.com',
@@ -441,12 +416,6 @@ async function handleCheckoutSessionCompleted(session) {
         updated_at: new Date().toISOString()
       }
       
-      // Only add gc_account_id if it's valid
-      if (gcAccountId && isValidUuid(gcAccountId)) {
-        paymentData.gc_account_id = gcAccountId
-      }
-      
-      // Only add platform_fee if it exists
       if (session.application_fee_amount) {
         paymentData.platform_fee = session.application_fee_amount / 100
       }

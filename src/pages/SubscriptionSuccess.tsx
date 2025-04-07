@@ -142,7 +142,11 @@ const SubscriptionSuccess = () => {
             status: 'completed',
             tier_id: subscriptionTierId,
             created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
+            updated_at: new Date().toISOString(),
+            user_id: sessionData.session.user.id, // Make sure to add user_id
+            stripe_account_id: 'platform', // Default to platform
+            amount: 0, // No amount info at this point
+            currency: 'usd' // Default currency
           });
           
         if (sessionInsertError) {
