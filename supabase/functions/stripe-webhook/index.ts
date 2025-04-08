@@ -4,6 +4,8 @@
 import { serve, createClient, Stripe } from './deps.ts'
 import { findGCAccountId, updateGCAccountSubscription } from './subscription-handler.ts'
 
+// --- TEMPORARILY COMMENTED OUT FOR DEBUGGING ---
+/*
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || ''
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
@@ -24,6 +26,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
+*/
+// --- END TEMPORARY COMMENT ---
 
 // Placeholder UUID to use when we don't have a valid UUID
 const PLACEHOLDER_UUID = '00000000-0000-0000-0000-000000000000';
@@ -59,6 +63,8 @@ async function verifyGcAccount(gcAccountId: string): Promise<boolean> {
 }
 
 serve(async (req) => {
+  // --- TEMPORARILY COMMENTED OUT FOR DEBUGGING ---
+  /*
   try {
     console.log('Webhook received:', new Date().toISOString());
     
@@ -156,7 +162,22 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-})
+}
+*/
+// --- END TEMPORARY COMMENT ---
+
+// Simple response for testing deployment
+console.log('Received request, returning simple OK.');
+return new Response('OK', { 
+  headers: {
+    'Access-Control-Allow-Origin': '*', 
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST',
+    'Content-Type': 'text/plain'
+  }
+});
+
+});
 
 /**
  * Handle checkout.session.completed event
