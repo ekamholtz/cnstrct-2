@@ -50,12 +50,25 @@ export function useStripeConnect() {
       setLoading(true);
       setError('');
 
+      // Save current authentication state to localStorage before redirecting
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (sessionData?.session) {
+        // Save auth state to localStorage
+        localStorage.setItem('stripe_auth_state', JSON.stringify({
+          access_token: sessionData.session.access_token,
+          refresh_token: sessionData.session.refresh_token,
+          returnUrl: returnUrl || '/settings/payments'
+        }));
+      }
+
       // Call the Supabase function to start OAuth flow
       const { data, error: fnError } = await supabase.functions.invoke('stripe-connect', {
         body: {
           action: 'create_oauth_link',
           gc_account_id: gcAccountId,
-          return_url: returnUrl || window.location.origin + '/settings/payments/callback'
+          // Use our custom callback page that preserves auth state
+          return_url: window.location.origin + '/auth/stripe-callback'
         }
       });
 

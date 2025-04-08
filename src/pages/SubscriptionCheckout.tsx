@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -153,16 +152,24 @@ const SubscriptionCheckout = () => {
 
   // Configure stripe pricing table with success URL, client_reference_id, and full metadata
   // IMPORTANT: Pass both gcAccountId and user.id to Stripe
-  const successUrl = `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}${gcAccountId ? `&gc_account_id=${gcAccountId}` : ''}${user?.id ? `&user_id=${user.id}` : ''}`;
+  const successUrl = `${window.location.origin}/subscription-success?session_id={CHECKOUT_SESSION_ID}${gcAccountId ? `&gc_account_id=${gcAccountId}` : ''}${user ? `&user_id=${user.id}` : ''}`;
   const cancelUrl = `${window.location.origin}/settings?checkout_canceled=true`;
+  
+  // Use gcAccountId if available, otherwise fallback to user.id
+  // This ensures we prioritize the more specific ID when possible
+  const clientReferenceId = gcAccountId ?? user?.id ?? undefined;
+
+  // Ensure we pass a fallback tier ID if needed (use a real one from your DB)
+  // You might want to fetch this dynamically or have a constant
+  const defaultTierId = '89767a86-b4a6-462a-9692-0cb77010c97b'; // Example: Platform Basics tier ID
+  
+  console.log("Using client reference ID:", clientReferenceId);
+  console.log("User ID:", user?.id);
 
   console.log("Success URL:", successUrl);
   console.log("Cancel URL:", cancelUrl);
   console.log("GC Account ID to be used:", gcAccountId);
   console.log("User ID to be used:", user?.id);
-
-  // Ensure we're passing the tier ID for the backend to use
-  const defaultTierId = '00000000-0000-0000-0000-000000000001';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col relative overflow-hidden">
@@ -207,8 +214,8 @@ const SubscriptionCheckout = () => {
               <stripe-pricing-table 
                 pricing-table-id="prctbl_1R9UC0Apu80f9E3HqRPNRBtK"
                 publishable-key="pk_test_51QzjhnApu80f9E3HjlgkmHwM1a4krzjoz0sJlsz41wIhMYIr1sst6sx2mCZ037PiY2UE6xfNA5zzkxCQwOAJ4yoD00gm7TIByL"
-                client-reference-id={gcAccountId || undefined}
-                customer-email=""
+                client-reference-id={clientReferenceId}
+                customer-email={user?.email || ""}
                 success-url={successUrl}
                 cancel-url={cancelUrl}
                 metadata-gc_account_id={gcAccountId || undefined}
@@ -233,7 +240,7 @@ const SubscriptionCheckout = () => {
       <footer className="py-6 border-t border-gray-200 bg-white/80 backdrop-blur-sm z-10 relative">
         <div className="container mx-auto px-4 text-center">
           <p className="text-sm text-gray-500">
-            © {new Date().getFullYear()} CNSTRCT. All rights reserved.
+            {new Date().getFullYear()} CNSTRCT. All rights reserved.
           </p>
         </div>
       </footer>

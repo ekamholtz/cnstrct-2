@@ -34,12 +34,15 @@ import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
 import SubscriptionSelection from "@/pages/SubscriptionSelection";
+import StripeCallback from "@/pages/StripeCallback";
 
 export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/company-details" element={<CompanyDetailsPage />} />
+      {/* Add route without hyphen to handle potential redirect issues */}
+      <Route path="/auth/companydetails" element={<Navigate to="/auth/company-details" replace />} />
       {/* Subscription routes */}
       <Route path="/subscription-checkout" element={<SubscriptionCheckout />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
@@ -238,6 +241,10 @@ export const AppRoutes = () => {
             <StripeConnectOnboarding />
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/auth/stripe-callback"
+        element={<StripeCallback />}
       />
       <Route
         path="/qbo-test"

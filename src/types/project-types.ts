@@ -61,3 +61,13 @@ export type PaymentDirection = 'incoming' | 'outgoing' | string;
 
 // Add types for payment status
 export type PaymentProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | string;
+
+// Commission settings for project manager compensation
+export interface CommissionSettings {
+  id: string;
+  project_id: string;
+  office_overhead_percentage: number;
+  pm_profit_split_percentage: number;
+  created_at: string;
+  updated_at: string;
+}

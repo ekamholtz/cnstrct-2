@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import Dashboard from "@/pages/Dashboard";
 import Auth from "@/pages/Auth";
