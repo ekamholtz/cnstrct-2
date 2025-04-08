@@ -23,7 +23,7 @@ export const useAuthForm = () => {
     return null;
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string, companyName?: string, role?: string) => {
     setIsLoading(true);
     const errors: { [key: string]: string } = {};
 
@@ -44,6 +44,10 @@ export const useAuthForm = () => {
         email,
         password,
         options: {
+          data: {
+            company_name: companyName,
+            role: role || 'gc_admin'
+          },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
@@ -54,11 +58,15 @@ export const useAuthForm = () => {
       } else {
         toast({
           title: 'Success',
-          description: 'Account created successfully.',
+          description: 'Account created successfully. Please complete your company details.',
         });
         
-        // Redirect to company details page for new users
-        navigate('/auth/company-details');
+        // Redirect to company details page if role is gc_admin, otherwise dashboard
+        if (role === 'gc_admin') {
+          navigate('/auth/company-details');
+        } else {
+          navigate('/dashboard');
+        }
       }
     } catch (error: any) {
       errors.email = error.message || 'An unexpected error occurred';

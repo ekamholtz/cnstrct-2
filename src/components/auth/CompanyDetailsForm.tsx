@@ -1,5 +1,4 @@
 
-import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -43,7 +42,7 @@ export const CompanyDetailsForm = ({
       await onSubmit(data);
     } catch (error) {
       console.error("Error submitting form:", error);
-      // The error handling is done in the parent component
+      // Error handling is done in the parent component
     }
   };
 
@@ -53,6 +52,14 @@ export const CompanyDetailsForm = ({
         className="space-y-6"
         onSubmit={form.handleSubmit(handleSubmit)}
       >
+        <div className="mb-4">
+          <FormLabel>Company Name</FormLabel>
+          <Input value={companyName} disabled className="bg-gray-100" />
+          <p className="text-xs text-gray-500 mt-1">
+            This name was provided during registration
+          </p>
+        </div>
+        
         <FormField
           control={form.control}
           name="website"

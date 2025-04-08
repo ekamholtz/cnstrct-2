@@ -1,3 +1,4 @@
+
 import { Routes, Route } from "react-router-dom";
 import Dashboard from "@/pages/Dashboard";
 import Auth from "@/pages/Auth";
@@ -35,6 +36,9 @@ import InvoiceDetails from "@/pages/InvoiceDetails";
 import ExpenseDetails from "@/pages/ExpenseDetails";
 import PaymentDetails from "@/pages/PaymentDetails";
 import IntegrationSettings from "@/pages/IntegrationSettings";
+import CompanyDetailsPage from "@/pages/auth/CompanyDetailsPage";
+import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
+import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 
 function App() {
   return (
@@ -57,6 +61,9 @@ function App() {
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/company-details" element={<CompanyDetailsPage />} />
+            <Route path="/subscription-checkout" element={<SubscriptionCheckout />} />
+            <Route path="/subscription-success" element={<SubscriptionSuccess />} />
             <Route path="/qbo/callback" element={<QBOCallback />} />
             <Route 
               path="/"
