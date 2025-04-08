@@ -225,16 +225,10 @@ export function MainNav({
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel>My Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleNavigation('/profile')}>
-                  <User className="h-4 w-4 mr-2" />
-                  Profile
+                <DropdownMenuItem onClick={() => handleNavigation('/settings')}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Settings
                 </DropdownMenuItem>
-                {showSettingsInDropdown && (
-                  <DropdownMenuItem onClick={() => handleNavigation('/settings')}>
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem onClick={() => handleNavigation('/help')}>
                   <HelpCircle className="h-4 w-4 mr-2" />
                   Help
