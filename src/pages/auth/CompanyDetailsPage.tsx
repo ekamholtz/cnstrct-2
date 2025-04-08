@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from "@/components/ui/use-toast";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,11 +15,15 @@ export default function CompanyDetailsPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [companyName, setCompanyName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   
-  // Extract company name from user metadata if available
-  React.useEffect(() => {
-    if (user?.user_metadata?.company_name) {
-      setCompanyName(user.user_metadata.company_name);
+  // Extract company name and user name from user metadata if available
+  useEffect(() => {
+    if (user?.user_metadata) {
+      setCompanyName(user.user_metadata.company_name || '');
+      setFirstName(user.user_metadata.first_name || '');
+      setLastName(user.user_metadata.last_name || '');
     }
   }, [user]);
 
@@ -57,13 +61,15 @@ export default function CompanyDetailsPage() {
         throw new Error(gcError.message);
       }
       
-      // Update the user's profile with the GC account ID
+      // Update the user's profile with the GC account ID and personal info
       const { error: profileError } = await supabase
         .from('profiles')
         .update({ 
           gc_account_id: gcAccount.id,
           address: formData.address,
-          phone_number: formData.phoneNumber
+          phone_number: formData.phoneNumber,
+          full_name: `${firstName} ${lastName}`.trim(),
+          has_completed_profile: true
         })
         .eq('id', user.id);
       

@@ -1,7 +1,9 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { RegisterFormData } from '@/components/auth/authSchemas';
 
 export const useAuthForm = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -23,12 +25,12 @@ export const useAuthForm = () => {
     return null;
   };
 
-  const signUp = async (email: string, password: string, companyName?: string, role?: string) => {
+  const signUp = async (formData: RegisterFormData) => {
     setIsLoading(true);
     const errors: { [key: string]: string } = {};
 
-    const emailError = validateEmail(email);
-    const passwordError = validatePassword(password);
+    const emailError = validateEmail(formData.email);
+    const passwordError = validatePassword(formData.password);
 
     if (emailError) errors.email = emailError;
     if (passwordError) errors.password = passwordError;
@@ -41,12 +43,14 @@ export const useAuthForm = () => {
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: formData.email,
+        password: formData.password,
         options: {
           data: {
-            company_name: companyName,
-            role: role || 'gc_admin'
+            first_name: formData.firstName,
+            last_name: formData.lastName,
+            company_name: formData.companyName,
+            role: formData.role || 'gc_admin'
           },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
@@ -62,7 +66,7 @@ export const useAuthForm = () => {
         });
         
         // Redirect to company details page if role is gc_admin, otherwise dashboard
-        if (role === 'gc_admin') {
+        if (formData.role === 'gc_admin') {
           navigate('/auth/company-details');
         } else {
           navigate('/dashboard');

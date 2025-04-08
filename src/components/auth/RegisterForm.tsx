@@ -1,3 +1,4 @@
+
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -25,10 +26,10 @@ export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormPr
     defaultValues: {
       firstName: "",
       lastName: "",
-      companyName: "",
       email: "",
       password: "",
       confirmPassword: "",
+      companyName: "",
       role: selectedRole, // Ensure role is set from prop
     },
     mode: "all"

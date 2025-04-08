@@ -1,6 +1,8 @@
 
 import * as z from "zod";
 
+export type UserRole = "gc_admin" | "homeowner" | "team_member" | "platform_admin";
+
 export const loginSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
   password: z.string().min(6, {
@@ -13,8 +15,14 @@ export const registerSchema = z.object({
   password: z.string().min(6, {
     message: "Password must be at least 6 characters",
   }),
+  confirmPassword: z.string().min(6, { message: "Password confirmation is required" }),
+  firstName: z.string().min(1, { message: "First name is required" }),
+  lastName: z.string().min(1, { message: "Last name is required" }),
   companyName: z.string().min(1, { message: "Company name is required" }),
   role: z.enum(["gc_admin", "homeowner"]),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
 });
 
 export const companyDetailsSchema = z.object({
