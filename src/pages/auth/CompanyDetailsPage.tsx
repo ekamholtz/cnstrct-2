@@ -27,6 +27,51 @@ export default function CompanyDetailsPage() {
     }
   }, [user]);
 
+  // Function to ensure the user has a profile
+  const ensureUserProfile = async (userId: string) => {
+    try {
+      // Check if profile exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error("Error checking profile:", checkError);
+        return false;
+      }
+      
+      // If profile doesn't exist, create one
+      if (!existingProfile) {
+        console.log("Profile doesn't exist, creating one now");
+        const { error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            full_name: `${firstName} ${lastName}`.trim() || user?.email || 'New User',
+            role: user?.user_metadata?.role || 'gc_admin',
+            account_status: 'active',
+            has_completed_profile: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (createError) {
+          console.error("Error creating profile:", createError);
+          return false;
+        }
+        
+        console.log("Successfully created profile for user:", userId);
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Unexpected error in ensureUserProfile:", error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (formData: CompanyDetailsFormData) => {
     if (!user) {
       toast({
@@ -41,6 +86,13 @@ export default function CompanyDetailsPage() {
     setLoading(true);
     
     try {
+      // First ensure the user has a profile
+      const profileCreated = await ensureUserProfile(user.id);
+      
+      if (!profileCreated) {
+        throw new Error("Failed to create or verify user profile");
+      }
+      
       // Create a new GC account
       const { data: gcAccount, error: gcError } = await supabase
         .from('gc_accounts')
