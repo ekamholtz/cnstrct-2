@@ -1,5 +1,5 @@
 
-import { SupabaseClient } from '@supabase/supabase-js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
 
 export interface GCAccountInfo {
   gcAccountId: string;
@@ -15,7 +15,7 @@ export interface GCAccountInfo {
  */
 export async function findGCAccountId(
   session: any, 
-  supabase: SupabaseClient
+  supabase: ReturnType<typeof createClient>
 ): Promise<GCAccountInfo> {
   console.log('Starting findGCAccountId process');
   
@@ -184,7 +184,7 @@ export async function findGCAccountId(
  * @param subscriptionData The subscription data to set
  */
 export async function updateGCAccountSubscription(
-  supabase: SupabaseClient,
+  supabase: ReturnType<typeof createClient>,
   gcAccountId: string,
   subscriptionData: {
     subscription_id: string;
@@ -257,7 +257,7 @@ export async function updateGCAccountSubscription(
  * @returns The subscription tier ID or null if not found
  */
 export async function mapStripePriceToTierId(
-  supabase: SupabaseClient,
+  supabase: ReturnType<typeof createClient>,
   priceId: string
 ): Promise<string | null> {
   try {
