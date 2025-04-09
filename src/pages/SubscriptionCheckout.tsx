@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2 } from 'lucide-react';
-import { loadStripeScript } from '@/utils/stripe-utils';
+import { loadStripeScript, redirectToStripeCheckout, initializeStripe } from '@/utils/stripe-utils';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function SubscriptionCheckout() {
@@ -162,8 +163,8 @@ export default function SubscriptionCheckout() {
       }
       
       // Redirect to Stripe checkout
-      const stripe = (window as any).Stripe(process.env.VITE_STRIPE_PUBLIC_KEY);
-      stripe.redirectToCheckout({ sessionId });
+      const stripe = initializeStripe(process.env.VITE_STRIPE_PUBLIC_KEY || '');
+      await redirectToStripeCheckout(stripe, sessionId);
       
     } catch (error) {
       console.error("Checkout error:", error);
