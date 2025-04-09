@@ -35,14 +35,21 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
     }
     
     console.log("AuthForm - Registration submitted with role:", selectedRole);
+    console.log("AuthForm - Form values:", values);
     
     try {
+      // Make sure we're passing the role correctly
       await signUp({
         ...values,
         role: selectedRole, // Ensure role is explicitly set
       });
     } catch (error) {
       console.error("Registration error in AuthForm:", error);
+      toast({
+        variant: "destructive",
+        title: "Registration Error",
+        description: "Failed to create account. Please try again.",
+      });
     }
   };
 

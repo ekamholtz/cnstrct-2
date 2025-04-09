@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -42,14 +41,20 @@ export const useAuthForm = () => {
     }
 
     try {
-      console.log("Starting signup process", formData);
+      console.log("Starting signup process", { 
+        email: formData.email, 
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role || 'gc_admin',
+        companyName: formData.companyName
+      });
       
       // Create a cleaned-up data object for the user metadata
       const userMetadata = {
         first_name: formData.firstName,
         last_name: formData.lastName,
         company_name: formData.companyName,
-        role: formData.role,
+        role: formData.role || 'gc_admin', // Ensure role always has a value
         full_name: `${formData.firstName} ${formData.lastName}`
       };
       
@@ -64,10 +69,15 @@ export const useAuthForm = () => {
         },
       });
 
-      console.log("Signup response:", data, error);
+      console.log("Signup response details:", 
+        JSON.stringify({
+          user: data?.user?.id ? "User created" : "No user created",
+          error: error ? error.message : "No error"
+        })
+      );
 
       if (error) {
-        console.error("Signup error:", error);
+        console.error("Signup error details:", error);
         errors.email = error.message;
         setFormErrors(errors);
         toast({
