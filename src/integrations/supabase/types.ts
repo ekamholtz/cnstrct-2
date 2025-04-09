@@ -1220,6 +1220,7 @@ export type Database = {
           description: string | null
           fee_percentage: number | null
           id: string
+          max_projects: number | null
           name: string
           price: number
           stripe_price_id: string | null
@@ -1230,6 +1231,7 @@ export type Database = {
           description?: string | null
           fee_percentage?: number | null
           id?: string
+          max_projects?: number | null
           name: string
           price: number
           stripe_price_id?: string | null
@@ -1240,6 +1242,7 @@ export type Database = {
           description?: string | null
           fee_percentage?: number | null
           id?: string
+          max_projects?: number | null
           name?: string
           price?: number
           stripe_price_id?: string | null
