@@ -12,6 +12,10 @@ import { profileSchema, type ProfileFormValues, type Profile } from "./types";
 import { v4 as uuidv4 } from "uuid";
 import { mapUserRoleToUIRole } from "@/hooks/useTeamMembers";
 import { UserRole } from "@/components/admin/users/types";
+import { useQuery } from "@tanstack/react-query";
+import { BasicProfileFields } from "./components/BasicProfileFields";
+import { GCProfileFields } from "./components/GCProfileFields";
+import { ProfileDisplay } from "./components/ProfileDisplay";
 
 interface HomeownerProfileFormProps {
   profile: Profile;
