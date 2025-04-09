@@ -33,7 +33,7 @@ export default function CompanyDetailsPage() {
       // Check if profile exists
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
-        .select('id')
+        .select('id, email')
         .eq('id', userId)
         .maybeSingle();
         
@@ -45,11 +45,15 @@ export default function CompanyDetailsPage() {
       // If profile doesn't exist, create one
       if (!existingProfile) {
         console.log("Profile doesn't exist, creating one now");
+        
+        const fullName = `${firstName} ${lastName}`.trim() || user?.email?.split('@')[0] || 'New User';
+        
         const { error: createError } = await supabase
           .from('profiles')
           .insert({
             id: userId,
-            full_name: `${firstName} ${lastName}`.trim() || user?.email || 'New User',
+            email: user?.email,
+            full_name: fullName,
             role: user?.user_metadata?.role || 'gc_admin',
             account_status: 'active',
             has_completed_profile: false,
@@ -63,6 +67,16 @@ export default function CompanyDetailsPage() {
         }
         
         console.log("Successfully created profile for user:", userId);
+      } else if (!existingProfile.email && user?.email) {
+        // If profile exists but doesn't have email, update it
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ email: user.email })
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.error("Error updating profile email:", updateError);
+        }
       }
       
       return true;
@@ -121,7 +135,8 @@ export default function CompanyDetailsPage() {
           address: formData.address,
           phone_number: formData.phoneNumber,
           full_name: `${firstName} ${lastName}`.trim(),
-          has_completed_profile: true
+          has_completed_profile: true,
+          updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
       

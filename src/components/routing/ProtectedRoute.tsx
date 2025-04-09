@@ -35,6 +35,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
         .insert({
           id: userId,
           full_name: fullName,
+          email: userData?.email,
           role: role,
           account_status: 'active',
           has_completed_profile: false,
@@ -112,11 +113,11 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
-        console.log("Current user:", user);
+        console.log("Current user:", user.email);
 
         const { data, error } = await supabase
           .from("profiles")
-          .select("has_completed_profile, role, gc_account_id")
+          .select("has_completed_profile, role, gc_account_id, email")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -138,6 +139,14 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             setHasSubscription(false);
           }
         } else {
+          // Update email if it's missing
+          if (!data.email && user.email) {
+            await supabase
+              .from("profiles")
+              .update({ email: user.email })
+              .eq("id", user.id);
+          }
+          
           setHasCompletedProfile(data.has_completed_profile);
           setUserRole(data.role);
           

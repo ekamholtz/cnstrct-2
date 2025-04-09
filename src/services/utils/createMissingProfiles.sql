@@ -7,6 +7,7 @@ INSERT INTO public.profiles (
   id, 
   full_name, 
   role, 
+  email,
   account_status,
   has_completed_profile,
   created_at,
@@ -25,6 +26,7 @@ SELECT
     'New User'
   ),
   COALESCE(au.raw_user_meta_data->>'role', 'gc_admin')::user_role,
+  au.email,
   'active',
   false,
   NOW(),

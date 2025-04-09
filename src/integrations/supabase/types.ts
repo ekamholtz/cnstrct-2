@@ -776,6 +776,7 @@ export type Database = {
           bio: string | null
           company_name: string | null
           created_at: string | null
+          email: string | null
           full_name: string
           gc_account_id: string | null
           has_completed_profile: boolean | null
@@ -793,6 +794,7 @@ export type Database = {
           bio?: string | null
           company_name?: string | null
           created_at?: string | null
+          email?: string | null
           full_name: string
           gc_account_id?: string | null
           has_completed_profile?: boolean | null
@@ -810,6 +812,7 @@ export type Database = {
           bio?: string | null
           company_name?: string | null
           created_at?: string | null
+          email?: string | null
           full_name?: string
           gc_account_id?: string | null
           has_completed_profile?: boolean | null

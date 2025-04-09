@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -22,6 +23,40 @@ export const useAuthForm = () => {
     if (!password) return 'Password is required';
     if (password.length < 6) return 'Password must be at least 6 characters';
     return null;
+  };
+
+  const createUserProfile = async (userId: string, userData: any) => {
+    try {
+      const fullName = `${userData.firstName} ${userData.lastName}`.trim();
+      const role = userData.role || 'gc_admin';
+      
+      console.log("Creating profile for user:", userId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: userData.email,
+          full_name: fullName,
+          role: role,
+          company_name: userData.companyName || null,
+          account_status: 'active',
+          has_completed_profile: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        
+      if (error) {
+        console.error("Error creating profile:", error);
+        return false;
+      }
+      
+      console.log("Profile created successfully");
+      return true;
+    } catch (error) {
+      console.error("Unexpected error creating profile:", error);
+      return false;
+    }
   };
 
   const signUp = async (formData: RegisterFormData) => {
@@ -54,7 +89,7 @@ export const useAuthForm = () => {
         first_name: formData.firstName,
         last_name: formData.lastName,
         company_name: formData.companyName,
-        role: formData.role || 'gc_admin', // Ensure role always has a value
+        role: formData.role || 'gc_admin',
         full_name: `${formData.firstName} ${formData.lastName}`
       };
       
@@ -85,7 +120,17 @@ export const useAuthForm = () => {
           title: "Registration Error",
           description: error.message || "Failed to create account",
         });
-      } else {
+      } else if (data.user) {
+        // Create profile directly from frontend instead of relying solely on the database trigger
+        const profileCreated = await createUserProfile(data.user.id, {
+          ...formData,
+          email: formData.email,
+        });
+        
+        if (!profileCreated) {
+          console.warn("Failed to create profile, will rely on database trigger as fallback");
+        }
+        
         console.log("Signup successful, redirecting user");
         toast({
           title: 'Account Created',
