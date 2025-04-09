@@ -1,13 +1,13 @@
+
+import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
-import { Form } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/components/ui/use-toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
-import { BasicProfileFields } from "./components/BasicProfileFields";
-import { GCProfileFields } from "./components/GCProfileFields";
-import { ProfileDisplay } from "./components/ProfileDisplay";
 import { profileSchema, type ProfileFormValues, type Profile } from "./types";
 import { v4 as uuidv4 } from "uuid";
 import { mapUserRoleToUIRole } from "@/hooks/useTeamMembers";
