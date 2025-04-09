@@ -1,6 +1,4 @@
-// Local dependency file for Supabase Edge Functions
-// This helps avoid network issues during deployment
 
-export { serve } from "std/http/server"; // Use key from deno.json
-export { createClient } from "@supabase/supabase-js"; // Use key from deno.json
-export { default as Stripe } from "stripe"; // Use key from deno.json
+export { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+export { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+export { default as Stripe } from 'https://esm.sh/stripe@12.18.0';
