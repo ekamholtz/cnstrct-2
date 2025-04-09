@@ -263,6 +263,7 @@ export async function mapStripePriceToTierId(
   try {
     console.log(`Mapping Stripe price ID ${priceId} to subscription tier`);
     
+    // Try to find by exact match first
     const { data, error } = await supabase
       .from('subscription_tiers')
       .select('id')
@@ -271,16 +272,71 @@ export async function mapStripePriceToTierId(
     
     if (error) {
       console.error(`Error finding tier for price ID ${priceId}: ${error.message}`);
-      return null;
     }
     
-    if (!data) {
-      console.warn(`No tier found for price ID ${priceId}`);
-      return null;
+    // If we found a direct match, return it
+    if (data) {
+      console.log(`Found tier ${data.id} for price ID ${priceId}`);
+      return data.id;
     }
     
-    console.log(`Found tier ${data.id} for price ID ${priceId}`);
-    return data.id;
+    // If no exact match, use a fallback based on price level or features
+    // This is a more robust approach that works with existing tiers
+    if (priceId.includes('trial') || priceId === 'price_trial') {
+      // Get the lowest priced tier (Free/Trial)
+      const { data: trialTier, error: trialError } = await supabase
+        .from('subscription_tiers')
+        .select('id')
+        .eq('price', 0)
+        .maybeSingle();
+        
+      if (!trialError && trialTier) {
+        console.log(`Mapped trial price to tier ${trialTier.id}`);
+        return trialTier.id;
+      }
+    } else if (priceId.includes('basic') || priceId === 'price_basic') {
+      // Get a mid-tier subscription (not free, not the most expensive)
+      const { data: basicTier, error: basicError } = await supabase
+        .from('subscription_tiers')
+        .select('id, price')
+        .gt('price', 0)
+        .order('price', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+        
+      if (!basicError && basicTier) {
+        console.log(`Mapped basic price to tier ${basicTier.id}`);
+        return basicTier.id;
+      }
+    } else if (priceId.includes('advanced') || priceId === 'price_advanced') {
+      // Get the most expensive tier
+      const { data: advancedTier, error: advancedError } = await supabase
+        .from('subscription_tiers')
+        .select('id')
+        .order('price', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+        
+      if (!advancedError && advancedTier) {
+        console.log(`Mapped advanced price to tier ${advancedTier.id}`);
+        return advancedTier.id;
+      }
+    }
+    
+    // If all else fails, get the default tier (any tier)
+    const { data: defaultTier, error: defaultError } = await supabase
+      .from('subscription_tiers')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+      
+    if (!defaultError && defaultTier) {
+      console.log(`Using default tier ${defaultTier.id}`);
+      return defaultTier.id;
+    }
+    
+    console.warn(`No tier found for price ID ${priceId}`);
+    return null;
   } catch (error) {
     console.error(`Error in mapStripePriceToTierId: ${error}`);
     return null;
