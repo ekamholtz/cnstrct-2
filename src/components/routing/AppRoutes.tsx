@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -34,7 +33,6 @@ import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
 import SubscriptionSelection from "@/pages/SubscriptionSelection";
-// Import StripeCallback from the correct location
 import StripeCallback from "@/pages/stripe/StripeCallback";
 
 export const AppRoutes = () => {

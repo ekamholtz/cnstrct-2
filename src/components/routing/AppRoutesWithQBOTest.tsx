@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -28,11 +29,17 @@ import ReportingDashboard from "@/pages/ReportingDashboard";
 import QBOCallback from "@/pages/qbo/QBOCallback";
 import Settings from "@/pages/Settings";
 import QBOTest from "@/pages/QBOTest";
+import SubscriptionSelection from "@/pages/SubscriptionSelection";
+import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
+import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 
 export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
+      <Route path="/subscription-selection" element={<SubscriptionSelection />} />
+      <Route path="/subscription-checkout" element={<SubscriptionCheckout />} />
+      <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/" element={<Index />} />
       <Route
         path="/dashboard"
