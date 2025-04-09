@@ -34,8 +34,8 @@ import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
 import SubscriptionSelection from "@/pages/SubscriptionSelection";
-// Fix the import path for StripeCallback
-import StripeCallback from "@/pages/auth/StripeCallback";
+// Import StripeCallback from the correct location
+import StripeCallback from "@/pages/stripe/StripeCallback";
 
 export const AppRoutes = () => {
   return (
