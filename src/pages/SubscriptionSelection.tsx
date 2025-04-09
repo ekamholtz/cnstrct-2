@@ -1,19 +1,21 @@
 
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
 import { useAuth } from '@/hooks/useAuth';
+import { LoadingState } from '@/components/subscription/LoadingState';
 
 // Default trial tier ID - using the free tier ID
 const TRIAL_TIER_ID = '00000000-0000-0000-0000-000000000001';
 
 export default function SubscriptionSelection() {
   const [loading, setLoading] = useState(true);
+  const [stripeLoaded, setStripeLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -24,6 +26,22 @@ export default function SubscriptionSelection() {
     const script = document.createElement('script');
     script.src = 'https://js.stripe.com/v3/pricing-table.js';
     script.async = true;
+    
+    script.onload = () => {
+      console.log('Stripe script loaded successfully');
+      setStripeLoaded(true);
+    };
+    
+    script.onerror = (error) => {
+      console.error('Failed to load Stripe script:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load Stripe payment options. Please refresh the page.'
+      });
+      setStripeLoaded(true); // Still set this to true to avoid loading state
+    };
+    
     document.body.appendChild(script);
     
     return () => {
@@ -31,8 +49,10 @@ export default function SubscriptionSelection() {
         document.body.removeChild(script);
       }
     };
-    
-    // Check if trial tier exists, if not create it
+  }, [toast]);
+  
+  // Check if trial tier exists, if not create it
+  useEffect(() => {
     const ensureTrialTier = async () => {
       try {
         const { data, error } = await supabase
@@ -162,7 +182,7 @@ export default function SubscriptionSelection() {
       
       // Navigate to dashboard
       navigate('/dashboard');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error selecting trial tier:', error);
       toast({
         variant: 'destructive',
@@ -177,10 +197,7 @@ export default function SubscriptionSelection() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-cnstrct-orange mx-auto mb-4" />
-          <p className="text-gray-600">Loading subscription options...</p>
-        </div>
+        <LoadingState message="Loading subscription options..." />
       </div>
     );
   }
@@ -229,10 +246,16 @@ export default function SubscriptionSelection() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <stripe-pricing-table 
-                  pricing-table-id="prctbl_1R98Y3Apu80f9E3H7bPpRkjs"
-                  publishable-key="pk_test_51QzjhnApu80f9E3HjlgkmHwM1a4krzjoz0sJlsz41wIhMYIr1sst6sx2mCZ037PiY2UE6xfNA5zzkxCQwOAJ4yoD00gm7TIByL">
-                </stripe-pricing-table>
+                {!stripeLoaded ? (
+                  <div className="py-8">
+                    <LoadingState message="Loading payment options..." />
+                  </div>
+                ) : (
+                  <stripe-pricing-table 
+                    pricing-table-id="prctbl_1R98Y3Apu80f9E3H7bPpRkjs"
+                    publishable-key="pk_test_51QzjhnApu80f9E3HjlgkmHwM1a4krzjoz0sJlsz41wIhMYIr1sst6sx2mCZ037PiY2UE6xfNA5zzkxCQwOAJ4yoD00gm7TIByL">
+                  </stripe-pricing-table>
+                )}
               </CardContent>
             </Card>
           </div>
