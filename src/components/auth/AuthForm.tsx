@@ -33,7 +33,17 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       });
       return;
     }
-    await signUp(values);
+    
+    console.log("AuthForm - Registration submitted with role:", selectedRole);
+    
+    try {
+      await signUp({
+        ...values,
+        role: selectedRole, // Ensure role is explicitly set
+      });
+    } catch (error) {
+      console.error("Registration error in AuthForm:", error);
+    }
   };
 
   const onLoginSubmit = async (values: LoginFormData) => {

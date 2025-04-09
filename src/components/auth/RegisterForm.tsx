@@ -1,4 +1,3 @@
-
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import {
 } from "@/components/ui/form";
 import { registerSchema, type RegisterFormData } from "./authSchemas";
 import { User, Mail, Lock, ShieldCheck, Building } from "lucide-react";
+import { useState } from "react";
 
 interface RegisterFormProps {
   onSubmit: (values: RegisterFormData) => Promise<void>;
@@ -21,6 +21,8 @@ interface RegisterFormProps {
 }
 
 export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormProps) => {
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -36,6 +38,9 @@ export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormPr
   });
 
   const handleSubmit = async (values: RegisterFormData) => {
+    setSubmitAttempted(true);
+    console.log("Form submitted with values:", values);
+    
     // Ensure the role is included in the submission
     await onSubmit({
       ...values,
@@ -176,6 +181,12 @@ export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormPr
             </FormItem>
           )}
         />
+
+        {submitAttempted && loading && (
+          <div className="text-center py-2">
+            <p className="text-sm text-blue-600">Processing registration...</p>
+          </div>
+        )}
 
         <Button
           type="submit"

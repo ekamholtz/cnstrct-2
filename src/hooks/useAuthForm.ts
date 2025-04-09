@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -42,27 +41,44 @@ export const useAuthForm = () => {
     }
 
     try {
+      console.log("Starting signup process", formData);
+      
+      // Create a cleaned-up data object for the user metadata
+      const userMetadata = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        company_name: formData.companyName,
+        role: formData.role || 'gc_admin',
+        full_name: `${formData.firstName} ${formData.lastName}`
+      };
+      
+      console.log("User metadata prepared:", userMetadata);
+      
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            company_name: formData.companyName,
-            role: formData.role || 'gc_admin'
-          },
+          data: userMetadata,
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
+      console.log("Signup response:", data ? "Success" : "Failed", error || "No errors");
+
       if (error) {
+        console.error("Signup error:", error);
         errors.email = error.message;
         setFormErrors(errors);
-      } else {
         toast({
-          title: 'Success',
-          description: 'Account created successfully. Please complete your company details.',
+          variant: "destructive",
+          title: "Registration Error",
+          description: error.message || "Failed to create account",
+        });
+      } else {
+        console.log("Signup successful, redirecting user");
+        toast({
+          title: 'Account Created',
+          description: 'Your account has been created successfully. Please complete your company details.',
         });
         
         // Redirect to company details page if role is gc_admin, otherwise dashboard
@@ -73,8 +89,14 @@ export const useAuthForm = () => {
         }
       }
     } catch (error: any) {
+      console.error("Unexpected error during signup:", error);
       errors.email = error.message || 'An unexpected error occurred';
       setFormErrors(errors);
+      toast({
+        variant: "destructive",
+        title: "Registration Error",
+        description: error.message || "An unexpected error occurred",
+      });
     } finally {
       setIsLoading(false);
     }
