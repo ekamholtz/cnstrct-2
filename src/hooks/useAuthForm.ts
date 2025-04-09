@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -48,7 +49,7 @@ export const useAuthForm = () => {
         first_name: formData.firstName,
         last_name: formData.lastName,
         company_name: formData.companyName,
-        role: formData.role || 'gc_admin',
+        role: formData.role,
         full_name: `${formData.firstName} ${formData.lastName}`
       };
       
@@ -63,7 +64,7 @@ export const useAuthForm = () => {
         },
       });
 
-      console.log("Signup response:", data ? "Success" : "Failed", error || "No errors");
+      console.log("Signup response:", data, error);
 
       if (error) {
         console.error("Signup error:", error);

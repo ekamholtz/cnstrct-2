@@ -1469,7 +1469,14 @@ export type Database = {
       payment_status: "due" | "partially_paid" | "paid"
       project_status: "draft" | "active" | "completed" | "cancelled"
       subscription_status: "active" | "cancelled" | "past_due" | "trialing"
-      user_role: "platform_admin" | "gc_admin" | "project_manager" | "homeowner"
+      user_role:
+        | "platform_admin"
+        | "gc_admin"
+        | "project_manager"
+        | "homeowner"
+        | "client"
+        | "contractor"
+        | "employee"
       userrole: "gc_admin" | "subcontractor" | "client"
     }
     CompositeTypes: {
@@ -1605,7 +1612,15 @@ export const Constants = {
       payment_status: ["due", "partially_paid", "paid"],
       project_status: ["draft", "active", "completed", "cancelled"],
       subscription_status: ["active", "cancelled", "past_due", "trialing"],
-      user_role: ["platform_admin", "gc_admin", "project_manager", "homeowner"],
+      user_role: [
+        "platform_admin",
+        "gc_admin",
+        "project_manager",
+        "homeowner",
+        "client",
+        "contractor",
+        "employee",
+      ],
       userrole: ["gc_admin", "subcontractor", "client"],
     },
   },
