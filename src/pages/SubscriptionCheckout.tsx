@@ -5,6 +5,7 @@ import { useStripeCheckout } from '@/hooks/useStripeCheckout';
 import { CheckoutCard } from '@/components/subscription/CheckoutCard';
 import { LoadingState } from '@/components/subscription/LoadingState';
 import { ErrorState } from '@/components/subscription/ErrorState';
+import { Button } from '@/components/ui/button';
 
 export default function SubscriptionCheckout() {
   const navigate = useNavigate();
@@ -21,6 +22,14 @@ export default function SubscriptionCheckout() {
     }
   }, [isLoading, checkoutError, redirectToCheckout]);
   
+  const handleGoBack = () => {
+    navigate('/subscription-selection');
+  };
+  
+  const handleGoToDashboard = () => {
+    navigate('/dashboard');
+  };
+  
   // Determine the content to show based on state
   const renderContent = () => {
     if (isLoading) {
@@ -29,10 +38,22 @@ export default function SubscriptionCheckout() {
     
     if (checkoutError) {
       return (
-        <ErrorState 
-          errorMessage={checkoutError} 
-          onRetry={() => redirectToCheckout()}
-        />
+        <div className="space-y-6">
+          <ErrorState 
+            errorMessage={checkoutError} 
+            onRetry={() => redirectToCheckout()}
+          />
+          
+          <div className="flex flex-col space-y-3 pt-4">
+            <Button variant="outline" onClick={handleGoBack}>
+              Return to Subscription Selection
+            </Button>
+            
+            <Button variant="secondary" onClick={handleGoToDashboard}>
+              Continue to Dashboard
+            </Button>
+          </div>
+        </div>
       );
     }
     

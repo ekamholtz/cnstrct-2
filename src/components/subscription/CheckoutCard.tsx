@@ -1,31 +1,21 @@
 
-import React, { ReactNode } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface CheckoutCardProps {
   title: string;
   description: string;
-  children: ReactNode;
+  children: React.ReactNode;
 }
 
-export const CheckoutCard: React.FC<CheckoutCardProps> = ({
-  title,
-  description,
-  children
-}) => {
+export function CheckoutCard({ title, description, children }: CheckoutCardProps) {
   return (
     <Card className="shadow-lg">
-      <CardHeader>
-        <CardTitle className="text-xl font-semibold text-center">
-          {title}
-        </CardTitle>
-        <CardDescription className="text-center">
-          {description}
-        </CardDescription>
+      <CardHeader className="pb-4">
+        <CardTitle className="text-2xl font-bold text-center">{title}</CardTitle>
+        <CardDescription className="text-center">{description}</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center py-6">
-        {children}
-      </CardContent>
+      <CardContent>{children}</CardContent>
     </Card>
   );
-};
+}

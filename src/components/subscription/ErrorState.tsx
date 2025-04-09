@@ -1,39 +1,27 @@
 
-import React from 'react';
+import { AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface ErrorStateProps {
   errorMessage: string;
-  onRetry?: () => void;
+  onRetry: () => void;
 }
 
-export const ErrorState: React.FC<ErrorStateProps> = ({ 
-  errorMessage,
-  onRetry
-}) => {
-  const navigate = useNavigate();
-  
+export function ErrorState({ errorMessage, onRetry }: ErrorStateProps) {
   return (
-    <div className="text-center text-red-500">
-      <p className="font-semibold">There was an error</p>
-      <p className="text-sm mt-2">{errorMessage}</p>
-      <div className="flex gap-3 justify-center mt-4">
-        {onRetry && (
-          <Button 
-            onClick={onRetry}
-            variant="outline"
-          >
-            Try Again
-          </Button>
-        )}
-        <Button 
-          onClick={() => navigate('/dashboard')}
-          className="bg-cnstrct-navy text-white hover:bg-cnstrct-navy/90"
-        >
-          Return to Dashboard
+    <div className="space-y-4">
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{errorMessage}</AlertDescription>
+      </Alert>
+      
+      <div className="flex justify-center pt-2">
+        <Button onClick={onRetry}>
+          Try Again
         </Button>
       </div>
     </div>
   );
-};
+}

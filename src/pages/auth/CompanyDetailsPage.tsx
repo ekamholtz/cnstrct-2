@@ -149,8 +149,8 @@ export default function CompanyDetailsPage() {
         description: "Company details have been saved successfully.",
       });
       
-      // Redirect to subscription page
-      navigate('/subscription-checkout');
+      // Redirect to subscription selection page instead of checkout
+      navigate('/subscription-selection');
     } catch (error: any) {
       toast({
         variant: "destructive",
