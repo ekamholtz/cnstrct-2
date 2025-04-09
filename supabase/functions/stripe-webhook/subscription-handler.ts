@@ -1,5 +1,4 @@
-
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 
 export interface GCAccountInfo {
   gcAccountId: string;
@@ -280,63 +279,95 @@ export async function mapStripePriceToTierId(
       return data.id;
     }
     
-    // If no exact match, use a fallback based on price level or features
-    // This is a more robust approach that works with existing tiers
+    // Fallback mapping based on price ID naming conventions
+    // This allows us to work with the existing subscription tiers
+    
+    // Map to Trial tier
     if (priceId.includes('trial') || priceId === 'price_trial') {
-      // Get the lowest priced tier (Free/Trial)
-      const { data: trialTier, error: trialError } = await supabase
+      const { data: trialTier } = await supabase
+        .from('subscription_tiers')
+        .select('id')
+        .eq('name', 'Trial')
+        .maybeSingle();
+        
+      if (trialTier) {
+        console.log(`Mapped trial price to tier "${trialTier.id}"`);
+        return trialTier.id;
+      }
+      
+      // If not found by name, try by price = 0
+      const { data: freeTier } = await supabase
         .from('subscription_tiers')
         .select('id')
         .eq('price', 0)
         .maybeSingle();
         
-      if (!trialError && trialTier) {
-        console.log(`Mapped trial price to tier ${trialTier.id}`);
-        return trialTier.id;
+      if (freeTier) {
+        console.log(`Mapped trial price to free tier "${freeTier.id}"`);
+        return freeTier.id;
       }
-    } else if (priceId.includes('basic') || priceId === 'price_basic') {
-      // Get a mid-tier subscription (not free, not the most expensive)
-      const { data: basicTier, error: basicError } = await supabase
-        .from('subscription_tiers')
-        .select('id, price')
-        .gt('price', 0)
-        .order('price', { ascending: true })
-        .limit(1)
-        .maybeSingle();
-        
-      if (!basicError && basicTier) {
-        console.log(`Mapped basic price to tier ${basicTier.id}`);
-        return basicTier.id;
-      }
-    } else if (priceId.includes('advanced') || priceId === 'price_advanced') {
-      // Get the most expensive tier
-      const { data: advancedTier, error: advancedError } = await supabase
+    }
+    
+    // Map to Platform Basics tier
+    if (priceId.includes('basic') || priceId === 'price_basic') {
+      const { data: basicTier } = await supabase
         .from('subscription_tiers')
         .select('id')
-        .order('price', { ascending: false })
-        .limit(1)
+        .eq('name', 'Platform Basics')
         .maybeSingle();
         
-      if (!advancedError && advancedTier) {
-        console.log(`Mapped advanced price to tier ${advancedTier.id}`);
+      if (basicTier) {
+        console.log(`Mapped basic price to tier "${basicTier.id}"`);
+        return basicTier.id;
+      }
+    }
+    
+    // Map to Advanced Payments tier
+    if (priceId.includes('advanced') || priceId === 'price_advanced') {
+      const { data: advancedTier } = await supabase
+        .from('subscription_tiers')
+        .select('id')
+        .eq('name', 'Advanced Payments')
+        .maybeSingle();
+        
+      if (advancedTier) {
+        console.log(`Mapped advanced price to tier "${advancedTier.id}"`);
         return advancedTier.id;
       }
     }
     
-    // If all else fails, get the default tier (any tier)
-    const { data: defaultTier, error: defaultError } = await supabase
+    // Get the actual available tiers to use as fallbacks
+    const { data: allTiers, error: tiersError } = await supabase
       .from('subscription_tiers')
-      .select('id')
-      .limit(1)
-      .maybeSingle();
+      .select('id, name, price')
+      .order('price', { ascending: true });
       
-    if (!defaultError && defaultTier) {
-      console.log(`Using default tier ${defaultTier.id}`);
-      return defaultTier.id;
+    if (tiersError) {
+      console.error(`Error fetching available tiers: ${tiersError.message}`);
+      return null;
     }
     
-    console.warn(`No tier found for price ID ${priceId}`);
-    return null;
+    if (!allTiers || allTiers.length === 0) {
+      console.warn('No subscription tiers found in the database');
+      return null;
+    }
+    
+    // Log all available tiers for debugging
+    console.log('Available tiers:');
+    allTiers.forEach(tier => {
+      console.log(`- ${tier.id} (${tier.name}): $${tier.price}`);
+    });
+    
+    // Fall back to the middle tier if we have at least 3 tiers
+    if (allTiers.length >= 3) {
+      const middleIndex = Math.floor(allTiers.length / 2);
+      console.log(`Using middle tier as fallback: ${allTiers[middleIndex].id} (${allTiers[middleIndex].name})`);
+      return allTiers[middleIndex].id;
+    }
+    
+    // Otherwise, return the first tier
+    console.log(`Using first tier as fallback: ${allTiers[0].id} (${allTiers[0].name})`);
+    return allTiers[0].id;
   } catch (error) {
     console.error(`Error in mapStripePriceToTierId: ${error}`);
     return null;
