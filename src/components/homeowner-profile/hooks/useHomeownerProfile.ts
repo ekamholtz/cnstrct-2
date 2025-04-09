@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { mapUserRoleToUIRole } from "@/hooks/useTeamMembers";
-import { UserRole } from "@/components/auth/authSchemas";
+import { UserRole } from "@/components/admin/users/types";
 
 export const useHomeownerProfile = () => {
   const [isEditing, setIsEditing] = useState(false);

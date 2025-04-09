@@ -11,7 +11,7 @@ import { ProfileDisplay } from "./components/ProfileDisplay";
 import { profileSchema, type ProfileFormValues, type Profile } from "./types";
 import { v4 as uuidv4 } from "uuid";
 import { mapUserRoleToUIRole } from "@/hooks/useTeamMembers";
-import { UserRole } from "@/components/auth/authSchemas";
+import { UserRole } from "@/components/admin/users/types";
 
 interface HomeownerProfileFormProps {
   profile: Profile;
@@ -54,7 +54,6 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
 
   const onSubmit = async (data: ProfileFormValues) => {
     try {
-      // Check if user has admin role using mapUserRoleToUIRole
       const uiRole = mapUserRoleToUIRole(userRole as UserRole);
       const isGCRole = uiRole === "project_manager";
       const updatedData = { ...data };
@@ -65,13 +64,10 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
       console.log("Has company name:", !!data.company_name);
       console.log("Existing GC account ID:", profile.gc_account_id);
 
-      // For GC roles with company names, we handle the gc_account_id
       if (isGCRole && data.company_name) {
         if (!profile.gc_account_id) {
           try {
-            // Generate a new UUID for the GC account
             const gc_account_id = uuidv4();
-            
             console.log("Generated new GC account ID:", gc_account_id);
             updatedData.gc_account_id = gc_account_id;
           } catch (gcError) {
@@ -79,19 +75,16 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
             throw new Error("Failed to create GC account. Please try again.");
           }
         } else {
-          // Preserve existing GC account ID
           updatedData.gc_account_id = profile.gc_account_id;
           console.log("Preserving existing GC account ID:", profile.gc_account_id);
         }
       } else if (!isGCRole) {
-        // Non-GC roles should have null gc_account_id
         updatedData.gc_account_id = null;
         console.log("Setting gc_account_id to null for non-GC role");
       }
 
       console.log("Profile update data:", updatedData);
 
-      // Update the profile with the new data
       const { error, data: updatedProfile } = await supabase
         .from("profiles")
         .update(updatedData)
@@ -125,7 +118,6 @@ export function HomeownerProfileForm({ profile, isEditing, onCancel, onSave }: H
     return <ProfileDisplay profile={profile} userRole={userRole} />;
   }
 
-  // Show GCProfileFields for GC roles only
   const shouldShowGCFields = mapUserRoleToUIRole(userRole as UserRole) === "project_manager";
 
   return (

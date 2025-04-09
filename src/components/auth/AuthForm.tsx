@@ -33,7 +33,7 @@ export const AuthForm = ({ isLogin, selectedRole, onBack }: AuthFormProps) => {
       });
       return;
     }
-    await signUp(values.email, values.password);
+    await signUp(values);
   };
 
   const onLoginSubmit = async (values: LoginFormData) => {

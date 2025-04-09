@@ -6,7 +6,7 @@ import { EditProjectForm } from "./edit/EditProjectForm";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useTeamMembers, mapUserRoleToUIRole } from "@/hooks/useTeamMembers";
-import { UserRole } from "@/components/auth/authSchemas";
+import { UserRole } from "@/components/admin/users/types";
 
 interface ProjectHeaderProps {
   name: string;
