@@ -18,7 +18,7 @@ export type Database = {
           gc_account_id: string | null
           id: string
           start_date: string | null
-          status: Database["public"]["Enums"]["subscription_status"] | null
+          status: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           tier_id: string | null
@@ -32,7 +32,7 @@ export type Database = {
           gc_account_id?: string | null
           id?: string
           start_date?: string | null
-          status?: Database["public"]["Enums"]["subscription_status"] | null
+          status?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           tier_id?: string | null
@@ -46,7 +46,7 @@ export type Database = {
           gc_account_id?: string | null
           id?: string
           start_date?: string | null
-          status?: Database["public"]["Enums"]["subscription_status"] | null
+          status?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           tier_id?: string | null
@@ -1477,7 +1477,12 @@ export type Database = {
         | "refunded"
       payment_status: "due" | "partially_paid" | "paid"
       project_status: "draft" | "active" | "completed" | "cancelled"
-      subscription_status: "active" | "cancelled" | "past_due" | "trialing"
+      subscription_status:
+        | "active"
+        | "cancelled"
+        | "past_due"
+        | "trialing"
+        | "incomplete"
       user_role:
         | "platform_admin"
         | "gc_admin"
@@ -1620,7 +1625,13 @@ export const Constants = {
       ],
       payment_status: ["due", "partially_paid", "paid"],
       project_status: ["draft", "active", "completed", "cancelled"],
-      subscription_status: ["active", "cancelled", "past_due", "trialing"],
+      subscription_status: [
+        "active",
+        "cancelled",
+        "past_due",
+        "trialing",
+        "incomplete",
+      ],
       user_role: [
         "platform_admin",
         "gc_admin",

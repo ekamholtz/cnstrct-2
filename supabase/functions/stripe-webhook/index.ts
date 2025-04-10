@@ -1,4 +1,3 @@
-
 // Supabase Edge Function for Stripe Webhook Handler
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
@@ -159,12 +158,7 @@ serve(async (req) => {
     // Make sure default tier exists
     await ensureDefaultTierExists();
 
-    // CRITICAL: We must clone the request to get the raw body for signature verification
-    // This is because we can only read the body once
-    const clonedRequest = req.clone();
-    
-    // Get the raw body as text for signature verification
-    // This is essential - Stripe requires the exact raw body for signature verification
+    // CRITICAL: We need to get the raw body as a string for signature verification
     const rawBody = await req.text();
     console.log(`Received webhook body of length: ${rawBody.length}`);
     
