@@ -1,211 +1,189 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.8';
 
-export interface GCAccountInfo {
-  gcAccountId: string;
-  userId: string | null;
-  error: string | null;
-}
+// Utility functions for handling Stripe subscription events
+
+import { SupabaseClient } from "@supabase/supabase-js";
+import { Session } from "https://esm.sh/stripe@14.10.0";
 
 /**
- * Finds the GC account ID from a checkout session
+ * Finds the GC Account ID from various sources
  * @param session The Stripe checkout session
  * @param supabase The Supabase client
- * @returns Object containing gcAccountId, userId and any error
+ * @returns Object containing the gc_account_id and user_id if found
  */
-export async function findGCAccountId(
-  session: any, 
-  supabase: ReturnType<typeof createClient>
-): Promise<GCAccountInfo> {
-  console.log('Starting findGCAccountId process');
-  
-  try {
-    let gcAccountId: string | null = null;
-    let userId: string | null = null;
-    let error: string | null = null;
+export const findGCAccountId = async (
+  session: any,
+  supabase: SupabaseClient
+): Promise<{ gcAccountId: string | null; userId: string | null; error: string | null }> => {
+  const metadataGcAccountId = session.metadata?.gc_account_id;
+  const customerId = session.customer as string;
+  const clientReferenceId = session.client_reference_id;
+
+  let gcAccountId: string | null = null;
+  let userId: string | null = null;
+  let error: string | null = null;
+
+  console.log('Finding GC Account ID with:', {
+    metadataGcAccountId,
+    customerId,
+    clientReferenceId
+  });
+
+  // Try to get gc_account_id from session metadata first
+  if (metadataGcAccountId) {
+    gcAccountId = metadataGcAccountId;
+    console.log(`Using gc_account_id from metadata: ${gcAccountId}`);
     
-    // First check if gc_account_id is in the metadata
-    if (session.metadata && session.metadata.gc_account_id) {
-      console.log(`Found gc_account_id in metadata: ${session.metadata.gc_account_id}`);
-      gcAccountId = session.metadata.gc_account_id;
-      
-      // Find the associated user if available
-      if (session.metadata.user_id) {
-        userId = session.metadata.user_id;
-      } else if (session.client_reference_id) {
-        userId = session.client_reference_id;
-      }
-      
-      return { gcAccountId, userId, error: null };
+    // Try to get user_id from client_reference_id (this is the user who initiated the checkout)
+    if (clientReferenceId) {
+      userId = clientReferenceId;
+      console.log(`Using user_id from client_reference_id: ${userId}`);
     }
     
-    // If client_reference_id is set, it might be the user ID
-    if (session.client_reference_id) {
-      console.log(`Using client_reference_id as user_id: ${session.client_reference_id}`);
-      userId = session.client_reference_id;
+    return { gcAccountId, userId, error: null };
+  }
+
+  // Try to find a profile with this customer ID
+  if (customerId) {
+    try {
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('id, gc_account_id')
+        .eq('stripe_customer_id', customerId)
+        .maybeSingle();
+
+      if (profileError) {
+        console.error('Error finding profile by customer ID:', profileError);
+        error = `Error finding profile: ${profileError.message}`;
+      } else if (profileData?.gc_account_id) {
+        gcAccountId = profileData.gc_account_id;
+        userId = profileData.id;
+        console.log(`Found gc_account_id from profile: ${gcAccountId}`);
+      } else {
+        console.log('No profile found with this customer ID or no gc_account_id assigned to profile');
+      }
+    } catch (e) {
+      console.error('Exception finding profile by customer ID:', e);
+      error = `Exception finding profile: ${e.message}`;
+    }
+  }
+
+  // If still not found and we have a client_reference_id, try to get the user's gc_account_id
+  if (!gcAccountId && clientReferenceId) {
+    try {
+      userId = clientReferenceId; // The client_reference_id is the user's ID
       
-      // Try to get the gc_account_id from the user's profile
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('gc_account_id')
-        .eq('id', userId)
+        .eq('id', clientReferenceId)
         .maybeSingle();
-        
+
       if (profileError) {
-        console.error(`Error fetching profile for user ${userId}:`, profileError);
-      } else if (profileData && profileData.gc_account_id) {
-        console.log(`Found gc_account_id from profile: ${profileData.gc_account_id}`);
+        console.error('Error finding profile by client_reference_id:', profileError);
+        error = `Error finding profile by user ID: ${profileError.message}`;
+      } else if (profileData?.gc_account_id) {
         gcAccountId = profileData.gc_account_id;
-        return { gcAccountId, userId, error: null };
+        console.log(`Found gc_account_id from user profile: ${gcAccountId}`);
       } else {
-        console.log(`No gc_account_id found in profile, checking gc_accounts table`);
-        
-        // Try to find a GC account owned by this user
-        const { data: gcData, error: gcError } = await supabase
-          .from('gc_accounts')
-          .select('id')
-          .eq('owner_id', userId)
-          .maybeSingle();
-          
-        if (gcError) {
-          console.error(`Error finding gc_account for owner ${userId}:`, gcError);
-        } else if (gcData) {
-          console.log(`Found gc_account from owner_id: ${gcData.id}`);
-          gcAccountId = gcData.id;
-          return { gcAccountId, userId, error: null };
-        }
+        console.log('User profile does not have a gc_account_id');
       }
+    } catch (e) {
+      console.error('Exception finding profile by client_reference_id:', e);
+      error = `Exception finding profile by user ID: ${e.message}`;
     }
-    
-    // If customer email is available, try to find user by email
-    if (session.customer_details && session.customer_details.email) {
-      const customerEmail = session.customer_details.email;
-      console.log(`Looking up user by email: ${customerEmail}`);
-      
-      // Find user by email
-      const { data: userData, error: userError } = await supabase
-        .from('profiles')
-        .select('id, gc_account_id')
-        .eq('email', customerEmail)
-        .maybeSingle();
-        
-      if (userError) {
-        console.error(`Error finding user by email ${customerEmail}:`, userError);
-      } else if (userData) {
-        console.log(`Found user by email: ${userData.id}`);
-        userId = userData.id;
-        
-        if (userData.gc_account_id) {
-          console.log(`Found gc_account_id from email lookup: ${userData.gc_account_id}`);
-          gcAccountId = userData.gc_account_id;
-          return { gcAccountId, userId, error: null };
-        } else {
-          // Try to find a GC account owned by this user
-          const { data: gcData, error: gcError } = await supabase
-            .from('gc_accounts')
-            .select('id')
-            .eq('owner_id', userId)
-            .maybeSingle();
-            
-          if (gcError) {
-            console.error(`Error finding gc_account for owner ${userId}:`, gcError);
-          } else if (gcData) {
-            console.log(`Found gc_account from owner_id: ${gcData.id}`);
-            gcAccountId = gcData.id;
-            return { gcAccountId, userId, error: null };
-          }
-        }
-      }
-    }
-    
-    // If we still haven't found the gcAccountId but we have a userId,
-    // check if there's any checkout_sessions record that might help
-    if (userId && !gcAccountId) {
-      console.log(`Checking checkout_sessions table for user ${userId}`);
-      
-      const { data: sessionData, error: sessionError } = await supabase
-        .from('checkout_sessions')
-        .select('gc_account_id')
-        .eq('user_id', userId)
-        .eq('stripe_session_id', session.id)
-        .maybeSingle();
-        
-      if (sessionError) {
-        console.error(`Error finding checkout session for user ${userId}:`, sessionError);
-      } else if (sessionData && sessionData.gc_account_id) {
-        console.log(`Found gc_account_id from checkout_sessions: ${sessionData.gc_account_id}`);
-        gcAccountId = sessionData.gc_account_id;
-        return { gcAccountId, userId, error: null };
-      }
-    }
-    
-    // If we have a customer ID, check previous payment records
-    if (session.customer && !gcAccountId) {
-      console.log(`Checking payment_records table for customer ${session.customer}`);
-      
-      // Look for previous payment records with this customer
-      const { data: paymentData, error: paymentError } = await supabase
-        .from('payment_records')
-        .select('gc_account_id')
-        .eq('customer_id', session.customer)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-        
-      if (paymentError) {
-        console.error(`Error finding payment record for customer ${session.customer}:`, paymentError);
-      } else if (paymentData && paymentData.gc_account_id) {
-        console.log(`Found gc_account_id from payment_records: ${paymentData.gc_account_id}`);
-        gcAccountId = paymentData.gc_account_id;
-        return { gcAccountId, userId, error: null };
-      }
-    }
-    
-    if (!gcAccountId) {
-      error = "Could not determine GC account ID from checkout session";
-      console.error(error);
-    }
-    
-    return { gcAccountId, userId, error };
-  } catch (error) {
-    console.error('Error in findGCAccountId:', error);
-    return { 
-      gcAccountId: null, 
-      userId: null, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    };
   }
-}
+
+  // Last resort: Try to find a GC account owned by this user
+  if (!gcAccountId && userId) {
+    try {
+      const { data: gcAccountData, error: gcError } = await supabase
+        .from('gc_accounts')
+        .select('id')
+        .eq('owner_id', userId)
+        .maybeSingle();
+
+      if (gcError) {
+        console.error('Error finding GC account by owner_id:', gcError);
+        error = `Error finding GC account: ${gcError.message}`;
+      } else if (gcAccountData?.id) {
+        gcAccountId = gcAccountData.id;
+        console.log(`Found gc_account_id from gc_accounts where user is owner: ${gcAccountId}`);
+      } else {
+        console.log('No GC account found where this user is the owner');
+      }
+    } catch (e) {
+      console.error('Exception finding GC account by owner_id:', e);
+      error = `Exception finding GC account: ${e.message}`;
+    }
+  }
+
+  return { gcAccountId, userId, error };
+};
 
 /**
- * Updates a GC Account's subscription details
+ * Maps a Stripe price ID to a tier ID
  * @param supabase The Supabase client
- * @param gcAccountId The GC account ID to update
- * @param subscriptionData The subscription data to set
+ * @param priceId The Stripe price ID
+ * @returns The tier ID if found, null otherwise
  */
-export async function updateGCAccountSubscription(
-  supabase: ReturnType<typeof createClient>,
+export const mapStripePriceToTierId = async (
+  supabase: SupabaseClient,
+  priceId: string
+): Promise<string | null> => {
+  try {
+    const { data, error } = await supabase
+      .from('subscription_tiers')
+      .select('id')
+      .eq('stripe_price_id', priceId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error mapping price to tier:', error);
+      return null;
+    }
+
+    if (data) {
+      return data.id;
+    }
+
+    console.warn(`No tier found for price ID: ${priceId}, using default trial tier`);
+    return '00000000-0000-0000-0000-000000000001'; // Default trial tier
+  } catch (error) {
+    console.error('Exception mapping price to tier:', error);
+    return null;
+  }
+};
+
+/**
+ * Updates a GC account's subscription information
+ * @param supabase The Supabase client
+ * @param gcAccountId The GC account ID
+ * @param subscriptionData The subscription data to update
+ */
+export const updateGCAccountSubscription = async (
+  supabase: SupabaseClient,
   gcAccountId: string,
   subscriptionData: {
     subscription_id: string;
     customer_id: string;
     status: string;
     tier_id: string;
-    price_id: string;
-    cancel_at_period_end: boolean;
-    current_period_start: string;
-    current_period_end: string;
-    ended_at: string | null;
-    cancel_at: string | null;
-    canceled_at: string | null;
-    trial_start: string | null;
-    trial_end: string | null;
+    price_id?: string;
+    cancel_at_period_end?: boolean;
+    current_period_start?: string;
+    current_period_end?: string;
+    ended_at?: string | null;
+    cancel_at?: string | null;
+    canceled_at?: string | null;
+    trial_start?: string | null;
+    trial_end?: string | null;
   }
-): Promise<void> {
+) => {
   try {
-    console.log(`Updating subscription for GC account ${gcAccountId}`);
-    
-    // First update the GC account subscription_tier_id and status
-    const { error: gcUpdateError } = await supabase
+    console.log(`Updating subscription for GC account ${gcAccountId}:`, subscriptionData);
+
+    // Update the gc_account subscription status and tier
+    const { error: gcAccountError } = await supabase
       .from('gc_accounts')
       .update({
         subscription_tier_id: subscriptionData.tier_id,
@@ -213,163 +191,131 @@ export async function updateGCAccountSubscription(
         updated_at: new Date().toISOString()
       })
       .eq('id', gcAccountId);
-    
-    if (gcUpdateError) {
-      console.error(`Error updating GC account subscription: ${gcUpdateError.message}`);
-      throw gcUpdateError;
+
+    if (gcAccountError) {
+      console.error('Error updating GC account subscription:', gcAccountError);
+    } else {
+      console.log(`Updated GC account ${gcAccountId} subscription tier and status`);
     }
-    
-    // Then update or insert the account_subscriptions record
+
+    // Update or insert account_subscriptions record
     const { error: subscriptionError } = await supabase
       .from('account_subscriptions')
       .upsert({
         gc_account_id: gcAccountId,
         stripe_subscription_id: subscriptionData.subscription_id,
         stripe_customer_id: subscriptionData.customer_id,
-        tier_id: subscriptionData.tier_id,
         status: subscriptionData.status,
-        start_date: subscriptionData.current_period_start,
-        end_date: subscriptionData.current_period_end,
+        tier_id: subscriptionData.tier_id,
+        cancel_at_period_end: subscriptionData.cancel_at_period_end || false,
         current_period_end: subscriptionData.current_period_end,
-        cancel_at_period_end: subscriptionData.cancel_at_period_end,
+        start_date: subscriptionData.current_period_start,
+        end_date: subscriptionData.ended_at,
         updated_at: new Date().toISOString()
       }, {
         onConflict: 'gc_account_id'
       });
-    
+
     if (subscriptionError) {
-      console.error(`Error updating account_subscriptions: ${subscriptionError.message}`);
-      throw subscriptionError;
+      console.error('Error updating account subscription:', subscriptionError);
+    } else {
+      console.log(`Updated account_subscriptions for GC account ${gcAccountId}`);
     }
-    
-    console.log(`Successfully updated subscription for GC account ${gcAccountId}`);
   } catch (error) {
-    console.error(`Error in updateGCAccountSubscription: ${error}`);
-    throw error;
+    console.error('Exception updating GC account subscription:', error);
   }
-}
+};
 
 /**
- * Maps a Stripe price ID to a subscription tier ID
+ * Creates a new GC account with basic subscription information
  * @param supabase The Supabase client
- * @param priceId The Stripe price ID
- * @returns The subscription tier ID or null if not found
+ * @param userId The user ID who will own the account
+ * @param subscriptionData The subscription data
+ * @returns The newly created GC account ID
  */
-export async function mapStripePriceToTierId(
-  supabase: ReturnType<typeof createClient>,
-  priceId: string
-): Promise<string | null> {
+export const createGCAccountWithSubscription = async (
+  supabase: SupabaseClient,
+  userId: string,
+  subscriptionData: {
+    subscription_id: string;
+    customer_id: string;
+    status: string;
+    tier_id: string;
+  }
+): Promise<string | null> => {
   try {
-    console.log(`Mapping Stripe price ID ${priceId} to subscription tier`);
+    console.log(`Creating new GC account for user ${userId} with subscription:`, subscriptionData);
     
-    // Try to find by exact match first
-    const { data, error } = await supabase
-      .from('subscription_tiers')
-      .select('id')
-      .eq('stripe_price_id', priceId)
-      .maybeSingle();
-    
-    if (error) {
-      console.error(`Error finding tier for price ID ${priceId}: ${error.message}`);
-    }
-    
-    // If we found a direct match, return it
-    if (data) {
-      console.log(`Found tier ${data.id} for price ID ${priceId}`);
-      return data.id;
-    }
-    
-    // Fallback mapping based on price ID naming conventions
-    // This allows us to work with the existing subscription tiers
-    
-    // Map to Trial tier
-    if (priceId.includes('trial') || priceId === 'price_trial') {
-      const { data: trialTier } = await supabase
-        .from('subscription_tiers')
-        .select('id')
-        .eq('name', 'Trial')
-        .maybeSingle();
-        
-      if (trialTier) {
-        console.log(`Mapped trial price to tier "${trialTier.id}"`);
-        return trialTier.id;
-      }
+    // Get the user's profile for information
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name, email, company_name')
+      .eq('id', userId)
+      .single();
       
-      // If not found by name, try by price = 0
-      const { data: freeTier } = await supabase
-        .from('subscription_tiers')
-        .select('id')
-        .eq('price', 0)
-        .maybeSingle();
-        
-      if (freeTier) {
-        console.log(`Mapped trial price to free tier "${freeTier.id}"`);
-        return freeTier.id;
-      }
-    }
-    
-    // Map to Platform Basics tier
-    if (priceId.includes('basic') || priceId === 'price_basic') {
-      const { data: basicTier } = await supabase
-        .from('subscription_tiers')
-        .select('id')
-        .eq('name', 'Platform Basics')
-        .maybeSingle();
-        
-      if (basicTier) {
-        console.log(`Mapped basic price to tier "${basicTier.id}"`);
-        return basicTier.id;
-      }
-    }
-    
-    // Map to Advanced Payments tier
-    if (priceId.includes('advanced') || priceId === 'price_advanced') {
-      const { data: advancedTier } = await supabase
-        .from('subscription_tiers')
-        .select('id')
-        .eq('name', 'Advanced Payments')
-        .maybeSingle();
-        
-      if (advancedTier) {
-        console.log(`Mapped advanced price to tier "${advancedTier.id}"`);
-        return advancedTier.id;
-      }
-    }
-    
-    // Get the actual available tiers to use as fallbacks
-    const { data: allTiers, error: tiersError } = await supabase
-      .from('subscription_tiers')
-      .select('id, name, price')
-      .order('price', { ascending: true });
-      
-    if (tiersError) {
-      console.error(`Error fetching available tiers: ${tiersError.message}`);
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError);
       return null;
     }
     
-    if (!allTiers || allTiers.length === 0) {
-      console.warn('No subscription tiers found in the database');
+    // Create a new GC account
+    const companyName = profileData.company_name || `${profileData.full_name}'s Company`;
+    
+    const { data: gcAccount, error: gcAccountError } = await supabase
+      .from('gc_accounts')
+      .insert({
+        owner_id: userId,
+        company_name: companyName,
+        subscription_tier_id: subscriptionData.tier_id,
+        subscription_status: subscriptionData.status,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+      
+    if (gcAccountError) {
+      console.error('Error creating GC account:', gcAccountError);
       return null;
     }
     
-    // Log all available tiers for debugging
-    console.log('Available tiers:');
-    allTiers.forEach(tier => {
-      console.log(`- ${tier.id} (${tier.name}): $${tier.price}`);
-    });
+    const gcAccountId = gcAccount.id;
+    console.log(`Created new GC account with ID: ${gcAccountId}`);
     
-    // Fall back to the middle tier if we have at least 3 tiers
-    if (allTiers.length >= 3) {
-      const middleIndex = Math.floor(allTiers.length / 2);
-      console.log(`Using middle tier as fallback: ${allTiers[middleIndex].id} (${allTiers[middleIndex].name})`);
-      return allTiers[middleIndex].id;
+    // Update user profile with the new GC account ID
+    const { error: updateProfileError } = await supabase
+      .from('profiles')
+      .update({ 
+        gc_account_id: gcAccountId,
+        stripe_customer_id: subscriptionData.customer_id,
+        updated_at: new Date().toISOString() 
+      })
+      .eq('id', userId);
+      
+    if (updateProfileError) {
+      console.error('Error updating user profile with GC account ID:', updateProfileError);
     }
     
-    // Otherwise, return the first tier
-    console.log(`Using first tier as fallback: ${allTiers[0].id} (${allTiers[0].name})`);
-    return allTiers[0].id;
+    // Create account_subscriptions record
+    const { error: subscriptionError } = await supabase
+      .from('account_subscriptions')
+      .insert({
+        gc_account_id: gcAccountId,
+        stripe_subscription_id: subscriptionData.subscription_id,
+        stripe_customer_id: subscriptionData.customer_id,
+        status: subscriptionData.status,
+        tier_id: subscriptionData.tier_id,
+        start_date: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+      
+    if (subscriptionError) {
+      console.error('Error creating account subscription:', subscriptionError);
+    }
+    
+    return gcAccountId;
   } catch (error) {
-    console.error(`Error in mapStripePriceToTierId: ${error}`);
+    console.error('Exception creating GC account with subscription:', error);
     return null;
   }
-}
+};

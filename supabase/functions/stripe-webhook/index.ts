@@ -636,7 +636,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     if (!gcAccountId) {
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('gc_account_id')
+        .select('id, gc_account_id')
         .eq('stripe_customer_id', customerId)
         .maybeSingle();
         
@@ -644,11 +644,57 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
         console.error('Error finding profile by customer ID:', profileError);
       } else if (profileData?.gc_account_id) {
         gcAccountId = profileData.gc_account_id;
+        
+        // If we found a profile but no subscription record, create one
+        if (!existingSubscription) {
+          console.log('Found profile but no subscription record, creating one...');
+          // Code to create subscription will happen below when we have a gcAccountId
+        }
+      } else if (profileData?.id) {
+        // We found a profile but it doesn't have a gc_account_id
+        // We could create a GC account for this user
+        console.log('Found profile without gc_account_id, will try to create GC account');
+        
+        // Find the subscription item to get the price
+        if (!subscription.items || subscription.items.data.length === 0) {
+          console.error('No items found in subscription');
+          return;
+        }
+        
+        const item = subscription.items.data[0];
+        const priceId = item.price.id;
+        
+        // Get the tier ID from the price
+        const tierId = await mapStripePriceToTierId(supabase, priceId);
+        
+        if (!tierId) {
+          console.error('Could not map price ID to tier:', priceId);
+          return;
+        }
+        
+        // Create a new GC account for this user
+        gcAccountId = await createGCAccountWithSubscription(
+          supabase,
+          profileData.id,
+          {
+            subscription_id: subscription.id,
+            customer_id: customerId,
+            status: subscription.status,
+            tier_id: tierId
+          }
+        );
+        
+        if (!gcAccountId) {
+          console.error('Failed to create GC account for subscription');
+          return;
+        }
+        
+        console.log(`Created new GC account ${gcAccountId} for subscription ${subscription.id}`);
       }
     }
     
     if (!gcAccountId) {
-      console.error('Could not find GC account for subscription:', subscription.id);
+      console.error('Could not find or create GC account for subscription:', subscription.id);
       return;
     }
     
