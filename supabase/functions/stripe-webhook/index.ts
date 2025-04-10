@@ -18,6 +18,9 @@ const stripe = new Stripe(stripeSecretKey, {
   httpClient: Stripe.createFetchHttpClient(),
 });
 
+// Create a SubtleCryptoProvider for async webhook signature verification
+const cryptoProvider = Stripe.createSubtleCryptoProvider();
+
 // Get the webhook secret from environment variables
 const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET') || '';
 
@@ -105,9 +108,8 @@ serve(async (req) => {
     console.log('Stripe signature found:', signature.substring(0, 20) + '...');
 
     try {
-      // Clone the request to get the raw body - this is critical for signature verification
-      const clonedRequest = req.clone();
-      const rawBody = await clonedRequest.text();
+      // Get the raw body directly from the request - this is critical for signature verification
+      const rawBody = await req.text();
       
       console.log('Webhook body received, length:', rawBody.length);
       console.log('First 50 chars of body:', rawBody.substring(0, 50).replace(/\n/g, '') + '...');
@@ -121,11 +123,13 @@ serve(async (req) => {
       let event: Stripe.Event;
       
       try {
-        // Using the async version to avoid the SubtleCryptoProvider synchronous context error
+        // Using the async version with SubtleCryptoProvider
         event = await stripe.webhooks.constructEventAsync(
           rawBody,
           signature,
-          webhookSecret
+          webhookSecret,
+          undefined,
+          cryptoProvider
         );
         console.log('✅ Signature verification successful');
       } catch (verifyError: any) {
