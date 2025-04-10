@@ -80,34 +80,38 @@ serve(async (req) => {
     }
 
     try {
-      const body = await req.text();
-      console.log('Webhook body received:', body.substring(0, 100) + '...');
+      // Get the raw request body as text
+      const rawBody = await req.text();
+      console.log('Webhook body length:', rawBody.length);
       
       // Get the signature from headers
       const signature = req.headers.get('stripe-signature');
       
-      if (!signature && webhookSecret) {
-        console.error('Missing Stripe signature');
-        return new Response(JSON.stringify({ error: 'Missing Stripe signature' }), {
+      if (!signature) {
+        console.error('Missing Stripe signature header');
+        return new Response(JSON.stringify({ error: 'Missing Stripe signature header' }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
+      console.log('Stripe signature found, verifying...');
+      console.log('Webhook secret available:', !!webhookSecret);
+
       let event: Stripe.Event;
       
       // Verify the signature if webhook secret is available
-      if (webhookSecret && signature) {
+      if (webhookSecret) {
         try {
           // Using the async version to avoid the SubtleCryptoProvider synchronous context error
           event = await stripe.webhooks.constructEventAsync(
-            body,
+            rawBody,
             signature,
             webhookSecret
           );
           console.log('Signature verification successful');
         } catch (verifyError: any) {
-          console.error('Signature verification failed:', verifyError.message);
+          console.error('Stripe signature verification failed:', verifyError.message);
           return new Response(JSON.stringify({ error: `Webhook signature verification failed: ${verifyError.message}` }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -115,9 +119,9 @@ serve(async (req) => {
         }
       } else {
         // For development, allow without signature verification
-        console.log('⚠️ No webhook secret or signature - skipping verification (for development only)');
+        console.log('⚠️ No webhook secret configured - skipping verification (for development only)');
         try {
-          event = JSON.parse(body);
+          event = JSON.parse(rawBody);
         } catch (jsonError: any) {
           console.error('JSON parse error:', jsonError.message);
           return new Response(JSON.stringify({ error: `JSON parse error: ${jsonError.message}` }), {
