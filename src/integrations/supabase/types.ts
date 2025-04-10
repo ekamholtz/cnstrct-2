@@ -784,6 +784,7 @@ export type Database = {
           license_number: string | null
           phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
+          stripe_customer_id: string | null
           subscription_tier_id: string | null
           updated_at: string | null
           website: string | null
@@ -802,6 +803,7 @@ export type Database = {
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          stripe_customer_id?: string | null
           subscription_tier_id?: string | null
           updated_at?: string | null
           website?: string | null
@@ -820,6 +822,7 @@ export type Database = {
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          stripe_customer_id?: string | null
           subscription_tier_id?: string | null
           updated_at?: string | null
           website?: string | null

@@ -1,10 +1,9 @@
-
 // Supabase Edge Function for Stripe Webhook Handler
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import Stripe from "https://esm.sh/stripe@14.10.0";
-import { findGCAccountId, updateGCAccountSubscription, mapStripePriceToTierId } from "./subscription-handler.ts";
+import { findGCAccountId, updateGCAccountSubscription, mapStripePriceToTierId, createGCAccountWithSubscription } from "./subscription-handler.ts";
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -546,8 +545,8 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
       }
 
       const { error } = await supabase
-        .from('payment_records')
-        .insert(paymentData);
+          .from('payment_records')
+          .insert(paymentData);
 
       if (error) {
         console.error(`Error creating payment record: ${error.message}`);
