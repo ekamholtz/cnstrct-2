@@ -1,10 +1,10 @@
 
 // Supabase Edge Function for Stripe Webhook Handler
 
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4';
-import Stripe from 'https://esm.sh/stripe@12.18.0';
-import { findGCAccountId, updateGCAccountSubscription, mapStripePriceToTierId } from './subscription-handler.ts';
+import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
+import Stripe from "https://esm.sh/stripe@14.10.0";
+import { findGCAccountId, updateGCAccountSubscription, mapStripePriceToTierId } from "./subscription-handler.ts";
 
 // Initialize Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
@@ -99,10 +99,15 @@ serve(async (req) => {
       // Verify the signature if webhook secret is available
       if (webhookSecret && signature) {
         try {
-          event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+          // Using the async version to avoid the SubtleCryptoProvider synchronous context error
+          event = await stripe.webhooks.constructEventAsync(
+            body,
+            signature,
+            webhookSecret
+          );
           console.log('Signature verification successful');
-        } catch (verifyError) {
-          console.error('Signature verification failed:', verifyError);
+        } catch (verifyError: any) {
+          console.error('Signature verification failed:', verifyError.message);
           return new Response(JSON.stringify({ error: `Webhook signature verification failed: ${verifyError.message}` }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -113,8 +118,8 @@ serve(async (req) => {
         console.log('⚠️ No webhook secret or signature - skipping verification (for development only)');
         try {
           event = JSON.parse(body);
-        } catch (jsonError) {
-          console.error('JSON parse error:', jsonError);
+        } catch (jsonError: any) {
+          console.error('JSON parse error:', jsonError.message);
           return new Response(JSON.stringify({ error: `JSON parse error: ${jsonError.message}` }), {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -169,15 +174,15 @@ serve(async (req) => {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
-    } catch (err) {
+    } catch (err: any) {
       console.error(`⚠️ Webhook error:`, err.message);
       return new Response(JSON.stringify({ error: `Webhook error: ${err.message}` }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-  } catch (outerErr) {
-    console.error('Outer try/catch error:', outerErr);
+  } catch (outerErr: any) {
+    console.error('Outer try/catch error:', outerErr.message);
     return new Response(JSON.stringify({ error: `Server error: ${outerErr.message}` }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
