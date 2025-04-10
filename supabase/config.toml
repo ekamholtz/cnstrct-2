@@ -33,3 +33,11 @@ port = 54327
 [functions.stripe-webhook]
 verify_jwt = false
 
+[functions.stripe-connect]
+verify_jwt = false
+
+[functions.stripe-payment]
+verify_jwt = false
+
+[functions.stripe-subscriptions]
+verify_jwt = false

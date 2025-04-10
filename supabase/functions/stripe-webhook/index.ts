@@ -1,3 +1,4 @@
+
 // Supabase Edge Function for Stripe Webhook Handler
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
@@ -70,7 +71,7 @@ async function ensureDefaultTierExists() {
     // Check if default tier exists
     const { data, error } = await supabase
       .from('subscription_tiers')
-      .select('id')
+      .select('id, stripe_price_id')
       .eq('id', DEFAULT_TIER_ID)
       .maybeSingle();
       
@@ -90,6 +91,7 @@ async function ensureDefaultTierExists() {
           description: 'Free trial with basic features',
           price: 0,
           fee_percentage: 0,
+          stripe_price_id: 'price_default_trial',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         });
@@ -99,8 +101,24 @@ async function ensureDefaultTierExists() {
       } else {
         console.log('Default tier created successfully');
       }
+    } else if (!data.stripe_price_id) {
+      // If the tier exists but doesn't have a stripe_price_id, update it
+      console.log('Updating default tier with stripe_price_id...');
+      const { error: updateError } = await supabase
+        .from('subscription_tiers')
+        .update({
+          stripe_price_id: 'price_default_trial',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', DEFAULT_TIER_ID);
+        
+      if (updateError) {
+        console.error('Error updating default tier:', updateError);
+      } else {
+        console.log('Default tier updated successfully');
+      }
     } else {
-      console.log('Default tier already exists');
+      console.log('Default tier already exists with stripe_price_id:', data.stripe_price_id);
     }
   } catch (err) {
     console.error('Exception in ensureDefaultTierExists:', err);
@@ -141,8 +159,12 @@ serve(async (req) => {
     // Make sure default tier exists
     await ensureDefaultTierExists();
 
+    // CRITICAL: We must clone the request to get the raw body for signature verification
+    // This is because we can only read the body once
+    const clonedRequest = req.clone();
+    
     // Get the raw body as text for signature verification
-    // This is critical - we must get the raw body before parsing as JSON
+    // This is essential - Stripe requires the exact raw body for signature verification
     const rawBody = await req.text();
     console.log(`Received webhook body of length: ${rawBody.length}`);
     
@@ -235,7 +257,7 @@ serve(async (req) => {
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
   try {
     console.log('Processing checkout.session.completed event');
-    console.log('Session details:', JSON.stringify(session));
+    console.log('Session details:', JSON.stringify(session).substring(0, 500) + '...');
 
     // Use the centralized function to find the gc_account_id
     const { gcAccountId, userId, error: findError } = await findGCAccountId(session, supabase);
@@ -635,7 +657,13 @@ async function handleAccountUpdated(account: Stripe.Account) {
  */
 async function handleSubscriptionChange(subscription: Stripe.Subscription) {
   try {
-    console.log(`Processing subscription ${subscription.status} event`);
+    console.log(`Processing subscription ${subscription.status} event for subscription: ${subscription.id}`);
+    console.log('Subscription data:', JSON.stringify({
+      id: subscription.id,
+      customer: subscription.customer,
+      status: subscription.status,
+      items: subscription.items?.data?.length || 0
+    }));
     
     // Find the GC account associated with this customer
     const customerId = subscription.customer as string;
@@ -652,6 +680,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
     }
     
     let gcAccountId = existingSubscription?.gc_account_id;
+    console.log(`Existing subscription check results - GC Account ID: ${gcAccountId}`);
     
     // If not found, try to find by customer ID
     if (!gcAccountId) {
@@ -665,6 +694,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
         console.error('Error finding subscription by customer ID:', customerSubError);
       } else if (customerSubData) {
         gcAccountId = customerSubData.gc_account_id;
+        console.log(`Found gc_account_id ${gcAccountId} from customer ID: ${customerId}`);
       }
     }
     
@@ -680,6 +710,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
         console.error('Error finding profile by customer ID:', profileError);
       } else if (profileData?.gc_account_id) {
         gcAccountId = profileData.gc_account_id;
+        console.log(`Found gc_account_id ${gcAccountId} from profile with customer ID: ${customerId}`);
         
         // If we found a profile but no subscription record, create one
         if (!existingSubscription) {
@@ -689,7 +720,7 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
       } else if (profileData?.id) {
         // We found a profile but it doesn't have a gc_account_id
         // We could create a GC account for this user
-        console.log('Found profile without gc_account_id, will try to create GC account');
+        console.log('Found profile without gc_account_id, will try to create GC account for user ID:', profileData.id);
         
         // Find the subscription item to get the price
         if (!subscription.items || subscription.items.data.length === 0) {
@@ -726,6 +757,85 @@ async function handleSubscriptionChange(subscription: Stripe.Subscription) {
         }
         
         console.log(`Created new GC account ${gcAccountId} for subscription ${subscription.id}`);
+      }
+    }
+    
+    if (!gcAccountId) {
+      // Try to get the user associated with this customer from Stripe directly
+      try {
+        const customerData = await stripe.customers.retrieve(customerId);
+        if (customerData && !customerData.deleted && customerData.email) {
+          console.log(`Looking up user by email: ${customerData.email}`);
+          
+          // Try to find a user with this email
+          const { data: userProfileData, error: userProfileError } = await supabase
+            .from('profiles')
+            .select('id, gc_account_id')
+            .eq('email', customerData.email.toLowerCase())
+            .maybeSingle();
+            
+          if (userProfileError) {
+            console.error('Error finding profile by email:', userProfileError);
+          } else if (userProfileData?.gc_account_id) {
+            gcAccountId = userProfileData.gc_account_id;
+            console.log(`Found gc_account_id ${gcAccountId} from profile with email: ${customerData.email}`);
+            
+            // Update profile with customer ID for future reference
+            const { error: updateProfileError } = await supabase
+              .from('profiles')
+              .update({ 
+                stripe_customer_id: customerId,
+                updated_at: new Date().toISOString() 
+              })
+              .eq('id', userProfileData.id);
+              
+            if (updateProfileError) {
+              console.error('Error updating profile with customer ID:', updateProfileError);
+            }
+          } else if (userProfileData?.id) {
+            // We found a profile but it doesn't have a gc_account_id
+            // Create a GC account for this user
+            console.log('Found profile by email without gc_account_id, will create GC account');
+            
+            // Find the subscription item to get the price
+            if (!subscription.items || subscription.items.data.length === 0) {
+              console.error('No items found in subscription');
+              return;
+            }
+            
+            const item = subscription.items.data[0];
+            const priceId = item.price.id;
+            
+            // Get the tier ID from the price
+            const tierId = await mapStripePriceToTierId(supabase, priceId);
+            
+            if (!tierId) {
+              console.error('Could not map price ID to tier:', priceId);
+              return;
+            }
+            
+            // Create a new GC account for this user
+            gcAccountId = await createGCAccountWithSubscription(
+              supabase,
+              userProfileData.id,
+              {
+                subscription_id: subscription.id,
+                customer_id: customerId,
+                status: subscription.status,
+                tier_id: tierId
+              }
+            );
+            
+            if (!gcAccountId) {
+              console.error('Failed to create GC account for subscription');
+              return;
+            }
+            
+            console.log(`Created new GC account ${gcAccountId} for subscription ${subscription.id}`);
+          }
+        }
+      } catch (stripeError) {
+        console.error('Error retrieving customer from Stripe:', stripeError);
       }
     }
     
