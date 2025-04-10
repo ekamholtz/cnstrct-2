@@ -131,6 +131,9 @@ export const mapStripePriceToTierId = async (
   priceId: string
 ): Promise<string | null> => {
   try {
+    console.log(`Attempting to map price ID: ${priceId} to a tier`);
+    
+    // First try exact match on stripe_price_id
     const { data, error } = await supabase
       .from('subscription_tiers')
       .select('id')
@@ -143,10 +146,29 @@ export const mapStripePriceToTierId = async (
     }
 
     if (data) {
+      console.log(`Found tier ID ${data.id} for price ID: ${priceId}`);
       return data.id;
     }
+    
+    // Try to get the default trial tier as fallback
+    console.log(`No tier found for price ID: ${priceId}, getting default trial tier`);
+    const { data: defaultTier, error: defaultTierError } = await supabase
+      .from('subscription_tiers')
+      .select('id')
+      .eq('id', '00000000-0000-0000-0000-000000000001')
+      .maybeSingle();
+      
+    if (defaultTierError) {
+      console.error('Error getting default tier:', defaultTierError);
+      return null;
+    }
+    
+    if (defaultTier) {
+      console.log(`Using default tier ID: ${defaultTier.id}`);
+      return defaultTier.id;
+    }
 
-    console.warn(`No tier found for price ID: ${priceId}, using default trial tier`);
+    console.warn('No default tier found, creating one with hard-coded ID');
     return '00000000-0000-0000-0000-000000000001'; // Default trial tier
   } catch (error) {
     console.error('Exception mapping price to tier:', error);

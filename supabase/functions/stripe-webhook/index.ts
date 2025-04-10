@@ -1,3 +1,4 @@
+
 // Supabase Edge Function for Stripe Webhook Handler
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
@@ -31,6 +32,8 @@ const corsHeaders = {
 
 // Placeholder UUID to use when we don't have a valid UUID
 const PLACEHOLDER_UUID = '00000000-0000-0000-0000-000000000000';
+// Default trial tier ID
+const DEFAULT_TIER_ID = '00000000-0000-0000-0000-000000000001';
 
 // Improved UUID validation with proper regex pattern
 function isValidUuid(uuid: string): boolean {
@@ -59,6 +62,49 @@ async function verifyGcAccount(gcAccountId: string): Promise<boolean> {
   } catch (err) {
     console.error('Exception verifying gc_account:', err);
     return false;
+  }
+}
+
+// Ensure default tier exists
+async function ensureDefaultTierExists() {
+  try {
+    // Check if default tier exists
+    const { data, error } = await supabase
+      .from('subscription_tiers')
+      .select('id')
+      .eq('id', DEFAULT_TIER_ID)
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Error checking for default tier:', error);
+      return;
+    }
+    
+    // If default tier doesn't exist, create it
+    if (!data) {
+      console.log('Creating default trial tier...');
+      const { error: insertError } = await supabase
+        .from('subscription_tiers')
+        .insert({
+          id: DEFAULT_TIER_ID,
+          name: 'Trial',
+          description: 'Free trial with basic features',
+          price: 0,
+          fee_percentage: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        
+      if (insertError) {
+        console.error('Error creating default tier:', insertError);
+      } else {
+        console.log('Default tier created successfully');
+      }
+    } else {
+      console.log('Default tier already exists');
+    }
+  } catch (err) {
+    console.error('Exception in ensureDefaultTierExists:', err);
   }
 }
 
@@ -107,6 +153,9 @@ serve(async (req) => {
     console.log('Stripe signature found:', signature.substring(0, 20) + '...');
 
     try {
+      // Make sure default tier exists
+      await ensureDefaultTierExists();
+      
       // Get the raw body directly from the request - this is critical for signature verification
       const rawBody = await req.text();
       
@@ -294,13 +343,28 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) 
     
     // If still no tier_id, use a default trial tier
     if (!tierId) {
-      tierId = '00000000-0000-0000-0000-000000000001'; // Default trial tier
+      tierId = DEFAULT_TIER_ID; // Default trial tier
       console.log(`Using default trial tier ID: ${tierId}`);
     }
 
-    // If we couldn't determine the gc_account_id, we can't proceed
-    if (!gcAccountId) {
-      console.error('CRITICAL: Could not determine gc_account_id after all checks.');
+    // If we have a userId but no gcAccountId, create a new GC account
+    if (userId && !gcAccountId) {
+      console.log(`Creating new GC account for user ${userId}`);
+      gcAccountId = await createGCAccountWithSubscription(supabase, userId, {
+        subscription_id: subscription.id,
+        customer_id: customerId,
+        status: subscription.status,
+        tier_id: tierId
+      });
+      
+      if (!gcAccountId) {
+        console.error('CRITICAL: Failed to create GC account');
+        return;
+      }
+      
+      console.log(`Created new GC account ${gcAccountId} for user ${userId}`);
+    } else if (!gcAccountId) {
+      console.error('CRITICAL: Could not determine gc_account_id or create one without a user ID');
       return;
     }
 
@@ -781,7 +845,7 @@ async function handleSubscriptionCancelled(subscription: Stripe.Subscription) {
     const { error: updateGcError } = await supabase
       .from('gc_accounts')
       .update({
-        subscription_tier_id: '00000000-0000-0000-0000-000000000001', // Default trial tier
+        subscription_tier_id: DEFAULT_TIER_ID, // Default trial tier
         subscription_status: 'inactive',
         updated_at: new Date().toISOString()
       })
