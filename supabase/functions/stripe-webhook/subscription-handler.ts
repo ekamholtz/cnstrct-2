@@ -58,6 +58,10 @@ export const findGCAccountId = async (
         gcAccountId = profileData.gc_account_id;
         userId = profileData.id;
         console.log(`Found gc_account_id from profile: ${gcAccountId}`);
+      } else if (profileData?.id) {
+        // We found a profile but it doesn't have a gc_account_id
+        userId = profileData.id;
+        console.log(`Found profile (${profileData.id}) without gc_account_id`);
       } else {
         console.log('No profile found with this customer ID or no gc_account_id assigned to profile');
       }

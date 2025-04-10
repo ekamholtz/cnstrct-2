@@ -1,4 +1,3 @@
-
 // Supabase Edge Function for Stripe Webhook Handler
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
@@ -139,7 +138,15 @@ serve(async (req) => {
       });
     }
 
-    // Get the signature from headers before reading the body
+    // Make sure default tier exists
+    await ensureDefaultTierExists();
+
+    // Get the raw body as text for signature verification
+    // This is critical - we must get the raw body before parsing as JSON
+    const rawBody = await req.text();
+    console.log(`Received webhook body of length: ${rawBody.length}`);
+    
+    // Get the signature from headers
     const signature = req.headers.get('stripe-signature');
     
     if (!signature) {
@@ -151,105 +158,71 @@ serve(async (req) => {
     }
 
     console.log('Stripe signature found:', signature.substring(0, 20) + '...');
+    console.log('Webhook secret length:', webhookSecret.length);
 
+    let event: Stripe.Event;
+    
     try {
-      // Make sure default tier exists
-      await ensureDefaultTierExists();
-      
-      // Get the raw body directly from the request - this is critical for signature verification
-      const rawBody = await req.text();
-      
-      console.log('Webhook body received, length:', rawBody.length);
-      console.log('First 50 chars of body:', rawBody.substring(0, 50).replace(/\n/g, '') + '...');
-      
-      // Log signature verification parameters
-      console.log('Attempting signature verification with:');
-      console.log('- Webhook secret length:', webhookSecret.length);
-      console.log('- Signature header exists:', !!signature);
-      console.log('- Raw body length:', rawBody.length);
-
-      let event: Stripe.Event;
-      
-      try {
-        // Using the async version with SubtleCryptoProvider
-        event = await stripe.webhooks.constructEventAsync(
-          rawBody,
-          signature,
-          webhookSecret,
-          undefined,
-          cryptoProvider
-        );
-        console.log('✅ Signature verification successful');
-      } catch (verifyError: any) {
-        console.error('⚠️ Stripe signature verification failed:', verifyError.message);
-        console.error('Error details:', verifyError);
-        
-        return new Response(JSON.stringify({ 
-          error: `Webhook signature verification failed: ${verifyError.message}`,
-          tip: "Ensure your webhook secret matches the one in your Stripe dashboard"
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      // Validate that we have a proper event object
-      if (!event || !event.type || !event.data || !event.data.object) {
-        console.error('Invalid event structure:', JSON.stringify(event || {}).substring(0, 200));
-        return new Response(JSON.stringify({ error: 'Invalid event structure' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      console.log(`✅ Success: Received event ${event.type} with ID ${event.id}`);
-      console.log('Event data:', JSON.stringify(event.data.object).substring(0, 200) + '...');
-
-      // Handle different event types
-      switch (event.type) {
-        case 'checkout.session.completed':
-          await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
-          break;
-
-        case 'payment_intent.succeeded':
-          await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
-          break;
-
-        case 'payment_intent.payment_failed':
-          await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
-          break;
-
-        case 'account.updated':
-          await handleAccountUpdated(event.data.object as Stripe.Account);
-          break;
-
-        case 'customer.subscription.created':
-        case 'customer.subscription.updated':
-          await handleSubscriptionChange(event.data.object as Stripe.Subscription);
-          break;
-          
-        case 'customer.subscription.deleted':
-          await handleSubscriptionCancelled(event.data.object as Stripe.Subscription);
-          break;
-
-        default:
-          console.log(`Unhandled event type ${event.type}`);
-      }
-
-      return new Response(JSON.stringify({ received: true }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    } catch (err: any) {
-      console.error(`⚠️ Webhook processing error:`, err.message, err.stack);
-      return new Response(JSON.stringify({ error: `Webhook error: ${err.message}`, stack: err.stack }), {
+      // Verify the webhook signature using the SubtleCryptoProvider
+      event = await stripe.webhooks.constructEventAsync(
+        rawBody,
+        signature,
+        webhookSecret,
+        undefined,
+        cryptoProvider
+      );
+      console.log('✅ Signature verification successful');
+    } catch (err) {
+      console.error('⚠️ Webhook signature verification failed:', err.message);
+      return new Response(JSON.stringify({ 
+        error: `Webhook signature verification failed: ${err.message}`,
+        help: "Make sure your STRIPE_WEBHOOK_SECRET environment variable matches the secret from your Stripe dashboard"
+      }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-  } catch (outerErr: any) {
-    console.error('Outer try/catch error:', outerErr.message, outerErr.stack);
-    return new Response(JSON.stringify({ error: `Server error: ${outerErr.message}`, stack: outerErr.stack }), {
+    
+    console.log(`Event type: ${event.type}`);
+    
+    // Handle different event types
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+        break;
+
+      case 'payment_intent.succeeded':
+        await handlePaymentIntentSucceeded(event.data.object as Stripe.PaymentIntent);
+        break;
+
+      case 'payment_intent.payment_failed':
+        await handlePaymentIntentFailed(event.data.object as Stripe.PaymentIntent);
+        break;
+
+      case 'account.updated':
+        await handleAccountUpdated(event.data.object as Stripe.Account);
+        break;
+
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        await handleSubscriptionChange(event.data.object as Stripe.Subscription);
+        break;
+          
+      case 'customer.subscription.deleted':
+        await handleSubscriptionCancelled(event.data.object as Stripe.Subscription);
+        break;
+
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
+
+    return new Response(JSON.stringify({ received: true }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('Error processing webhook:', error);
+    return new Response(JSON.stringify({ error: `Server error: ${error.message}` }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
