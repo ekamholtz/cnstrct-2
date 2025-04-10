@@ -1,7 +1,7 @@
 
 // Utility functions for handling Stripe subscription events
 
-import { SupabaseClient } from "@supabase/supabase-js";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import { Session } from "https://esm.sh/stripe@14.10.0";
 
 /**
