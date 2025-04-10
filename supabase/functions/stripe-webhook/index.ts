@@ -79,56 +79,66 @@ serve(async (req) => {
       });
     }
 
-    try {
-      // Get the raw request body as text
-      const rawBody = await req.text();
-      console.log('Webhook body length:', rawBody.length);
-      
-      // Get the signature from headers
-      const signature = req.headers.get('stripe-signature');
-      
-      if (!signature) {
-        console.error('Missing Stripe signature header');
-        return new Response(JSON.stringify({ error: 'Missing Stripe signature header' }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+    // Verify webhook secret is configured
+    if (!webhookSecret) {
+      console.error('STRIPE_WEBHOOK_SECRET is not configured');
+      return new Response(JSON.stringify({ 
+        error: 'Webhook secret not configured',
+        message: 'Please set the STRIPE_WEBHOOK_SECRET environment variable'
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-      console.log('Stripe signature found, verifying...');
-      console.log('Webhook secret available:', !!webhookSecret);
+    // Get the signature from headers before reading the body
+    const signature = req.headers.get('stripe-signature');
+    
+    if (!signature) {
+      console.error('Missing Stripe signature header');
+      return new Response(JSON.stringify({ error: 'Missing Stripe signature header' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log('Stripe signature found:', signature.substring(0, 20) + '...');
+
+    try {
+      // Clone the request to get the raw body - this is critical for signature verification
+      const clonedRequest = req.clone();
+      const rawBody = await clonedRequest.text();
+      
+      console.log('Webhook body received, length:', rawBody.length);
+      console.log('First 50 chars of body:', rawBody.substring(0, 50).replace(/\n/g, '') + '...');
+      
+      // Log signature verification parameters
+      console.log('Attempting signature verification with:');
+      console.log('- Webhook secret length:', webhookSecret.length);
+      console.log('- Signature header exists:', !!signature);
+      console.log('- Raw body length:', rawBody.length);
 
       let event: Stripe.Event;
       
-      // Verify the signature if webhook secret is available
-      if (webhookSecret) {
-        try {
-          // Using the async version to avoid the SubtleCryptoProvider synchronous context error
-          event = await stripe.webhooks.constructEventAsync(
-            rawBody,
-            signature,
-            webhookSecret
-          );
-          console.log('Signature verification successful');
-        } catch (verifyError: any) {
-          console.error('Stripe signature verification failed:', verifyError.message);
-          return new Response(JSON.stringify({ error: `Webhook signature verification failed: ${verifyError.message}` }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
-      } else {
-        // For development, allow without signature verification
-        console.log('⚠️ No webhook secret configured - skipping verification (for development only)');
-        try {
-          event = JSON.parse(rawBody);
-        } catch (jsonError: any) {
-          console.error('JSON parse error:', jsonError.message);
-          return new Response(JSON.stringify({ error: `JSON parse error: ${jsonError.message}` }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
+      try {
+        // Using the async version to avoid the SubtleCryptoProvider synchronous context error
+        event = await stripe.webhooks.constructEventAsync(
+          rawBody,
+          signature,
+          webhookSecret
+        );
+        console.log('✅ Signature verification successful');
+      } catch (verifyError: any) {
+        console.error('⚠️ Stripe signature verification failed:', verifyError.message);
+        console.error('Error details:', verifyError);
+        
+        return new Response(JSON.stringify({ 
+          error: `Webhook signature verification failed: ${verifyError.message}`,
+          tip: "Ensure your webhook secret matches the one in your Stripe dashboard"
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
       
       // Validate that we have a proper event object
@@ -179,15 +189,15 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     } catch (err: any) {
-      console.error(`⚠️ Webhook error:`, err.message);
-      return new Response(JSON.stringify({ error: `Webhook error: ${err.message}` }), {
+      console.error(`⚠️ Webhook processing error:`, err.message, err.stack);
+      return new Response(JSON.stringify({ error: `Webhook error: ${err.message}`, stack: err.stack }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
   } catch (outerErr: any) {
-    console.error('Outer try/catch error:', outerErr.message);
-    return new Response(JSON.stringify({ error: `Server error: ${outerErr.message}` }), {
+    console.error('Outer try/catch error:', outerErr.message, outerErr.stack);
+    return new Response(JSON.stringify({ error: `Server error: ${outerErr.message}`, stack: outerErr.stack }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
