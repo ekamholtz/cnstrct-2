@@ -1,3 +1,4 @@
+
 // Supabase Edge Function for Stripe Webhook Handler
 
 import { serve } from "https://deno.land/std@0.208.0/http/server.ts";
@@ -159,7 +160,10 @@ serve(async (req) => {
     await ensureDefaultTierExists();
 
     // CRITICAL: We need to get the raw body as a string for signature verification
-    const rawBody = await req.text();
+    // We need to clone the request because we can only read the body once
+    const clonedReq = req.clone();
+    const rawBody = await clonedReq.text();
+    
     console.log(`Received webhook body of length: ${rawBody.length}`);
     
     // Get the signature from headers

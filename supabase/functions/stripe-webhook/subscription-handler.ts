@@ -1,3 +1,4 @@
+
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import Stripe from "https://esm.sh/stripe@14.10.0";
 
@@ -160,12 +161,18 @@ export async function updateGCAccountSubscription(
       console.error('Error checking existing subscription:', checkError);
     }
 
+    // Map the subscription status - we now use text type so any Stripe status is allowed
+    const subscriptionStatus = subscription.status;
+    const gcAccountStatus = subscription.status === 'active' ? 'active' : 'inactive';
+    
+    console.log(`Subscription status: ${subscriptionStatus}, GC Account status: ${gcAccountStatus}`);
+
     // Prepare data for updating/creating the subscription
     const subscriptionData = {
       gc_account_id: gcAccountId,
       stripe_subscription_id: subscription.subscription_id,
       stripe_customer_id: subscription.customer_id,
-      status: subscription.status,
+      status: subscriptionStatus,
       tier_id: subscription.tier_id,
       current_period_start: subscription.current_period_start,
       current_period_end: subscription.current_period_end,
@@ -202,12 +209,12 @@ export async function updateGCAccountSubscription(
     }
 
     // Update the GC account with the latest subscription details
-    console.log('Updating GC account subscription details');
+    console.log(`Updating GC account subscription details - tier: ${subscription.tier_id}, status: ${gcAccountStatus}`);
     const { error: updateGcError } = await supabase
       .from('gc_accounts')
       .update({
         subscription_tier_id: subscription.tier_id,
-        subscription_status: subscription.status === 'active' ? 'active' : 'inactive',
+        subscription_status: gcAccountStatus,
         updated_at: new Date().toISOString()
       })
       .eq('id', gcAccountId);
