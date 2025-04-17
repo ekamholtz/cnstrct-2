@@ -1415,7 +1415,7 @@ export type Database = {
         Returns: boolean
       }
       is_gc_account_owner: {
-        Args: { user_id: string; gc_account_id: string } | { user_id: string }
+        Args: { user_id: string } | { user_id: string; gc_account_id: string }
         Returns: boolean
       }
       is_gc_admin: {
