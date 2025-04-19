@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ProjectExpenses } from "@/components/project/ProjectExpenses";
 import { ProjectInvoices } from "@/components/project/invoice/ProjectInvoices";
 import { ProjectFiles } from "@/components/project/files/ProjectFiles";
+import { CommissionCalculator } from "@/components/project/commission/CommissionCalculator";
 import { ErrorBoundary } from "@/components/ui/error-boundary";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -67,10 +68,11 @@ export function GCTabbedContent({ projectId, expenses = [], invoices = [], userR
 
   return (
     <Tabs defaultValue="expenses" className="w-full">
-      <TabsList className="grid w-full grid-cols-3">
+      <TabsList className="grid w-full grid-cols-4">
         <TabsTrigger value="expenses">Expenses</TabsTrigger>
         <TabsTrigger value="invoices">Invoices</TabsTrigger>
         <TabsTrigger value="files">Files</TabsTrigger>
+        <TabsTrigger value="commission">Commission</TabsTrigger>
       </TabsList>
       <TabsContent value="expenses">
         {renderProjectExpenses()}
@@ -97,6 +99,18 @@ export function GCTabbedContent({ projectId, expenses = [], invoices = [], userR
           }
         >
           <ProjectFiles projectId={projectId} userRole={userRole} />
+        </ErrorBoundary>
+      </TabsContent>
+      <TabsContent value="commission">
+        <ErrorBoundary
+          fallback={
+            <ErrorFallback 
+              title="Error Loading Commission Calculator" 
+              message="There was a problem loading the commission calculator for this project. Please try refreshing the page." 
+            />
+          }
+        >
+          <CommissionCalculator projectId={projectId} userRole={userRole} />
         </ErrorBoundary>
       </TabsContent>
     </Tabs>

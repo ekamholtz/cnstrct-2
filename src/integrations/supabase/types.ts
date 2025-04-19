@@ -18,7 +18,7 @@ export type Database = {
           gc_account_id: string | null
           id: string
           start_date: string | null
-          status: Database["public"]["Enums"]["subscription_status"] | null
+          status: string | null
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
           tier_id: string | null
@@ -32,7 +32,7 @@ export type Database = {
           gc_account_id?: string | null
           id?: string
           start_date?: string | null
-          status?: Database["public"]["Enums"]["subscription_status"] | null
+          status?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           tier_id?: string | null
@@ -46,7 +46,7 @@ export type Database = {
           gc_account_id?: string | null
           id?: string
           start_date?: string | null
-          status?: Database["public"]["Enums"]["subscription_status"] | null
+          status?: string | null
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
           tier_id?: string | null
@@ -776,6 +776,7 @@ export type Database = {
           bio: string | null
           company_name: string | null
           created_at: string | null
+          email: string | null
           full_name: string
           gc_account_id: string | null
           has_completed_profile: boolean | null
@@ -783,6 +784,7 @@ export type Database = {
           license_number: string | null
           phone_number: string | null
           role: Database["public"]["Enums"]["user_role"] | null
+          stripe_customer_id: string | null
           subscription_tier_id: string | null
           updated_at: string | null
           website: string | null
@@ -793,6 +795,7 @@ export type Database = {
           bio?: string | null
           company_name?: string | null
           created_at?: string | null
+          email?: string | null
           full_name: string
           gc_account_id?: string | null
           has_completed_profile?: boolean | null
@@ -800,6 +803,7 @@ export type Database = {
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          stripe_customer_id?: string | null
           subscription_tier_id?: string | null
           updated_at?: string | null
           website?: string | null
@@ -810,6 +814,7 @@ export type Database = {
           bio?: string | null
           company_name?: string | null
           created_at?: string | null
+          email?: string | null
           full_name?: string
           gc_account_id?: string | null
           has_completed_profile?: boolean | null
@@ -817,6 +822,7 @@ export type Database = {
           license_number?: string | null
           phone_number?: string | null
           role?: Database["public"]["Enums"]["user_role"] | null
+          stripe_customer_id?: string | null
           subscription_tier_id?: string | null
           updated_at?: string | null
           website?: string | null
@@ -1217,6 +1223,7 @@ export type Database = {
           description: string | null
           fee_percentage: number | null
           id: string
+          max_projects: number | null
           name: string
           price: number
           stripe_price_id: string | null
@@ -1227,6 +1234,7 @@ export type Database = {
           description?: string | null
           fee_percentage?: number | null
           id?: string
+          max_projects?: number | null
           name: string
           price: number
           stripe_price_id?: string | null
@@ -1237,6 +1245,7 @@ export type Database = {
           description?: string | null
           fee_percentage?: number | null
           id?: string
+          max_projects?: number | null
           name?: string
           price?: number
           stripe_price_id?: string | null
@@ -1406,7 +1415,7 @@ export type Database = {
         Returns: boolean
       }
       is_gc_account_owner: {
-        Args: { user_id: string; gc_account_id: string } | { user_id: string }
+        Args: { user_id: string } | { user_id: string; gc_account_id: string }
         Returns: boolean
       }
       is_gc_admin: {
@@ -1468,8 +1477,20 @@ export type Database = {
         | "refunded"
       payment_status: "due" | "partially_paid" | "paid"
       project_status: "draft" | "active" | "completed" | "cancelled"
-      subscription_status: "active" | "cancelled" | "past_due" | "trialing"
-      user_role: "platform_admin" | "gc_admin" | "project_manager" | "homeowner"
+      subscription_status:
+        | "active"
+        | "cancelled"
+        | "past_due"
+        | "trialing"
+        | "incomplete"
+      user_role:
+        | "platform_admin"
+        | "gc_admin"
+        | "project_manager"
+        | "homeowner"
+        | "client"
+        | "contractor"
+        | "employee"
       userrole: "gc_admin" | "subcontractor" | "client"
     }
     CompositeTypes: {
@@ -1604,8 +1625,22 @@ export const Constants = {
       ],
       payment_status: ["due", "partially_paid", "paid"],
       project_status: ["draft", "active", "completed", "cancelled"],
-      subscription_status: ["active", "cancelled", "past_due", "trialing"],
-      user_role: ["platform_admin", "gc_admin", "project_manager", "homeowner"],
+      subscription_status: [
+        "active",
+        "cancelled",
+        "past_due",
+        "trialing",
+        "incomplete",
+      ],
+      user_role: [
+        "platform_admin",
+        "gc_admin",
+        "project_manager",
+        "homeowner",
+        "client",
+        "contractor",
+        "employee",
+      ],
       userrole: ["gc_admin", "subcontractor", "client"],
     },
   },

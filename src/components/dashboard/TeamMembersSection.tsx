@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, Mail, Phone, Building, AlertCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { InviteUserForm } from "@/components/gc-profile/InviteUserForm";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { getTeamDisplayRole, isRoleAdmin } from "@/utils/role-utils";
 
@@ -259,6 +259,9 @@ export function TeamMembersSection() {
       {/* Invite User Dialog */}
       <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Invite Team Member</DialogTitle>
+          </DialogHeader>
           <InviteUserForm 
             onSubmit={handleInviteSuccess} 
             onCancel={() => setIsInviteDialogOpen(false)} 

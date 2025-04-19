@@ -1,179 +1,193 @@
+
 import { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Loader2 } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
 import { AnimatedGridPattern } from '@/components/ui/animated-grid-pattern';
+import { useAuth } from '@/hooks/useAuth';
+import { LoadingState } from '@/components/subscription/LoadingState';
 
-interface SubscriptionTier {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  features: string[];
-}
+// Default trial tier ID - using the free tier ID
+const TRIAL_TIER_ID = '00000000-0000-0000-0000-000000000001';
 
-interface LocationState {
-  userId: string;
-  isNewUser: boolean;
-}
-
-const SubscriptionSelection = () => {
-  const [tiers, setTiers] = useState<SubscriptionTier[]>([]);
+export default function SubscriptionSelection() {
   const [loading, setLoading] = useState(true);
-  const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [stripeLoaded, setStripeLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const state = location.state as LocationState;
-
+  const { user } = useAuth();
+  
+  // Effect to load Stripe Pricing Table script
   useEffect(() => {
-    const fetchSubscriptionTiers = async () => {
+    const script = document.createElement('script');
+    script.src = 'https://js.stripe.com/v3/pricing-table.js';
+    script.async = true;
+    
+    script.onload = () => {
+      console.log('Stripe script loaded successfully');
+      setStripeLoaded(true);
+    };
+    
+    script.onerror = (error) => {
+      console.error('Failed to load Stripe script:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to load Stripe payment options. Please refresh the page.'
+      });
+      setStripeLoaded(true); // Still set this to true to avoid loading state
+    };
+    
+    document.body.appendChild(script);
+    
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, [toast]);
+  
+  // Check if trial tier exists, if not create it
+  useEffect(() => {
+    const ensureTrialTier = async () => {
       try {
         const { data, error } = await supabase
           .from('subscription_tiers')
           .select('*')
-          .order('price', { ascending: true });
-
-        if (error) {
-          throw error;
+          .eq('id', TRIAL_TIER_ID)
+          .single();
+          
+        if (error && error.code !== 'PGRST116') {
+          console.error('Error checking trial tier:', error);
         }
-
-        // If no tiers exist yet, create some default ones for development
-        if (!data || data.length === 0) {
-          console.log('No subscription tiers found, creating default tiers');
-          const defaultTiers: SubscriptionTier[] = [
-            {
-              id: 'basic',
-              name: 'Basic',
-              description: 'Essential features for small contractors',
-              price: 29.99,
-              features: ['Up to 5 projects', 'Basic reporting', 'Email support']
-            },
-            {
-              id: 'professional',
-              name: 'Professional',
-              description: 'Advanced features for growing businesses',
-              price: 79.99,
-              features: ['Unlimited projects', 'Advanced reporting', 'Priority support', 'Team collaboration']
-            },
-            {
-              id: 'enterprise',
-              name: 'Enterprise',
-              description: 'Complete solution for large contractors',
-              price: 149.99,
-              features: ['Unlimited projects', 'Custom reporting', 'Dedicated support', 'Advanced analytics', 'API access']
-            }
-          ];
-          setTiers(defaultTiers);
-          setSelectedTier('professional'); // Default to professional tier
+        
+        // If tier doesn't exist, create it
+        if (!data) {
+          const { error: insertError } = await supabase
+            .from('subscription_tiers')
+            .insert([
+              {
+                id: TRIAL_TIER_ID,
+                name: 'Trial',
+                description: 'Free trial with limited features',
+                price: 0,
+                fee_percentage: 0,
+                max_projects: 2,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              }
+            ]);
+            
+          if (insertError) {
+            console.error('Error creating trial tier:', insertError);
+          } else {
+            console.log('Trial tier created successfully');
+          }
         } else {
-          // Parse features from JSON if stored that way
-          const formattedTiers = data.map(tier => ({
-            ...tier,
-            features: Array.isArray(tier.features) 
-              ? tier.features 
-              : typeof tier.features === 'string' 
-                ? JSON.parse(tier.features) 
-                : []
-          }));
-          setTiers(formattedTiers);
-          setSelectedTier(formattedTiers[1]?.id || formattedTiers[0]?.id); // Default to second tier or first if only one
+          // Update existing tier to make sure it has the right attributes
+          const { error: updateError } = await supabase
+            .from('subscription_tiers')
+            .update({
+              name: 'Trial',
+              description: 'Free trial with limited features',
+              max_projects: 2,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', TRIAL_TIER_ID);
+            
+          if (updateError) {
+            console.error('Error updating trial tier:', updateError);
+          } else {
+            console.log('Trial tier updated successfully');
+          }
         }
       } catch (error) {
-        console.error('Error fetching subscription tiers:', error);
-        toast({
-          variant: 'destructive',
-          title: 'Error',
-          description: 'Failed to load subscription options. Please try again.'
-        });
+        console.error('Unexpected error ensuring trial tier:', error);
       } finally {
         setLoading(false);
       }
     };
+    
+    ensureTrialTier();
+  }, []);
 
-    fetchSubscriptionTiers();
-  }, [toast]);
-
-  const handleContinue = async () => {
-    if (!selectedTier || !state?.userId) {
+  const selectTrialTier = async () => {
+    if (!user) {
       toast({
         variant: 'destructive',
-        title: 'Error',
-        description: 'Please select a subscription tier to continue.'
+        title: 'Authentication Error',
+        description: 'You must be logged in to select a subscription tier.'
       });
+      navigate('/auth');
       return;
     }
-
+    
     setSubmitting(true);
 
     try {
-      // Update the user's profile with the selected subscription tier
-      const { error } = await supabase
-        .from('profiles')
-        .update({ 
-          subscription_tier_id: selectedTier,
-          has_completed_profile: state.isNewUser ? false : true // If new user, they still need to complete profile
-        })
-        .eq('id', state.userId);
-
-      if (error) {
-        throw error;
-      }
-
-      // Create a subscription record
-      const now = new Date();
-      const endDate = new Date();
-      endDate.setFullYear(now.getFullYear() + 1); // Default to 1 year subscription
-
-      const { data: gcAccountData, error: gcAccountError } = await supabase
+      // Get user's profile to check gc_account_id
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('gc_account_id')
-        .eq('id', state.userId)
+        .eq('id', user.id)
         .single();
-
-      if (gcAccountError) {
-        throw gcAccountError;
+        
+      if (profileError) {
+        throw profileError;
       }
-
-      if (gcAccountData?.gc_account_id) {
-        const { error: subscriptionError } = await supabase
-          .from('account_subscriptions')
-          .insert([
-            {
-              gc_account_id: gcAccountData.gc_account_id,
-              tier_id: selectedTier,
-              start_date: now.toISOString(),
-              end_date: endDate.toISOString(),
-              status: 'active'
-            }
-          ]);
-
-        if (subscriptionError) {
-          throw subscriptionError;
-        }
+      
+      if (!profileData.gc_account_id) {
+        throw new Error('No GC account found. Please complete your company details first.');
       }
-
+      
+      // Update the user's profile with the trial subscription tier
+      const { error: updateProfileError } = await supabase
+        .from('profiles')
+        .update({ 
+          subscription_tier_id: TRIAL_TIER_ID,
+          has_completed_profile: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+      
+      if (updateProfileError) {
+        throw updateProfileError;
+      }
+      
+      // Create an account_subscriptions record
+      const { error: subscriptionError } = await supabase
+        .from('account_subscriptions')
+        .insert([
+          {
+            gc_account_id: profileData.gc_account_id,
+            tier_id: TRIAL_TIER_ID,
+            status: 'active',
+            start_date: new Date().toISOString(),
+            end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30-day trial
+          }
+        ]);
+      
+      if (subscriptionError) {
+        throw subscriptionError;
+      }
+      
       toast({
         title: 'Success',
-        description: 'Subscription selected successfully!'
+        description: 'Trial subscription activated successfully!'
       });
-
-      // Navigate to the appropriate next step
-      if (state.isNewUser) {
-        navigate('/profile-completion');
-      } else {
-        navigate('/dashboard');
-      }
-    } catch (error: any) {
-      console.error('Error selecting subscription:', error);
+      
+      // Navigate to dashboard
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error selecting trial tier:', error);
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: error.message || 'Failed to select subscription. Please try again.'
+        description: error.message || 'Failed to activate trial subscription.'
       });
     } finally {
       setSubmitting(false);
@@ -183,10 +197,7 @@ const SubscriptionSelection = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-cnstrct-orange mx-auto mb-4" />
-          <p className="text-gray-600">Loading subscription options...</p>
-        </div>
+        <LoadingState message="Loading subscription options..." />
       </div>
     );
   }
@@ -226,62 +237,47 @@ const SubscriptionSelection = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-            {tiers.map((tier) => (
-              <Card 
-                key={tier.id}
-                className={`relative overflow-hidden transition-all duration-300 ${
-                  selectedTier === tier.id 
-                    ? 'border-2 border-cnstrct-orange shadow-lg transform -translate-y-1' 
-                    : 'border border-gray-200 hover:border-cnstrct-orange/50 hover:shadow-md'
-                }`}
-              >
-                {selectedTier === tier.id && (
-                  <div className="absolute top-0 right-0 bg-cnstrct-orange text-white px-3 py-1 text-sm font-medium">
-                    Selected
+          <div className="mb-12">
+            <Card className="bg-white/90 shadow-xl">
+              <CardHeader>
+                <CardTitle className="text-2xl">Subscription Plans</CardTitle>
+                <CardDescription>
+                  Select a plan to unlock all features
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!stripeLoaded ? (
+                  <div className="py-8">
+                    <LoadingState message="Loading payment options..." />
                   </div>
+                ) : (
+                  <stripe-pricing-table 
+                    pricing-table-id="prctbl_1R98Y3Apu80f9E3H7bPpRkjs"
+                    publishable-key="pk_test_51QzjhnApu80f9E3HjlgkmHwM1a4krzjoz0sJlsz41wIhMYIr1sst6sx2mCZ037PiY2UE6xfNA5zzkxCQwOAJ4yoD00gm7TIByL">
+                  </stripe-pricing-table>
                 )}
-                <CardHeader>
-                  <CardTitle className="text-xl font-bold">{tier.name}</CardTitle>
-                  <CardDescription>{tier.description}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-4">
-                    <span className="text-3xl font-bold text-cnstrct-navy">${tier.price}</span>
-                    <span className="text-gray-500 ml-1">/month</span>
-                  </div>
-                  <ul className="space-y-2">
-                    {tier.features.map((feature, index) => (
-                      <li key={index} className="flex items-start">
-                        <Check className="h-5 w-5 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-700">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-                <CardFooter>
-                  <Button
-                    variant={selectedTier === tier.id ? "default" : "outline"}
-                    className={`w-full ${
-                      selectedTier === tier.id 
-                        ? 'bg-gradient-to-r from-cnstrct-orange to-cnstrct-orange/90 text-white' 
-                        : 'text-cnstrct-navy border-cnstrct-navy/50'
-                    }`}
-                    onClick={() => setSelectedTier(tier.id)}
-                  >
-                    {selectedTier === tier.id ? 'Selected' : 'Select Plan'}
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
+              </CardContent>
+            </Card>
           </div>
 
           <div className="text-center">
+            <div className="mb-8">
+              <div className="relative flex items-center justify-center mb-6">
+                <hr className="w-full border-t border-gray-300" />
+                <span className="absolute bg-gray-50 px-4 text-gray-500 text-sm">or</span>
+              </div>
+              <h2 className="text-xl font-semibold text-cnstrct-navy mb-2">Not ready to subscribe?</h2>
+              <p className="text-gray-600 mb-6">
+                Try our platform with a free trial that allows you to create up to 2 projects.
+              </p>
+            </div>
+            
             <Button
               size="lg"
-              className="bg-gradient-to-r from-cnstrct-orange to-cnstrct-orange/90 hover:from-cnstrct-orange/90 hover:to-cnstrct-orange text-white py-6 px-8 rounded-xl font-medium text-lg shadow-lg hover:shadow-xl transition-all"
-              onClick={handleContinue}
-              disabled={!selectedTier || submitting}
+              variant="outline"
+              className="border-cnstrct-orange text-cnstrct-orange hover:bg-cnstrct-orange/10 py-6 px-8 rounded-xl font-medium text-lg shadow-md hover:shadow-lg transition-all"
+              onClick={selectTrialTier}
+              disabled={submitting}
             >
               {submitting ? (
                 <>
@@ -289,7 +285,7 @@ const SubscriptionSelection = () => {
                   Processing...
                 </>
               ) : (
-                'Continue'
+                'Continue with Free Trial'
               )}
             </Button>
           </div>
@@ -313,6 +309,4 @@ const SubscriptionSelection = () => {
       </footer>
     </div>
   );
-};
-
-export default SubscriptionSelection;
+}

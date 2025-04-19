@@ -23,8 +23,8 @@ export const useQBOSyncStatus = (entityType: string, entityId: string | null) =>
         const { data, error } = await supabase
           .from('qbo_references')
           .select('qbo_entity_id')
-          .eq('entity_type', entityType)
-          .eq('entity_id', entityId)
+          .eq('local_entity_type', entityType)
+          .eq('local_entity_id', entityId)
           .single();
         
         if (error) {

@@ -25,6 +25,40 @@ export const useAuthForm = () => {
     return null;
   };
 
+  const createUserProfile = async (userId: string, userData: any) => {
+    try {
+      const fullName = `${userData.firstName} ${userData.lastName}`.trim();
+      const role = userData.role || 'gc_admin';
+      
+      console.log("Creating profile for user:", userId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .insert({
+          id: userId,
+          email: userData.email,
+          full_name: fullName,
+          role: role,
+          company_name: userData.companyName || null,
+          account_status: 'active',
+          has_completed_profile: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        
+      if (error) {
+        console.error("Error creating profile:", error);
+        return false;
+      }
+      
+      console.log("Profile created successfully");
+      return true;
+    } catch (error) {
+      console.error("Unexpected error creating profile:", error);
+      return false;
+    }
+  };
+
   const signUp = async (formData: RegisterFormData) => {
     setIsLoading(true);
     const errors: { [key: string]: string } = {};
@@ -42,27 +76,65 @@ export const useAuthForm = () => {
     }
 
     try {
+      console.log("Starting signup process", { 
+        email: formData.email, 
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role || 'gc_admin',
+        companyName: formData.companyName
+      });
+      
+      // Create a cleaned-up data object for the user metadata
+      const userMetadata = {
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        company_name: formData.companyName,
+        role: formData.role || 'gc_admin',
+        full_name: `${formData.firstName} ${formData.lastName}`
+      };
+      
+      console.log("User metadata prepared:", userMetadata);
+      
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-            company_name: formData.companyName,
-            role: formData.role || 'gc_admin'
-          },
+          data: userMetadata,
           emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
+      console.log("Signup response details:", 
+        JSON.stringify({
+          user: data?.user?.id ? "User created" : "No user created",
+          error: error ? error.message : "No error"
+        })
+      );
+
       if (error) {
+        console.error("Signup error details:", error);
         errors.email = error.message;
         setFormErrors(errors);
-      } else {
         toast({
-          title: 'Success',
-          description: 'Account created successfully. Please complete your company details.',
+          variant: "destructive",
+          title: "Registration Error",
+          description: error.message || "Failed to create account",
+        });
+      } else if (data.user) {
+        // Create profile directly from frontend instead of relying solely on the database trigger
+        const profileCreated = await createUserProfile(data.user.id, {
+          ...formData,
+          email: formData.email,
+        });
+        
+        if (!profileCreated) {
+          console.warn("Failed to create profile, will rely on database trigger as fallback");
+        }
+        
+        console.log("Signup successful, redirecting user");
+        toast({
+          title: 'Account Created',
+          description: 'Your account has been created successfully. Please complete your company details.',
         });
         
         // Redirect to company details page if role is gc_admin, otherwise dashboard
@@ -73,8 +145,14 @@ export const useAuthForm = () => {
         }
       }
     } catch (error: any) {
+      console.error("Unexpected error during signup:", error);
       errors.email = error.message || 'An unexpected error occurred';
       setFormErrors(errors);
+      toast({
+        variant: "destructive",
+        title: "Registration Error",
+        description: error.message || "An unexpected error occurred",
+      });
     } finally {
       setIsLoading(false);
     }

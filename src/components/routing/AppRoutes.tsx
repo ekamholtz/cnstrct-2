@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { AdminRoute } from "./AdminRoute";
@@ -34,13 +33,14 @@ import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
 import StripeConnectOnboarding from "@/pages/stripe/StripeConnectOnboarding";
 import SubscriptionSelection from "@/pages/SubscriptionSelection";
+import StripeCallback from "@/pages/stripe/StripeCallback";
 
 export const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/auth" element={<Auth />} />
       <Route path="/auth/company-details" element={<CompanyDetailsPage />} />
-      {/* Subscription routes */}
+      <Route path="/auth/companydetails" element={<Navigate to="/auth/company-details" replace />} />
       <Route path="/subscription-checkout" element={<SubscriptionCheckout />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/subscription-selection" element={<SubscriptionSelection />} />
@@ -117,7 +117,6 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      {/* For GC users */}
       <Route
         path="/invoices"
         element={
@@ -126,7 +125,6 @@ export const AppRoutes = () => {
           </ProtectedRoute>
         }
       />
-      {/* For client/homeowner users */}
       <Route
         path="/invoice"
         element={
@@ -238,6 +236,10 @@ export const AppRoutes = () => {
             <StripeConnectOnboarding />
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/auth/stripe-callback"
+        element={<StripeCallback />}
       />
       <Route
         path="/qbo-test"

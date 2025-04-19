@@ -13,6 +13,7 @@ const SubscriptionSuccess = () => {
   const { toast } = useToast();
   const [updating, setUpdating] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [tierInfo, setTierInfo] = useState<any>(null);
   
   // Get query parameters
   const searchParams = new URLSearchParams(location.search);
@@ -114,10 +115,44 @@ const SubscriptionSuccess = () => {
           
         console.log("Checkout session data in database:", checkoutData);
 
-        // If we have session data, use it to update the subscription
+        // Check for subscription information in our database
+        const { data: subscriptionData, error: subscriptionError } = await supabase
+          .from('account_subscriptions')
+          .select('*, subscription_tiers(*)')
+          .eq('gc_account_id', accountToUpdate)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+          
+        if (subscriptionError) {
+          console.error("Error checking for subscription:", subscriptionError);
+        } else if (subscriptionData) {
+          console.log("Found subscription data:", subscriptionData);
+          // If we have subscription data and the tier info, use it
+          if (subscriptionData.subscription_tiers) {
+            setTierInfo(subscriptionData.subscription_tiers);
+          }
+        }
+
+        // If we have session data, check if it was already processed by webhook
         if (checkoutData) {
           console.log("Found checkout session in database, using it for updates");
-          // Already processed by webhook, just show success
+          
+          // Try to get tier information based on the checkout session
+          if (checkoutData.tier_id && !tierInfo) {
+            const { data: tierData, error: tierError } = await supabase
+              .from('subscription_tiers')
+              .select('*')
+              .eq('id', checkoutData.tier_id)
+              .single();
+              
+            if (tierError) {
+              console.error("Error fetching tier data:", tierError);
+            } else {
+              setTierInfo(tierData);
+            }
+          }
+          
           setUpdating(false);
           toast({
             title: 'Success',
@@ -133,6 +168,21 @@ const SubscriptionSuccess = () => {
 
         console.log("Webhook hasn't processed this session yet, updating subscription status in database directly...");
         
+        // Get information about the tier
+        if (subscriptionTierId && !tierInfo) {
+          const { data: tierData, error: tierError } = await supabase
+            .from('subscription_tiers')
+            .select('*')
+            .eq('id', subscriptionTierId)
+            .single();
+            
+          if (tierError) {
+            console.error("Error fetching tier data:", tierError);
+          } else {
+            setTierInfo(tierData);
+          }
+        }
+        
         // First, create a record of this checkout session
         const { error: sessionInsertError } = await supabase
           .from('checkout_sessions')
@@ -143,10 +193,10 @@ const SubscriptionSuccess = () => {
             tier_id: subscriptionTierId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
-            user_id: sessionData.session.user.id, // Make sure to add user_id
-            stripe_account_id: 'platform', // Default to platform
-            amount: 0, // No amount info at this point
-            currency: 'usd' // Default currency
+            user_id: sessionData.session.user.id,
+            stripe_account_id: 'platform',
+            amount: 0,
+            currency: 'usd'
           });
           
         if (sessionInsertError) {
@@ -182,7 +232,7 @@ const SubscriptionSuccess = () => {
               tier_id: subscriptionTierId,
               status: 'active',
               start_date: new Date().toISOString(),
-              end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days trial
+              end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days by default
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             }, {
@@ -292,6 +342,20 @@ const SubscriptionSuccess = () => {
               </div>
               
               <h1 className="text-2xl font-bold text-cnstrct-navy mb-3">Subscription Activated!</h1>
+              
+              {tierInfo && (
+                <div className="mb-6 py-3 px-4 bg-gray-50 rounded-lg">
+                  <h2 className="text-lg font-semibold text-cnstrct-navy">
+                    {tierInfo.name} Plan
+                  </h2>
+                  <p className="text-gray-600 text-sm mt-1">
+                    {tierInfo.description}
+                  </p>
+                  <div className="text-cnstrct-orange font-medium mt-2">
+                    ${(tierInfo.price / 100).toFixed(2)}/month
+                  </div>
+                </div>
+              )}
               
               <p className="text-gray-600 mb-6">
                 Thank you for subscribing to CNSTRCT. Your account has been successfully activated and you now have access to all features.

@@ -2,6 +2,7 @@
 import { Routes, Route } from "react-router-dom";
 import Dashboard from "@/pages/Dashboard";
 import Auth from "@/pages/Auth";
+import Index from "@/pages/Index";
 import Settings from "@/pages/Settings";
 import Projects from "@/pages/Projects";
 import Project from "@/pages/Project";
@@ -33,12 +34,14 @@ import PaymentsDashboard from "@/pages/PaymentsDashboard";
 import ReportingDashboard from "@/pages/ReportingDashboard";
 import ProjectDashboard from "@/pages/ProjectDashboard";
 import InvoiceDetails from "@/pages/InvoiceDetails";
+import Profile from "@/pages/Profile";
 import ExpenseDetails from "@/pages/ExpenseDetails";
 import PaymentDetails from "@/pages/PaymentDetails";
 import IntegrationSettings from "@/pages/IntegrationSettings";
 import CompanyDetailsPage from "@/pages/auth/CompanyDetailsPage";
 import SubscriptionCheckout from "@/pages/SubscriptionCheckout";
 import SubscriptionSuccess from "@/pages/SubscriptionSuccess";
+import SubscriptionSelection from "@/pages/SubscriptionSelection";
 
 function App() {
   return (
@@ -64,9 +67,14 @@ function App() {
             <Route path="/auth/company-details" element={<CompanyDetailsPage />} />
             <Route path="/subscription-checkout" element={<SubscriptionCheckout />} />
             <Route path="/subscription-success" element={<SubscriptionSuccess />} />
+            <Route path="/subscription-selection" element={<SubscriptionSelection />} />
             <Route path="/qbo/callback" element={<QBOCallback />} />
             <Route 
               path="/"
+              element={<Index />}
+            />
+            <Route 
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Dashboard />
@@ -118,6 +126,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <IntegrationSettings />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
                 </ProtectedRoute>
               }
             />

@@ -149,8 +149,9 @@ export const SubscriptionSettings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {/* Updated to use the same pricing table as in SubscriptionSelection page */}
               <stripe-pricing-table 
-                pricing-table-id="prctbl_1R9UC0Apu80f9E3HqRPNRBtK"
+                pricing-table-id="prctbl_1R98Y3Apu80f9E3H7bPpRkjs"
                 publishable-key="pk_test_51QzjhnApu80f9E3HjlgkmHwM1a4krzjoz0sJlsz41wIhMYIr1sst6sx2mCZ037PiY2UE6xfNA5zzkxCQwOAJ4yoD00gm7TIByL">
               </stripe-pricing-table>
             </CardContent>

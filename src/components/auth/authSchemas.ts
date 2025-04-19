@@ -1,6 +1,7 @@
 
 import * as z from "zod";
 
+// Export the UserRole from the existing types
 export type UserRole = "gc_admin" | "homeowner" | "team_member" | "platform_admin";
 
 export const loginSchema = z.object({

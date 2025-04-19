@@ -11,7 +11,7 @@ import { ClientInformationSection } from "../../projects/form-sections/ClientInf
 import { ProjectDetailsSection } from "../../projects/form-sections/ProjectDetailsSection";
 import { MilestonesSection } from "../../projects/form-sections/MilestonesSection";
 import { ContractValueSection } from "../../projects/form-sections/ContractValueSection";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from "@/components/ui/dialog";
 
 interface EditProjectFormProps {
   projectId: string;
@@ -116,9 +116,11 @@ export function EditProjectForm({ projectId, initialData, open, onClose, onSucce
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-semibold">Edit Project</DialogTitle>
+        </DialogHeader>
         <div className="space-y-6">
-          <div className="flex justify-between items-center">
-            <h2 className="text-2xl font-semibold">Edit Project</h2>
+          <div className="flex justify-end">
             <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>

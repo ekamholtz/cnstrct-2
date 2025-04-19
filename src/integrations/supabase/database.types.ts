@@ -774,6 +774,40 @@ export interface Database {
             referencedColumns: ["id"]
           }
         ]
+      },
+      project_commission_settings: {
+        Row: {
+          id: string
+          project_id: string
+          office_overhead_percentage: number
+          pm_profit_split_percentage: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          project_id: string
+          office_overhead_percentage: number
+          pm_profit_split_percentage: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          project_id?: string
+          office_overhead_percentage?: number
+          pm_profit_split_percentage?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_commission_settings_project_id_fkey"
+            columns: ["project_id"]
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          }
+        ]
       }
     }
     Enums: {

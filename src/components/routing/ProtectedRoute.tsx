@@ -19,6 +19,43 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading: authLoading } = useAuth();
   const location = useLocation();
 
+  // Function to create a profile if it doesn't exist
+  const createProfileIfNeeded = async (userId: string, userData: any) => {
+    try {
+      // Get user role from metadata or default to gc_admin
+      const role = userData?.user_metadata?.role || 'gc_admin';
+      const fullName = userData?.user_metadata?.full_name || 
+        `${userData?.user_metadata?.first_name || ''} ${userData?.user_metadata?.last_name || ''}`.trim() || 
+        userData?.email || 'New User';
+      
+      console.log("Creating missing profile for user:", userId);
+      
+      const { error } = await supabase
+        .from("profiles")
+        .insert({
+          id: userId,
+          full_name: fullName,
+          email: userData?.email,
+          role: role,
+          account_status: 'active',
+          has_completed_profile: false,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+      if (error) {
+        console.error("Error creating profile:", error);
+        return false;
+      }
+      
+      console.log("Successfully created profile for user:", userId);
+      return true;
+    } catch (error) {
+      console.error("Error in createProfileIfNeeded:", error);
+      return false;
+    }
+  };
+
   useEffect(() => {
     const checkProfile = async () => {
       try {
@@ -64,17 +101,23 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
             } else {
               setHasSubscription(true); // Non-gc_admin users don't need a subscription
             }
+          } else {
+            // Profile doesn't exist, create one
+            await createProfileIfNeeded(sessionUser.id, sessionUser);
+            setHasCompletedProfile(false);
+            setUserRole(sessionUser.user_metadata?.role || 'gc_admin');
+            setHasSubscription(false);
           }
           
           setLoading(false);
           return;
         }
 
-        console.log("Current user:", user);
+        console.log("Current user:", user.email);
 
         const { data, error } = await supabase
           .from("profiles")
-          .select("has_completed_profile, role, gc_account_id")
+          .select("has_completed_profile, role, gc_account_id, email")
           .eq("id", user.id)
           .maybeSingle();
 
@@ -88,22 +131,22 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
         if (!data) {
           console.log("No profile found, creating one...");
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              id: user.id,
-              full_name: user.user_metadata.full_name || user.email || 'New User',
-              role: user.user_metadata.role || 'contractor',
-              has_completed_profile: true
-            });
-
-          if (insertError) {
-            console.error("Error creating profile:", insertError);
+          // Create profile for the user
+          const profileCreated = await createProfileIfNeeded(user.id, user);
+          if (profileCreated) {
+            setHasCompletedProfile(false);
+            setUserRole(user.user_metadata?.role || 'gc_admin');
+            setHasSubscription(false);
           }
-          setHasCompletedProfile(true);
-          setUserRole(user.user_metadata.role || 'contractor');
-          setHasSubscription(false); // New profile doesn't have subscription
         } else {
+          // Update email if it's missing
+          if (!data.email && user.email) {
+            await supabase
+              .from("profiles")
+              .update({ email: user.email })
+              .eq("id", user.id);
+          }
+          
           setHasCompletedProfile(data.has_completed_profile);
           setUserRole(data.role);
           

@@ -27,6 +27,65 @@ export default function CompanyDetailsPage() {
     }
   }, [user]);
 
+  // Function to ensure the user has a profile
+  const ensureUserProfile = async (userId: string) => {
+    try {
+      // Check if profile exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id, email')
+        .eq('id', userId)
+        .maybeSingle();
+        
+      if (checkError) {
+        console.error("Error checking profile:", checkError);
+        return false;
+      }
+      
+      // If profile doesn't exist, create one
+      if (!existingProfile) {
+        console.log("Profile doesn't exist, creating one now");
+        
+        const fullName = `${firstName} ${lastName}`.trim() || user?.email?.split('@')[0] || 'New User';
+        
+        const { error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: user?.email,
+            full_name: fullName,
+            role: user?.user_metadata?.role || 'gc_admin',
+            account_status: 'active',
+            has_completed_profile: false,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        if (createError) {
+          console.error("Error creating profile:", createError);
+          return false;
+        }
+        
+        console.log("Successfully created profile for user:", userId);
+      } else if (!existingProfile.email && user?.email) {
+        // If profile exists but doesn't have email, update it
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ email: user.email })
+          .eq('id', userId);
+          
+        if (updateError) {
+          console.error("Error updating profile email:", updateError);
+        }
+      }
+      
+      return true;
+    } catch (error) {
+      console.error("Unexpected error in ensureUserProfile:", error);
+      return false;
+    }
+  };
+
   const handleSubmit = async (formData: CompanyDetailsFormData) => {
     if (!user) {
       toast({
@@ -41,6 +100,13 @@ export default function CompanyDetailsPage() {
     setLoading(true);
     
     try {
+      // First ensure the user has a profile
+      const profileCreated = await ensureUserProfile(user.id);
+      
+      if (!profileCreated) {
+        throw new Error("Failed to create or verify user profile");
+      }
+      
       // Create a new GC account
       const { data: gcAccount, error: gcError } = await supabase
         .from('gc_accounts')
@@ -69,7 +135,8 @@ export default function CompanyDetailsPage() {
           address: formData.address,
           phone_number: formData.phoneNumber,
           full_name: `${firstName} ${lastName}`.trim(),
-          has_completed_profile: true
+          has_completed_profile: true,
+          updated_at: new Date().toISOString()
         })
         .eq('id', user.id);
       
@@ -82,8 +149,8 @@ export default function CompanyDetailsPage() {
         description: "Company details have been saved successfully.",
       });
       
-      // Redirect to subscription page
-      navigate('/subscription-checkout');
+      // Redirect to subscription selection page instead of checkout
+      navigate('/subscription-selection');
     } catch (error: any) {
       toast({
         variant: "destructive",

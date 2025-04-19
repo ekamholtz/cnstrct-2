@@ -4,7 +4,7 @@ import { MilestoneCard } from './milestone/MilestoneCard';
 import { useMilestoneCompletion } from './milestone/hooks/useMilestoneCompletion';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { UserRole } from '@/components/auth/authSchemas';
+import { UserRole } from "@/components/admin/users/types";
 import { mapUserRoleToUIRole } from '@/hooks/useTeamMembers';
 
 export interface MilestonesListProps {

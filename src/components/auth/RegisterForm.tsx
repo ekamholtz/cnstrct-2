@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/form";
 import { registerSchema, type RegisterFormData } from "./authSchemas";
 import { User, Mail, Lock, ShieldCheck, Building } from "lucide-react";
+import { useState, useEffect } from "react";
 
 interface RegisterFormProps {
   onSubmit: (values: RegisterFormData) => Promise<void>;
@@ -21,6 +22,8 @@ interface RegisterFormProps {
 }
 
 export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormProps) => {
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
   const form = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -30,17 +33,27 @@ export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormPr
       password: "",
       confirmPassword: "",
       companyName: "",
-      role: selectedRole, // Ensure role is set from prop
+      role: selectedRole,
     },
     mode: "all"
   });
 
+  // Update the role when the selectedRole prop changes
+  useEffect(() => {
+    form.setValue("role", selectedRole);
+  }, [selectedRole, form]);
+
   const handleSubmit = async (values: RegisterFormData) => {
-    // Ensure the role is included in the submission
-    await onSubmit({
+    setSubmitAttempted(true);
+    
+    // Make sure the role is set to the selected role before submission
+    const formData = {
       ...values,
-      role: selectedRole, // Explicitly include the selected role
-    });
+      role: selectedRole
+    };
+    
+    console.log("Form submitted with values:", formData);
+    await onSubmit(formData);
   };
 
   return (
@@ -176,6 +189,21 @@ export const RegisterForm = ({ onSubmit, loading, selectedRole }: RegisterFormPr
             </FormItem>
           )}
         />
+
+        {/* Hidden field to ensure the role is captured */}
+        <FormField
+          control={form.control}
+          name="role"
+          render={({ field }) => (
+            <input type="hidden" {...field} value={selectedRole} />
+          )}
+        />
+
+        {submitAttempted && loading && (
+          <div className="text-center py-2">
+            <p className="text-sm text-blue-600">Processing registration...</p>
+          </div>
+        )}
 
         <Button
           type="submit"
