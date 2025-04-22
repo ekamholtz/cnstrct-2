@@ -8,6 +8,7 @@ import { QBOConnectionStatus } from "./qbo/QBOConnectionStatus";
 import { QBOSyncInformation } from "./qbo/QBOSyncInformation";
 import { QBONoConnectionInfo } from "./qbo/QBONoConnectionInfo";
 import { QBODebugInfo } from "./qbo/QBODebugInfo";
+import { QBOErrorBoundary } from "@/components/error/QBOErrorBoundary";
 
 // Define a type for QBO Connection that includes all required fields
 interface QBOConnection {
@@ -46,50 +47,52 @@ export function QBOSettings() {
   } : null;
   
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="text-2xl font-bold">QuickBooks Online Integration</CardTitle>
-        <CardDescription>
-          Connect your QuickBooks Online account to sync financial data from CNSTRCT
-          {isSandboxMode && (
-            <span className="block mt-2 text-amber-500 font-medium">
-              Development Mode: Using QuickBooks Sandbox
-            </span>
-          )}
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent>
-        <QBODebugInfo />
-        <QBOConnectionStatus error={error} />
+    <QBOErrorBoundary>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="text-2xl font-bold">QuickBooks Online Integration</CardTitle>
+          <CardDescription>
+            Connect your QuickBooks Online account to sync financial data from CNSTRCT
+            {isSandboxMode && (
+              <span className="block mt-2 text-amber-500 font-medium">
+                Development Mode: Using QuickBooks Sandbox
+              </span>
+            )}
+          </CardDescription>
+        </CardHeader>
         
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : displayConnection ? (
-          <>
-            <QBOConnectionDetails 
-              connection={displayConnection} 
-              isSandboxMode={isSandboxMode} 
+        <CardContent>
+          <QBODebugInfo />
+          <QBOConnectionStatus error={error} />
+          
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : displayConnection ? (
+            <>
+              <QBOConnectionDetails 
+                connection={displayConnection} 
+                isSandboxMode={isSandboxMode} 
+              />
+              <QBOSyncInformation />
+            </>
+          ) : (
+            <QBONoConnectionInfo isSandboxMode={isSandboxMode} />
+          )}
+        </CardContent>
+        
+        <CardFooter className="flex justify-end">
+          {!isLoading && (
+            <QBOConnectionActions 
+              connection={displayConnection}
+              connectToQBO={connectToQBO}
+              disconnectFromQBO={disconnectFromQBO}
+              isSandboxMode={isSandboxMode}
             />
-            <QBOSyncInformation />
-          </>
-        ) : (
-          <QBONoConnectionInfo isSandboxMode={isSandboxMode} />
-        )}
-      </CardContent>
-      
-      <CardFooter className="flex justify-end">
-        {!isLoading && (
-          <QBOConnectionActions 
-            connection={displayConnection}
-            connectToQBO={connectToQBO}
-            disconnectFromQBO={disconnectFromQBO}
-            isSandboxMode={isSandboxMode}
-          />
-        )}
-      </CardFooter>
-    </Card>
+          )}
+        </CardFooter>
+      </Card>
+    </QBOErrorBoundary>
   );
 }

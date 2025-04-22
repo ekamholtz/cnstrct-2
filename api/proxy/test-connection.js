@@ -1,3 +1,4 @@
+
 // QBO Test Connection API Proxy for Vercel
 // This serverless function tests QBO connections by making a simple query
 
@@ -15,6 +16,9 @@ export default async function handler(req, res) {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
+  
+  // Add Content-Security-Policy header for QBO framing
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://*.intuit.com");
 
   // Handle OPTIONS request
   if (req.method === 'OPTIONS') {

@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { QBOConfig } from "../config/qboConfig";
 import axios from "axios";
@@ -42,16 +43,16 @@ export class QBOCompanyServiceProxy {
     try {
       console.log("Getting company info for realmId:", realmId);
       
-      // Use the proxy for data operations
-      const response = await axios.post(`${this.proxyUrl}/data-operation`, {
+      // Use the test-connection endpoint to get company info as it already works correctly
+      const response = await axios.post(`${this.proxyUrl}/test-connection`, {
         accessToken,
-        realmId,
-        endpoint: `company/${realmId}/companyinfo/${realmId}`,
-        method: 'get'
+        realmId
       });
       
       console.log("Company info retrieved successfully");
-      return response.data.CompanyInfo;
+      
+      // Return the company info from the response
+      return response.data.companyInfo;
     } catch (error: any) {
       console.error("Error getting company info:", error);
       
