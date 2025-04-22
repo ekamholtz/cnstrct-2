@@ -56,27 +56,23 @@ export class QBOConfig {
       this.clientSecret = "";
     }
     
-    // Use a hardcoded URL that exactly matches what's registered in the Intuit Developer Portal
-    // IMPORTANT: This must EXACTLY match what's registered in the Intuit Developer Portal
+    // Update redirect URI logic to include www.cnstrctnetwork.com
     if (hostname === 'cnstrctnetwork.vercel.app') {
       this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
     } else if (hostname.includes('cnstrctnetwork-') && hostname.includes('vercel.app')) {
-      // For Vercel preview deployments, still use the production redirect URI
-      // This is critical since Intuit only accepts exact matches with registered URIs
       this.redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
     } else if (hostname === 'cnstrct-2.lovable.app') {
       this.redirectUri = "https://cnstrct-2.lovable.app/qbo/callback";
+    } else if (hostname === 'www.cnstrctnetwork.com') {
+      this.redirectUri = "https://www.cnstrctnetwork.com/qbo/callback";
     } else if (hostname === 'localhost' || hostname.includes('127.0.0.1')) {
-      // For local development, use the current port (8080 or 8081)
       const port = typeof window !== 'undefined' ? window.location.port : '8081';
       this.redirectUri = `http://localhost:${port}/qbo/callback`;
     } else {
-      // Fallback to the production URI for any other hostname
-      // This ensures we always use a registered URI with Intuit
-      this.redirectUri = "https://cnstrct-2.lovable.app/qbo/callback";
+      // Fallback to the production URI
+      this.redirectUri = "https://www.cnstrctnetwork.com/qbo/callback";
     }
     
-    // Log the redirect URI being used
     console.log("Using QBO redirect URI:", this.redirectUri);
     
     // Use the simplest scope format for QuickBooks API
