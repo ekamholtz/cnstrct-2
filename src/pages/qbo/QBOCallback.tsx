@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthorizationService } from "@/integrations/qbo/services/auth/AuthorizationService";
@@ -198,6 +199,24 @@ export default function QBOCallback() {
                 <div className="mt-4 p-4 bg-muted rounded-md">
                   <h3 className="text-sm font-medium mb-2">Error Details</h3>
                   <p className="text-sm text-muted-foreground">{errorDetails}</p>
+                  
+                  {errorDetails.includes("redirect_uri") && (
+                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+                      <h4 className="text-sm font-medium text-amber-800">Redirect URI Troubleshooting</h4>
+                      <p className="text-xs text-amber-700 mt-1">
+                        This error indicates that the redirect URI we're using doesn't match what's registered in the Intuit Developer Portal.
+                      </p>
+                      <div className="mt-2 text-xs">
+                        <p className="font-medium">Our redirect URI:</p>
+                        <p className="font-mono bg-white p-1 rounded border border-amber-100 mt-1 break-all">
+                          {QBOConfig.getInstance().redirectUri}
+                        </p>
+                      </div>
+                      <p className="text-xs mt-2">
+                        Make sure this exact URL is registered in your Intuit Developer Portal under Redirect URIs.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               
@@ -206,7 +225,8 @@ export default function QBOCallback() {
                 <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
                   <li>Make sure your QuickBooks Online account is active</li>
                   <li>Verify you have admin permissions for your QuickBooks company</li>
-                  <li>Check that cookies are enabled in your browser</li>
+                  <li>Check that the exact redirect URI is registered in the Intuit Developer Portal</li>
+                  <li>Make sure cookies are enabled in your browser</li>
                   <li>Try clearing your browser cache and cookies</li>
                 </ul>
               </div>

@@ -13,7 +13,7 @@ export class QBOConfig {
   readonly tokenEndpoint: string = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
   
   // API endpoints
-  readonly apiBaseUrl: string; // Add this property
+  readonly apiBaseUrl: string;
   
   // Production vs Sandbox mode
   readonly isProduction: boolean;
@@ -53,16 +53,15 @@ export class QBOConfig {
       ? 'https://quickbooks.api.intuit.com/v3'
       : 'https://sandbox-quickbooks.api.intuit.com/v3';
     
-    // Build the correct redirect URI based on current domain
-    const baseUrl = window.location.origin;
+    // IMPORTANT: Use hardcoded redirect URIs that match EXACTLY what's registered in Intuit Developer Portal
+    // For sandbox/development environments
+    const sandboxRedirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
     
-    // For production, use fixed production domain to match registered redirect URI with Intuit
-    const prodDomain = 'https://www.cnstrctnetwork.com';
+    // For production
+    const productionRedirectUri = "https://www.cnstrctnetwork.com/qbo/callback";
     
-    // In dev, redirect locally; in production use registered domain
-    this.redirectUri = this.isProduction 
-      ? `${prodDomain}/qbo/callback` 
-      : `${baseUrl}/qbo/callback`;
+    // Set the redirect URI based on environment
+    this.redirectUri = this.isProduction ? productionRedirectUri : sandboxRedirectUri;
     
     console.log("QBO Config initialized:", {
       mode: this.isProduction ? "Production" : "Development",
