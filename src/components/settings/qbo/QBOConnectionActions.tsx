@@ -1,7 +1,8 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowUpRight, LogOut } from "lucide-react";
+import { ArrowUpRight, LogOut, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DisplayQBOConnection {
   id: string;
@@ -24,8 +25,35 @@ export function QBOConnectionActions({
   disconnectFromQBO,
   isSandboxMode 
 }: QBOConnectionActionsProps) {
+  const [popupBlocked, setPopupBlocked] = useState(false);
+  
+  const handleConnect = () => {
+    // Test if popups are blocked (often browsers block without triggering events)
+    const testPopup = window.open('', '_blank', 'width=1,height=1');
+    
+    if (!testPopup || testPopup.closed || typeof testPopup.closed === 'undefined') {
+      setPopupBlocked(true);
+      testPopup?.close();
+      return;
+    }
+    
+    // Close the test popup and proceed with connection
+    testPopup.close();
+    setPopupBlocked(false);
+    connectToQBO();
+  };
+  
   return (
-    <div>
+    <div className="space-y-4">
+      {popupBlocked && (
+        <Alert variant="warning" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="ml-2">
+            Popup windows appear to be blocked by your browser. Please allow popups for this site to connect with QuickBooks.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {connection ? (
         <Button 
           variant="outline" 
@@ -36,7 +64,7 @@ export function QBOConnectionActions({
           Disconnect from QuickBooks
         </Button>
       ) : (
-        <Button onClick={connectToQBO}>
+        <Button onClick={handleConnect}>
           <ArrowUpRight className="mr-2 h-4 w-4" />
           Connect to QuickBooks {isSandboxMode ? "Sandbox" : ""}
         </Button>

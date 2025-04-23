@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useQBOConnection } from "@/hooks/useQBOConnection";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { QBOConnectionDetails } from "./qbo/QBOConnectionDetails";
@@ -9,6 +9,7 @@ import { QBOSyncInformation } from "./qbo/QBOSyncInformation";
 import { QBONoConnectionInfo } from "./qbo/QBONoConnectionInfo";
 import { QBODebugInfo } from "./qbo/QBODebugInfo";
 import { QBOErrorBoundary } from "@/components/error/QBOErrorBoundary";
+import { useToast } from "@/components/ui/use-toast";
 
 // Define a type for QBO Connection that includes all required fields
 interface QBOConnection {
@@ -32,10 +33,36 @@ interface DisplayQBOConnection {
 
 export function QBOSettings() {
   const { connection, isLoading, error, connectToQBO, disconnectFromQBO } = useQBOConnection();
+  const { toast } = useToast();
+  
+  // Listen for messages from popup window
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Verify origin is trusted
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+      
+      // Handle QBO auth success message from popup
+      if (event.data?.type === 'QBO_AUTH_SUCCESS') {
+        // Force refresh connection data
+        window.location.reload();
+        
+        toast({
+          title: "Connection Successful",
+          description: `Connected to ${event.data.companyName || 'QuickBooks Online'}`,
+        });
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    
+    return () => window.removeEventListener('message', handleMessage);
+  }, [toast]);
   
   // Check if we're in development/sandbox mode
   const isSandboxMode = window.location.hostname === 'localhost' || 
-                         window.location.hostname.includes('127.0.0.1');
+                       window.location.hostname.includes('127.0.0.1');
   
   // Create a display-safe connection object without sensitive fields
   const displayConnection: DisplayQBOConnection | null = connection ? {

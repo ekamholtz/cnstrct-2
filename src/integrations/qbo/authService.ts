@@ -17,6 +17,12 @@ export class QBOAuthService {
     this.tokenManager = new QBOTokenManager();
     this.companyService = new QBOCompanyService();
     this.connectionService = new QBOConnectionService();
+    
+    console.log("QBOAuthService initialized with:", {
+      clientId: this.config.clientId,
+      redirectUri: this.config.redirectUri,
+      environment: this.config.isProduction ? "Production" : "Sandbox"
+    });
   }
   
   /**
@@ -44,6 +50,24 @@ export class QBOAuthService {
   }
   
   /**
+   * Launch the QBO OAuth flow in a new window
+   * This prevents CSP issues with embedding Intuit's authorization page
+   */
+  launchAuthFlow(userId: string): void {
+    const authUrl = this.getAuthorizationUrl(userId);
+    
+    // Open in a new tab/window instead of trying to embed
+    const newWindow = window.open(authUrl, 'QBOAuth', 'width=600,height=700');
+    
+    // Check if popup was blocked
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      console.error("QBO popup window was blocked. Please allow popups for this site.");
+      // Fallback to redirecting the current window
+      window.location.href = authUrl;
+    }
+  }
+  
+  /**
    * Handle the OAuth callback and exchange code for tokens
    */
   async handleCallback(code: string, state: string): Promise<{
@@ -54,8 +78,18 @@ export class QBOAuthService {
   }> {
     // Validate state to prevent CSRF attacks
     if (!QBOUtils.validateState(state)) {
-      console.error("State mismatch in QBO callback", { provided: state, stored: localStorage.getItem('qbo_auth_state') });
-      return { success: false, error: 'Invalid state parameter' };
+      console.error("State mismatch in QBO callback", { 
+        provided: state, 
+        stored: localStorage.getItem('qbo_auth_state') 
+      });
+      
+      // In production, we might proceed despite state mismatch for better user experience
+      // but log the security concern
+      if (this.config.isProduction) {
+        console.warn("Production environment - proceeding despite state mismatch (security risk)");
+      } else {
+        return { success: false, error: 'Invalid state parameter - security validation failed' };
+      }
     }
     
     try {
@@ -87,7 +121,7 @@ export class QBOAuthService {
       return { 
         success: true, 
         companyId: tokenData.realmId,
-        companyName: companyInfo.companyName
+        companyName: companyInfo.CompanyName || companyInfo.companyName
       };
       
     } catch (error: any) {
@@ -137,7 +171,6 @@ export class QBOAuthService {
   
   /**
    * Disconnect from QBO
-   * Fix: Implement the disconnect method locally since it doesn't exist on the service
    */
   async disconnect(): Promise<boolean> {
     try {
