@@ -5,7 +5,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { InfoIcon } from 'lucide-react';
 
 export function QBODebugInfo() {
-  const qboConfig = new QBOConfig();
+  // Use the getInstance() method instead of direct instantiation
+  const qboConfig = QBOConfig.getInstance();
   const hostname = window.location.hostname;
   const port = window.location.port;
   

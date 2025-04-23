@@ -12,6 +12,9 @@ export class QBOConfig {
   readonly authEndpoint: string = 'https://appcenter.intuit.com/connect/oauth2';
   readonly tokenEndpoint: string = 'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer';
   
+  // API endpoints
+  readonly apiBaseUrl: string; // Add this property
+  
   // Production vs Sandbox mode
   readonly isProduction: boolean;
   
@@ -20,6 +23,9 @@ export class QBOConfig {
   
   // Redirect URI for OAuth callback
   readonly redirectUri: string;
+  
+  // For token refresh requests
+  readonly clientSecret: string;
   
   /**
    * Private constructor to prevent direct instantiation
@@ -39,6 +45,14 @@ export class QBOConfig {
     // Set client ID based on environment
     this.clientId = import.meta.env.VITE_QBO_CLIENT_ID || 'ABBj3cN2qzHyAjRg2Htq5BvstIO0HT79PmrHDNLBTdLKMirQr6';
     
+    // Add placeholder for clientSecret (this should come from environment variables in a real app)
+    this.clientSecret = import.meta.env.VITE_QBO_CLIENT_SECRET || '';
+    
+    // Set API base URL based on environment
+    this.apiBaseUrl = this.isProduction
+      ? 'https://quickbooks.api.intuit.com/v3'
+      : 'https://sandbox-quickbooks.api.intuit.com/v3';
+    
     // Build the correct redirect URI based on current domain
     const baseUrl = window.location.origin;
     
@@ -53,7 +67,8 @@ export class QBOConfig {
     console.log("QBO Config initialized:", {
       mode: this.isProduction ? "Production" : "Development",
       clientId: this.clientId,
-      redirectUri: this.redirectUri
+      redirectUri: this.redirectUri,
+      apiBaseUrl: this.apiBaseUrl
     });
   }
   
