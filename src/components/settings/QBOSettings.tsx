@@ -8,6 +8,7 @@ import { QBOConnectionStatus } from "./qbo/QBOConnectionStatus";
 import { QBOSyncInformation } from "./qbo/QBOSyncInformation";
 import { QBONoConnectionInfo } from "./qbo/QBONoConnectionInfo";
 import { QBODebugInfo } from "./qbo/QBODebugInfo";
+import { QBODiagnosticInfo } from "./qbo/QBODiagnosticInfo";
 import { QBOErrorBoundary } from "@/components/error/QBOErrorBoundary";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -62,7 +63,9 @@ export function QBOSettings() {
   
   // Check if we're in development/sandbox mode
   const isSandboxMode = window.location.hostname === 'localhost' || 
-                       window.location.hostname.includes('127.0.0.1');
+                       window.location.hostname.includes('127.0.0.1') ||
+                       window.location.hostname.includes('.vercel.app') ||
+                       window.location.hostname.includes('.lovableproject.com');
   
   // Create a display-safe connection object without sensitive fields
   const displayConnection: DisplayQBOConnection | null = connection ? {
@@ -103,9 +106,13 @@ export function QBOSettings() {
                 isSandboxMode={isSandboxMode} 
               />
               <QBOSyncInformation />
+              <QBODiagnosticInfo />
             </>
           ) : (
-            <QBONoConnectionInfo isSandboxMode={isSandboxMode} />
+            <>
+              <QBONoConnectionInfo isSandboxMode={isSandboxMode} />
+              <QBODiagnosticInfo />
+            </>
           )}
         </CardContent>
         

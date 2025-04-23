@@ -72,6 +72,56 @@ export function useQBOConnection(): QBOConnectionHook {
     fetchConnection();
   }, [user]);
   
+  // Listen for messages from the QBO popup window
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Verify message is from our domain
+      if (event.origin !== window.location.origin) return;
+      
+      // Handle success message from QBO popup
+      if (event.data?.type === 'QBO_AUTH_SUCCESS') {
+        console.log("Received QBO auth success message:", event.data);
+        
+        // Refresh connection data
+        if (user) {
+          fetchConnection();
+        }
+      }
+    };
+    
+    // Function to fetch connection (used after receiving success message)
+    async function fetchConnection() {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('qbo_connections')
+          .select('id, company_id, company_name, created_at, updated_at, access_token, refresh_token')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (!error && data) {
+          setConnection(data);
+          toast({
+            title: "Connection Successful",
+            description: `Connected to ${data.company_name || 'QuickBooks Online'}`,
+          });
+        }
+      } catch (err) {
+        console.error("Error refreshing QBO connection:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    // Add message event listener
+    window.addEventListener('message', handleMessage);
+    
+    // Cleanup listener on unmount
+    return () => window.removeEventListener('message', handleMessage);
+  }, [user, toast]);
+  
   const connectToQBO = () => {
     if (!user) {
       toast({
@@ -84,7 +134,10 @@ export function useQBOConnection(): QBOConnectionHook {
     }
     
     try {
-      // Use the new method that launches in a new window
+      // Reset any previous errors
+      setError(null);
+      
+      // Use the authService method that launches in a new window
       authService.launchAuthFlow(user.id);
     } catch (err) {
       console.error("Error starting QBO auth flow:", err);
@@ -100,6 +153,7 @@ export function useQBOConnection(): QBOConnectionHook {
   const disconnectFromQBO = async (): Promise<boolean> => {
     try {
       setIsLoading(true);
+      setError(null);
       const success = await authService.disconnect();
       
       if (success) {
