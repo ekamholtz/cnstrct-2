@@ -33,7 +33,7 @@ export class QBOConnectionService {
         .from('qbo_connections')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
       
       if (error) {
         if (error.code === 'PGRST116') {

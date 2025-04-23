@@ -42,7 +42,7 @@ export class QBOTokenManager {
         .from('qbo_connections')
         .select('id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
         
       const connectionData = {
         user_id: userId,
@@ -95,7 +95,7 @@ export class QBOTokenManager {
         .from("qbo_connections")
         .select("*")
         .eq("id", connectionId)
-        .single();
+        .maybeSingle();
       
       if (error || !connection) {
         throw new Error(`Connection not found: ${error?.message || 'No connection data'}`);

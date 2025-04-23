@@ -1,0 +1,97 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Intuit OAuth API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "http://localhost:8082" }
+  ],
+  "paths": {
+    "/authUri": {
+      "get": {
+        "summary": "Get OAuth Authorize URI",
+        "responses": {
+          "200": {
+            "description": "Authorize URI",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "authUri": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/callback": {
+      "get": {
+        "summary": "OAuth Callback",
+        "parameters": [
+          { "name": "code", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "state", "in": "query", "required": false, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "OAuth Token",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/retrieveToken": {
+      "get": {
+        "summary": "Retrieve OAuth Token",
+        "responses": {
+          "200": {
+            "description": "Token JSON",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/refreshAccessToken": {
+      "get": {
+        "summary": "Refresh OAuth Token",
+        "responses": {
+          "200": {
+            "description": "Refreshed Token JSON",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getCompanyInfo": {
+      "get": {
+        "summary": "Get Company Info",
+        "responses": {
+          "200": {
+            "description": "Company Info",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+    

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QBO Demo</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="container py-4">
+    <section class="well mb-4">
+      <form id="credentialsForm" autocomplete="off">
+      </form>
+        <button type="button" id="authorizeUri" class="btn btn-primary mb-2">Connect to QuickBooks
+        </button>
+        <button type="button" id="retrieveToken" class="btn btn-success mb-2">Display Access Token</button>
+        <button type="button" id="refreshToken" class="btn btn-outline-success mb-2">Refresh Token</button>
+        <pre id="accessToken"></pre>
+
+
+      <pre id="apiCall"></pre>
+      <button type="button" id="makeAPICall" class="btn btn-info">Get Company Info</button>
+
+      <a href="/api-docs" class="btn btn-outline-primary mb-2" target="_blank">View API Documentation</a>
+    </section>
+  </div>
+  <script>
+    // Helper for AJAX requests
+    const ajax = (url, data = null) => {
+      const options = data
+        ? { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) }
+        : { method: 'GET' };
+      return fetch(url, options).then(res => res.json());
+    };
+
+    // Event listeners
+    document.getElementById('authorizeUri').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const authUri = await ajax('/authUri');
+
+        const width = 800, height = 650;
+        const left = (screen.width - width) / 2;
+        const top = (screen.height - height) / 2;
+        const win = window.open(authUri.authUri, 'connectPopup', `location=1,width=${width},height=${height},left=${left},top=${top}`);
+        const pollOAuth = setInterval(() => {
+          try {
+            if (win.document.URL.includes("code")) {
+              clearInterval(pollOAuth);
+              win.close();
+              location.reload();
+            }
+          } catch {}
+        }, 100);
+      } catch (err) {
+        alert('Failed to get authorization URI.');
+      }
+    });
+
+    document.getElementById('retrieveToken').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const token = await ajax('/retrieveToken');
+        document.getElementById('accessToken').textContent = JSON.stringify(token) ?? 'Please Authorize Using Connect to QuickBooks first!';
+      } catch {
+        document.getElementById('accessToken').textContent = 'Error retrieving token.';
+      }
+    });
+
+    document.getElementById('refreshToken').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const token = await ajax('/refreshAccessToken');
+        document.getElementById('accessToken').textContent = JSON.stringify(token) ?? 'Please Authorize Using Connect to QuickBooks first!';
+      } catch {
+        document.getElementById('accessToken').textContent = 'Error refsreshing token.';
+      }
+    });
+
+    document.getElementById('makeAPICall').addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        const response = await ajax('/getCompanyInfo');
+        document.getElementById('apiCall').textContent = JSON.stringify(response, null, 2);
+      } catch {
+        document.getElementById('apiCall').textContent = 'API call failed.';
+      }
+    });
+  </script>
+</body>
+</html>
