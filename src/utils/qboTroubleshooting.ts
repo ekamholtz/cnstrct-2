@@ -1,4 +1,3 @@
-
 /**
  * Utilities for QBO troubleshooting
  */
@@ -137,6 +136,33 @@ export class QBOTroubleshooting {
       console.log("All QBO auth data cleared from browser storage");
     } catch (e) {
       console.error("Error clearing QBO data:", e);
+    }
+  }
+
+  /**
+   * Clear all QBO-related browser storage
+   */
+  static clearQBOAuthData(): void {
+    try {
+      // Clear localStorage items related to QBO
+      const localStorageKeys = Object.keys(localStorage);
+      localStorageKeys.forEach(key => {
+        if (key.includes('qbo_') || key.includes('quickbooks')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      // Clear sessionStorage items related to QBO
+      const sessionStorageKeys = Object.keys(sessionStorage);
+      sessionStorageKeys.forEach(key => {
+        if (key.includes('qbo_') || key.includes('quickbooks')) {
+          sessionStorage.removeItem(key);
+        }
+      });
+      
+      console.log("QBO authentication data cleared from browser storage");
+    } catch (error) {
+      console.error("Error clearing QBO auth data:", error);
     }
   }
 }
