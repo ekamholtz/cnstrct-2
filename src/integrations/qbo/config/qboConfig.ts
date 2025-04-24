@@ -1,3 +1,4 @@
+
 /**
  * Singleton configuration class for QBO integration
  */
@@ -32,12 +33,16 @@ export class QBOConfig {
   private constructor() {
     const hostname = window.location.hostname;
     
-    // Determine if we're in production or development mode
-    // Consider Lovable preview URLs as development environment
-    this.isProduction = hostname === 'www.cnstrctnetwork.com';
+    // Determine if we're in production based on hostname
+    // Any preview or local dev environment is treated as development 
+    this.isProduction = hostname === 'www.cnstrctnetwork.com' ||
+                       hostname === 'cnstrctnetwork.com';
     
     // Set client ID based on environment
-    this.clientId = import.meta.env.VITE_QBO_CLIENT_ID || 'ABBj3cN2qzHyAjRg2Htq5BvstIO0HT79PmrHDNLBTdLKMirQr6';
+    this.clientId = import.meta.env.VITE_QBO_CLIENT_ID || 
+                   (this.isProduction ? 
+                     'ABBj3cN2qzHyAjRg2Htq5BvstIO0HT79PmrHDNLBTdLKMirQr6' :
+                     'ABBj3cN2qzHyAjRg2Htq5BvstIO0HT79PmrHDNLBTdLKMirQr6');
     
     // Add placeholder for clientSecret
     this.clientSecret = import.meta.env.VITE_QBO_CLIENT_SECRET || '';
@@ -47,8 +52,17 @@ export class QBOConfig {
       ? 'https://quickbooks.api.intuit.com/v3'
       : 'https://sandbox-quickbooks.api.intuit.com/v3';
     
-    // Set the redirect URI based on current hostname
-    this.redirectUri = `${window.location.origin}/qbo/callback`;
+    // Set the redirect URI
+    // This will now point to our Supabase edge function for both development and production
+    const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_REF || 'wkspjzbybjhvscqdmpwi';
+    
+    if (this.isProduction) {
+      // In production, we use the site's origin
+      this.redirectUri = `${window.location.origin}/qbo-oauth-callback`;
+    } else {
+      // In development, we use the Supabase edge function URL
+      this.redirectUri = `https://${projectRef}.supabase.co/functions/v1/qbo-oauth-callback`;
+    }
     
     console.log("QBO Config initialized:", {
       mode: this.isProduction ? "Production" : "Development",

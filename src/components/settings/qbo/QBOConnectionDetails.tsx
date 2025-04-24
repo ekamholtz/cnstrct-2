@@ -1,47 +1,56 @@
 
-import React from "react";
-import { CheckCircle } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-
-interface DisplayQBOConnection {
-  id: string;
-  company_id: string;
-  company_name: string;
-  created_at: string;
-  updated_at: string;
-}
+import React from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import { QBOConnection } from '@/hooks/useQBOConnection';
+import { Badge } from '@/components/ui/badge';
 
 interface QBOConnectionDetailsProps {
-  connection: DisplayQBOConnection;
+  connection: QBOConnection;
   isSandboxMode: boolean;
 }
 
 export function QBOConnectionDetails({ connection, isSandboxMode }: QBOConnectionDetailsProps) {
+  // Format dates for display
+  const formattedCreatedAt = formatDistanceToNow(new Date(connection.created_at), { addSuffix: true });
+  const formattedUpdatedAt = formatDistanceToNow(new Date(connection.updated_at), { addSuffix: true });
+  
   return (
-    <div className="space-y-4">
-      <div className="flex items-center space-x-2 text-green-600">
-        <CheckCircle className="h-5 w-5" />
-        <span className="font-medium">Connected to QuickBooks Online</span>
+    <div className="mt-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-medium">Connection Status</h3>
+        <Badge variant="success">Connected</Badge>
       </div>
       
-      <div className="bg-muted p-4 rounded-md">
-        <h3 className="font-semibold mb-2">Connection Details</h3>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Company:</span>
-            <span className="font-medium">{connection.company_name}</span>
+      <div className="bg-white p-4 rounded-md border border-gray-200 space-y-3">
+        <div>
+          <p className="text-sm font-semibold">Company Name</p>
+          <p className="text-base">{connection.company_name}</p>
+        </div>
+        
+        <div>
+          <p className="text-sm font-semibold">Company ID</p>
+          <p className="text-sm text-muted-foreground font-mono">{connection.company_id}</p>
+        </div>
+        
+        <div>
+          <p className="text-sm font-semibold">Environment</p>
+          <div className="flex items-center mt-1">
+            {isSandboxMode ? (
+              <Badge variant="warning" className="text-xs">Sandbox</Badge>
+            ) : (
+              <Badge variant="default" className="text-xs">Production</Badge>
+            )}
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Environment:</span>
-            <span>{isSandboxMode ? "Sandbox (Test)" : "Production"}</span>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm font-semibold">Connected</p>
+            <p className="text-sm text-muted-foreground">{formattedCreatedAt}</p>
           </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Connected:</span>
-            <span>{formatDistanceToNow(new Date(connection.created_at), { addSuffix: true })}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Last Updated:</span>
-            <span>{formatDistanceToNow(new Date(connection.updated_at), { addSuffix: true })}</span>
+          <div>
+            <p className="text-sm font-semibold">Last Updated</p>
+            <p className="text-sm text-muted-foreground">{formattedUpdatedAt}</p>
           </div>
         </div>
       </div>

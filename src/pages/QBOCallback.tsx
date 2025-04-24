@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { QBOAuthService } from '@/integrations/qbo/authService';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertTriangle, CheckCircle, Loader2 } from "lucide-react";
@@ -9,85 +8,64 @@ import { useToast } from '@/components/ui/use-toast';
 
 export function QBOCallback() {
   const [searchParams] = useSearchParams();
-  const [status, setStatus] = useState('Processing...');
+  const [status, setStatus] = useState('Processing QBO authorization...');
   const [error, setError] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
   
   // Extract parameters from URL
-  const code = searchParams.get('code');
-  const realmId = searchParams.get('realmId');
-  const state = searchParams.get('state');
+  const success = searchParams.get('success') === 'true';
+  const errorMessage = searchParams.get('message');
+  const companyName = searchParams.get('companyName');
 
   useEffect(() => {
-    const processCallback = async () => {
-      // Check for required parameters
-      if (!code) {
-        setError('Missing authorization code');
-        setStatus('Error: Missing required parameters');
-        setIsProcessing(false);
-        return;
-      }
+    // Process the callback parameters
+    if (errorMessage) {
+      setError(decodeURIComponent(errorMessage));
+      setStatus('Authorization failed');
+      setIsProcessing(false);
       
-      if (!state) {
-        setError('Missing state parameter');
-        setStatus('Error: Missing security state');
-        setIsProcessing(false);
-        return;
-      }
+      toast({
+        title: "QBO Connection Failed",
+        description: decodeURIComponent(errorMessage),
+        variant: "destructive"
+      });
+    } else if (success) {
+      setStatus(`Connected to ${companyName || 'QuickBooks Online'}! Redirecting...`);
       
-      try {
-        setStatus('Authorization successful! Processing token exchange...');
-        
-        const authService = new QBOAuthService();
-        const result = await authService.handleCallback(code, state);
-        
-        if (result.success) {
-          setStatus(`Connected to ${result.companyName || 'QuickBooks Online'}! Redirecting...`);
-          
-          toast({
-            title: "Connection Successful",
-            description: `Connected to ${result.companyName || 'QuickBooks Online'}`,
-          });
-          
-          // Set a timeout for user to see success message before redirecting
-          setTimeout(() => {
-            // If this was opened in a popup, try to close it and notify the opener
-            if (window.opener) {
-              try {
-                // Notify the opener window about success
-                window.opener.postMessage({
-                  type: 'QBO_AUTH_SUCCESS',
-                  companyId: result.companyId,
-                  companyName: result.companyName
-                }, window.location.origin);
-                
-                // Close the popup
-                window.close();
-              } catch (err) {
-                console.error("Could not communicate with opener window:", err);
-              }
-            }
+      toast({
+        title: "Connection Successful",
+        description: `Connected to ${companyName || 'QuickBooks Online'}`,
+      });
+      
+      // Set a timeout for user to see success message before redirecting
+      setTimeout(() => {
+        // If this was opened in a popup, try to close it and notify the opener
+        if (window.opener) {
+          try {
+            // Notify the opener window about success
+            window.opener.postMessage({
+              type: 'QBO_AUTH_SUCCESS',
+              companyName
+            }, window.location.origin);
             
-            // If we're still here (not a popup or couldn't close), redirect
-            navigate('/settings');
-          }, 2000);
-        } else {
-          setError(result.error || 'Unknown error during authorization');
-          setStatus('Authorization failed');
-          setIsProcessing(false);
+            // Close the popup
+            window.close();
+          } catch (err) {
+            console.error("Could not communicate with opener window:", err);
+          }
         }
-      } catch (err: any) {
-        console.error("Error processing QBO callback:", err);
-        setError(err.message || 'Error processing authorization');
-        setStatus('Authorization failed');
-        setIsProcessing(false);
-      }
-    };
-    
-    processCallback();
-  }, [code, state, realmId, navigate, toast]);
+        
+        // If we're still here (not a popup or couldn't close), redirect
+        navigate('/settings');
+      }, 2000);
+    } else {
+      setError('Missing callback parameters');
+      setStatus('Authorization failed');
+      setIsProcessing(false);
+    }
+  }, [success, errorMessage, companyName, navigate, toast]);
 
   return (
     <div className="min-h-screen bg-muted/30 flex items-center justify-center">
