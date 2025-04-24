@@ -2,6 +2,7 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
+import { QBOConnection } from '@/hooks/useQBOConnection';
 
 interface QBOConnectionDetailsProps {
   connection: {
@@ -23,7 +24,7 @@ export function QBOConnectionDetails({ connection, isSandboxMode }: QBOConnectio
     <div className="mt-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Connection Status</h3>
-        <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">Connected</Badge>
+        <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">Connected</Badge>
       </div>
       
       <div className="bg-white p-4 rounded-md border border-gray-200 space-y-3">
