@@ -1,4 +1,3 @@
-
 /**
  * Singleton configuration class for QBO integration
  */
@@ -18,7 +17,7 @@ export class QBOConfig {
   // Production vs Sandbox mode
   readonly isProduction: boolean;
   
-  // Scopes requested for QBO access - accounting scope is needed for QBO
+  // Scopes requested for QBO access
   readonly scopes: string[] = ['com.intuit.quickbooks.accounting'];
   
   // Redirect URI for OAuth callback
@@ -31,21 +30,16 @@ export class QBOConfig {
    * Private constructor to prevent direct instantiation
    */
   private constructor() {
-    // Determine if we're in production or sandbox mode by checking the domain
-    // Local development always uses sandbox mode
-    const isDev = 
-      window.location.hostname === 'localhost' || 
-      window.location.hostname.includes('127.0.0.1') ||
-      window.location.hostname.includes('localhost') || 
-      window.location.hostname.includes('.vercel.app') ||
-      window.location.hostname.includes('.lovableproject.com');
-      
-    this.isProduction = !isDev;
+    const hostname = window.location.hostname;
+    
+    // Determine if we're in production or development mode
+    // Consider Lovable preview URLs as development environment
+    this.isProduction = hostname === 'www.cnstrctnetwork.com';
     
     // Set client ID based on environment
     this.clientId = import.meta.env.VITE_QBO_CLIENT_ID || 'ABBj3cN2qzHyAjRg2Htq5BvstIO0HT79PmrHDNLBTdLKMirQr6';
     
-    // Add placeholder for clientSecret (this should come from environment variables in a real app)
+    // Add placeholder for clientSecret
     this.clientSecret = import.meta.env.VITE_QBO_CLIENT_SECRET || '';
     
     // Set API base URL based on environment
@@ -53,18 +47,12 @@ export class QBOConfig {
       ? 'https://quickbooks.api.intuit.com/v3'
       : 'https://sandbox-quickbooks.api.intuit.com/v3';
     
-    // IMPORTANT: Use hardcoded redirect URIs that match EXACTLY what's registered in Intuit Developer Portal
-    // For sandbox/development environments
-    const sandboxRedirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
-    
-    // For production
-    const productionRedirectUri = "https://www.cnstrctnetwork.com/qbo/callback";
-    
-    // Set the redirect URI based on environment
-    this.redirectUri = this.isProduction ? productionRedirectUri : sandboxRedirectUri;
+    // Set the redirect URI based on current hostname
+    this.redirectUri = `${window.location.origin}/qbo/callback`;
     
     console.log("QBO Config initialized:", {
       mode: this.isProduction ? "Production" : "Development",
+      hostname,
       clientId: this.clientId,
       redirectUri: this.redirectUri,
       apiBaseUrl: this.apiBaseUrl
