@@ -12,17 +12,6 @@ import { QBODiagnosticInfo } from "./qbo/QBODiagnosticInfo";
 import { QBOErrorBoundary } from "@/components/error/QBOErrorBoundary";
 import { useToast } from "@/components/ui/use-toast";
 
-// Define a type for QBO Connection that includes all required fields
-interface QBOConnection {
-  id: string;
-  company_id: string;
-  company_name: string;
-  created_at: string;
-  updated_at: string;
-  access_token: string;
-  refresh_token: string;
-}
-
 // Define a safe version for display/props without sensitive data
 interface DisplayQBOConnection {
   id: string;
@@ -33,7 +22,7 @@ interface DisplayQBOConnection {
 }
 
 export function QBOSettings() {
-  const { connection, isLoading, error, connectToQBO, disconnectFromQBO } = useQBOConnection();
+  const { connection, isLoading, error, connectToQBO, disconnectFromQBO, testConnection } = useQBOConnection();
   const { toast } = useToast();
   
   // Listen for messages from popup window
@@ -75,6 +64,14 @@ export function QBOSettings() {
     created_at: connection.created_at,
     updated_at: connection.updated_at
   } : null;
+  
+  // Modified testConnection to return a Promise<boolean>
+  const handleTestConnection = async (): Promise<boolean> => {
+    if (!testConnection) {
+      return false;
+    }
+    return await testConnection();
+  };
   
   return (
     <QBOErrorBoundary>
@@ -122,6 +119,7 @@ export function QBOSettings() {
               connection={displayConnection}
               connectToQBO={connectToQBO}
               disconnectFromQBO={disconnectFromQBO}
+              testConnection={handleTestConnection}
               isSandboxMode={isSandboxMode}
             />
           )}

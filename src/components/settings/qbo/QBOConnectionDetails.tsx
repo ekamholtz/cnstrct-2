@@ -1,11 +1,17 @@
 
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { QBOConnection } from '@/hooks/useQBOConnection';
+import { useQBOConnection } from '@/hooks/useQBOConnection';
 import { Badge } from '@/components/ui/badge';
 
 interface QBOConnectionDetailsProps {
-  connection: QBOConnection;
+  connection: {
+    id: string;
+    company_id: string;
+    company_name: string;
+    created_at: string;
+    updated_at: string;
+  };
   isSandboxMode: boolean;
 }
 
@@ -18,7 +24,7 @@ export function QBOConnectionDetails({ connection, isSandboxMode }: QBOConnectio
     <div className="mt-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-medium">Connection Status</h3>
-        <Badge variant="success">Connected</Badge>
+        <Badge variant="outline" className="bg-green-100 text-green-800 hover:bg-green-200">Connected</Badge>
       </div>
       
       <div className="bg-white p-4 rounded-md border border-gray-200 space-y-3">
@@ -36,7 +42,7 @@ export function QBOConnectionDetails({ connection, isSandboxMode }: QBOConnectio
           <p className="text-sm font-semibold">Environment</p>
           <div className="flex items-center mt-1">
             {isSandboxMode ? (
-              <Badge variant="warning" className="text-xs">Sandbox</Badge>
+              <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Sandbox</Badge>
             ) : (
               <Badge variant="default" className="text-xs">Production</Badge>
             )}

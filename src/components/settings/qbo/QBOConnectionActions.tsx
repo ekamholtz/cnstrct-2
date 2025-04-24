@@ -2,12 +2,12 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { RefreshCw, Link2, LinkOff } from 'lucide-react';
+import { RefreshCw, Link2, Link2Off } from 'lucide-react';
 import { QBOTroubleshooting } from '@/utils/qboTroubleshooting';
-import { QBOConnection } from '@/hooks/useQBOConnection';
+import { useQBOConnection } from '@/hooks/useQBOConnection';
 
 interface QBOConnectionActionsProps {
-  connection: QBOConnection | null;
+  connection: any | null;
   connectToQBO: () => Promise<boolean>;
   disconnectFromQBO: () => Promise<boolean>;
   testConnection?: () => Promise<boolean>;
@@ -75,7 +75,7 @@ export function QBOConnectionActions({
               onClick={() => setIsDisconnectDialogOpen(true)}
               disabled={isLoading}
             >
-              <LinkOff className="h-4 w-4 mr-2" />
+              <Link2Off className="h-4 w-4 mr-2" />
               Disconnect
             </Button>
           </>

@@ -1,6 +1,6 @@
 
-import { QBOConfig } from "../config/qboConfig";
 import { supabase } from "@/integrations/supabase/client";
+import { QBOConfig } from "../config/qboConfig";
 import { toast } from "@/components/ui/use-toast";
 
 /**
@@ -66,7 +66,7 @@ export class QBOAuthService {
         window.location.origin.includes('127.0.0.1') || 
         window.location.origin.includes('.vercel.app') || 
         window.location.origin.includes('.lovableproject.com')
-          ? 'https://' + Deno.env.get('SUPABASE_PROJECT_REF') + '.supabase.co/functions/v1'
+          ? 'https://wkspjzbybjhvscqdmpwi.supabase.co/functions/v1'
           : window.location.origin
       ).toString();
       
@@ -233,6 +233,52 @@ export class QBOAuthService {
       return { success: true };
     } catch (err) {
       console.error("Error disconnecting from QBO:", err);
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Exchange code for token - used by tokenManager
+   */
+  async exchangeCodeForToken(code: string, redirectUri: string): Promise<any> {
+    try {
+      // Call the edge function to exchange the code for tokens
+      const { data, error } = await supabase.functions.invoke('qbo-token', {
+        body: { code, redirectUri }
+      });
+      
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, data };
+    } catch (err) {
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      };
+    }
+  }
+  
+  /**
+   * Refresh token - used by tokenManager
+   */
+  async refreshToken(refreshToken: string): Promise<any> {
+    try {
+      // Call the edge function to refresh the token
+      const { data, error } = await supabase.functions.invoke('qbo-refresh', {
+        body: { refreshToken }
+      });
+      
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true, data };
+    } catch (err) {
       return { 
         success: false, 
         error: err instanceof Error ? err.message : 'Unknown error' 
