@@ -65,12 +65,9 @@ export function QBOSettings() {
     updated_at: connection.updated_at
   } : null;
   
-  // Modified testConnection to return a Promise<boolean>
-  const handleTestConnection = async (): Promise<boolean> => {
-    if (!testConnection) {
-      return false;
-    }
-    return await testConnection();
+  // Modified connectToQBO to return a Promise<boolean>
+  const handleConnectToQBO = async (): Promise<boolean> => {
+    return await connectToQBO();
   };
   
   return (
@@ -117,9 +114,9 @@ export function QBOSettings() {
           {!isLoading && (
             <QBOConnectionActions 
               connection={displayConnection}
-              connectToQBO={connectToQBO}
+              connectToQBO={handleConnectToQBO}
               disconnectFromQBO={disconnectFromQBO}
-              testConnection={handleTestConnection}
+              testConnection={testConnection}
               isSandboxMode={isSandboxMode}
             />
           )}

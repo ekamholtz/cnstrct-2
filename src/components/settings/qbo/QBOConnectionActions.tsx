@@ -3,8 +3,6 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { RefreshCw, Link2, Link2Off } from 'lucide-react';
-import { QBOTroubleshooting } from '@/utils/qboTroubleshooting';
-import { useQBOConnection } from '@/hooks/useQBOConnection';
 
 interface QBOConnectionActionsProps {
   connection: any | null;
@@ -27,13 +25,7 @@ export function QBOConnectionActions({
   // Handle connect button click
   const handleConnect = async () => {
     setIsLoading(true);
-    
-    // Clear existing QBO auth data
-    QBOTroubleshooting.clearQBOAuthData();
-    
-    // Start connection flow
     await connectToQBO();
-    
     setIsLoading(false);
   };
   

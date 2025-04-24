@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import { useQBOConnection } from '@/hooks/useQBOConnection';
 import { Badge } from '@/components/ui/badge';
 
 interface QBOConnectionDetailsProps {

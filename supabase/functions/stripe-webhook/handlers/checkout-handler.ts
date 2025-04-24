@@ -1,5 +1,5 @@
 
-import { SupabaseClient } from "@supabase/supabase-js";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
 import Stripe from "https://esm.sh/stripe@14.10.0";
 import { findGCAccountId, updateGCAccountSubscription, mapStripePriceToTierId, createGCAccountWithSubscription } from "../subscription-handler";
 import { logStep } from "../utils";
