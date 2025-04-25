@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { QBOAuthService } from '@/integrations/qbo/auth/qboAuthService';
 import { QBODataService } from '@/integrations/qbo/services/qboDataService';
@@ -33,13 +32,11 @@ export function useQBOConnection(): QBOConnectionHook {
   const dataService = new QBODataService();
   const { toast } = useToast();
   
-  // Fetch the current connection
   const fetchConnection = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
       
-      // Get current user ID
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -48,7 +45,6 @@ export function useQBOConnection(): QBOConnectionHook {
         return;
       }
       
-      // Get the connection from the database
       const { data, error } = await supabase
         .from('qbo_connections')
         .select('*')
@@ -56,7 +52,7 @@ export function useQBOConnection(): QBOConnectionHook {
         .single();
       
       if (error) {
-        if (error.code === 'PGRST116') { // No rows returned
+        if (error.code === 'PGRST116') {
           setConnection(null);
         } else {
           setError(new Error(error.message));
@@ -71,12 +67,10 @@ export function useQBOConnection(): QBOConnectionHook {
     }
   }, []);
   
-  // Connect to QBO
   const connectToQBO = useCallback(async (): Promise<boolean> => {
     try {
       setError(null);
       
-      // Get current user ID
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -89,8 +83,7 @@ export function useQBOConnection(): QBOConnectionHook {
         return false;
       }
       
-      // Use the authService to start the auth flow
-      const result = await authService.startAuthFlow(user.id);
+      const result = await authService.startAuthFlow();
       
       if (!result.success) {
         toast({
@@ -113,50 +106,10 @@ export function useQBOConnection(): QBOConnectionHook {
     }
   }, [authService, toast]);
   
-  // Disconnect from QBO
-  const disconnectFromQBO = useCallback(async (): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const result = await authService.disconnect();
-      
-      if (result.success) {
-        toast({
-          title: 'Disconnected',
-          description: 'Successfully disconnected from QuickBooks Online',
-        });
-        
-        // Refresh the connection data
-        await fetchConnection();
-        
-        return true;
-      } else {
-        toast({
-          title: 'Disconnection Failed',
-          description: result.error || 'Failed to disconnect from QBO',
-          variant: 'destructive'
-        });
-        return false;
-      }
-    } catch (err) {
-      console.error("Error disconnecting from QBO:", err);
-      toast({
-        title: 'Disconnection Failed',
-        description: err instanceof Error ? err.message : 'Unknown error',
-        variant: 'destructive'
-      });
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [authService, fetchConnection, toast]);
-  
-  // Test the QBO connection
   const testConnection = useCallback(async (): Promise<boolean> => {
     try {
       setError(null);
       
-      // Get current user ID
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -168,7 +121,6 @@ export function useQBOConnection(): QBOConnectionHook {
         return false;
       }
       
-      // Use the edge function to test the connection
       const response = await fetch('/api/qbo-test-connection', {
         method: 'POST',
         headers: {
@@ -204,12 +156,46 @@ export function useQBOConnection(): QBOConnectionHook {
     }
   }, [toast]);
   
-  // Load connection on mount
+  const disconnectFromQBO = useCallback(async (): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const result = await authService.disconnect();
+      
+      if (result.success) {
+        toast({
+          title: 'Disconnected',
+          description: 'Successfully disconnected from QuickBooks Online',
+        });
+        
+        await fetchConnection();
+        
+        return true;
+      } else {
+        toast({
+          title: 'Disconnection Failed',
+          description: result.error || 'Failed to disconnect from QBO',
+          variant: 'destructive'
+        });
+        return false;
+      }
+    } catch (err) {
+      console.error("Error disconnecting from QBO:", err);
+      toast({
+        title: 'Disconnection Failed',
+        description: err instanceof Error ? err.message : 'Unknown error',
+        variant: 'destructive'
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authService, fetchConnection, toast]);
+  
   useEffect(() => {
     fetchConnection();
   }, [fetchConnection]);
   
-  // Listen for auth state changes to refresh connection
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(() => {
       fetchConnection();
