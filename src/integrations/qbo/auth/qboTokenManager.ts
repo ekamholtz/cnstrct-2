@@ -1,15 +1,17 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { QBOAuthService } from "./qboAuthService";
+import { QBOConfig } from "../config/qboConfig";
 
 /**
  * Manager for QBO access tokens, handling refresh via Edge Function when necessary
  */
 export class QBOTokenManager {
   private authService: QBOAuthService;
+  private config: QBOConfig;
   
   constructor() {
     this.authService = new QBOAuthService();
+    this.config = QBOConfig.getInstance();
   }
   
   /**
@@ -17,9 +19,9 @@ export class QBOTokenManager {
    */
   async exchangeCodeForTokens(code: string): Promise<any> {
     console.log("QBOTokenManager: Exchanging code for tokens...");
-    // Determine the redirect URI from the config
-    const redirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback"; // Using a hardcoded value that matches what's registered with Intuit
-    
+    // Determine the redirect URI from the config (must match exactly what is registered)
+    const redirectUri = this.config.redirectUri;
+
     const result = await this.authService.exchangeCodeForToken(code, redirectUri);
     
     if (!result.success || !result.data) {

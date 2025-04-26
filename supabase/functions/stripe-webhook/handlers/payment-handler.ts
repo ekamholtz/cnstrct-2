@@ -1,7 +1,6 @@
-
-import { SupabaseClient } from "@supabase/supabase-js";
-import Stripe from "stripe";
-import { isValidUuid } from "../utils";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
+import Stripe from "https://esm.sh/stripe@14.10.0";
+import { isValidUuid } from "../utils.ts";
 
 export async function handlePaymentIntentSucceeded(
   paymentIntent: Stripe.PaymentIntent,

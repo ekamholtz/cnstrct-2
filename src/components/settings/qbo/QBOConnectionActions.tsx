@@ -1,46 +1,117 @@
 
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowUpRight, LogOut } from "lucide-react";
-
-interface DisplayQBOConnection {
-  id: string;
-  company_id: string;
-  company_name: string;
-  created_at: string;
-  updated_at: string;
-}
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { RefreshCw, Link2, Link2Off } from 'lucide-react';
 
 interface QBOConnectionActionsProps {
-  connection: DisplayQBOConnection | null;
-  connectToQBO: () => void;
+  connection: any | null;
+  connectToQBO: () => Promise<boolean>;
   disconnectFromQBO: () => Promise<boolean>;
-  isSandboxMode?: boolean;
+  testConnection?: () => Promise<boolean>;
+  isSandboxMode: boolean;
 }
 
 export function QBOConnectionActions({ 
   connection, 
   connectToQBO, 
   disconnectFromQBO,
+  testConnection,
   isSandboxMode 
 }: QBOConnectionActionsProps) {
+  const [isDisconnectDialogOpen, setIsDisconnectDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Handle connect button click
+  const handleConnect = async () => {
+    setIsLoading(true);
+    await connectToQBO();
+    setIsLoading(false);
+  };
+  
+  // Handle disconnect confirmation
+  const handleDisconnectConfirm = async () => {
+    setIsLoading(true);
+    await disconnectFromQBO();
+    setIsLoading(false);
+    setIsDisconnectDialogOpen(false);
+  };
+  
+  // Handle test connection click
+  const handleTestConnection = async () => {
+    if (testConnection) {
+      setIsLoading(true);
+      await testConnection();
+      setIsLoading(false);
+    }
+  };
+  
   return (
-    <div>
-      {connection ? (
-        <Button 
-          variant="outline" 
-          onClick={disconnectFromQBO}
-          className="text-red-600 border-red-200 hover:bg-red-50"
-        >
-          <LogOut className="mr-2 h-4 w-4" />
-          Disconnect from QuickBooks
-        </Button>
-      ) : (
-        <Button onClick={connectToQBO}>
-          <ArrowUpRight className="mr-2 h-4 w-4" />
-          Connect to QuickBooks {isSandboxMode ? "Sandbox" : ""}
-        </Button>
-      )}
-    </div>
+    <>
+      <div className="flex gap-3 justify-end">
+        {connection ? (
+          <>
+            {testConnection && (
+              <Button
+                variant="outline"
+                onClick={handleTestConnection}
+                disabled={isLoading}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Test Connection
+              </Button>
+            )}
+            
+            <Button
+              variant="destructive"
+              onClick={() => setIsDisconnectDialogOpen(true)}
+              disabled={isLoading}
+            >
+              <Link2Off className="h-4 w-4 mr-2" />
+              Disconnect
+            </Button>
+          </>
+        ) : (
+          <Button 
+            onClick={handleConnect}
+            disabled={isLoading}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Link2 className="h-4 w-4 mr-2" />
+            Connect to {isSandboxMode ? 'QuickBooks Sandbox' : 'QuickBooks Online'}
+          </Button>
+        )}
+      </div>
+      
+      {/* Disconnect Confirmation Dialog */}
+      <AlertDialog open={isDisconnectDialogOpen} onOpenChange={setIsDisconnectDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect QuickBooks</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to disconnect from QuickBooks Online? This will remove the connection between your account and QuickBooks.
+              {connection && (
+                <p className="mt-2">
+                  Currently connected to: <strong>{connection.company_name}</strong>
+                </p>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDisconnectConfirm();
+              }}
+              disabled={isLoading}
+              className="bg-destructive text-destructive-foreground"
+            >
+              {isLoading ? "Disconnecting..." : "Disconnect"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }

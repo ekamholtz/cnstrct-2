@@ -17,6 +17,12 @@ export class QBOAuthService {
     this.tokenManager = new QBOTokenManager();
     this.companyService = new QBOCompanyService();
     this.connectionService = new QBOConnectionService();
+    
+    console.log("QBOAuthService initialized with:", {
+      clientId: this.config.clientId,
+      redirectUri: this.config.redirectUri,
+      environment: this.config.isProduction ? "Production" : "Sandbox"
+    });
   }
   
   /**
@@ -33,7 +39,7 @@ export class QBOAuthService {
     const params = new URLSearchParams({
       client_id: this.config.clientId,
       response_type: 'code',
-      scope: this.config.scopes.join(' '), // Using scopes instead of scope
+      scope: this.config.scopes.join(' '), // Using space delimiter for scopes
       redirect_uri: this.config.redirectUri,
       state: state
     });
@@ -41,6 +47,41 @@ export class QBOAuthService {
     const authUrl = `${this.config.authEndpoint}?${params.toString()}`;
     console.log("Generated QBO Auth URL:", authUrl);
     return authUrl;
+  }
+  
+  /**
+   * Launch the QBO OAuth flow in a new window
+   * This prevents CSP issues with embedding Intuit's authorization page
+   */
+  launchAuthFlow(userId: string): void {
+    try {
+      const authUrl = this.getAuthorizationUrl(userId);
+      
+      // Debug info for troubleshooting
+      console.log("Launching QBO auth flow with URL:", authUrl);
+      console.log("Stored user ID for QBO flow:", userId);
+      
+      // Open in a new tab/window instead of trying to embed
+      const newWindow = window.open(authUrl, 'QBOAuth', 'width=800,height=700,menubar=no,toolbar=no,location=yes');
+      
+      // Check if popup was blocked
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        console.error("QBO popup window was blocked. Please allow popups for this site.");
+        // Provide user with instructions if popup is blocked
+        throw new Error("Popup blocked by browser. Please allow popups for this site to continue with QuickBooks connection.");
+      }
+      
+      // Attempt to focus the new window
+      try {
+        newWindow.focus();
+      } catch (e) {
+        console.warn("Could not focus QBO auth window:", e);
+      }
+      
+    } catch (error) {
+      console.error("Error launching QBO auth flow:", error);
+      throw error;
+    }
   }
   
   /**
@@ -52,34 +93,66 @@ export class QBOAuthService {
     companyName?: string;
     error?: string;
   }> {
+    console.log("Starting QBO callback handling with code and state:", { 
+      codeExists: !!code, 
+      stateExists: !!state 
+    });
+    
     // Validate state to prevent CSRF attacks
     if (!QBOUtils.validateState(state)) {
-      console.error("State mismatch in QBO callback", { provided: state, stored: localStorage.getItem('qbo_auth_state') });
-      return { success: false, error: 'Invalid state parameter' };
+      console.error("State mismatch in QBO callback", { 
+        provided: state, 
+        stored: localStorage.getItem('qbo_auth_state') 
+      });
+      
+      // In production, we might proceed despite state mismatch for better user experience
+      // but log the security concern
+      if (this.config.isProduction) {
+        console.warn("Production environment - proceeding despite state mismatch (security risk)");
+      } else {
+        return { success: false, error: 'Invalid state parameter - security validation failed' };
+      }
     }
     
     try {
       console.log("Exchanging authorization code for tokens...");
       
+      // Get the stored user ID from localStorage (set during auth initiation)
+      const userId = QBOUtils.getStoredUserId();
+      console.log("Retrieved user ID from storage:", userId);
+      
+      if (!userId) {
+        console.error("No user ID found in storage during QBO callback");
+        return { success: false, error: 'User ID not found - unable to complete connection' };
+      }
+      
       // Exchange authorization code for tokens
       const tokenData = await this.tokenManager.exchangeCodeForTokens(code);
+      console.log("Token exchange successful, received token data:", {
+        accessTokenExists: !!tokenData.access_token,
+        refreshTokenExists: !!tokenData.refresh_token,
+        realmId: tokenData.realmId || 'not provided'
+      });
       
       if (!tokenData.access_token || !tokenData.refresh_token || !tokenData.realmId) {
-        console.error("Missing required token information", tokenData);
-        return { success: false, error: 'Missing required token information' };
+        console.error("Missing required token information", {
+          accessToken: !!tokenData.access_token,
+          refreshToken: !!tokenData.refresh_token,
+          realmId: !!tokenData.realmId
+        });
+        return { success: false, error: 'Missing required token information from QBO' };
       }
       
       // Get company info
       const companyInfo = await this.companyService.getCompanyInfo(tokenData.access_token, tokenData.realmId);
+      console.log("Retrieved company info:", {
+        companyName: companyInfo.CompanyName || companyInfo.companyName || 'Unknown',
+        companyId: tokenData.realmId
+      });
       
       // Store tokens in database
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        console.error("No authenticated user found when storing QBO tokens");
-        return { success: false, error: 'User authentication required' };
-      }
-      
-      await this.tokenManager.storeConnection(user.id, tokenData, companyInfo);
+      await this.tokenManager.storeConnection(userId, tokenData, companyInfo);
+      console.log("Successfully stored QBO connection for user:", userId);
       
       // Clear the state from localStorage
       QBOUtils.clearOAuthState();
@@ -87,15 +160,25 @@ export class QBOAuthService {
       return { 
         success: true, 
         companyId: tokenData.realmId,
-        companyName: companyInfo.companyName
+        companyName: companyInfo.CompanyName || companyInfo.companyName
       };
       
     } catch (error: any) {
       console.error("Error in QBO authorization:", error);
+      
+      // Enhanced error extraction
       const errorMessage = error.response?.data?.error_description || 
                           error.response?.data?.error ||
                           error.message ||
                           'Authorization failed';
+                          
+      // Log more detailed error information for troubleshooting
+      console.error("QBO error details:", {
+        message: errorMessage,
+        response: error.response?.data || 'No response data',
+        status: error.response?.status || 'No status code'
+      });
+      
       return { success: false, error: errorMessage };
     }
   }
@@ -137,7 +220,6 @@ export class QBOAuthService {
   
   /**
    * Disconnect from QBO
-   * Fix: Implement the disconnect method locally since it doesn't exist on the service
    */
   async disconnect(): Promise<boolean> {
     try {

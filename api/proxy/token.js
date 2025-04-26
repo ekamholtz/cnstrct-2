@@ -1,3 +1,4 @@
+
 // QBO Token Exchange API Proxy for Vercel
 // This serverless function handles the token exchange in production
 
@@ -17,6 +18,12 @@ const QBO_PROD_CLIENT_SECRET = process.env.QBO_PROD_CLIENT_SECRET || '';
 const DEFAULT_CLIENT_ID = isProduction ? QBO_PROD_CLIENT_ID : QBO_SANDBOX_CLIENT_ID;
 const DEFAULT_CLIENT_SECRET = isProduction ? QBO_PROD_CLIENT_SECRET : QBO_SANDBOX_CLIENT_SECRET;
 
+// Supported registered URIs
+const REGISTERED_URIS = [
+  "https://cnstrctnetwork.vercel.app/qbo/callback",
+  "https://www.cnstrctnetwork.com/qbo/callback"
+];
+
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -26,6 +33,9 @@ export default async function handler(req, res) {
     'Access-Control-Allow-Headers',
     'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
   );
+  
+  // Add Content-Security-Policy header for QBO framing
+  res.setHeader('Content-Security-Policy', "frame-ancestors 'self' https://*.intuit.com");
 
   // Handle OPTIONS request
   if (req.method === 'OPTIONS') {
@@ -49,24 +59,20 @@ export default async function handler(req, res) {
         requiredParams: ['code', 'redirectUri']
       });
     }
-    
-    // CRITICAL: Always use the server-side environment variables for credentials
-    // Ignore any client-provided clientId to ensure security
+
+    // Always use the server-side environment variables for credentials
     const finalClientId = DEFAULT_CLIENT_ID;
     const finalClientSecret = DEFAULT_CLIENT_SECRET;
-    
-    console.log('Using client ID:', finalClientId);
-    console.log('Environment:', isProduction ? 'Production' : 'Sandbox');
-    console.log('Redirect URI:', redirectUri);
-    
-    // IMPORTANT: Check for exact match with registered redirect URI
-    const registeredRedirectUri = "https://cnstrctnetwork.vercel.app/qbo/callback";
-    if (redirectUri !== registeredRedirectUri) {
-      console.warn(`⚠️ Redirect URI mismatch! Received: "${redirectUri}" but expected: "${registeredRedirectUri}"`);
-      
-      // Force the correct redirect URI
-      console.log('Forcing correct redirect URI for token exchange');
+
+    // Accept only registered URIs, replace with the valid one if necessary
+    let usedRedirectUri = redirectUri;
+    if (!REGISTERED_URIS.includes(redirectUri)) {
+      // Try to fallback to production domain if custom domain is being used or the supplied value is off.
+      // For safety just use the first valid URI (could enhance to smarter selection).
+      console.warn(`⚠️ Redirect URI mismatch! Received: "${redirectUri}" which is not registered; forcing to an allowed one.`);
+      usedRedirectUri = REGISTERED_URIS[0];
     }
+    console.log(`Final redirectUri used for QBO token exchange: ${usedRedirectUri}`);
     
     if (!finalClientId || !finalClientSecret) {
       console.error('Missing client credentials in environment variables');
@@ -80,7 +86,7 @@ export default async function handler(req, res) {
     const requestData = {
       grant_type: 'authorization_code',
       code: code,
-      redirect_uri: registeredRedirectUri // Always use the registered URI
+      redirect_uri: usedRedirectUri // Always use the selected, allowed URI
     };
     
     // Create the authorization header

@@ -1,7 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { QBOAuthService } from "@/integrations/qbo/authService";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/components/ui/use-toast";
 
 interface QBOConnection {
   id: string;
@@ -9,6 +11,8 @@ interface QBOConnection {
   company_name: string;
   created_at: string;
   updated_at: string;
+  access_token: string;
+  refresh_token: string;
 }
 
 interface QBOConnectionHook {
@@ -25,6 +29,7 @@ export function useQBOConnection(): QBOConnectionHook {
   const [error, setError] = useState<Error | null>(null);
   const authService = new QBOAuthService();
   const { user } = useAuth();
+  const { toast } = useToast();
   
   useEffect(() => {
     async function fetchConnection() {
@@ -41,7 +46,7 @@ export function useQBOConnection(): QBOConnectionHook {
         // Query for existing connection
         const { data, error } = await supabase
           .from('qbo_connections')
-          .select('id, company_id, company_name, created_at, updated_at')
+          .select('id, company_id, company_name, created_at, updated_at, access_token, refresh_token')
           .eq('user_id', user.id)
           .single();
           
@@ -67,23 +72,102 @@ export function useQBOConnection(): QBOConnectionHook {
     fetchConnection();
   }, [user]);
   
+  // Listen for messages from the QBO popup window
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Verify message is from our domain
+      if (event.origin !== window.location.origin) return;
+      
+      // Handle success message from QBO popup
+      if (event.data?.type === 'QBO_AUTH_SUCCESS') {
+        console.log("Received QBO auth success message:", event.data);
+        
+        // Refresh connection data
+        if (user) {
+          fetchConnection();
+        }
+      }
+    };
+    
+    // Function to fetch connection (used after receiving success message)
+    async function fetchConnection() {
+      if (!user) return;
+      
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('qbo_connections')
+          .select('id, company_id, company_name, created_at, updated_at, access_token, refresh_token')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (!error && data) {
+          setConnection(data);
+          toast({
+            title: "Connection Successful",
+            description: `Connected to ${data.company_name || 'QuickBooks Online'}`,
+          });
+        }
+      } catch (err) {
+        console.error("Error refreshing QBO connection:", err);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    // Add message event listener
+    window.addEventListener('message', handleMessage);
+    
+    // Cleanup listener on unmount
+    return () => window.removeEventListener('message', handleMessage);
+  }, [user, toast]);
+  
   const connectToQBO = () => {
     if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to connect to QuickBooks Online",
+        variant: "destructive"
+      });
       setError(new Error("You must be logged in to connect to QuickBooks Online"));
       return;
     }
     
-    const authUrl = authService.getAuthorizationUrl(user.id);
-    window.location.href = authUrl;
+    try {
+      // Reset any previous errors
+      setError(null);
+      
+      // Use the authService method that launches in a new window
+      authService.launchAuthFlow(user.id);
+    } catch (err) {
+      console.error("Error starting QBO auth flow:", err);
+      toast({
+        title: "Connection Error",
+        description: "Failed to start QuickBooks authentication. Please try again.",
+        variant: "destructive"
+      });
+      setError(err instanceof Error ? err : new Error(String(err)));
+    }
   };
   
   const disconnectFromQBO = async (): Promise<boolean> => {
     try {
       setIsLoading(true);
+      setError(null);
       const success = await authService.disconnect();
       
       if (success) {
         setConnection(null);
+        toast({
+          title: "Success",
+          description: "Disconnected from QuickBooks Online successfully",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to disconnect from QuickBooks Online",
+          variant: "destructive"
+        });
       }
       
       return success;

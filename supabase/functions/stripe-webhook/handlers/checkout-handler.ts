@@ -1,8 +1,8 @@
 
-import { SupabaseClient } from "@supabase/supabase-js";
-import Stripe from "stripe";
-import { findGCAccountId, updateGCAccountSubscription, mapStripePriceToTierId, createGCAccountWithSubscription } from "../subscription-handler";
-import { logStep } from "../utils";
+import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.8";
+import Stripe from "https://esm.sh/stripe@14.10.0";
+import { findGCAccountId, updateGCAccountSubscription, mapStripePriceToTierId, createGCAccountWithSubscription } from "../subscription-handler.ts";
+import { logStep } from "../utils.ts";
 
 export async function handleCheckoutSessionCompleted(
   session: Stripe.Checkout.Session,

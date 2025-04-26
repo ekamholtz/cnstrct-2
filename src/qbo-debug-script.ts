@@ -1,3 +1,4 @@
+
 import { QBOConfig } from "./integrations/qbo/config/qboConfig";
 import axios from "axios";
 
@@ -9,8 +10,8 @@ async function testQBOTokenExchange() {
   try {
     console.log("Starting QBO token exchange test...");
     
-    // Create a new QBO config
-    const config = new QBOConfig();
+    // Use getInstance() instead of new QBOConfig()
+    const config = QBOConfig.getInstance();
     console.log("QBO Config:", {
       clientId: config.clientId,
       redirectUri: config.redirectUri,
