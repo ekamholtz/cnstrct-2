@@ -12,7 +12,9 @@
     "express": "^5.1.0",
     "express-session": "^1.14.2",
     "intuit-oauth": "^4.2.0",
+    "node-quickbooks": "^2.0.45",
     "path": "^0.12.7",
+    "supabase": "^2.22.6",
     "swagger-ui-express": "^5.0.1"
   }
 }

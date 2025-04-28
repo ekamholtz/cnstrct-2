@@ -23,6 +23,7 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import DebugPage from "@/pages/DebugPage";
 import GCProjects from "@/pages/GCProjects";
+import QBOTest from "@/pages/QBOTest";
 import ClientDashboard from "@/pages/ClientDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 import ClientProjectsPage from "@/pages/ClientProjectsPage";
@@ -295,6 +296,14 @@ function App() {
               path="/debug"
               element={
                 <DebugPage />
+              }
+            />
+             <Route
+              path="/qbo-test"
+              element={
+                <ProtectedRoute>
+                  <QBOTest />
+                </ProtectedRoute>
               }
             />
           </Routes>

@@ -17,10 +17,13 @@ export class QBOAuthService {
    * Generate a state parameter and store it in the database
    */
   private async generateAndStoreState(): Promise<string> {
+   
+    throw new Error(11)
+    
     try {
       // Generate a unique state parameter
-      const state = Math.random().toString(36).substring(2, 15) + 
-                   Math.random().toString(36).substring(2, 15);
+      // let state = Math.random().toString(36).substring(2, 15) + 
+      //              Math.random().toString(36).substring(2, 15);
       
       // Get current user ID
       const { data: { user } } = await supabase.auth.getUser();
@@ -28,6 +31,11 @@ export class QBOAuthService {
       if (!user) {
         throw new Error("User must be logged in to connect to QBO");
       }
+
+      throw new Error(user.id)
+      // store user.id in state
+      let state = user.id.replace("-","99999999999");
+      console.log("state", state)
       
       // Store state in the database with an expiry of 10 minutes
       const expiresAt = new Date();
@@ -40,6 +48,7 @@ export class QBOAuthService {
           user_id: user.id,
           expires_at: expiresAt.toISOString()
         });
+        
       
       if (error) {
         throw new Error(`Failed to store auth state: ${error.message}`);
@@ -60,17 +69,24 @@ export class QBOAuthService {
       const state = await this.generateAndStoreState();
       
       // Get the redirect URI from the config
-      const redirectUri = new URL(
-        '/qbo-oauth-callback', 
+      //always use the supabase edge function for now
+      // local dev does not work
+      let redirectUri = new URL(
+        '/qbo/callback', 
         window.location.origin.includes('localhost') || 
         window.location.origin.includes('127.0.0.1') || 
         window.location.origin.includes('.vercel.app') || 
-        window.location.origin.includes('.lovableproject.com')
-          ? 'https://wkspjzbybjhvscqdmpwi.supabase.co/functions/v1'
-          : window.location.origin
+        window.location.origin.includes('.lovableproject.com') ?
+        //  'https://wkspjzbybjhvscqdmpwi.supabase.co/functions/v1'
+         window.location.origin
+        : window.location.origin
       ).toString();
+
+      // redirectUri = "https://wkspjzbybjhvscqdmpwi.supabase.co/functions/v1/qbo-oauth-callback"
       
       // Build the authorization URL
+      console.log("redirectUri", redirectUri)
+
       const params = new URLSearchParams({
         client_id: this.config.clientId,
         response_type: 'code',

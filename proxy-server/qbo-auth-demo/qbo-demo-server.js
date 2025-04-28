@@ -46,8 +46,7 @@ app.get('/authUri', (req, res) => {
  * @returns {Object} JSON response containing success status and token
  */
 app.get('/callback', (req, res) => {
-  oauthClient
-    .createToken(req.url)
+  oauthClient.createToken(req.url)
     .then((authResponse) => {
       oauth2_token_json = authResponse.json;
       res.json({ success: true, token: oauth2_token_json });

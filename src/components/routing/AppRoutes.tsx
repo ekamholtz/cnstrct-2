@@ -242,13 +242,21 @@ export const AppRoutes = () => {
         element={<StripeCallback />}
       />
       <Route
-        path="/qbo-test"
+        path="/qbotest"
+        element={
+          <ProtectedRoute>
+            <Settings />
+            </ProtectedRoute>
+        }
+      />
+      {/* <Route
+        path="/qbotest"
         element={
           <ProtectedRoute>
             <QBOTest />
           </ProtectedRoute>
         }
-      />
+      /> */}
       <Route path="/landing" element={<Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>

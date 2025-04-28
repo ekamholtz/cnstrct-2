@@ -228,7 +228,7 @@ export const AppRoutes = () => {
         }
       />
       <Route
-        path="/qbo-test"
+        path="/qbotest"
         element={
           <ProtectedRoute>
             <QBOTest />

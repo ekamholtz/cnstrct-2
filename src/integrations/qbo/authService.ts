@@ -28,12 +28,36 @@ export class QBOAuthService {
   /**
    * Generate the authorization URL for QBO OAuth2 flow
    */
-  getAuthorizationUrl(userId: string): string {
-    const state = QBOUtils.generateRandomState();
+  async getAuthorizationUrl(userId: string): Promise<string> {
     
-    // Store state in localStorage for validation when the user returns
-    QBOUtils.storeOAuthState(state, userId);
-    
+      // Generate a unique state parameter
+      let state = Math.random().toString(36).substring(2, 15) + 
+                   Math.random().toString(36).substring(2, 15);
+      
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User must be logged in to connect to QBO");
+      }
+      // store user.id in state
+      // let state = user.id.replace("-","99999999999");
+      console.log("state", state)
+      
+      // Store state in the database with an expiry of 10 minutes
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+      
+      const { error } = await supabase
+        .from('qbo_auth_states')
+        .insert({
+          state,
+          user_id: user.id,
+          expires_at: expiresAt.toISOString()
+        });
+        
+
+
     // Build the authorization URL with correct parameters
     // Important: Join scopes with '+' instead of space to match Intuit's requirements
     const params = new URLSearchParams({
@@ -53,9 +77,9 @@ export class QBOAuthService {
    * Launch the QBO OAuth flow in a new window
    * This prevents CSP issues with embedding Intuit's authorization page
    */
-  launchAuthFlow(userId: string): void {
+  async launchAuthFlow(userId: string): Promise<void> {
     try {
-      const authUrl = this.getAuthorizationUrl(userId);
+      const authUrl = await this.getAuthorizationUrl(userId);
       
       // Debug info for troubleshooting
       console.log("Launching QBO auth flow with URL:", authUrl);

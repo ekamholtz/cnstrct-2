@@ -234,7 +234,7 @@ export default function IntegrationSettings() {
                         {qboConnection && (
                           <Button 
                             variant="outline"
-                            onClick={() => navigate('/QBOTest')}
+                            onClick={() => navigate('/qbo-test')}
                           >
                             <FileText className="h-4 w-4 mr-2" />
                             Test QBO Connection

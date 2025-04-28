@@ -81,11 +81,6 @@ redirect_uri = ""
 # or any other third-party OIDC providers.
 url = ""
 
-[functions]
-# Port to use for Functions.
-port = 54321
-# Enable/disable functions soft delete behavior.
-soft_delete = true
 
 [functions.qbo-oauth-callback]
 verify_jwt = false

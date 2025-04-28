@@ -65,14 +65,25 @@ serve(async (req) => {
         console.error("Invalid or expired state parameter:", stateError);
         return redirectWithError("Invalid or expired authorization state");
       }
-      
+
       const userId = authState.user_id;
-      console.log("Validated state for user:", userId);
       
+      // const userId = state;
+      // console.log("Validated state for user:", userId);
+
       // Exchange code for tokens
-      const redirectUri = new URL('/qbo-oauth-callback', url.origin).toString();
+      const redirectUri = 'https://wkspjzbybjhvscqdmpwi.supabase.co/functions/v1/qbo-oauth-callback'
+
       const tokenResponse = await exchangeCodeForTokens(code, redirectUri);
       
+
+      // Log success
+      await logQboAction(userId, 'oauth-callback', 'success', {
+        company_id: realmId,
+        company_name: "xxxxxxxxxxxx"
+      });
+      
+
       if (!tokenResponse.success) {
         await logQboAction(userId, 'oauth-callback', 'error', { 
           message: tokenResponse.error 
@@ -107,16 +118,17 @@ serve(async (req) => {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }, {
-          onConflict: 'user_id',
-          ignoreDuplicates: false
+          // onConflict: 'user_id',
+          // ignoreDuplicates: false
         });
       
       if (connectionError) {
+        console.log("connectionError", connectionError)
         console.error("Failed to store connection:", connectionError);
         await logQboAction(userId, 'oauth-callback', 'error', { 
           message: "Database error while storing connection" 
         });
-        return redirectWithError("Database error while storing connection");
+        return redirectWithError(connectionError.message);
       }
       
       // Log success
@@ -141,7 +153,7 @@ serve(async (req) => {
       });
     } catch (e) {
       console.error("Unexpected error in OAuth callback:", e);
-      return redirectWithError("Unexpected error during QBO authentication");
+      return redirectWithError("e: " + e.message);
     }
   }
   

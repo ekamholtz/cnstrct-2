@@ -39,14 +39,9 @@ export class QBOConfig {
                        hostname === 'cnstrctnetwork.com';
     
     // Set client ID based on environment
-    this.clientId = import.meta.env.VITE_QBO_CLIENT_ID || 
-                   (this.isProduction ? 
-                     'ABBj3cN2qzHyAjRg2Htq5BvstIO0HT79PmrHDNLBTdLKMirQr6' :
-                     'ABBj3cN2qzHyAjRg2Htq5BvstIO0HT79PmrHDNLBTdLKMirQr6');
-    
+    this.clientId = import.meta.env.VITE_QBO_SANDBOX_CLIENT_ID;
     // Add placeholder for clientSecret
-    this.clientSecret = import.meta.env.VITE_QBO_CLIENT_SECRET || '';
-    
+    this.clientSecret = import.meta.env.VITE_QBO_SANDBOX_CLIENT_SECRET;
     // Set API base URL based on environment
     this.apiBaseUrl = this.isProduction
       ? 'https://quickbooks.api.intuit.com/v3'
@@ -56,13 +51,13 @@ export class QBOConfig {
     // This will now point to our Supabase edge function for both development and production
     const projectRef = import.meta.env.VITE_SUPABASE_PROJECT_REF || 'wkspjzbybjhvscqdmpwi';
     
-    if (this.isProduction) {
+    // if (this.isProduction) {
       // In production, we use the site's origin
-      this.redirectUri = `${window.location.origin}/qbo-oauth-callback`;
-    } else {
+      // this.redirectUri = `${window.location.origin}/qbo-oauth-callback`;
+    // } else {
       // In development, we use the Supabase edge function URL
       this.redirectUri = `https://${projectRef}.supabase.co/functions/v1/qbo-oauth-callback`;
-    }
+    // }
     
     console.log("QBO Config initialized:", {
       mode: this.isProduction ? "Production" : "Development",
