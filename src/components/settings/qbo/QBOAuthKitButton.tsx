@@ -7,6 +7,16 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 
+// Define the interface to properly map AuthKit's ConnectionRecord to our expected structure
+interface ConnectionRecord {
+  id: string;
+  name?: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+  [key: string]: any; // To allow for additional properties that may be present
+}
+
 // Define the connection type to match the AuthKit's ConnectionRecord type
 interface QBOConnectionData {
   id: string;
@@ -38,7 +48,7 @@ export function QBOAuthKitButton({
         Authorization: `Bearer ${session?.access_token || ''}`
       },
     },
-    onSuccess: (connection) => {
+    onSuccess: (connection: ConnectionRecord) => {
       // For type compatibility, we're extracting the properties we need
       setIsLoading(true);
       console.log('QBO connection successful:', connection);

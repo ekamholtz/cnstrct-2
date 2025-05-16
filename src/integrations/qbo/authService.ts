@@ -1,9 +1,10 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { QBOConfig } from "../config/qboConfig";
-import { QBOUtils } from "../utils/qboUtils";
-import { QBOTokenManager } from "../auth/qboTokenManager";
-import { QBOCompanyService } from "../company/qboCompanyService";
-import { QBOConnectionService } from "../connection/qboConnectionService";
+import { QBOConfig } from "./config/qboConfig";
+import { QBOUtils } from "./utils/qboUtils";
+import { QBOTokenManager } from "./auth/qboTokenManager";
+import { QBOCompanyService } from "./company/qboCompanyService";
+import { QBOConnectionService } from "./connection/qboConnectionService";
 
 export class QBOAuthService {
   private config: QBOConfig;
