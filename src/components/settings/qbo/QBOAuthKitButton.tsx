@@ -48,7 +48,7 @@ export function QBOAuthKitButton({
         Authorization: `Bearer ${session?.access_token || ''}`
       },
     },
-    onSuccess: (connection: ConnectionRecord) => {
+    onSuccess: (connection) => {
       // For type compatibility, we're extracting the properties we need
       setIsLoading(true);
       console.log('QBO connection successful:', connection);
