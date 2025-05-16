@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 
-// Define the connection type to match what AuthKit returns
+// Define the connection type to match the AuthKit's ConnectionRecord type
 interface QBOConnectionData {
   id: string;
   name?: string;
@@ -38,42 +38,33 @@ export function QBOAuthKitButton({
         Authorization: `Bearer ${session?.access_token || ''}`
       },
     },
-    onSuccess: async (connection: QBOConnectionData) => {
+    onSuccess: (connection) => {
+      // For type compatibility, we're extracting the properties we need
       setIsLoading(true);
       console.log('QBO connection successful:', connection);
       
-      try {
-        // Store connection in Supabase
-        const { error } = await supabase.from('qbo_connections').upsert({
-          user_id: user?.id,
-          company_id: connection.id,
-          company_name: connection.name || 'QuickBooks Company',
-          access_token: connection.accessToken,
-          refresh_token: connection.refreshToken,
-          expires_at: new Date(Date.now() + connection.expiresIn * 1000).toISOString(),
+      // Cast the connection to our interface to match property names
+      const qboConnection: QBOConnectionData = {
+        id: connection.id,
+        name: connection.name,
+        accessToken: connection.accessToken,
+        refreshToken: connection.refreshToken,
+        expiresIn: connection.expiresIn
+      };
+      
+      // Now use our properly typed object for the database operations
+      handleConnectionSuccess(qboConnection)
+        .catch(error => {
+          console.error('Error in connection handling:', error);
+          toast({
+            title: 'Error',
+            description: `Failed to process QBO connection: ${error.message || 'Unknown error'}`,
+            variant: 'destructive',
+          });
+        })
+        .finally(() => {
+          setIsLoading(false);
         });
-        
-        if (error) throw error;
-        
-        // Show success message
-        toast({
-          title: 'Connection Successful',
-          description: `Connected to ${connection.name || 'QuickBooks Online'}`,
-        });
-        
-        // Call the onSuccess callback
-        if (onSuccess) onSuccess(connection);
-        
-      } catch (error: any) {
-        console.error('Error storing QBO connection:', error);
-        toast({
-          title: 'Error',
-          description: `Failed to store QBO connection: ${error.message || 'Unknown error'}`,
-          variant: 'destructive',
-        });
-      } finally {
-        setIsLoading(false);
-      }
     },
     onError: (error: any) => {
       console.error('QBO connection error:', error);
@@ -87,6 +78,34 @@ export function QBOAuthKitButton({
       console.log('AuthKit modal closed');
     },
   });
+
+  const handleConnectionSuccess = async (connection: QBOConnectionData) => {
+    try {
+      // Store connection in Supabase
+      const { error } = await supabase.from('qbo_connections').upsert({
+        user_id: user?.id,
+        company_id: connection.id,
+        company_name: connection.name || 'QuickBooks Company',
+        access_token: connection.accessToken,
+        refresh_token: connection.refreshToken,
+        expires_at: new Date(Date.now() + connection.expiresIn * 1000).toISOString(),
+      });
+      
+      if (error) throw error;
+      
+      // Show success message
+      toast({
+        title: 'Connection Successful',
+        description: `Connected to ${connection.name || 'QuickBooks Online'}`,
+      });
+      
+      // Call the onSuccess callback
+      if (onSuccess) onSuccess(connection);
+    } catch (error: any) {
+      console.error('Error storing QBO connection:', error);
+      throw error; // Re-throw to be caught by the caller
+    }
+  };
 
   const handleConnect = () => {
     if (!user) {

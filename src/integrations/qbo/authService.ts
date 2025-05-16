@@ -1,10 +1,9 @@
-
 import { supabase } from "@/integrations/supabase/client";
-import { QBOConfig } from "./config/qboConfig";
-import { QBOUtils } from "./utils/qboUtils";
-import { QBOTokenManager } from "./auth/qboTokenManager";
-import { QBOCompanyService } from "./company/qboCompanyService";
-import { QBOConnectionService } from "./connection/qboConnectionService";
+import { QBOConfig } from "../config/qboConfig";
+import { QBOUtils } from "../utils/qboUtils";
+import { QBOTokenManager } from "../auth/qboTokenManager";
+import { QBOCompanyService } from "../company/qboCompanyService";
+import { QBOConnectionService } from "../connection/qboConnectionService";
 
 export class QBOAuthService {
   private config: QBOConfig;
@@ -56,8 +55,6 @@ export class QBOAuthService {
           expires_at: expiresAt.toISOString()
         });
         
-
-
     // Build the authorization URL with correct parameters
     // Important: Join scopes with '+' instead of space to match Intuit's requirements
     const params = new URLSearchParams({
@@ -170,7 +167,7 @@ export class QBOAuthService {
       // Get company info
       const companyInfo = await this.companyService.getCompanyInfo(tokenData.access_token, tokenData.realmId);
       console.log("Retrieved company info:", {
-        companyName: companyInfo.CompanyName || companyInfo.companyName || 'Unknown',
+        companyName: companyInfo.CompanyName || 'Unknown',
         companyId: tokenData.realmId
       });
       
@@ -184,7 +181,7 @@ export class QBOAuthService {
       return { 
         success: true, 
         companyId: tokenData.realmId,
-        companyName: companyInfo.CompanyName || companyInfo.companyName
+        companyName: companyInfo.CompanyName
       };
       
     } catch (error: any) {
