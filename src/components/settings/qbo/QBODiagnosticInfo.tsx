@@ -24,7 +24,7 @@ export function QBODiagnosticInfo() {
 
       {isExpanded && (
         <div className="space-y-3">
-          <Alert variant="info">
+          <Alert>
             <Terminal className="h-4 w-4" />
             <AlertTitle>Troubleshooting</AlertTitle>
             <AlertDescription className="text-xs">

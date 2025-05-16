@@ -18,7 +18,7 @@ export function QBOAuthKitButton({
   variant = 'default',
   size = 'default'
 }: QBOAuthKitButtonProps) {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -26,7 +26,7 @@ export function QBOAuthKitButton({
     token: {
       url: `https://wkspjzbybjhvscqdmpwi.supabase.co/functions/v1/authkit-token`,
       headers: {
-        Authorization: `Bearer ${user?.access_token || ''}`,
+        Authorization: `Bearer ${session?.access_token || ''}`
       },
     },
     onSuccess: async (connection) => {

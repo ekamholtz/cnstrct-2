@@ -47,11 +47,6 @@ export function QBOSettings() {
                        window.location.hostname.includes('.vercel.app') ||
                        window.location.hostname.includes('.lovableproject.com');
   
-  // Modified connectToQBO to return a Promise<boolean>
-  const handleConnectToQBO = async (): Promise<boolean> => {
-    return await connectToQBO();
-  };
-  
   return (
     <QBOErrorBoundary>
       <Card className="w-full">
@@ -96,7 +91,7 @@ export function QBOSettings() {
           {!isLoading && (
             <QBOConnectionActions 
               connection={connection}
-              connectToQBO={handleConnectToQBO}
+              connectToQBO={connectToQBO}
               disconnectFromQBO={disconnectFromQBO}
               testConnection={testConnection}
               isSandboxMode={isSandboxMode}

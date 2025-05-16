@@ -3,7 +3,14 @@ import React from 'react';
 import { Badge } from '@/components/ui/badge';
 import { CalendarIcon, BuildingIcon } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
-import { QBOConnection } from '@/hooks/useQBOConnection';
+
+interface QBOConnection {
+  id: string;
+  company_id: string;
+  company_name: string;
+  created_at: string;
+  updated_at: string;
+}
 
 interface QBOConnectionDetailsProps {
   connection: QBOConnection;
@@ -24,7 +31,7 @@ export function QBOConnectionDetails({ connection, isSandboxMode }: QBOConnectio
             Company ID: {connection.company_id}
           </div>
         </div>
-        <Badge variant={isSandboxMode ? "warning" : "success"}>
+        <Badge variant={isSandboxMode ? "secondary" : "default"} className={isSandboxMode ? "bg-amber-500" : ""}>
           {isSandboxMode ? "Sandbox" : "Production"}
         </Badge>
       </div>
