@@ -1,63 +1,47 @@
 
 import React from 'react';
-import { formatDistanceToNow } from 'date-fns';
 import { Badge } from '@/components/ui/badge';
-import { useQBOConnection } from '@/hooks/useQBOConnection';
+import { CalendarIcon, BuildingIcon } from 'lucide-react';
+import { formatDistanceToNow } from 'date-fns';
+import { QBOConnection } from '@/hooks/useQBOConnection';
 
 interface QBOConnectionDetailsProps {
-  connection: {
-    id: string;
-    company_id: string;
-    company_name: string;
-    created_at: string;
-    updated_at: string;
-  };
+  connection: QBOConnection;
   isSandboxMode: boolean;
 }
 
 export function QBOConnectionDetails({ connection, isSandboxMode }: QBOConnectionDetailsProps) {
-  // Format dates for display
-  const formattedCreatedAt = formatDistanceToNow(new Date(connection.created_at), { addSuffix: true });
-  const formattedUpdatedAt = formatDistanceToNow(new Date(connection.updated_at), { addSuffix: true });
-  
+  // Get the date objects for created and updated
+  const createdDate = new Date(connection.created_at);
+  const updatedDate = new Date(connection.updated_at);
+
   return (
-    <div className="mt-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Connection Status</h3>
-        <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">Connected</Badge>
+    <div className="space-y-4">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-lg font-semibold">{connection.company_name}</h3>
+          <div className="text-sm text-gray-500">
+            Company ID: {connection.company_id}
+          </div>
+        </div>
+        <Badge variant={isSandboxMode ? "warning" : "success"}>
+          {isSandboxMode ? "Sandbox" : "Production"}
+        </Badge>
       </div>
-      
-      <div className="bg-white p-4 rounded-md border border-gray-200 space-y-3">
-        <div>
-          <p className="text-sm font-semibold">Company Name</p>
-          <p className="text-base">{connection.company_name}</p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+        <div className="flex items-center gap-2 text-gray-600">
+          <CalendarIcon className="h-4 w-4" />
+          <span>
+            Connected {formatDistanceToNow(createdDate, { addSuffix: true })}
+          </span>
         </div>
-        
-        <div>
-          <p className="text-sm font-semibold">Company ID</p>
-          <p className="text-sm text-muted-foreground font-mono">{connection.company_id}</p>
-        </div>
-        
-        <div>
-          <p className="text-sm font-semibold">Environment</p>
-          <div className="flex items-center mt-1">
-            {isSandboxMode ? (
-              <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 hover:bg-yellow-200">Sandbox</Badge>
-            ) : (
-              <Badge variant="default" className="text-xs">Production</Badge>
-            )}
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-sm font-semibold">Connected</p>
-            <p className="text-sm text-muted-foreground">{formattedCreatedAt}</p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Last Updated</p>
-            <p className="text-sm text-muted-foreground">{formattedUpdatedAt}</p>
-          </div>
+
+        <div className="flex items-center gap-2 text-gray-600">
+          <BuildingIcon className="h-4 w-4" />
+          <span>
+            Last updated {formatDistanceToNow(updatedDate, { addSuffix: true })}
+          </span>
         </div>
       </div>
     </div>

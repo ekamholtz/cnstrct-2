@@ -1,0 +1,106 @@
+
+import React, { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useAuthKit } from '@picahq/authkit';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/use-toast';
+import { Loader2 } from 'lucide-react';
+
+interface QBOAuthKitButtonProps {
+  onSuccess?: (connection: any) => void;
+  variant?: 'default' | 'outline' | 'secondary' | 'destructive';
+  size?: 'sm' | 'default' | 'lg';
+}
+
+export function QBOAuthKitButton({
+  onSuccess,
+  variant = 'default',
+  size = 'default'
+}: QBOAuthKitButtonProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const { open } = useAuthKit({
+    token: {
+      url: `https://wkspjzbybjhvscqdmpwi.supabase.co/functions/v1/authkit-token`,
+      headers: {
+        Authorization: `Bearer ${user?.access_token || ''}`,
+      },
+    },
+    onSuccess: async (connection) => {
+      setIsLoading(true);
+      console.log('QBO connection successful:', connection);
+      
+      try {
+        // Store connection in Supabase
+        const { error } = await supabase.from('qbo_connections').upsert({
+          user_id: user?.id,
+          company_id: connection.id,
+          company_name: connection.name || 'QuickBooks Company',
+          access_token: connection.accessToken,
+          refresh_token: connection.refreshToken,
+          expires_at: new Date(Date.now() + connection.expiresIn * 1000).toISOString(),
+        });
+        
+        if (error) throw error;
+        
+        // Show success message
+        toast({
+          title: 'Connection Successful',
+          description: `Connected to ${connection.name || 'QuickBooks Online'}`,
+        });
+        
+        // Call the onSuccess callback
+        if (onSuccess) onSuccess(connection);
+        
+      } catch (error: any) {
+        console.error('Error storing QBO connection:', error);
+        toast({
+          title: 'Error',
+          description: `Failed to store QBO connection: ${error.message || 'Unknown error'}`,
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    onError: (error) => {
+      console.error('QBO connection error:', error);
+      toast({
+        title: 'Connection Error',
+        description: error.message || 'Failed to connect to QuickBooks Online',
+        variant: 'destructive',
+      });
+    },
+    onClose: () => {
+      console.log('AuthKit modal closed');
+    },
+  });
+
+  const handleConnect = () => {
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'You must be logged in to connect to QuickBooks Online',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    open();
+  };
+
+  return (
+    <Button 
+      variant={variant} 
+      size={size} 
+      onClick={handleConnect}
+      disabled={isLoading || !user}
+    >
+      {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      Connect with QuickBooks
+    </Button>
+  );
+}

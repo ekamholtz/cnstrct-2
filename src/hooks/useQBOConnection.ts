@@ -5,7 +5,7 @@ import { QBOAuthService } from "@/integrations/qbo/authService";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/components/ui/use-toast";
 
-interface QBOConnection {
+export interface QBOConnection {
   id: string;
   company_id: string;
   company_name: string;
@@ -15,12 +15,13 @@ interface QBOConnection {
   refresh_token: string;
 }
 
-interface QBOConnectionHook {
+export interface QBOConnectionHook {
   connection: QBOConnection | null;
   isLoading: boolean;
   error: Error | null;
-  connectToQBO: () => void;
+  connectToQBO: () => Promise<boolean>;
   disconnectFromQBO: () => Promise<boolean>;
+  testConnection: () => Promise<boolean>;
 }
 
 export function useQBOConnection(): QBOConnectionHook {
@@ -122,7 +123,7 @@ export function useQBOConnection(): QBOConnectionHook {
     return () => window.removeEventListener('message', handleMessage);
   }, [user, toast]);
   
-  const connectToQBO = () => {
+  const connectToQBO = async (): Promise<boolean> => {
     if (!user) {
       toast({
         title: "Error",
@@ -130,7 +131,7 @@ export function useQBOConnection(): QBOConnectionHook {
         variant: "destructive"
       });
       setError(new Error("You must be logged in to connect to QuickBooks Online"));
-      return;
+      return false;
     }
     
     try {
@@ -139,6 +140,7 @@ export function useQBOConnection(): QBOConnectionHook {
       
       // Use the authService method that launches in a new window
       authService.launchAuthFlow(user.id);
+      return true;
     } catch (err) {
       console.error("Error starting QBO auth flow:", err);
       toast({
@@ -147,6 +149,7 @@ export function useQBOConnection(): QBOConnectionHook {
         variant: "destructive"
       });
       setError(err instanceof Error ? err : new Error(String(err)));
+      return false;
     }
   };
   
@@ -180,11 +183,59 @@ export function useQBOConnection(): QBOConnectionHook {
     }
   };
   
+  const testConnection = async (): Promise<boolean> => {
+    if (!connection) {
+      toast({
+        title: "Error",
+        description: "No QuickBooks connection to test",
+        variant: "destructive"
+      });
+      return false;
+    }
+    
+    try {
+      setIsLoading(true);
+      
+      // Make a test call to QBO API via our Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('qbo-test-connection', {
+        method: 'POST',
+        body: { connectionId: connection.id }
+      });
+      
+      if (error || !data?.success) {
+        toast({
+          title: "Connection Test Failed",
+          description: error?.message || data?.error || "Could not connect to QuickBooks Online",
+          variant: "destructive"
+        });
+        return false;
+      }
+      
+      toast({
+        title: "Connection Successful",
+        description: `Successfully connected to ${connection.company_name}`,
+      });
+      
+      return true;
+    } catch (err) {
+      console.error("Error testing QBO connection:", err);
+      toast({
+        title: "Connection Test Failed",
+        description: err instanceof Error ? err.message : "Failed to test QuickBooks connection",
+        variant: "destructive"
+      });
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   return {
     connection,
     isLoading,
     error,
     connectToQBO,
-    disconnectFromQBO
+    disconnectFromQBO,
+    testConnection
   };
 }

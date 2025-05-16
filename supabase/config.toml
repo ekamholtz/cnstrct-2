@@ -93,3 +93,6 @@ verify_jwt = false
 
 [functions.qbo-data-operation]
 verify_jwt = false
+
+[functions.authkit-token]
+verify_jwt = true

@@ -1,117 +1,77 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { RefreshCw, Link2, Link2Off } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { QBOAuthKitButton } from './QBOAuthKitButton';
+import { QBOConnection } from '@/hooks/useQBOConnection';
 
 interface QBOConnectionActionsProps {
-  connection: any | null;
+  connection: QBOConnection | null;
   connectToQBO: () => Promise<boolean>;
   disconnectFromQBO: () => Promise<boolean>;
-  testConnection?: () => Promise<boolean>;
+  testConnection: () => Promise<boolean>;
   isSandboxMode: boolean;
 }
 
-export function QBOConnectionActions({ 
-  connection, 
-  connectToQBO, 
+export function QBOConnectionActions({
+  connection,
   disconnectFromQBO,
   testConnection,
-  isSandboxMode 
+  isSandboxMode
 }: QBOConnectionActionsProps) {
-  const [isDisconnectDialogOpen, setIsDisconnectDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  
-  // Handle connect button click
-  const handleConnect = async () => {
-    setIsLoading(true);
-    await connectToQBO();
-    setIsLoading(false);
-  };
-  
-  // Handle disconnect confirmation
-  const handleDisconnectConfirm = async () => {
-    setIsLoading(true);
+  const [isLoading, setIsLoading] = useState<string | null>(null);
+
+  const handleDisconnect = async () => {
+    setIsLoading('disconnect');
     await disconnectFromQBO();
-    setIsLoading(false);
-    setIsDisconnectDialogOpen(false);
+    setIsLoading(null);
   };
-  
-  // Handle test connection click
-  const handleTestConnection = async () => {
-    if (testConnection) {
-      setIsLoading(true);
-      await testConnection();
-      setIsLoading(false);
-    }
+
+  const handleTest = async () => {
+    setIsLoading('test');
+    await testConnection();
+    setIsLoading(null);
   };
-  
-  return (
-    <>
-      <div className="flex gap-3 justify-end">
-        {connection ? (
-          <>
-            {testConnection && (
-              <Button
-                variant="outline"
-                onClick={handleTestConnection}
-                disabled={isLoading}
-              >
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Test Connection
-              </Button>
-            )}
-            
-            <Button
-              variant="destructive"
-              onClick={() => setIsDisconnectDialogOpen(true)}
-              disabled={isLoading}
-            >
-              <Link2Off className="h-4 w-4 mr-2" />
-              Disconnect
-            </Button>
-          </>
-        ) : (
-          <Button 
-            onClick={handleConnect}
-            disabled={isLoading}
-            className="bg-blue-600 hover:bg-blue-700"
-          >
-            <Link2 className="h-4 w-4 mr-2" />
-            Connect to {isSandboxMode ? 'QuickBooks Sandbox' : 'QuickBooks Online'}
-          </Button>
-        )}
+
+  // If no connection, show connect button
+  if (!connection) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-col space-y-2">
+          <QBOAuthKitButton />
+          <p className="text-xs text-gray-500 mt-1">
+            {isSandboxMode
+              ? "Using QuickBooks Sandbox environment"
+              : "Connect to your QuickBooks Online account"}
+          </p>
+        </div>
       </div>
-      
-      {/* Disconnect Confirmation Dialog */}
-      <AlertDialog open={isDisconnectDialogOpen} onOpenChange={setIsDisconnectDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Disconnect QuickBooks</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to disconnect from QuickBooks Online? This will remove the connection between your account and QuickBooks.
-              {connection && (
-                <p className="mt-2">
-                  Currently connected to: <strong>{connection.company_name}</strong>
-                </p>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={(e) => {
-                e.preventDefault();
-                handleDisconnectConfirm();
-              }}
-              disabled={isLoading}
-              className="bg-destructive text-destructive-foreground"
-            >
-              {isLoading ? "Disconnecting..." : "Disconnect"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    );
+  }
+
+  // If connected, show disconnect and test buttons
+  return (
+    <div className="flex flex-wrap gap-2">
+      <Button
+        variant="outline"
+        onClick={handleTest}
+        disabled={isLoading !== null}
+      >
+        {isLoading === 'test' ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : null}
+        Test Connection
+      </Button>
+      <Button
+        variant="destructive"
+        onClick={handleDisconnect}
+        disabled={isLoading !== null}
+      >
+        {isLoading === 'disconnect' ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : null}
+        Disconnect
+      </Button>
+    </div>
   );
 }
