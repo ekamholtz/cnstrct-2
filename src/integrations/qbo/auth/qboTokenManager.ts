@@ -1,16 +1,14 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { QBOAuthService } from "./qboAuthService";
 import { QBOConfig } from "../config/qboConfig";
 
 /**
- * Manager for QBO access tokens, handling refresh via Edge Function when necessary
+ * Manager for QBO access tokens
  */
 export class QBOTokenManager {
-  private authService: QBOAuthService;
   private config: QBOConfig;
   
   constructor() {
-    this.authService = new QBOAuthService();
     this.config = QBOConfig.getInstance();
   }
   
@@ -19,17 +17,23 @@ export class QBOTokenManager {
    */
   async exchangeCodeForTokens(code: string): Promise<any> {
     console.log("QBOTokenManager: Exchanging code for tokens...");
-    // Determine the redirect URI from the config (must match exactly what is registered)
-    const redirectUri = this.config.redirectUri;
-
-    const result = await this.authService.exchangeCodeForToken(code, redirectUri);
     
-    if (!result.success || !result.data) {
-      console.error("Failed to exchange code for tokens:", result.error);
-      throw new Error(result.error || "Failed to exchange code for tokens");
+    try {
+      // For the implementation, we'll use the Supabase Edge Function
+      const { data, error } = await supabase.functions.invoke('qbo-token-exchange', {
+        body: { code, redirectUri: this.config.redirectUri }
+      });
+      
+      if (error) {
+        console.error("Token exchange error:", error);
+        throw error;
+      }
+      
+      return data;
+    } catch (error) {
+      console.error("Error in exchangeCodeForTokens:", error);
+      throw error;
     }
-    
-    return result.data;
   }
   
   /**
@@ -115,13 +119,15 @@ export class QBOTokenManager {
       console.log("Access token expired or nearly expired, refreshing...");
       
       // Refresh the token using Edge Function
-      const result = await this.authService.refreshToken(connection.refresh_token);
+      const { data, error: refreshError } = await supabase.functions.invoke('qbo-token-refresh', {
+        body: { refreshToken: connection.refresh_token }
+      });
       
-      if (!result.success || !result.data) {
-        throw new Error(`Failed to refresh token: ${result.error || 'Unknown error'}`);
+      if (refreshError || !data) {
+        throw new Error(`Failed to refresh token: ${refreshError?.message || 'Unknown error'}`);
       }
       
-      const { access_token, refresh_token, expires_in } = result.data;
+      const { access_token, refresh_token, expires_in } = data;
       
       // Update the token in the database
       const { error: updateError } = await supabase

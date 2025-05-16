@@ -1,128 +1,36 @@
 
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/integrations/supabase/client";
 
-export interface QBOConnection {
-  id: string;
-  user_id: string;
-  company_id: string;
-  company_name: string;
-  access_token: string;
-  refresh_token: string;
-  expires_at: string;
-  created_at: string;
-  updated_at: string;
-}
-
+/**
+ * Service for QBO connection management
+ */
 export class QBOConnectionService {
   /**
-   * Gets the QBO connection for the current user
-   * @returns QBOConnection object or null if not connected
+   * Get current user's QBO connection
    */
-  async getConnection(): Promise<QBOConnection | null> {
+  async getConnection() {
     try {
-      // Get the current user
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
-        console.log('No user found, cannot get QBO connection');
-        return null;
+        throw new Error('User not authenticated');
       }
       
-      // Get the connection for this user
       const { data, error } = await supabase
         .from('qbo_connections')
         .select('*')
         .eq('user_id', user.id)
         .maybeSingle();
-      
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No connection found
-          console.log('No QBO connection found for user');
-          return null;
-        }
         
+      if (error) {
         console.error('Error fetching QBO connection:', error);
-        throw error;
+        return null;
       }
       
-      return data as QBOConnection;
+      return data;
     } catch (error) {
       console.error('Error in getConnection:', error);
       return null;
-    }
-  }
-
-  /**
-   * Delete the QBO connection for the current user
-   * @returns true if successful, false otherwise
-   */
-  async deleteConnection(): Promise<boolean> {
-    try {
-      // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No user found, cannot delete QBO connection');
-        return false;
-      }
-      
-      // Delete the connection for this user
-      const { error } = await supabase
-        .from('qbo_connections')
-        .delete()
-        .eq('user_id', user.id);
-      
-      if (error) {
-        console.error('Error deleting QBO connection:', error);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error in deleteConnection:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Disconnect from QBO - alias for deleteConnection
-   * @returns true if successful, false otherwise
-   */
-  async disconnect(): Promise<boolean> {
-    return this.deleteConnection();
-  }
-  
-  /**
-   * Update the QBO connection for the current user
-   * @param connectionData Updated connection data
-   * @returns true if successful, false otherwise
-   */
-  async updateConnection(connectionData: Partial<QBOConnection>): Promise<boolean> {
-    try {
-      // Get the current user
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        console.log('No user found, cannot update QBO connection');
-        return false;
-      }
-      
-      // Update the connection for this user
-      const { error } = await supabase
-        .from('qbo_connections')
-        .update(connectionData)
-        .eq('user_id', user.id);
-      
-      if (error) {
-        console.error('Error updating QBO connection:', error);
-        return false;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('Error in updateConnection:', error);
-      return false;
     }
   }
 }

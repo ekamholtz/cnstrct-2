@@ -7,6 +7,15 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { Loader2 } from 'lucide-react';
 
+// Define the connection type to match what AuthKit returns
+interface QBOConnectionData {
+  id: string;
+  name?: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
 interface QBOAuthKitButtonProps {
   onSuccess?: (connection: any) => void;
   variant?: 'default' | 'outline' | 'secondary' | 'destructive';
@@ -29,7 +38,7 @@ export function QBOAuthKitButton({
         Authorization: `Bearer ${session?.access_token || ''}`
       },
     },
-    onSuccess: async (connection) => {
+    onSuccess: async (connection: QBOConnectionData) => {
       setIsLoading(true);
       console.log('QBO connection successful:', connection);
       
@@ -66,7 +75,7 @@ export function QBOAuthKitButton({
         setIsLoading(false);
       }
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('QBO connection error:', error);
       toast({
         title: 'Connection Error',
