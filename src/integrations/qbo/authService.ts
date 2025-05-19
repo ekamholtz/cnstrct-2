@@ -56,6 +56,8 @@ export class QBOAuthService {
           expires_at: expiresAt.toISOString()
         });
         
+
+
     // Build the authorization URL with correct parameters
     // Important: Join scopes with '+' instead of space to match Intuit's requirements
     const params = new URLSearchParams({
@@ -168,7 +170,7 @@ export class QBOAuthService {
       // Get company info
       const companyInfo = await this.companyService.getCompanyInfo(tokenData.access_token, tokenData.realmId);
       console.log("Retrieved company info:", {
-        companyName: companyInfo.CompanyName || 'Unknown',
+        companyName: companyInfo.CompanyName || companyInfo.companyName || 'Unknown',
         companyId: tokenData.realmId
       });
       
@@ -182,7 +184,7 @@ export class QBOAuthService {
       return { 
         success: true, 
         companyId: tokenData.realmId,
-        companyName: companyInfo.CompanyName
+        companyName: companyInfo.CompanyName || companyInfo.companyName
       };
       
     } catch (error: any) {

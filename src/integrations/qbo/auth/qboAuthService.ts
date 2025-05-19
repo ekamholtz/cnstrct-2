@@ -1,59 +1,268 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { QBOConfig } from "../config/qboConfig";
-import { QBOUtils } from "../utils/qboUtils";
-import { QBOTokenManager } from "../auth/qboTokenManager";
-import { QBOCompanyService } from "../company/qboCompanyService";
-import { QBOConnectionService } from "../connection/qboConnectionService";
+import { toast } from "@/components/ui/use-toast";
 
+/**
+ * Service for QBO authorization using Supabase Edge Functions
+ */
 export class QBOAuthService {
   private config: QBOConfig;
-  private tokenManager: QBOTokenManager;
-  private companyService: QBOCompanyService;
-  private connectionService: QBOConnectionService;
   
   constructor() {
     this.config = QBOConfig.getInstance();
-    this.tokenManager = new QBOTokenManager();
-    this.companyService = new QBOCompanyService();
-    this.connectionService = new QBOConnectionService();
   }
   
   /**
-   * Generate the authorization URL for QBO OAuth2 flow
+   * Generate a state parameter and store it in the database
    */
-  async getAuthorizationUrl(userId: string): Promise<string> {
-    // This method is now simplified since we're using AuthKit
-    return "https://authkit.pica.dev";
+  private async generateAndStoreState(): Promise<string> {
+   
+    throw new Error(11)
+    
+    try {
+      // Generate a unique state parameter
+      // let state = Math.random().toString(36).substring(2, 15) + 
+      //              Math.random().toString(36).substring(2, 15);
+      
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User must be logged in to connect to QBO");
+      }
+
+      throw new Error(user.id)
+      // store user.id in state
+      let state = user.id.replace("-","99999999999");
+      console.log("state", state)
+      
+      // Store state in the database with an expiry of 10 minutes
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 10);
+      
+      const { error } = await supabase
+        .from('qbo_auth_states')
+        .insert({
+          state,
+          user_id: user.id,
+          expires_at: expiresAt.toISOString()
+        });
+        
+      
+      if (error) {
+        throw new Error(`Failed to store auth state: ${error.message}`);
+      }
+      
+      return state;
+    } catch (err) {
+      console.error("Error generating state parameter:", err);
+      throw err;
+    }
   }
   
   /**
-   * Launch the QBO OAuth flow in a new window
+   * Generate the QBO authorization URL and start the OAuth flow
    */
-  async launchAuthFlow(userId: string): Promise<void> {
-    // This is now handled by AuthKit
-    console.log("Using AuthKit for QBO flow");
+  async startAuthFlow(): Promise<{success: boolean, error?: string}> {
+    try {
+      const state = await this.generateAndStoreState();
+      
+      // Get the redirect URI from the config
+      //always use the supabase edge function for now
+      // local dev does not work
+      let redirectUri = new URL(
+        '/qbo/callback', 
+        window.location.origin.includes('localhost') || 
+        window.location.origin.includes('127.0.0.1') || 
+        window.location.origin.includes('.vercel.app') || 
+        window.location.origin.includes('.lovableproject.com') ?
+        //  'https://wkspjzbybjhvscqdmpwi.supabase.co/functions/v1'
+         window.location.origin
+        : window.location.origin
+      ).toString();
+
+      // redirectUri = "https://wkspjzbybjhvscqdmpwi.supabase.co/functions/v1/qbo-oauth-callback"
+      
+      // Build the authorization URL
+      console.log("redirectUri", redirectUri)
+
+      const params = new URLSearchParams({
+        client_id: this.config.clientId,
+        response_type: 'code',
+        scope: this.config.scopes.join(' '),
+        redirect_uri: redirectUri,
+        state
+      });
+      
+      const authUrl = `${this.config.authEndpoint}?${params.toString()}`;
+      
+      console.log("Starting QBO auth flow with redirect URI:", redirectUri);
+      console.log("Auth URL:", authUrl);
+      
+      // Open the auth URL in a popup or new tab
+      const width = 600;
+      const height = 700;
+      const left = (window.innerWidth - width) / 2;
+      const top = (window.innerHeight - height) / 2;
+      
+      const authWindow = window.open(
+        authUrl,
+        'qbo-auth',
+        `width=${width},height=${height},top=${top},left=${left}`
+      );
+      
+      if (!authWindow) {
+        toast({
+          title: 'Popup Blocked',
+          description: 'Please allow popups for this site to connect to QuickBooks.',
+          variant: 'destructive'
+        });
+        return { success: false, error: 'Popup blocked' };
+      }
+      
+      return { success: true };
+    } catch (err) {
+      console.error("Error starting QBO auth flow:", err);
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      };
+    }
   }
   
   /**
-   * Handle the OAuth callback and exchange code for tokens
+   * Handle callback from QBO OAuth
    */
   async handleCallback(code: string, state: string): Promise<{
     success: boolean;
-    companyId?: string;
     companyName?: string;
+    companyId?: string;
     error?: string;
   }> {
-    // This is now handled by AuthKit
-    return { success: true };
+    try {
+      // The token exchange and database updates are now handled by the edge function
+      // This method is now just a handler for the frontend callback page
+      console.log("QBO OAuth callback received with code and state", { code: !!code, state: !!state });
+      
+      if (!code || !state) {
+        return { 
+          success: false, 
+          error: 'Missing required parameters' 
+        };
+      }
+      
+      // Get current connection to see if it was successfully created/updated
+      const { data: connection, error } = await supabase
+        .from('qbo_connections')
+        .select('*')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+      
+      if (error || !connection) {
+        return { 
+          success: false, 
+          error: `Connection not found after callback: ${error?.message || 'No data'}` 
+        };
+      }
+      
+      return {
+        success: true,
+        companyName: connection.company_name,
+        companyId: connection.company_id
+      };
+    } catch (err) {
+      console.error("Error handling QBO callback:", err);
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      };
+    }
   }
   
   /**
-   * Exchange code for token (used by tokenManager)
+   * Test the QBO connection
+   */
+  async testConnection(): Promise<{
+    success: boolean;
+    companyName?: string;
+    error?: string;
+  }> {
+    try {
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return { success: false, error: "User must be logged in to test QBO connection" };
+      }
+      
+      // Call the test connection edge function
+      const { data, error } = await supabase.functions.invoke('qbo-test-connection', {
+        body: { userId: user.id }
+      });
+      
+      if (error || !data.success) {
+        return { 
+          success: false, 
+          error: error?.message || data?.error || 'Unknown error'
+        };
+      }
+      
+      return {
+        success: true,
+        companyName: data.companyInfo?.CompanyName
+      };
+    } catch (err) {
+      console.error("Error testing QBO connection:", err);
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      };
+    }
+  }
+  
+  /**
+   * Disconnect from QBO
+   */
+  async disconnect(): Promise<{
+    success: boolean;
+    error?: string;
+  }> {
+    try {
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        return { success: false, error: "User must be logged in to disconnect from QBO" };
+      }
+      
+      // Delete the connection from the database
+      const { error } = await supabase
+        .from('qbo_connections')
+        .delete()
+        .eq('user_id', user.id);
+      
+      if (error) {
+        throw new Error(`Failed to delete QBO connection: ${error.message}`);
+      }
+      
+      return { success: true };
+    } catch (err) {
+      console.error("Error disconnecting from QBO:", err);
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      };
+    }
+  }
+
+  /**
+   * Exchange code for token - used by tokenManager
    */
   async exchangeCodeForToken(code: string, redirectUri: string): Promise<any> {
     try {
-      const { data, error } = await supabase.functions.invoke('qbo-token-exchange', {
+      // Call the edge function to exchange the code for tokens
+      const { data, error } = await supabase.functions.invoke('qbo-token', {
         body: { code, redirectUri }
       });
       
@@ -62,33 +271,21 @@ export class QBOAuthService {
       }
       
       return { success: true, data };
-    } catch (error) {
-      console.error("Error in exchangeCodeForToken:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      return { success: false, error: errorMessage };
+    } catch (err) {
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      };
     }
   }
   
   /**
-   * Get current user's QBO connection
-   */
-  async getConnection() {
-    return this.connectionService.getConnection();
-  }
-  
-  /**
-   * Get company info from QBO
-   */
-  async getCompanyInfo(accessToken: string, realmId: string) {
-    return this.companyService.getCompanyInfo(accessToken, realmId);
-  }
-  
-  /**
-   * Refresh token
+   * Refresh token - used by tokenManager
    */
   async refreshToken(refreshToken: string): Promise<any> {
     try {
-      const { data, error } = await supabase.functions.invoke('qbo-token-refresh', {
+      // Call the edge function to refresh the token
+      const { data, error } = await supabase.functions.invoke('qbo-refresh', {
         body: { refreshToken }
       });
       
@@ -97,37 +294,11 @@ export class QBOAuthService {
       }
       
       return { success: true, data };
-    } catch (error) {
-      console.error("Error in refreshToken:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      return { success: false, error: errorMessage };
-    }
-  }
-  
-  /**
-   * Disconnect from QBO
-   */
-  async disconnect(): Promise<boolean> {
-    try {
-      const connection = await this.connectionService.getConnection();
-      
-      if (!connection) {
-        return true;
-      }
-      
-      const { error } = await supabase
-        .from('qbo_connections')
-        .delete()
-        .eq('id', connection.id);
-        
-      if (error) {
-        throw error;
-      }
-      
-      return true;
-    } catch (error) {
-      console.error("Error disconnecting from QBO:", error);
-      return false;
+    } catch (err) {
+      return { 
+        success: false, 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      };
     }
   }
 }

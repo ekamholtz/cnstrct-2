@@ -12,6 +12,15 @@ import { QBODiagnosticInfo } from "./qbo/QBODiagnosticInfo";
 import { QBOErrorBoundary } from "@/components/error/QBOErrorBoundary";
 import { useToast } from "@/components/ui/use-toast";
 
+// Define a safe version for display/props without sensitive data
+interface DisplayQBOConnection {
+  id: string;
+  company_id: string;
+  company_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export function QBOSettings() {
   const { connection, isLoading, error, connectToQBO, disconnectFromQBO, testConnection } = useQBOConnection();
   const { toast } = useToast();
@@ -47,6 +56,20 @@ export function QBOSettings() {
                        window.location.hostname.includes('.vercel.app') ||
                        window.location.hostname.includes('.lovableproject.com');
   
+  // Create a display-safe connection object without sensitive fields
+  const displayConnection: DisplayQBOConnection | null = connection ? {
+    id: connection.id,
+    company_id: connection.company_id,
+    company_name: connection.company_name,
+    created_at: connection.created_at,
+    updated_at: connection.updated_at
+  } : null;
+  
+  // Modified connectToQBO to return a Promise<boolean>
+  const handleConnectToQBO = async (): Promise<boolean> => {
+    return await connectToQBO();
+  };
+  
   return (
     <QBOErrorBoundary>
       <Card className="w-full">
@@ -70,10 +93,10 @@ export function QBOSettings() {
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          ) : connection ? (
+          ) : displayConnection ? (
             <>
               <QBOConnectionDetails 
-                connection={connection} 
+                connection={displayConnection} 
                 isSandboxMode={isSandboxMode} 
               />
               <QBOSyncInformation />
@@ -90,8 +113,8 @@ export function QBOSettings() {
         <CardFooter className="flex justify-end">
           {!isLoading && (
             <QBOConnectionActions 
-              connection={connection}
-              connectToQBO={connectToQBO}
+              connection={displayConnection}
+              connectToQBO={handleConnectToQBO}
               disconnectFromQBO={disconnectFromQBO}
               testConnection={testConnection}
               isSandboxMode={isSandboxMode}
